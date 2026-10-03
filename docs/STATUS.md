@@ -57,5 +57,5 @@
 - The price PIN is checked by the server, with the same 5 tries / 60-second wait; the prototype kept it in the browser.
 - Prices are worked out with exact decimal maths, so a few prototype results that were off by 1 paisa (computer rounding) are now exact.
 
-### Questions for the owner
-- **New price list:** in the prototype's final version this button always says "Prices are locked", because the only way to unlock is Price Setup, which then covers the button. Should entering the PIN open "New price list"? (Until decided it behaves like the prototype.)
+### Owner decisions (4 Oct 2026)
+- **New price list** asks for the price PIN and then opens (in the prototype it could no longer be reached). Prices lock again when it closes; the server checks the PIN too.

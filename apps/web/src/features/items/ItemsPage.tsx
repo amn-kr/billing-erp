@@ -37,6 +37,8 @@ export interface Item {
   stock: string | null;
   level: 'ok' | 'low' | 'out';
   createdAt: string;
+  /** the item's id in the old app's backup, when imported */
+  legacyId?: string | null;
 }
 
 interface Movement { id: string; date: string; kind: string; qty: string; rate: string; note: string; ref: string; createdAt: string }

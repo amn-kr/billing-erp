@@ -371,5 +371,47 @@ for (const width of WIDTHS) {
       expect(ae.name).toBe(pe.name);
       expect(await cells(ae.path)).toEqual(await cells(pe.path));
     });
+
+    test('New price list opens after the price PIN', async ({ browser, request }) => {
+      test.setTimeout(180_000);
+      const proto = await newPage(browser, width);
+      const app = await newPage(browser, width);
+      await prototypeWithBackup(proto, 'sample-shop');
+      await openPrototypeView(proto, 'prices');
+      await signInAs(app, await freshShop(request, 'sample-shop', { includeSample: true }));
+      await app.goto(APP + '/prices');
+      await app.waitForSelector('#pmRows tr td.pmv');
+      const both = async (fn: (p: Page) => Promise<unknown>) => { for (const p of [proto, app]) await fn(p); };
+      const settle = async () => { await both((p) => p.mouse.move(0, 0)); await app.waitForTimeout(300); await proto.waitForTimeout(150); };
+      // the rebuild asks for the PIN first (owner's choice); the prototype is opened the way its own screenshots were
+      await app.click('#pmNewPl');
+      await app.locator('#plkPin').pressSequentially('2468');
+      await app.locator('#plkPin2').pressSequentially('2468');
+      await app.waitForSelector('#plm:not([hidden]) #plGroups label');
+      await proto.evaluate("PLK.locked=false;rerenderPriceViews();$('plNew').click()");
+      await both((p) => p.waitForFunction(() => !document.getElementById('toast')?.classList.contains('on'), null, { timeout: 10_000 }));
+      await settle();
+      await sameShot(`plm-${width}`, proto, app, '#plm .mdl');
+      await both((p) => p.click('#plm [type="submit"]'));
+      await settle();
+      await sameShot(`plm-error-${width}`, proto, app, '#plm .mdl');
+      await both((p) => p.fill('#plName', 'Dealer price'));
+      await both((p) => p.selectOption('#plRule', 'mark'));
+      await both((p) => p.fill('#plVal', '20'));
+      await both((p) => p.locator('#plVal').dispatchEvent('input'));
+      await both((p) => p.click('#plGroups label:nth-child(2)'));
+      await settle();
+      await sameShot(`plm-filled-${width}`, proto, app, '#plm .mdl');
+      await both((p) => p.click('#plm [type="submit"]'));
+      await app.waitForSelector('#plm', { state: 'hidden' });
+      await expect(app.locator('#toast')).toHaveText(await proto.locator('#toast').innerText());
+      await app.waitForSelector('#pmHead th:has-text("Dealer price")');
+      // the rebuild locks prices again when the window closes; do the same in the prototype
+      await proto.evaluate("PLK.locked=true;rerenderPriceViews()");
+      await both((p) => p.waitForFunction(() => !document.getElementById('toast')?.classList.contains('on'), null, { timeout: 10_000 }));
+      await settle();
+      await sameShot(`prices-newpl-${width}`, proto, app, '#vPrices .pthd');
+      await sameShot(`prices-newpl-head-${width}`, proto, app, '#pmHead');
+    });
   });
 }

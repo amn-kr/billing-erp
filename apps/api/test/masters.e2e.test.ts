@@ -145,11 +145,13 @@ describe('price lists and prices', () => {
     expect(prices.body.items[0].lists[wholesale.id]).toEqual({ price: '1720.00', fixed: true });
     await http().put(`/api/price-lists/${wholesale.id}/items/${it.body.id}`).set(auth(o)).send({ price: null, pin: '2468' }).expect(204);
 
-    const cost = await http().post('/api/price-lists').set(auth(o)).send({ name: 'Project rate', rule: 'mark', value: 12, roundTo: 10, groups: ['Contractors'] }).expect(201);
+    const cost = await http().post('/api/price-lists').set(auth(o)).send({ name: 'Project rate', rule: 'mark', value: 12, roundTo: 10, groups: ['Contractors'], pin: '2468' }).expect(201);
     expect(cost.body).toMatchObject({ groups: ['Contractors'], active: true });
     prices = await http().get('/api/prices').set(auth(o)).expect(200);
     expect(prices.body.items[0].lists[cost.body.id].price).toBe('1750.00');
-    await http().post('/api/price-lists').set(auth(o)).send({ name: 'project rate', rule: 'disc', value: 1 }).expect(409);
+    await http().post('/api/price-lists').set(auth(o)).send({ name: 'project rate', rule: 'disc', value: 1, pin: '2468' }).expect(409);
+    await http().post('/api/price-lists').set(auth(o)).send({ name: 'No PIN', rule: 'disc', value: 1 }).expect(400);
+    await http().post('/api/price-lists').set(auth(o)).send({ name: 'Wrong PIN', rule: 'disc', value: 1, pin: '0000' }).expect(400);
     const retail = lists.body.find((l: { isDefault: boolean }) => l.isDefault);
     expect((await http().patch(`/api/price-lists/${retail.id}`).set(auth(o)).send({ active: false }).expect(400)).body.message).toMatch(/can’t be switched off/);
 

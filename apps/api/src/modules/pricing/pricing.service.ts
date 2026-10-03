@@ -66,10 +66,11 @@ export class PricingService {
     }
   }
 
-  async createList(ctx: RequestContext, input: PriceListInput) {
+  async createList(ctx: RequestContext, input: PriceListInput, pin: string) {
+    await this.checkPin(ctx, pin);
     try {
       return await this.db.scoped(this.scope(ctx), async (tx) => {
-        const pl = await tx.priceList.create({ data: { businessId: ctx.businessId!, createdBy: ctx.userId, name: input.name, rule: input.rule, value: String(input.value), roundTo: String(input.roundTo) } });
+        const pl = await tx.priceList.create({ data: { businessId: ctx.businessId!, createdBy: ctx.userId, name: input.name.trim(), rule: input.rule, value: String(input.value), roundTo: String(input.roundTo) } });
         await this.setGroups(tx, ctx, pl.id, input.groups);
         await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'create', entity: 'price_list', entityId: pl.id, after: input, ip: ctx.ip });
         return (await this.lists(tx)).find((l) => l.id === pl.id)!;

@@ -6,6 +6,7 @@ import { ZodPipe } from '../../common/zod.pipe';
 import type { RequestContext } from '../../common/context';
 import { PricingService } from './pricing.service';
 
+const listCreate = priceListSchema.extend({ pin: pinSchema });
 const listUpdate = priceListSchema.partial().extend({ active: z.boolean().optional() });
 const fixedSchema = z.object({ price: z.union([z.null(), z.coerce.number().min(0).max(999_999_999_999)]), pin: pinSchema });
 const setPinSchema = z.object({ pin: pinSchema, currentPin: pinSchema.optional() });
@@ -23,8 +24,8 @@ export class PricingController {
 
   @RequirePermission('masters.manage')
   @Post('price-lists')
-  create(@Ctx() ctx: RequestContext, @Body(new ZodPipe(priceListSchema)) body: PriceListInput) {
-    return this.pricing.createList(ctx, body);
+  create(@Ctx() ctx: RequestContext, @Body(new ZodPipe(listCreate)) body: z.infer<typeof listCreate>) {
+    return this.pricing.createList(ctx, body, body.pin);
   }
 
   @RequirePermission('masters.manage')

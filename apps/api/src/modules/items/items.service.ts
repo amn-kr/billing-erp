@@ -21,7 +21,7 @@ export function itemView(i: Row, stock: Prisma.Decimal | string | null) {
     stock: st,
     /** ok | low (at or below minimum) | out (none left) — prototype lvl() */
     level: st === null ? 'ok' : money(st).lte(0) ? 'out' : min.gt(0) && money(st).lt(min) ? 'low' : 'ok',
-    archived: !!i.archivedAt, createdAt: i.createdAt,
+    archived: !!i.archivedAt, createdAt: i.createdAt, legacyId: i.legacyId,
   };
 }
 

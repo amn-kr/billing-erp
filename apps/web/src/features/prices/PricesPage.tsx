@@ -15,6 +15,7 @@ import { HistoryDialog } from './HistoryDialog';
 import { PinDialog } from './PinDialog';
 import { PreviewDialog, type Preview } from './PreviewDialog';
 import { PriceSetup } from './PriceSetup';
+import { NewPriceList } from './NewPriceList';
 import { RateList, useRl } from './RateList';
 import { readCsv, readXlsx, saveFile, xlsxBlob } from '../../lib/files';
 import { today } from '../../lib/time';
@@ -53,6 +54,9 @@ export function PricesPage() {
   const [setupOpen, setSetupOpen] = useState(false);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [rateOpen, setRateOpen] = useState(false);
+  const [plOpen, setPlOpen] = useState(false);
+  /** what the PIN unlocks: Price Setup, or New price list (owner's choice, 4 Oct 2026) */
+  const pinFor = useRef<'setup' | 'newpl'>('setup');
   const fileRef = useRef<HTMLInputElement>(null);
   const tabRef = useRef<HTMLTableElement>(null);
   const twRef = useRef<HTMLDivElement>(null);
@@ -89,7 +93,10 @@ export function PricesPage() {
     return <td className={`n pmv ${f === 'purch' ? 'fx' : ''} ${ov ? 'povr' : ''} ${cls}`} key={f}>{v ? inr2f(v) : '—'}</td>;
   };
   const th = (lb: string, rs?: boolean) => <th className="n" rowSpan={rs ? 2 : undefined}><span className="thw">{lb}</span></th>;
-  const openSetup = () => (locked ? setPinOpen(true) : setSetupOpen(true));
+  const openSetup = () => { pinFor.current = 'setup'; if (locked) setPinOpen(true); else setSetupOpen(true); };
+  const openNewPl = () => { pinFor.current = 'newpl'; if (locked) setPinOpen(true); else setPlOpen(true); };
+  // the old app's example item (its sample LED bulb), else the first item with both prices
+  const exampleId = (IT.find((i) => i.legacy === 'i2') ?? IT.find((i) => !i.svc && i.sale > 0 && i.purch > 0))?.id ?? null;
   const showPreview = (changes: Change[], how: string, note: ReactNode, after?: () => void) => setPreview({ changes, how, note, after });
   /** prototype: sale prices follow the saved brand rules when an LP or purchase price changes */
   const follow = (applied: Change[]) => {
@@ -156,7 +163,7 @@ export function PricesPage() {
         <button className="btn" id="pmHist" onClick={() => setHist(true)} title="History" aria-label="History"><RawIcon d={HIST} />History</button>
         <button className="btn" id="pmImport" disabled={locked} onClick={() => fileRef.current?.click()}><RawIcon d={UP} />Import Excel</button><input type="file" id="pmFile" accept=".xlsx,.csv" hidden ref={fileRef} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void importFile(f); }} />
         <button className="btn" id="pmExport" onClick={exportXlsx}><RawIcon d={DOWN} />Export Excel</button>
-        <button className="btn" id="pmNewPl" onClick={() => (locked ? nudgeLock() : showToast('New price list'))}><RawIcon d={PLUS} />New price list</button><button className="btn p" id="pmRate" onClick={() => { useRl.getState().set({ pick: null, brands: null }); setRateOpen(true); }}><RawIcon d={DOWN} />Download rate list</button></div>
+        <button className="btn" id="pmNewPl" onClick={openNewPl}><RawIcon d={PLUS} />New price list</button><button className="btn p" id="pmRate" onClick={() => { useRl.getState().set({ pick: null, brands: null }); setRateOpen(true); }}><RawIcon d={DOWN} />Download rate list</button></div>
       <div className="card ptxc">
         <div className="ptfil" style={{ padding: '14px 16px', alignItems: 'center' }}><h3 className="pmvt"><RawIcon d={VIEW} />Price View</h3><label className="search" htmlFor="pmQ" style={{ maxWidth: 300, height: 36 }}><RawIcon d={SEARCH} /><input id="pmQ" placeholder="Search item or code" autoComplete="off" value={q} onChange={(e) => { usePm.getState().set({ hint: 'view' }); setQ(e.target.value) }} /></label>
           <select className="fi" id="pmCat" aria-label="Category" value={cat} onChange={(e) => { usePm.getState().set({ hint: 'view' }); setCat(e.target.value) }}><option value="all">All categories</option>{cats.map((c) => <option key={c}>{c}</option>)}</select><select className="fi" id="pmBrand" aria-label="Brand" value={brand} onChange={(e) => { usePm.getState().set({ hint: 'view' }); setBrand(e.target.value) }}><option value="all">All brands</option>{brands.map((b) => <option key={b}>{b}</option>)}</select>
@@ -175,8 +182,9 @@ export function PricesPage() {
           </tbody></table></div>
       </div>
       <HistoryDialog open={hist} fname={data.fname} onClose={() => setHist(false)} />
-      <PinDialog open={pinOpen} onClose={() => setPinOpen(false)} onUnlocked={() => { usePm.getState().set({ hint: 'unlocked' }); setPinOpen(false); setSetupOpen(true); }} />
+      <PinDialog open={pinOpen} onClose={() => setPinOpen(false)} onUnlocked={() => { usePm.getState().set({ hint: 'unlocked' }); setPinOpen(false); if (pinFor.current === 'newpl') setPlOpen(true); else setSetupOpen(true); }} />
       <PriceSetup open={setupOpen} data={data} onPreview={showPreview} previewOpen={!!preview} onClose={() => { setSetupOpen(false); usePm.getState().set({ pin: null, hint: 'locked' }); showToast('Price Setup closed · prices locked'); }} />
+      <NewPriceList open={plOpen} data={data} exampleId={exampleId} onClose={() => { setPlOpen(false); usePm.getState().set({ pin: null, hint: 'locked' }); }} />
       <RateList open={rateOpen} data={data} onClose={() => setRateOpen(false)} />
       <PreviewDialog preview={preview} data={data} mrpOn={mrpOn} onClose={() => setPreview(null)} onApplied={follow} />
     </section>
