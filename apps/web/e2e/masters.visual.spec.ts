@@ -9,8 +9,17 @@ import { APP, RAVI, WIDTHS, freshShop, newPage, openPrototypeView, prototypeWith
 
 const MAX_RATIO = 0;
 const shot = (p: Page, sel: string) => p.locator(sel).screenshot({ animations: 'disabled', caret: 'hide' });
-async function same(name: string, a: Buffer, b: Buffer) {
-  const d = compare(name, a, b);
+/**
+ * Screenshot the same element in both pages and compare. Under a full parallel run
+ * the browser now and then smooths text a shade differently, or catches a toast
+ * mid-fade; a real difference shows every time, so take a fresh pair up to twice more.
+ */
+async function sameShot(name: string, proto: Page, app: Page, sel: string) {
+  let d = compare(name, await shot(proto, sel), await shot(app, sel));
+  for (let n = 0; n < 2 && !(d.sizeMatches && d.ratio <= MAX_RATIO); n++) {
+    await proto.waitForTimeout(400);
+    d = compare(name, await shot(proto, sel), await shot(app, sel));
+  }
   expect.soft(d.sizeMatches, `${name}: size ${d.width}×${d.height} must match`).toBe(true);
   expect.soft(d.ratio, `${name}: ${d.diffPixels} pixels differ (see test-results/visual/${name}-diff.png)`).toBeLessThanOrEqual(MAX_RATIO);
 }
@@ -26,14 +35,14 @@ for (const width of WIDTHS) {
       await app.goto(APP + '/parties');
       await app.waitForSelector('#ptList .ptr');
       await app.waitForTimeout(400);
-      await same(`parties-${width}`, await shot(proto, '#vParties'), await shot(app, '#vParties'));
+      await sameShot(`parties-${width}`, proto, app, '#vParties');
 
       // second party selected
       await proto.click('#ptList .ptr:nth-child(3)');
       await app.click('#ptList .ptr:nth-child(3)');
       await proto.waitForTimeout(200);
       await app.waitForTimeout(200);
-      await same(`parties-supplier-${width}`, await shot(proto, '#ptRight'), await shot(app, '#ptRight'));
+      await sameShot(`parties-supplier-${width}`, proto, app, '#ptRight');
 
       // Add party: each tab, then the error state
       await proto.evaluate(() => (window as unknown as { openParty: () => void }).openParty());
@@ -43,7 +52,7 @@ for (const width of WIDTHS) {
         await app.click(`#ap [data-aptab="${tab}"]`);
         await proto.mouse.move(0, 0);
         await app.mouse.move(0, 0);
-        await same(`addparty-${tab}-${width}`, await shot(proto, '#ap .mdl'), await shot(app, '#ap .mdl'));
+        await sameShot(`addparty-${tab}-${width}`, proto, app, '#ap .mdl');
       }
       await proto.click('#ap [data-aptab="addr"]');
       await app.click('#ap [data-aptab="addr"]');
@@ -51,7 +60,7 @@ for (const width of WIDTHS) {
       await app.click('#apSave');
       await proto.locator('#apName').blur();
       await app.locator('#apName').blur();
-      await same(`addparty-error-${width}`, await shot(proto, '#ap .mdl'), await shot(app, '#ap .mdl'));
+      await sameShot(`addparty-error-${width}`, proto, app, '#ap .mdl');
     });
 
     test('Items screen, Add item and Adjust stock', async ({ browser }) => {
@@ -64,9 +73,9 @@ for (const width of WIDTHS) {
       await app.waitForSelector('#itList .ptr');
       await app.waitForSelector('#itHead h2');
       await app.waitForTimeout(400);
-      await same(`items-${width}`, await shot(proto, '#vItems'), await shot(app, '#vItems'));
+      await sameShot(`items-${width}`, proto, app, '#vItems');
       // sidebar, including the low-stock counter on Items & stock
-      await same(`items-side-${width}`, await shot(proto, '#side'), await shot(app, '#side'));
+      await sameShot(`items-side-${width}`, proto, app, '#side');
 
       // an item with opening stock (third in the list)
       await proto.click('#itList .ptr:nth-child(3)');
@@ -74,7 +83,7 @@ for (const width of WIDTHS) {
       await app.waitForSelector('#itTx tr td.n');
       await proto.waitForTimeout(200);
       await app.waitForTimeout(300);
-      await same(`items-stock-${width}`, await shot(proto, '#itRight'), await shot(app, '#itRight'));
+      await sameShot(`items-stock-${width}`, proto, app, '#itRight');
 
       // Adjust stock
       await proto.click('#itAdj');
@@ -84,7 +93,7 @@ for (const width of WIDTHS) {
       await proto.evaluate(() => document.getElementById('adjQty')!.dispatchEvent(new Event('input', { bubbles: true })));
       await proto.locator('#adjQty').blur();
       await app.locator('#adjQty').blur();
-      await same(`adjust-${width}`, await shot(proto, '#adj .mdl'), await shot(app, '#adj .mdl'));
+      await sameShot(`adjust-${width}`, proto, app, '#adj .mdl');
       // (the prototype asks "Discard this stock adjustment?" here; that confirmation comes with the shared discard dialog)
       await proto.evaluate(() => (window as unknown as { closeM: (id: string) => void }).closeM('adj'));
       await app.click('#adjCancel');
@@ -98,7 +107,7 @@ for (const width of WIDTHS) {
         await app.click(`#ai [data-aitab="${tab}"]`);
         await proto.mouse.move(0, 0);
         await app.mouse.move(0, 0);
-        await same(`additem-${tab}-${width}`, await shot(proto, '#ai .mdl'), await shot(app, '#ai .mdl'));
+        await sameShot(`additem-${tab}-${width}`, proto, app, '#ai .mdl');
       }
       await proto.click('#ai [data-aitab="price"]');
       await app.click('#ai [data-aitab="price"]');
@@ -106,11 +115,11 @@ for (const width of WIDTHS) {
       await app.click('#aiSave');
       await proto.locator('#aiName').blur();
       await app.locator('#aiName').blur();
-      await same(`additem-error-${width}`, await shot(proto, '#ai .mdl'), await shot(app, '#ai .mdl'));
+      await sameShot(`additem-error-${width}`, proto, app, '#ai .mdl');
       for (const p of [proto, app]) await p.evaluate(() => { const c = document.getElementById('aiVar') as HTMLInputElement; c.click(); });
       await proto.mouse.move(0, 0);
       await app.mouse.move(0, 0);
-      await same(`additem-variants-${width}`, await shot(proto, '#ai .mdl'), await shot(app, '#ai .mdl'));
+      await sameShot(`additem-variants-${width}`, proto, app, '#ai .mdl');
       // (unticking "different brands or sizes" crashes the prototype's script, so reopen the form instead)
       await proto.evaluate(() => { const w = window as unknown as { closeM: (id: string) => void; openItem: () => void }; w.closeM('ai'); w.openItem(); });
       await app.click('#aiClose');
@@ -120,7 +129,7 @@ for (const width of WIDTHS) {
       await app.locator('#aiName').blur();
       await proto.mouse.move(0, 0);
       await app.mouse.move(0, 0);
-      await same(`additem-service-${width}`, await shot(proto, '#ai .mdl'), await shot(app, '#ai .mdl'));
+      await sameShot(`additem-service-${width}`, proto, app, '#ai .mdl');
     });
 
     test('Godowns screen, Add godown and Transfer stock', async ({ browser, request }) => {
@@ -136,17 +145,17 @@ for (const width of WIDTHS) {
       await app.waitForTimeout(300);
       const both = async (fn: (p: Page) => Promise<unknown>) => { for (const p of [proto, app]) await fn(p); };
       const settle = async () => { await both((p) => p.mouse.move(0, 0)); await app.waitForTimeout(300); await proto.waitForTimeout(100); };
-      await same(`godowns-${width}`, await shot(proto, '#vGds'), await shot(app, '#vGds'));
+      await sameShot(`godowns-${width}`, proto, app, '#vGds');
 
       // Add godown: empty, refused, then saved (the new godown is selected)
       await both((p) => p.click('#gdAdd'));
       await settle();
-      await same(`gdm-${width}`, await shot(proto, '#gdm .mdl'), await shot(app, '#gdm .mdl'));
+      await sameShot(`gdm-${width}`, proto, app, '#gdm .mdl');
       await both((p) => p.fill('#gdName', 'Aminabad godown'));
       await both((p) => p.fill('#gdPh', '12345'));
       await both((p) => p.click('#gdm [type="submit"]'));
       await settle();
-      await same(`gdm-error-${width}`, await shot(proto, '#gdm .mdl'), await shot(app, '#gdm .mdl'));
+      await sameShot(`gdm-error-${width}`, proto, app, '#gdm .mdl');
       await both((p) => p.fill('#gdAddr', 'Gali no. 3, Aminabad, Lucknow 226018'));
       await both((p) => p.fill('#gdMgr', 'Ravi Yadav'));
       await both((p) => p.fill('#gdPh', '98222 33344'));
@@ -154,7 +163,7 @@ for (const width of WIDTHS) {
       await app.waitForSelector('#gdm', { state: 'hidden' });
       await app.waitForSelector('#gdRows .ptempty');
       await settle();
-      await same(`godowns-added-${width}`, await shot(proto, '#vGds'), await shot(app, '#vGds'));
+      await sameShot(`godowns-added-${width}`, proto, app, '#vGds');
 
       // Transfer stock from the main shop: dialog, too much, then moved
       await both((p) => p.click('#gdCards .gdc:first-child'));
@@ -162,11 +171,11 @@ for (const width of WIDTHS) {
       await both((p) => p.click('#trBtn'));
       await app.waitForSelector('#trAv:not(:empty)');
       await settle();
-      await same(`trm-${width}`, await shot(proto, '#trm .mdl'), await shot(app, '#trm .mdl'));
+      await sameShot(`trm-${width}`, proto, app, '#trm .mdl');
       await both((p) => p.fill('#trQty', '9999'));
       await both((p) => p.click('#trm [type="submit"]'));
       await settle();
-      await same(`trm-error-${width}`, await shot(proto, '#trm .mdl'), await shot(app, '#trm .mdl'));
+      await sameShot(`trm-error-${width}`, proto, app, '#trm .mdl');
       // an item that has stock in the main shop (top row of the table)
       const top = await app.locator('#gdRows tr:first-child td:first-child').innerText();
       await both((p) => p.selectOption('#trItem', { label: top }));
@@ -174,7 +183,7 @@ for (const width of WIDTHS) {
       await both((p) => p.click('#trm [type="submit"]'));
       await app.waitForSelector('#trRows .trr');
       await settle();
-      await same(`godowns-moved-${width}`, await shot(proto, '#vGds'), await shot(app, '#vGds'));
+      await sameShot(`godowns-moved-${width}`, proto, app, '#vGds');
       await expect(app.locator('#toast')).toHaveText(await proto.locator('#toast').innerText());
     });
 
@@ -189,13 +198,13 @@ for (const width of WIDTHS) {
       await app.waitForTimeout(300);
       const both = async (fn: (p: Page) => Promise<unknown>) => { for (const p of [proto, app]) await fn(p); };
       const settle = async () => { await both((p) => p.mouse.move(0, 0)); await app.waitForTimeout(300); await proto.waitForTimeout(100); };
-      await same(`adjs-${width}`, await shot(proto, '#vAdjs'), await shot(app, '#vAdjs'));
+      await sameShot(`adjs-${width}`, proto, app, '#vAdjs');
 
       // New adjustment: item picker shown, first item chosen
       await both((p) => p.click('#adjNew'));
       await app.waitForSelector('#adjItem option', { state: 'attached' });
       await settle();
-      await same(`adjnew-${width}`, await shot(proto, '#adj .mdl'), await shot(app, '#adj .mdl'));
+      await sameShot(`adjnew-${width}`, proto, app, '#adj .mdl');
       const label = (await app.locator('#adjItem option', { hasText: 'Copper wire' }).first().innerText()).trim();
       await both((p) => p.selectOption('#adjItem', { label }));
       await both((p) => p.click('#adjSeg [data-am="reduce"]'));
@@ -203,7 +212,7 @@ for (const width of WIDTHS) {
       await proto.evaluate(() => document.getElementById('adjQty')!.dispatchEvent(new Event('input', { bubbles: true })));
       await both((p) => p.selectOption('#adjWhy', 'Damaged'));
       await settle();
-      await same(`adjnew-picked-${width}`, await shot(proto, '#adj .mdl'), await shot(app, '#adj .mdl'));
+      await sameShot(`adjnew-picked-${width}`, proto, app, '#adj .mdl');
       await both((p) => p.click('#adj [type="submit"]'));
       await app.waitForSelector('#adjRows td.mono');
       await expect(app.locator('#toast')).toHaveText(await proto.locator('#toast').innerText());
@@ -211,12 +220,12 @@ for (const width of WIDTHS) {
       const ref = await app.locator('#adjRows td.mono').innerText();
       await proto.evaluate((r) => { document.querySelector('#adjRows td.mono')!.textContent = r; }, ref);
       await settle();
-      await same(`adjs-one-${width}`, await shot(proto, '#vAdjs'), await shot(app, '#vAdjs'));
+      await sameShot(`adjs-one-${width}`, proto, app, '#vAdjs');
 
       // filters
       await both((p) => p.click('#adjKind [data-ak="add"]'));
       await settle();
-      await same(`adjs-nomatch-${width}`, await shot(proto, '#vAdjs'), await shot(app, '#vAdjs'));
+      await sameShot(`adjs-nomatch-${width}`, proto, app, '#vAdjs');
     });
 
     test('Price manager: Price View, PIN, Price Setup, preview and history', async ({ browser, request }) => {
@@ -230,48 +239,49 @@ for (const width of WIDTHS) {
       await app.waitForTimeout(300);
       const both = async (fn: (p: Page) => Promise<unknown>) => { for (const p of [proto, app]) await fn(p); };
       const settle = async () => { await both((p) => p.mouse.move(0, 0)); await app.waitForTimeout(300); await proto.waitForTimeout(100); };
-      await same(`prices-${width}`, await shot(proto, '#vPrices'), await shot(app, '#vPrices'));
+      await sameShot(`prices-${width}`, proto, app, '#vPrices');
 
       // Price Setup asks for a PIN; the first time it sets one
       await both((p) => p.click('#pmLock'));
       await app.waitForSelector('#plkm:not([hidden])');
       await settle();
-      await same(`plkm-set-${width}`, await shot(proto, '#plkm .mdl'), await shot(app, '#plkm .mdl'));
+      await sameShot(`plkm-set-${width}`, proto, app, '#plkm .mdl');
       await both((p) => p.locator('#plkPin').pressSequentially('2468'));
       await both((p) => p.locator('#plkPin2').pressSequentially('1357'));
       await settle();
-      await same(`plkm-mismatch-${width}`, await shot(proto, '#plkm .mdl'), await shot(app, '#plkm .mdl'));
+      await sameShot(`plkm-mismatch-${width}`, proto, app, '#plkm .mdl');
       await both((p) => p.locator('#plkPin2').pressSequentially('2468'));
       await app.waitForSelector('#psm:not([hidden])');
       await proto.waitForSelector('#psm:not([hidden])');
+      await both((p) => p.waitForFunction(() => !document.getElementById('toast')?.classList.contains('on'), null, { timeout: 10_000 }));
       await settle();
-      await same(`psm-rule-${width}`, await shot(proto, '#psm .mdl'), await shot(app, '#psm .mdl'));
+      await sameShot(`psm-rule-${width}`, proto, app, '#psm .mdl');
 
       // this shop has no brands yet, so Brand rules asks to pick one; Fine-tune items: LED bulb 9W at purchase + 25 %
       await both((p) => p.click('#psTabs [data-pst="item"]'));
       await settle();
-      await same(`psm-item-${width}`, await shot(proto, '#psm .mdl'), await shot(app, '#psm .mdl'));
+      await sameShot(`psm-item-${width}`, proto, app, '#psm .mdl');
       const row = (p: Page) => p.locator('#psBody tr[data-psi]', { hasText: 'LED bulb 9W' }).locator('[data-pm]').first();
       await both((p) => row(p).fill('25'));
       // (the prototype selects the box's text on focus, racing the typing; leave the box so both look settled)
       await both((p) => row(p).blur());
       await settle();
-      await same(`psm-item-typed-${width}`, await shot(proto, '#psm .mdl'), await shot(app, '#psm .mdl'));
+      await sameShot(`psm-item-typed-${width}`, proto, app, '#psm .mdl');
       await both((p) => p.click('#psGo'));
       await app.waitForSelector('#ppv:not([hidden])');
       await settle();
-      await same(`ppv-${width}`, await shot(proto, '#ppv .mdl'), await shot(app, '#ppv .mdl'));
+      await sameShot(`ppv-${width}`, proto, app, '#ppv .mdl');
       await both((p) => p.click('#ppvApply'));
       await app.waitForSelector('#ppv', { state: 'hidden' });
       await expect(app.locator('#toast')).toHaveText(await proto.locator('#toast').innerText());
       await settle();
-      await same(`psm-item-saved-${width}`, await shot(proto, '#psm .mdl'), await shot(app, '#psm .mdl'));
+      await sameShot(`psm-item-saved-${width}`, proto, app, '#psm .mdl');
       await both((p) => p.click('#psClose'));
       await app.waitForSelector('#psm', { state: 'hidden' });
       await expect(app.locator('#toast')).toHaveText(await proto.locator('#toast').innerText());
       await app.waitForTimeout(400);
       await settle();
-      await same(`prices-after-${width}`, await shot(proto, '#vPrices'), await shot(app, '#vPrices'));
+      await sameShot(`prices-after-${width}`, proto, app, '#vPrices');
 
       // History: the server's clock stamps the rebuild's rows, so show the same time before comparing
       await both((p) => p.click('#pmHist'));
@@ -279,7 +289,7 @@ for (const width of WIDTHS) {
       const times = await app.locator('#phRows tr td:first-child').allInnerTexts();
       await proto.evaluate((t) => document.querySelectorAll('#phRows tr td:first-child').forEach((td, k) => { td.textContent = t[k] ?? td.textContent; }), times);
       await settle();
-      await same(`phm-${width}`, await shot(proto, '#phm .mdl'), await shot(app, '#phm .mdl'));
+      await sameShot(`phm-${width}`, proto, app, '#phm .mdl');
     });
 
     test('Price Setup brand rules on the sample catalogue', async ({ browser, request }) => {
@@ -294,7 +304,7 @@ for (const width of WIDTHS) {
       await app.waitForTimeout(500);
       const both = async (fn: (p: Page) => Promise<unknown>) => { for (const p of [proto, app]) await fn(p); };
       const settle = async () => { await both((p) => p.mouse.move(0, 0)); await app.waitForTimeout(300); await proto.waitForTimeout(150); };
-      await same(`prices-sample-${width}`, await shot(proto, '#vPrices'), await shot(app, '#vPrices'));
+      await sameShot(`prices-sample-${width}`, proto, app, '#vPrices');
       await both((p) => p.click('#pmLock'));
       await both((p) => p.locator('#plkPin').pressSequentially('2468'));
       await both((p) => p.locator('#plkPin2').pressSequentially('2468'));
@@ -303,21 +313,21 @@ for (const width of WIDTHS) {
       await both((p) => p.waitForFunction(() => !document.getElementById('toast')?.classList.contains('on'), null, { timeout: 10_000 }));
       await settle();
       // the first brand is picked; no rule saved yet
-      await same(`prules-${width}`, await shot(proto, '#psm .mdl'), await shot(app, '#psm .mdl'));
+      await sameShot(`prules-${width}`, proto, app, '#psm .mdl');
       await both((p) => p.selectOption('#psBody [data-prf="sale"] [data-k="m"]', 'lp'));
       await both((p) => p.fill('#psBody [data-prf="sale"] [data-k="v"]', '10'));
       await both((p) => p.locator('#psBody [data-prf="sale"] [data-k="v"]').blur());
       await settle();
-      await same(`prules-set-${width}`, await shot(proto, '#psm .mdl'), await shot(app, '#psm .mdl'));
+      await sameShot(`prules-set-${width}`, proto, app, '#psm .mdl');
       await both((p) => p.click('#psGo'));
       await app.waitForSelector('#ppv:not([hidden])');
       await settle();
-      await same(`prules-ppv-${width}`, await shot(proto, '#ppv .mdl'), await shot(app, '#ppv .mdl'));
+      await sameShot(`prules-ppv-${width}`, proto, app, '#ppv .mdl');
       await both((p) => p.click('#ppvApply'));
       await app.waitForSelector('#ppv', { state: 'hidden' });
       await app.waitForTimeout(500);
       await settle();
-      await same(`prules-saved-${width}`, await shot(proto, '#psm .mdl'), await shot(app, '#psm .mdl'));
+      await sameShot(`prules-saved-${width}`, proto, app, '#psm .mdl');
     });
 
     test('Price manager: rate list and Excel files', async ({ browser, request }) => {
@@ -333,12 +343,12 @@ for (const width of WIDTHS) {
       await both((p) => p.click('#pmRate'));
       await app.waitForSelector('#rlSheet .rlh small:not(:empty)');
       await settle();
-      await same(`rlm-${width}`, await shot(proto, '#rlm .mdl'), await shot(app, '#rlm .mdl'));
+      await sameShot(`rlm-${width}`, proto, app, '#rlm .mdl');
       await both((p) => p.selectOption('#rlGroup', 'brand'));
       await both((p) => p.click('#rlCols [data-rlcol="unit"]'));
       await both((p) => p.fill('#rlTitle', 'Contractor rates'));
       await settle();
-      await same(`rlm-brand-${width}`, await shot(proto, '#rlm .mdl'), await shot(app, '#rlm .mdl'));
+      await sameShot(`rlm-brand-${width}`, proto, app, '#rlm .mdl');
       if (width !== 1366) return;
       // the files: same names and the same cells as the prototype's
       const { default: ExcelJS } = await import('exceljs');

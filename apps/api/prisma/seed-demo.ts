@@ -43,6 +43,9 @@ async function main() {
       tx.business.update({ where: { id: b.id }, data: { code: process.env.SEED_BUSINESS_CODE } }),
     );
     b.code = process.env.SEED_BUSINESS_CODE;
+    // move the shop-code counter past the fixed code, so later shops never get it again
+    const want = Number(b.code.replace(/\D/g, ''));
+    for (let v = 0; v < want; ) v = Number((await db.$queryRaw<{ v: bigint }[]>`SELECT nextval('business_code_seq') AS v`)[0]!.v);
   }
   console.log(`Demo shop ${b.name} (${b.code}) — sign in as ${EMAIL}`);
   await db.$disconnect();

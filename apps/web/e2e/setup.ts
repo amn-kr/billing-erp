@@ -106,10 +106,12 @@ let shops = 0;
 export async function freshShop(request: APIRequestContext, fixture?: string, opts: { includeSample?: boolean } = {}): Promise<{ email: string; password: string }> {
   const who = { email: `e2e.${Date.now().toString(36)}.${process.pid}.${++shops}@flows.example.com`, password: 'flows password 1' };
   const reg = await request.post(APP + '/api/auth/register', { data: { ...who, name: fixture ? 'Ravi Gupta' : 'Pooja Verma' } }); // the fixtures' owner
+  if (!reg.ok()) throw new Error(`register failed: ${reg.status()} ${await reg.text()}`);
   const biz = await request.post(APP + '/api/businesses', {
     headers: { Authorization: `Bearer ${(await reg.json()).accessToken}` },
     data: { name: 'Verma Traders', owner: 'Pooja Verma', state: '09', gstin: '09AAGFG2231M1ZQ' },
   });
+  if (!biz.ok()) throw new Error(`creating the shop failed: ${biz.status()} ${await biz.text()}`);
   if (fixture) {
     const fs = await import('node:fs');
     const text = fs.readFileSync(path.join(ROOT, 'packages/importer/fixtures', `${fixture}.backup.json`), 'utf8');
