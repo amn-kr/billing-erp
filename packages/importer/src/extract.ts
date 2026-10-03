@@ -88,6 +88,8 @@ function readBooks(): unknown {
     partyGroups: g('GROUPS').map(str), units: g('UNITS').map(str), categories: g('CATS').map(str), brands: g('BRANDS()').map(str),
     parties, items, priceLists,
     priceHistory: (g('PSTORE').hist || []),
+    priceRules: (() => { try { return JSON.parse(localStorage.getItem('erp-prules') || '{}') || {}; } catch { return {}; } })(),
+    pricePinSet: !!localStorage.getItem('erp-price-pin'),
     godowns: g('GD').map((d: any) => ({ id: str(d.id), name: str(d.name), addr: str(d.addr), manager: str(d.mgr), phone: str(d.ph), isDefault: !!d.def })),
     referrers: g('ELEC').map((e: any) => ({ id: str(e.id), name: str(e.name), phone: str(e.phone), city: str(e.city), partyId: str(e.party) })),
     commissionRules: g('CRULES'),

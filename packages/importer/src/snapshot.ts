@@ -91,6 +91,10 @@ export const snapshotSchema = z.object({
   items: z.array(itemSchema),
   priceLists: z.array(priceListSchema),
   priceHistory: z.array(z.record(z.string(), z.unknown())),
+  /** Price manager › Price setup rules (erp-prules), kept as the prototype stores them */
+  priceRules: z.record(z.string(), z.unknown()),
+  /** a price-lock PIN was set (its hash is not carried over) */
+  pricePinSet: z.boolean(),
   godowns: z.array(z.object({ id: z.string(), name: z.string(), addr: z.string(), manager: z.string(), phone: z.string(), isDefault: z.boolean() })),
   referrers: z.array(z.object({ id: z.string(), name: z.string(), phone: z.string(), city: z.string(), partyId: z.string() })),
   commissionRules: z.record(z.string(), z.object({ t: z.string(), v: num })),

@@ -79,7 +79,7 @@ export class ImportsService {
     const settings = await tx.businessSettings.findUniqueOrThrow({ where: { businessId } });
     await tx.businessSettings.update({
       where: { businessId },
-      data: { gstEnabled: b.gstEnabled, data: { ...(settings.data as object), imported: plan.settings, upi: b.upi } as Prisma.InputJsonValue },
+      data: { gstEnabled: b.gstEnabled, data: { ...(settings.data as object), imported: plan.settings, upi: b.upi, priceRules: plan.priceRules } as Prisma.InputJsonValue },
     });
     await tx.documentSeries.updateMany({ where: { docType: 'invoice' }, data: { nextNumber: b.invoiceNext } });
 
@@ -160,6 +160,15 @@ export class ImportsService {
       if (gids.length) await tx.priceListRule.createMany({ data: gids.map((partyGroupId) => ({ ...base, priceListId: row.id, partyGroupId })) });
       if (pl.overrides.length) await tx.itemPrice.createMany({ data: pl.overrides.map((o) => ({ ...base, priceListId: row.id, itemId: itemId.get(o.itemLegacyId)!, price: o.price })) });
     }
+
+    /* price history, with the old app's dates */
+    const listIds = new Map((await tx.priceList.findMany()).map((l) => [l.legacyId, l.id]));
+    await tx.priceHistory.createMany({
+      data: plan.priceHistory.flatMap((h) => {
+        const field = h.field.startsWith('pl:') ? (listIds.get(h.field.slice(3)) ? `pl:${listIds.get(h.field.slice(3))}` : null) : h.field;
+        return field ? [{ ...base, itemId: itemId.get(h.itemLegacyId)!, field, oldValue: h.oldValue, newValue: h.newValue, how: h.how, createdAt: new Date(h.at) }] : [];
+      }),
+    });
 
     /* electricians and commission */
     await tx.referrer.createMany({

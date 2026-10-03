@@ -95,3 +95,40 @@ describe('messy data from the old app', () => {
     expect(p.items[0]!.opening[0]).toMatchObject({ qty: '1.001', rate: '10.01' });
   });
 });
+
+describe('impossible amounts', () => {
+  it('are left out of price history and zeroed on items, with a note', () => {
+    const s: Snapshot = JSON.parse(JSON.stringify(snaps['fresh-shop']));
+    const it = s.items[0]!;
+    it.mrp = 4.7e58;
+    s.priceHistory = [
+      { d: '2026-10-01T10:00:00Z', id: it.id, f: 'Retail (sale)', old: 10, nv: 4.7e58, how: 'Edited' },
+      { d: '2026-10-01T11:00:00Z', id: it.id, f: 'Retail (sale)', old: 10, nv: 12, how: 'Edited' },
+    ];
+    const p = planImport(s);
+    expect(p.items.find((x) => x.legacyId === it.id)!.mrp).toBe('0.00');
+    expect(p.priceHistory).toEqual([{ itemLegacyId: it.id, field: 'sale', oldValue: '10.00', newValue: '12.00', how: 'Edited', at: '2026-10-01T11:00:00Z' }]);
+    expect(p.warnings.some((w) => /impossible amount/.test(w))).toBe(true);
+  });
+  it('exact duplicate parties are merged, electricians too', () => {
+    const s: Snapshot = JSON.parse(JSON.stringify(snaps['fresh-shop']));
+    const raju = s.parties.find((p) => p.name === 'Raju Electrician')!;
+    s.parties.push({ ...raju, id: 'dup1', addedOn: '2026-12-01' });
+    s.referrers = [
+      { id: 'e1', name: 'Raju Electrician', phone: raju.phone, city: 'Lucknow', partyId: 'dup1' },
+      { id: 'e2', name: 'Raju Electrician', phone: raju.phone, city: 'Lucknow', partyId: raju.id },
+    ];
+    const p = planImport(s);
+    expect(p.parties.filter((x) => x.name.startsWith('Raju'))).toHaveLength(1);
+    expect(p.referrers).toEqual([expect.objectContaining({ name: 'Raju Electrician', partyLegacyId: raju.id })]);
+    expect(p.warnings.some((w) => /exact copies/.test(w))).toBe(true);
+  });
+});
+
+describe('godowns', () => {
+  it('the demo godowns of a sample book are left out unless demo data is included', () => {
+    const s = snaps['sample-shop']!;
+    expect(planImport(s).godowns.map((g) => g.name)).toEqual(['Main shop']);
+    expect(planImport(s, { includeSample: true }).godowns.length).toBe(3);
+  });
+});

@@ -6,7 +6,7 @@
  * Money and quantities leave here as strings with fixed decimals (Decimal
  * maths from packages/shared), ready for numeric(14,2) / numeric(14,3).
  */
-import { GSTIN_RE, money, STATE_CODES, toDb } from '@billing/shared';
+import { GSTIN_RE, money, MONEY_MAX, STATE_CODES, toDb } from '@billing/shared';
 import type { Snapshot, SnapshotItem, SnapshotParty } from './snapshot.ts';
 
 const qty = (v: number) => money(v).toDecimalPlaces(3).toFixed(3);
@@ -71,6 +71,8 @@ export interface ImportPlan {
   godowns: { name: string; address: string; manager: string; phone: string; isDefault: boolean }[];
   referrers: { legacyId: string; name: string; phone: string; city: string; partyLegacyId: string }[];
   commission: { category: string; kind: 'none' | 'percent' | 'fixed'; value: string }[];
+  priceHistory: { itemLegacyId: string; field: string; oldValue: string | null; newValue: string | null; how: string; at: string }[];
+  priceRules: Record<string, unknown>;
   counts: Record<string, number>;
   /** Plain-language notes for the person importing, e.g. renamed duplicates. */
   warnings: string[];
@@ -82,6 +84,8 @@ export interface PlanOptions {
 }
 
 /** Makes names unique (case-insensitive) the way a person would: "Name (2)". */
+const plural = (w: string) => (w.endsWith('y') ? w.slice(0, -1) + 'ies' : w + 's');
+
 function uniqueNamer(what: string, warnings: string[]) {
   const seen = new Set<string>();
   return (name: string) => {
@@ -89,7 +93,7 @@ function uniqueNamer(what: string, warnings: string[]) {
     if (seen.has(n.toLowerCase())) {
       let i = 2;
       while (seen.has(`${n} (${i})`.toLowerCase())) i++;
-      warnings.push(`Two ${what}s were both called “${n}”. The second one is now “${n} (${i})”.`);
+      warnings.push(`Two ${plural(what)} were both called “${n}”. The second one is now “${n} (${i})”.`);
       n = `${n} (${i})`;
     }
     seen.add(n.toLowerCase());
@@ -105,7 +109,7 @@ function uniqueIds(rows: { id: string }[], what: string, warnings: string[]) {
     seen.set(k, c + 1);
     if (c > 0) {
       r.id = `${k}~${c + 1}`;
-      warnings.push(`Two ${what}s shared the internal id ${k} (the old app gives the same id to entries made in the same instant). They are kept as separate ${what}s.`);
+      warnings.push(`Two ${plural(what)} shared the internal id ${k} (the old app gives the same id to entries made in the same instant). They are kept as separate ${plural(what)}.`);
     }
   }
 }
@@ -125,6 +129,23 @@ export function planImport(snap: Snapshot, opts: PlanOptions = {}): ImportPlan {
   const skippedItems = snap.items.length - srcItems.length;
   if (skippedParties || skippedItems)
     warnings.push(`Left out the old app’s demo data: ${skippedParties} sample parties and ${skippedItems} sample items. Ask if your shop used them for real.`);
+  /* the old app sometimes added the same electrician as a party twice: merge exact copies */
+  const merged = new Map<string, string>();
+  const sig = (p: SnapshotParty) => JSON.stringify([p.name.trim().toLowerCase(), p.phone.replace(/\s/g, ''), p.role, p.group, p.gstin, p.email, p.billing, p.shipping, p.opening, p.creditLimit, p.creditDays, p.extra]);
+  {
+    // keep the copy added first (the old app's id that other records point to)
+    const first = new Map<string, string>();
+    const byAge = srcParties.map((p, k) => ({ p, k })).sort((a, b) => a.p.addedOn.localeCompare(b.p.addedOn) || a.k - b.k);
+    for (const { p } of byAge) if (!first.has(sig(p))) first.set(sig(p), p.id);
+    const before = srcParties.length;
+    for (let k = srcParties.length - 1; k >= 0; k--) {
+      const p = srcParties[k]!;
+      const keep = first.get(sig(p))!;
+      if (keep !== p.id) { merged.set(p.id, keep); srcParties.splice(k, 1); }
+    }
+    const n = before - srcParties.length;
+    if (n) warnings.push(`${n} parties were exact copies of another party (same name, phone and details) and were merged.`);
+  }
   uniqueIds(srcParties, 'party', warnings);
   uniqueIds(srcItems, 'item', warnings);
 
@@ -180,6 +201,12 @@ export function planImport(snap: Snapshot, opts: PlanOptions = {}): ImportPlan {
     if (i.category) categories.add(i.category);
     if (i.brand) brands.add(i.brand);
     if (i.group) itemGroups.add(i.group);
+    for (const f of ['sale', 'purchase', 'mrp', 'listPrice', 'wholesale'] as const) {
+      if (!Number.isFinite(i[f]) || money(i[f]).abs().gt(MONEY_MAX)) {
+        warnings.push(`${i.name}: the ${f === 'listPrice' ? 'list price' : f} was an impossible amount and is set to 0. Please enter it again.`);
+        i[f] = 0;
+      }
+    }
     const opening = i.service ? [] : i.opening.filter((o) => o.qty !== 0).map((o) => ({ qty: qty(o.qty), rate: toDb(o.price), date: ISO.test(o.date) ? o.date : snap.backup.at.slice(0, 10) }));
     const openingQty = opening.reduce((a, o) => a.plus(o.qty), money(0));
     if (i.stock !== null && !money(i.stock).equals(openingQty)) stockLater++;
@@ -214,10 +241,50 @@ export function planImport(snap: Snapshot, opts: PlanOptions = {}): ImportPlan {
   if (ignoredFixed && !snap.backup.fresh) warnings.push(`${ignoredFixed} fixed prices were for demo items that were left out.`);
 
   /* godowns, referrers, commission */
-  const godowns = snap.godowns.map((g) => ({ name: g.name, address: g.addr, manager: g.manager, phone: g.phone.replace(/\D/g, '').slice(-10), isDefault: g.isDefault }));
+  // in a book that never chose "Start fresh", extra godowns are the old app's demo godowns (it never saves your own)
+  const srcGodowns = snap.backup.fresh || keepSample ? snap.godowns : snap.godowns.filter((g) => g.isDefault);
+  const godowns = srcGodowns.map((g) => ({ name: g.name, address: g.addr, manager: g.manager, phone: g.phone.replace(/\D/g, '').slice(-10), isDefault: g.isDefault }));
   if (!godowns.some((g) => g.isDefault) && godowns[0]) godowns[0].isDefault = true;
   const partyIds = new Set(srcParties.map((p) => p.id));
-  const referrers = snap.referrers.map((r) => ({ legacyId: r.id, name: r.name, phone: r.phone.replace(/\s/g, ''), city: r.city, partyLegacyId: partyIds.has(r.partyId) ? r.partyId : '' }));
+  const seenRef = new Set<string>();
+  const referrers = snap.referrers
+    .map((r) => {
+      const pid = merged.get(r.partyId) ?? r.partyId;
+      return { legacyId: r.id, name: r.name, phone: r.phone.replace(/\s/g, ''), city: r.city, partyLegacyId: partyIds.has(pid) ? pid : '' };
+    })
+    .filter((r) => {
+      const k = `${r.name.trim().toLowerCase()}|${r.phone}`;
+      if (seenRef.has(k)) return false;
+      seenRef.add(k);
+      return true;
+    });
+  if (referrers.length < snap.referrers.length) warnings.push(`${snap.referrers.length - referrers.length} electricians were listed more than once and were merged.`);
+
+  /* price history (Price manager › History), for the items being imported */
+  const listByName = new Map(snap.priceLists.map((pl) => [pl.name.toLowerCase(), pl.id]));
+  const fieldOf = (f: string): string | null => {
+    const t = f.toLowerCase();
+    for (const [name, id] of listByName) if (t.includes(name)) return `pl:${id}`;
+    if (/sale|retail/.test(t)) return 'sale';
+    if (/purch/.test(t)) return 'purchase';
+    if (/mrp/.test(t)) return 'mrp';
+    if (/\blp\b|list/.test(t)) return 'list';
+    if (/whole/.test(t)) return 'wholesale';
+    return null;
+  };
+  let badHistory = 0;
+  const inRange = (v: unknown) => v === '' || v == null || (Number.isFinite(Number(v)) && money(Number(v)).abs().lte(MONEY_MAX));
+  const priceHistory = snap.priceHistory
+    .filter((h) => {
+      const ok = inRange(h.old) && inRange(h.nv);
+      if (!ok) badHistory++;
+      return ok;
+    })
+    .map((h) => ({ itemLegacyId: String(h.id ?? ''), field: fieldOf(String(h.f ?? '')), oldValue: h.old === '' || h.old == null ? null : toDb(Number(h.old)), newValue: h.nv === '' || h.nv == null ? null : toDb(Number(h.nv)), how: String(h.how ?? ''), at: String(h.d ?? '') }))
+    .filter((h): h is typeof h & { field: string } => itemIds.has(h.itemLegacyId) && !!h.field && !Number.isNaN(Date.parse(h.at)));
+  if (badHistory) warnings.push(`${badHistory} price-history entries had an impossible amount (a typing slip in the old app) and were left out.`);
+  if (Object.keys(snap.priceRules).length) warnings.push(`Your automatic price rules (Price manager › Price setup, ${Object.keys(snap.priceRules).length} rules) were saved with the shop settings.`);
+  if (snap.pricePinSet) warnings.push('The price-lock PIN was not carried over. Set it again in the Price manager.');
   const commission = Object.entries(snap.commissionRules).map(([category, r]) => {
     categories.add(category);
     const kind = KIND[r.t] ?? 'none';
@@ -239,7 +306,7 @@ export function planImport(snap: Snapshot, opts: PlanOptions = {}): ImportPlan {
     categories: [...categories].filter(Boolean),
     brands: [...brands].filter(Boolean),
     itemGroups: [...itemGroups].filter(Boolean),
-    parties, items, priceLists, godowns, referrers, commission,
+    parties, items, priceLists, godowns, referrers, commission, priceHistory, priceRules: snap.priceRules,
     counts: {},
     warnings,
   };
@@ -247,7 +314,7 @@ export function planImport(snap: Snapshot, opts: PlanOptions = {}): ImportPlan {
     parties: parties.length, customers: parties.filter((p) => p.kind === 'customer').length, suppliers: parties.filter((p) => p.kind === 'supplier').length,
     items: items.length, services: items.filter((i) => i.kind === 'service').length, openingStockRows: items.reduce((a, i) => a + i.opening.length, 0),
     partiesWithOpeningBalance: parties.filter((p) => p.opening).length, priceLists: priceLists.length,
-    fixedPrices: priceLists.reduce((a, p) => a + p.overrides.length, 0), godowns: godowns.length, referrers: referrers.length,
+    fixedPrices: priceLists.reduce((a, p) => a + p.overrides.length, 0), godowns: godowns.length, referrers: referrers.length, priceHistory: priceHistory.length,
     brands: plan.brands.length, categories: plan.categories.length, units: plan.units.length, partyGroups: plan.partyGroups.length,
   };
   return plan;
