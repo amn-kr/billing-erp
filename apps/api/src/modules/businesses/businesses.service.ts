@@ -13,6 +13,7 @@ import type { RequestContext } from '../../common/context';
 export const SERIES: ReadonlyArray<[docType: string, prefix: string]> = [
   ['invoice', 'INV-'], ['quotation', 'QT-'], ['challan', 'DC-'], ['credit_note', 'CN-'], ['receipt', 'PI-'],
   ['purchase_order', 'PO-'], ['bill', 'PB-'], ['debit_note', 'DN-'], ['payment', 'PO-PAY-'], ['expense', 'EXP-'],
+  ['stock_adjustment', 'ADJ-'], ['stock_transfer', 'TRF-'],
 ];
 
 const dateOnly = (iso: string) => new Date(iso + 'T00:00:00Z');

@@ -600,7 +600,7 @@ model Godown {
   transfersFrom StockTransfer[]   @relation("transferFrom")
   transfersTo   StockTransfer[]   @relation("transferTo")
 
-  @@unique([businessId, name])
+  // name is unique per shop, ignoring case, among live godowns (index in SQL)
   @@map("godowns")
 }
 
@@ -704,7 +704,7 @@ model PriceList {
   rules    PriceListRule[]
   prices   ItemPrice[]
 
-  @@unique([businessId, name])
+  // name is unique per shop, ignoring case, among live lists (index in SQL)
   @@map("price_lists")
 }
 

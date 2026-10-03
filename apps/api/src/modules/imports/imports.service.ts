@@ -141,7 +141,7 @@ export class ImportsService {
     const mainGodown = await tx.godown.findFirstOrThrow({ where: { isDefault: true } });
     for (const g of plan.godowns) {
       if (g.isDefault) await tx.godown.update({ where: { id: mainGodown.id }, data: { name: g.name, address: g.address, manager: g.manager, phone: g.phone } });
-      else if (!(await tx.godown.findFirst({ where: { name: g.name } }))) await tx.godown.create({ data: { ...base, name: g.name, address: g.address, manager: g.manager, phone: g.phone } });
+      else if (!(await tx.godown.findFirst({ where: { name: { equals: g.name, mode: 'insensitive' }, archivedAt: null } }))) await tx.godown.create({ data: { ...base, name: g.name, address: g.address, manager: g.manager, phone: g.phone } });
     }
     await tx.stockMovement.createMany({
       data: plan.items.flatMap((i) => i.opening.map((o) => ({
