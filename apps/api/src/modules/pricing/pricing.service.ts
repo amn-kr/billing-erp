@@ -1,5 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { hash, verify } from '@node-rs/argon2';
 import { listPrice, money, toDb, type PriceChangesInput, type PriceListInput, type PriceRule } from '@billing/shared';
+import { Prisma } from '@prisma/client';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import type { RequestContext } from '../../common/context';
@@ -7,6 +9,10 @@ import { namedId, uniqueMessage } from '../../common/lookups';
 
 const FIELD_COLUMN = { sale: 'salePrice', purchase: 'purchasePrice', mrp: 'mrp', listPrice: 'listPrice', wholesale: 'wholesalePrice' } as const;
 const FIELD_HISTORY = { sale: 'sale', purchase: 'purchase', mrp: 'mrp', listPrice: 'list', wholesale: 'wholesale' } as const;
+const ARGON = { memoryCost: 19456, timeCost: 2, parallelism: 1 };
+/** Same limits as the prototype: 5 wrong tries, then wait 60 seconds. */
+const PIN_TRIES = 5;
+const PIN_WAIT_MS = 60_000;
 
 @Injectable()
 export class PricingService {
@@ -35,7 +41,8 @@ export class PricingService {
   prices(ctx: RequestContext) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const lists = (await this.lists(tx)).filter((l) => l.active);
-      const items = await tx.item.findMany({ where: { archivedAt: null }, orderBy: { name: 'asc' }, select: { id: true, name: true, salePrice: true, purchasePrice: true, mrp: true, listPrice: true } });
+      // same order as the Items screen and the prototype's Price manager: newest first
+      const items = await tx.item.findMany({ where: { archivedAt: null }, orderBy: { createdAt: 'desc' }, select: { id: true, name: true, salePrice: true, purchasePrice: true, mrp: true, listPrice: true } });
       const fixed = await tx.itemPrice.findMany();
       const fx = new Map(fixed.map((f) => [`${f.priceListId}:${f.itemId}`, f.price.toString()]));
       return {
@@ -93,8 +100,55 @@ export class PricingService {
     });
   }
 
+  /* ───────── price PIN ───────── */
+
+  pinState(ctx: RequestContext) {
+    return this.db.scoped(this.scope(ctx), async (tx) => ({ set: !!(await tx.priceLock.findUnique({ where: { businessId: ctx.businessId! } })) }));
+  }
+
+  /**
+   * Checks the PIN. Wrong tries are counted in their own transaction (so the
+   * count survives the error) and five in a row lock the PIN for 60 seconds.
+   */
+  async checkPin(ctx: RequestContext, pin: string): Promise<void> {
+    const problem = await this.db.scoped(this.scope(ctx), async (tx) => {
+      const l = await tx.priceLock.findUnique({ where: { businessId: ctx.businessId! } });
+      if (!l) return 'Set a price PIN first.';
+      const now = Date.now();
+      if (l.waitUntil && l.waitUntil.getTime() > now) return `Too many wrong tries. Try again in ${Math.ceil((l.waitUntil.getTime() - now) / 1000)} seconds.`;
+      if (await verify(l.pinHash, pin)) {
+        if (l.fails || l.waitUntil) await tx.priceLock.update({ where: { businessId: l.businessId }, data: { fails: 0, waitUntil: null } });
+        return null;
+      }
+      const fails = l.fails + 1;
+      if (fails >= PIN_TRIES) {
+        await tx.priceLock.update({ where: { businessId: l.businessId }, data: { fails: 0, waitUntil: new Date(now + PIN_WAIT_MS) } });
+        return 'Too many wrong tries. Try again in 60 seconds.';
+      }
+      await tx.priceLock.update({ where: { businessId: l.businessId }, data: { fails } });
+      const left = PIN_TRIES - fails;
+      return `Wrong PIN. ${left} tr${left > 1 ? 'ies' : 'y'} left.`;
+    });
+    if (problem) throw new BadRequestException({ message: problem, field: 'pin' });
+  }
+
+  /** Set the first PIN, or change it (the current PIN is needed once one is set). */
+  async setPin(ctx: RequestContext, pin: string, currentPin?: string) {
+    const exists = (await this.pinState(ctx)).set;
+    if (exists) {
+      if (!currentPin) throw new BadRequestException({ message: 'Enter your current PIN.', field: 'currentPin' });
+      await this.checkPin(ctx, currentPin);
+    }
+    const pinHash = await hash(pin, ARGON);
+    await this.db.scoped(this.scope(ctx), async (tx) => {
+      await tx.priceLock.upsert({ where: { businessId: ctx.businessId! }, create: { businessId: ctx.businessId!, createdBy: ctx.userId, pinHash }, update: { pinHash, fails: 0, waitUntil: null } });
+      await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: exists ? 'update' : 'create', entity: 'price_pin', ip: ctx.ip });
+    });
+  }
+
   /** Fix one item's price in a list (or pass null to go back to the list's rule). */
-  setFixed(ctx: RequestContext, priceListId: string, itemId: string, price: number | null) {
+  async setFixed(ctx: RequestContext, priceListId: string, itemId: string, price: number | null, pin: string) {
+    await this.checkPin(ctx, pin);
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const [pl, item] = await Promise.all([tx.priceList.findFirst({ where: { id: priceListId } }), tx.item.findFirst({ where: { id: itemId } })]);
       if (!pl || !item) throw new NotFoundException({ message: 'That price list or item was not found.' });
@@ -106,21 +160,45 @@ export class PricingService {
     });
   }
 
-  /** Price manager › bulk update: apply the previewed changes, each one recorded in price history. */
-  applyChanges(ctx: RequestContext, input: PriceChangesInput) {
+  /**
+   * Price manager › Price Setup / Excel import / Undo: apply the previewed changes,
+   * each one recorded in price history. `pl:<id>` fields set (or, with null,
+   * clear) an item's own price in that list. Needs the price PIN.
+   */
+  async applyChanges(ctx: RequestContext, input: PriceChangesInput) {
+    await this.checkPin(ctx, input.pin);
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const ids = [...new Set(input.changes.map((c) => c.itemId))];
       const items = await tx.item.findMany({ where: { id: { in: ids } } });
       if (items.length !== ids.length) throw new NotFoundException({ message: 'Some of these items were not found.' });
+      const lists = await tx.priceList.findMany({ where: { archivedAt: null } });
       let changed = 0;
       for (const c of input.changes) {
         const it = items.find((i) => i.id === c.itemId)!;
-        const col = FIELD_COLUMN[c.field];
+        if (c.field.startsWith('pl:')) {
+          const pl = lists.find((l) => l.id === c.field.slice(3));
+          if (!pl || pl.isDefault) throw new BadRequestException({ message: 'That price list was not found.' });
+          const own = await tx.itemPrice.findUnique({ where: { priceListId_itemId: { priceListId: pl.id, itemId: it.id } } });
+          const old = toDb(listPrice(pl.rule as PriceRule, pl.value.toString(), pl.roundTo.toString(), { sale: it.salePrice.toString(), purchase: it.purchasePrice.toString() }, own?.price.toString()));
+          if (c.value === null) {
+            if (!own) continue;
+            await tx.itemPrice.deleteMany({ where: { priceListId: pl.id, itemId: it.id } });
+          } else {
+            if (own && toDb(own.price.toString()) === toDb(c.value)) continue;
+            await tx.itemPrice.upsert({ where: { priceListId_itemId: { priceListId: pl.id, itemId: it.id } }, create: { businessId: ctx.businessId!, createdBy: ctx.userId, priceListId: pl.id, itemId: it.id, price: toDb(c.value) }, update: { price: toDb(c.value) } });
+          }
+          await tx.priceHistory.create({ data: { businessId: ctx.businessId!, createdBy: ctx.userId, itemId: it.id, field: c.field, oldValue: old, newValue: c.value === null ? null : toDb(c.value), how: input.how } });
+          changed++;
+          continue;
+        }
+        const f = c.field as keyof typeof FIELD_COLUMN;
+        const col = FIELD_COLUMN[f];
         const old = toDb(it[col].toString());
-        const nv = toDb(c.value);
+        const nv = toDb(c.value!);
         if (old === nv) continue;
         await tx.item.update({ where: { id: it.id }, data: { [col]: nv } });
-        await tx.priceHistory.create({ data: { businessId: ctx.businessId!, createdBy: ctx.userId, itemId: it.id, field: FIELD_HISTORY[c.field], oldValue: old, newValue: nv, how: input.how } });
+        (it as Record<string, unknown>)[col] = new Prisma.Decimal(nv);
+        await tx.priceHistory.create({ data: { businessId: ctx.businessId!, createdBy: ctx.userId, itemId: it.id, field: FIELD_HISTORY[f], oldValue: old, newValue: nv, how: input.how } });
         changed++;
       }
       await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'update', entity: 'prices', after: { how: input.how, changed }, ip: ctx.ip });

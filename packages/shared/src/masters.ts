@@ -115,10 +115,26 @@ export const priceListSchema = z.object({
 export type PriceListInput = z.infer<typeof priceListSchema>;
 
 export const PRICE_FIELDS = ['sale', 'purchase', 'mrp', 'listPrice', 'wholesale'] as const;
+export const pinSchema = z.string().regex(/^\d{4}$/, 'Enter 4 digits.');
+
+/** A price field of an item, or `pl:<price list id>` for an item's own price in that list. */
+export const priceFieldSchema = z.union([z.enum(PRICE_FIELDS), z.string().regex(/^pl:[0-9a-f-]{36}$/i, 'Unknown price.')]);
+
 export const priceChangesSchema = z.object({
   how: opt(200),
+  /** the price PIN (Price Setup); checked by the server on every change */
+  pin: pinSchema,
   changes: z
-    .array(z.object({ itemId: z.string().uuid(), field: z.enum(PRICE_FIELDS), value: z.coerce.number().min(0).max(999_999_999_999) }))
+    .array(
+      z
+        .object({
+          itemId: z.string().uuid(),
+          field: priceFieldSchema,
+          /** null only for a price-list field: back to the list's rule */
+          value: z.union([z.null(), z.coerce.number().min(0).max(999_999_999_999)]),
+        })
+        .refine((c) => c.value !== null || c.field.startsWith('pl:'), { message: 'Enter a price.', path: ['value'] }),
+    )
     .min(1, 'No prices would change')
     .max(5000),
 });

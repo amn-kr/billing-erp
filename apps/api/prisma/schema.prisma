@@ -66,6 +66,7 @@ model Business {
   memberships    Membership[]
   invites        Invite[]
   settings       BusinessSettings?
+  priceLock      PriceLock?
   financialYears FinancialYear[]
   series         DocumentSeries[]
   taxRates       TaxRate[]
@@ -264,6 +265,22 @@ model BusinessSettings {
   business Business @relation(fields: [businessId], references: [id])
 
   @@map("business_settings")
+}
+
+/// Price manager PIN (Price Setup). Kept apart from settings so the hash never travels with them.
+model PriceLock {
+  businessId String    @id @map("business_id") @db.Uuid
+  pinHash    String    @map("pin_hash")
+  /// wrong tries in a row; 5 locks the PIN for 60 seconds
+  fails      Int       @default(0)
+  waitUntil  DateTime? @map("wait_until") @db.Timestamptz(6)
+  createdBy  String    @map("created_by") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@map("price_locks")
 }
 
 model FinancialYear {

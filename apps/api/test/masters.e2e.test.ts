@@ -1,6 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { DbService } from '../src/common/db.service';
 import { auth, member, owner, startApp } from './helpers';
 
 let app: INestApplication;
@@ -136,10 +137,13 @@ describe('price lists and prices', () => {
     expect(prices.body.lists.map((l: { name: string }) => l.name)).toEqual(['Retail price', 'Wholesale']);
     expect(prices.body.items[0].lists[wholesale.id]).toEqual({ price: '1739.00', fixed: false });
 
-    await http().put(`/api/price-lists/${wholesale.id}/items/${it.body.id}`).set(auth(o)).send({ price: 1720 }).expect(204);
+    // prices change only with the price PIN
+    expect((await http().put(`/api/price-lists/${wholesale.id}/items/${it.body.id}`).set(auth(o)).send({ price: 1720, pin: '2468' }).expect(400)).body.message).toBe('Set a price PIN first.');
+    await http().post('/api/prices/pin').set(auth(o)).send({ pin: '2468' }).expect(204);
+    await http().put(`/api/price-lists/${wholesale.id}/items/${it.body.id}`).set(auth(o)).send({ price: 1720, pin: '2468' }).expect(204);
     prices = await http().get('/api/prices').set(auth(o)).expect(200);
     expect(prices.body.items[0].lists[wholesale.id]).toEqual({ price: '1720.00', fixed: true });
-    await http().put(`/api/price-lists/${wholesale.id}/items/${it.body.id}`).set(auth(o)).send({ price: null }).expect(204);
+    await http().put(`/api/price-lists/${wholesale.id}/items/${it.body.id}`).set(auth(o)).send({ price: null, pin: '2468' }).expect(204);
 
     const cost = await http().post('/api/price-lists').set(auth(o)).send({ name: 'Project rate', rule: 'mark', value: 12, roundTo: 10, groups: ['Contractors'] }).expect(201);
     expect(cost.body).toMatchObject({ groups: ['Contractors'], active: true });
@@ -149,10 +153,57 @@ describe('price lists and prices', () => {
     const retail = lists.body.find((l: { isDefault: boolean }) => l.isDefault);
     expect((await http().patch(`/api/price-lists/${retail.id}`).set(auth(o)).send({ active: false }).expect(400)).body.message).toMatch(/can’t be switched off/);
 
-    const ch = await http().post('/api/prices/changes').set(auth(o)).send({ how: 'Sale price +5%, rounded to ₹1', changes: [{ itemId: it.body.id, field: 'sale', value: 1985 }, { itemId: it.body.id, field: 'mrp', value: 0 }] }).expect(200);
+    const ch = await http().post('/api/prices/changes').set(auth(o)).send({ how: 'Sale price +5%, rounded to ₹1', pin: '2468', changes: [{ itemId: it.body.id, field: 'sale', value: 1985 }, { itemId: it.body.id, field: 'mrp', value: 0 }] }).expect(200);
     expect(ch.body.changed).toBe(1);
     const h = await http().get('/api/prices/history').set(auth(o)).expect(200);
     expect(h.body[0]).toMatchObject({ field: 'sale', oldValue: '1890.00', newValue: '1985.00', how: 'Sale price +5%, rounded to ₹1', by: 'Ravi Gupta' });
+
+    // an item's own price in a list, then back to the list's rule (Price Setup / Undo)
+    const f = `pl:${wholesale.id}`;
+    await http().post('/api/prices/changes').set(auth(o)).send({ how: 'Price Setup: 1 item-wise change', pin: '2468', changes: [{ itemId: it.body.id, field: f, value: 1800 }] }).expect(200);
+    prices = await http().get('/api/prices').set(auth(o)).expect(200);
+    expect(prices.body.items[0].lists[wholesale.id]).toEqual({ price: '1800.00', fixed: true });
+    expect((await http().get('/api/prices/history').set(auth(o)).expect(200)).body[0]).toMatchObject({ field: f, oldValue: '1826.00', newValue: '1800.00' });
+    await http().post('/api/prices/changes').set(auth(o)).send({ how: 'Undid: Price Setup', pin: '2468', changes: [{ itemId: it.body.id, field: f, value: null }] }).expect(200);
+    prices = await http().get('/api/prices').set(auth(o)).expect(200);
+    expect(prices.body.items[0].lists[wholesale.id]).toEqual({ price: '1826.00', fixed: false });
+    // null is only for list prices; the default list is the sale price itself
+    await http().post('/api/prices/changes').set(auth(o)).send({ pin: '2468', changes: [{ itemId: it.body.id, field: 'sale', value: null }] }).expect(400);
+    const retailF = `pl:${lists.body.find((l: { isDefault: boolean }) => l.isDefault).id}`;
+    await http().post('/api/prices/changes').set(auth(o)).send({ pin: '2468', changes: [{ itemId: it.body.id, field: retailF, value: 5 }] }).expect(400);
+  });
+
+  it('price PIN: wrong tries, 60-second wait, change, and who may use it', async () => {
+    const o = await owner(app);
+    const it = await http().post('/api/items').set(auth(o)).send({ name: 'MCB 6A', sale: '265' }).expect(201);
+    expect((await http().get('/api/prices/pin').set(auth(o)).expect(200)).body).toEqual({ set: false });
+    await http().post('/api/prices/pin').set(auth(o)).send({ pin: '12a4' }).expect(400);
+    await http().post('/api/prices/pin').set(auth(o)).send({ pin: '1357' }).expect(204);
+    expect((await http().get('/api/prices/pin').set(auth(o)).expect(200)).body).toEqual({ set: true });
+    await http().post('/api/prices/unlock').set(auth(o)).send({ pin: '1357' }).expect(204);
+    // changing needs the current PIN
+    expect((await http().post('/api/prices/pin').set(auth(o)).send({ pin: '2468' }).expect(400)).body.message).toBe('Enter your current PIN.');
+    const wrong = async () => (await http().post('/api/prices/unlock').set(auth(o)).send({ pin: '0000' }).expect(400)).body.message;
+    expect(await wrong()).toBe('Wrong PIN. 4 tries left.');
+    await http().post('/api/prices/unlock').set(auth(o)).send({ pin: '1357' }).expect(204); // a right PIN resets the count
+    expect(await wrong()).toBe('Wrong PIN. 4 tries left.');
+    expect(await wrong()).toBe('Wrong PIN. 3 tries left.');
+    expect(await wrong()).toBe('Wrong PIN. 2 tries left.');
+    expect(await wrong()).toBe('Wrong PIN. 1 try left.');
+    expect(await wrong()).toBe('Too many wrong tries. Try again in 60 seconds.');
+    // even the right PIN waits now, and so do price changes
+    expect((await http().post('/api/prices/unlock').set(auth(o)).send({ pin: '1357' }).expect(400)).body.message).toMatch(/^Too many wrong tries\. Try again in \d+ seconds\.$/);
+    await http().post('/api/prices/changes').set(auth(o)).send({ pin: '1357', changes: [{ itemId: it.body.id, field: 'sale', value: 270 }] }).expect(400);
+    // (a minute later…)
+    await app.get(DbService).scoped({ businessId: o.businessId }, (tx) => tx.priceLock.update({ where: { businessId: o.businessId }, data: { waitUntil: new Date(Date.now() - 1000) } }));
+    await http().post('/api/prices/pin').set(auth(o)).send({ pin: '2468', currentPin: '1357' }).expect(204);
+    await http().post('/api/prices/unlock').set(auth(o)).send({ pin: '1357' }).expect(400);
+    await http().post('/api/prices/changes').set(auth(o)).send({ pin: '2468', changes: [{ itemId: it.body.id, field: 'sale', value: 270 }] }).expect(200);
+    // the PIN hash never leaves the server, and staff without masters.manage can't use it
+    expect(JSON.stringify((await http().get('/api/settings').set(auth(o)).expect(200)).body)).not.toMatch(/argon2/);
+    const acc = await member(app, o, 'accountant');
+    await http().post('/api/prices/unlock').set(auth(acc)).send({ pin: '2468' }).expect(403);
+    await http().post('/api/prices/changes').set(auth(acc)).send({ pin: '2468', changes: [{ itemId: it.body.id, field: 'sale', value: 1 }] }).expect(403);
   });
 });
 
