@@ -80,6 +80,8 @@ export const snapshotSchema = z.object({
     name: z.string(), short: z.string(), owner: z.string(), phone: z.string(), email: z.string(),
     addr: z.string(), city: z.string(), pin: z.string(), state: z.string(), gstin: z.string(),
     gstEnabled: z.boolean(), upi: z.string(), invoiceNext: num,
+    /** cash in hand when the books were started (Start fresh) */
+    cashOpen: num.optional().default(0),
   }),
   settings: z.record(z.string(), z.unknown()),
   taxes: z.array(z.object({ id: z.string(), type: z.string(), rate: num, name: z.string(), note: z.string(), old: z.boolean() })),

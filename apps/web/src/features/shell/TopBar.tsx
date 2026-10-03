@@ -32,7 +32,7 @@ export interface BellItem {
 }
 
 /** Notifications: the plan notice, then GST due dates (more are added as screens are rebuilt). */
-export function bellItems(me: MeResponse, today: string, onView: (v: string) => void): BellItem[] {
+export function bellItems(me: MeResponse, today: string, onView: (v: string) => void, lowItems = 0): BellItem[] {
   const b = me.business!;
   const items: BellItem[] = [];
   if (b.plan === 'trial') {
@@ -59,6 +59,18 @@ export function bellItems(me: MeResponse, today: string, onView: (v: string) => 
       ),
     });
   }
+  // (overdue purchase bills and sales invoices come here with Phase 3)
+  if (lowItems) {
+    items.push({
+      key: 'low',
+      node: (
+        <button className="bni" data-view="items" onClick={() => onView('items')}>
+          <Icon name="box" />
+          <span><b>{lowItems} items low on stock</b><small>Below their minimum level</small></span>
+        </button>
+      ),
+    });
+  }
   if (b.gstEnabled) {
     const [y, m] = today.split('-').map(Number) as [number, number];
     const nm = new Date(y, m, 1).toLocaleString('en-IN', { month: 'short' });
@@ -78,6 +90,8 @@ export function bellItems(me: MeResponse, today: string, onView: (v: string) => 
 interface Props {
   me: MeResponse;
   today: string;
+  /** goods below their minimum or out of stock (bell) */
+  lowItems?: number;
   pal: PalId;
   online: boolean;
   onPal: (id: PalId) => void;
@@ -89,14 +103,14 @@ interface Props {
   onSearch: (q: string) => void;
 }
 
-export function TopBar({ me, today, pal, online, onPal, onView, onSoon, onSwitch, onAddBusiness, onSignOut, onSearch }: Props) {
+export function TopBar({ me, today, lowItems = 0, pal, online, onPal, onView, onSoon, onSwitch, onAddBusiness, onSignOut, onSearch }: Props) {
   const { pop, setPop, pal: palOpen, setPal, sideOpen, setSideOpen } = useShell();
   const b = me.business!;
   const toggle = (p: PopId) => (e: RMouseEvent) => {
     e.stopPropagation();
     setPop(pop === p ? null : p);
   };
-  const bell = bellItems(me, today, (v) => { setPop(null); onView(v); });
+  const bell = bellItems(me, today, (v) => { setPop(null); onView(v); }, lowItems);
   const n = bell.length;
   const left = Math.max(0, daysBetween(today, b.planEndsOn));
   const lic = b.plan === 'trial' ? `Free trial · ${left} days left` : b.plan === 'expired' ? 'Trial ended · choose a plan' : `Paid · till ${formatLongDate(b.planEndsOn)}`;

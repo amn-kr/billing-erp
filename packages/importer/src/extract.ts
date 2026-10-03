@@ -81,7 +81,7 @@ function readBooks(): unknown {
     business: {
       name: str(BZ.name), short: str(BZ.short), owner: str(BZ.owner), phone: str(BZ.phone), email: str(BZ.email),
       addr: str(BZ.addr), city: str(BZ.city), pin: str(BZ.pin), state: str(S.state), gstin: str(S.gstin).toUpperCase(),
-      gstEnabled: !!S.gst, upi: str(S.upi), invoiceNext: n(BZ.invNext) || 1,
+      gstEnabled: !!S.gst, upi: str(S.upi), invoiceNext: n(BZ.invNext) || 1, cashOpen: n(BZ.cashOpen),
     },
     settings,
     taxes: (taxes || []).map((t: any) => ({ id: str(t.id), type: str(t.type), rate: n(t.rate), name: str(t.name), note: str(t.note), old: !!t.old })),

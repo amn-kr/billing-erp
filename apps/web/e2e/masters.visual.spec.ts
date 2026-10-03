@@ -413,5 +413,113 @@ for (const width of WIDTHS) {
       await sameShot(`prices-newpl-${width}`, proto, app, '#vPrices .pthd');
       await sameShot(`prices-newpl-head-${width}`, proto, app, '#pmHead');
     });
+
+    test('Settings: Taxes & GST, tax list, GST off question', async ({ browser, request }) => {
+      const proto = await newPage(browser, width);
+      const app = await newPage(browser, width);
+      await prototypeWithBackup(proto);
+      await openPrototypeView(proto, 'set');
+      await signInAs(app, await freshShop(request, 'fresh-shop'));
+      await app.goto(APP + '/settings');
+      await app.waitForSelector('#pv .pvl');
+      await app.waitForTimeout(300);
+      const both = async (fn: (p: Page) => Promise<unknown>) => { for (const p of [proto, app]) await fn(p); };
+      const settle = async () => { await both((p) => p.mouse.move(0, 0)); await both((p) => p.waitForFunction(() => !document.getElementById('toast')?.classList.contains('on'), null, { timeout: 10_000 })); await app.waitForTimeout(300); };
+      await sameShot(`set-tax-${width}`, proto, app, '#vSet');
+      // TCS and TDS on: their default rates and the preview lines appear
+      await both((p) => p.click('#cTcs .tgs'));
+      await both((p) => p.click('#cTds .tgs'));
+      await settle();
+      await sameShot(`set-tax-tcs-tds-${width}`, proto, app, '#vSet');
+      await both((p) => p.click('#cGst [data-reg="composition"]'));
+      await settle();
+      await sameShot(`set-tax-comp-${width}`, proto, app, '#vSet');
+      await both((p) => p.click('#cGst [data-reg="regular"]'));
+      // a wrong GSTIN is explained
+      await both((p) => p.fill('#sGstin', '09AAGFG2231'));
+      await settle();
+      await sameShot(`set-gstin-${width}`, proto, app, '#cGst');
+      await both((p) => p.fill('#sGstin', '09AAGFG2231M1ZQ'));
+      await both((p) => p.evaluate(() => { (document.activeElement as HTMLElement | null)?.blur(); scrollTo(0, 0); document.querySelector('main')?.scrollTo(0, 0); }));
+      // the tax list: the prototype's "used in" figures are made up, so show the rebuild's real counts there
+      await both((p) => p.click('#taxListBtn'));
+      await app.waitForSelector('#tl:not([hidden]) #tlBody tr');
+      const used = await app.locator('#tlBody tr td:nth-child(4)').evaluateAll((tds) => tds.map((t) => t.innerHTML));
+      await proto.evaluate((u) => document.querySelectorAll('#tlBody tr td:nth-child(4)').forEach((td, k) => { td.innerHTML = u[k] ?? td.innerHTML; }), used);
+      await settle();
+      await sameShot(`tl-${width}`, proto, app, '#tl .mdl');
+      await both((p) => p.click('#tlForm [type="submit"]'));
+      await settle();
+      await sameShot(`tl-error-${width}`, proto, app, '#tl .mdl');
+      await both((p) => p.click('#tlTabs [data-tl="TDS"]'));
+      await settle();
+      await sameShot(`tl-tds-${width}`, proto, app, '#tl .mdl');
+      await both((p) => p.click('#tlClose'));
+      // turning GST off asks first (the prototype quotes a made-up invoice count)
+      await both((p) => p.click('#cGst .tgs'));
+      await app.waitForSelector('#cfm:not([hidden])');
+      await proto.evaluate(() => { const p = document.querySelector('#cfm p')!; p.textContent = p.textContent!.replace(/Your existing \d+ invoices/, 'Your existing invoices'); });
+      await settle();
+      await sameShot(`cfm-${width}`, proto, app, '#cfm .mdl');
+      await both((p) => p.click('#cfmYes'));
+      await settle();
+      // the prototype refreshes its bell count only when the bell is opened; the rebuild keeps it current
+      const bell = await app.locator('#bellCnt').innerText();
+      await proto.evaluate((b) => { document.getElementById('bellCnt')!.textContent = b; }, bell);
+      await sameShot(`set-gst-off-${width}`, proto, app, '#vSet');
+    });
+
+    test('Settings: Items & prices, General, Start fresh', async ({ browser, request }) => {
+      const proto = await newPage(browser, width);
+      const app = await newPage(browser, width);
+      await prototypeWithBackup(proto);
+      await openPrototypeView(proto, 'set');
+      await signInAs(app, await freshShop(request, 'fresh-shop'));
+      await app.goto(APP + '/settings');
+      await app.waitForSelector('#pv .pvl');
+      const both = async (fn: (p: Page) => Promise<unknown>) => { for (const p of [proto, app]) await fn(p); };
+      const settle = async () => { await both((p) => p.mouse.move(0, 0)); await both((p) => p.waitForFunction(() => !document.getElementById('toast')?.classList.contains('on'), null, { timeout: 10_000 })); await app.waitForTimeout(300); };
+      /** texts the rebuild changes on purpose (it never deletes books; data lives on the server): show the same before comparing */
+      const align = async (sels: string[]) => {
+        const html = await app.evaluate((ss) => ss.map((q) => [...document.querySelectorAll(q)].map((e) => e.outerHTML)), sels);
+        await proto.evaluate(([ss, hh]) => ss.forEach((q, k) => document.querySelectorAll(q).forEach((e, j) => { if (hh[k]![j]) e.outerHTML = hh[k]![j]!; })), [sels, html] as const);
+      };
+      await both((p) => p.click('#subnav [data-settab="items"]'));
+      await app.waitForSelector('#cPlSet .tgl');
+      await settle();
+      await sameShot(`set-items-${width}`, proto, app, '#vSet');
+      await both((p) => p.click('#cPlSet .tgl:nth-of-type(3) .tgs'));
+      await expect(app.locator('#toast')).toHaveText(await proto.locator('#toast').innerText());
+      await settle();
+      await sameShot(`set-items-on-${width}`, proto, app, '#cPlSet');
+      // General
+      await both((p) => p.click('#subnav [data-settab="gen"]'));
+      await app.waitForSelector('#bzCard #bzName');
+      await align(['#bzFresh', '#bkpUseTxt', '#bkpUseBar']);
+      await settle();
+      await sameShot(`set-gen-${width}`, proto, app, '#vSet');
+      await both((p) => p.fill('#bzName', ''));
+      await both((p) => p.click('#bzSaveBtn'));
+      await settle();
+      await sameShot(`set-bz-error-${width}`, proto, app, '#bzCard');
+      await both((p) => p.fill('#bzName', 'Gupta Electricals & Hardware'));
+      await both((p) => p.fill('#sUpi', 'gupta@'));
+      await both((p) => p.locator('#sUpi').blur());
+      await settle();
+      await sameShot(`set-upi-error-${width}`, proto, app, '#cGen .plset');
+      await both((p) => p.fill('#sUpi', 'gupta@okhdfcbank'));
+      await both((p) => p.locator('#sUpi').blur());
+      await expect(app.locator('#toast')).toHaveText(await proto.locator('#toast').innerText());
+      await both((p) => p.locator('label.tgs:has(#sMrp)').click());
+      await expect(app.locator('#toast')).toHaveText(await proto.locator('#toast').innerText());
+      await settle();
+      // Start fresh window
+      await both((p) => p.click('#bzFreshBtn'));
+      await app.waitForSelector('#bzm:not([hidden]) #bzfName');
+      await align(['#bzm .dh small', '#bzm label.cb2', '#bzmGo']);
+      await both((p) => p.evaluate(() => (document.activeElement as HTMLElement | null)?.blur()));
+      await settle();
+      await sameShot(`bzm-${width}`, proto, app, '#bzm .mdl');
+    });
   });
 }

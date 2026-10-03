@@ -72,7 +72,7 @@ export function AppShell() {
     document.title = 'Billing ERP – Dashboard';
   }, [pal, business]);
   // Settings › General: currency symbol and MRP switches (body classes + the prototype's ₹ remover)
-  const sdata = settings.data?.data as { showCurrency?: boolean; mrp?: boolean } | undefined;
+  const sdata = settings.data?.data as { showCurrency?: boolean; mrp?: boolean; acct?: boolean } | undefined;
   const curOn = !!sdata?.showCurrency;
   const mrpOn = !!sdata?.mrp;
   useLayoutEffect(() => {
@@ -142,11 +142,12 @@ export function AppShell() {
   return (
     <>
       <div className={mini ? 'app mini' : 'app'} id="app">
-        <Sidebar active={active} lowStock={lowStock} onView={onView} onSoon={soon} />
+        <Sidebar active={active} lowStock={lowStock} acct={!!sdata?.acct} onView={onView} onSoon={soon} />
         <div style={{ minWidth: 0 }}>
           <TopBar
             me={me.data}
             today={todayFn()}
+            lowItems={(items.data ?? []).filter((i) => i.kind === 'goods' && i.level !== 'ok').length}
             pal={pal}
             online={online}
             onPal={(id) => {

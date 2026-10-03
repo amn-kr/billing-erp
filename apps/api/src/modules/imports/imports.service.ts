@@ -73,9 +73,10 @@ export class ImportsService {
       data: {
         ...(b.name && { name: b.name, shortName: b.short || shortName(b.name) }),
         phone: b.phone || before.phone, address: b.addr || before.address, city: b.city || before.city, pin: b.pin || before.pin,
-        stateCode: b.state || before.stateCode, gstin: b.gstin,
+        stateCode: b.state || before.stateCode, gstin: b.gstin, ...(b.email && { email: b.email }),
       },
     });
+    if (b.owner) await tx.membership.updateMany({ where: { userId: before.ownerId }, data: { displayName: b.owner } });
     const settings = await tx.businessSettings.findUniqueOrThrow({ where: { businessId } });
     await tx.businessSettings.update({
       where: { businessId },
@@ -101,6 +102,7 @@ export class ImportsService {
       for (const k of ['reg', 'hsn', 'pos', 'rcm', 'cess', 'tcs', 'tds', 'tdsBill', 'tdsExp', 'payQr', 'waLink', 'acct', 'upiName']) if (o[k] !== undefined && o[k] !== null && typeof o[k] !== 'object') pick[k] = o[k];
       if (typeof o.curSym === 'boolean') pick.showCurrency = o.curSym;
       if (typeof o.showMrp === 'boolean') pick.mrp = o.showMrp;
+      if (b.cashOpen > 0) pick.cashOpen = String(b.cashOpen);
       for (const k of ['tcsRate', 'tdsRate']) if (typeof o[k] === 'string' && ids.get(o[k] as string)) pick[k] = ids.get(o[k] as string);
       const cur = await tx.businessSettings.findUniqueOrThrow({ where: { businessId } });
       await tx.businessSettings.update({ where: { businessId }, data: { data: { ...(cur.data as object), ...pick } as Prisma.InputJsonValue } });

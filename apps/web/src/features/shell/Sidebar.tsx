@@ -22,6 +22,8 @@ function initialOpen(): string[] {
 interface Props {
   active: string;
   lowStock: number;
+  /** Settings › General › Modules › Accounting */
+  acct?: boolean;
   onView: (view: string, link?: NavLink) => void;
   onSoon: (what: string) => void;
 }
@@ -33,7 +35,7 @@ interface Fly {
   pinned: boolean;
 }
 
-export function Sidebar({ active, lowStock, onView, onSoon }: Props) {
+export function Sidebar({ active, lowStock, acct, onView, onSoon }: Props) {
   const [open, setOpen] = useState<string[]>(initialOpen);
   const { mini, sideOpen, toggleMini } = useShell();
   const [fly, setFly] = useState<Fly | null>(null);
@@ -124,7 +126,7 @@ export function Sidebar({ active, lowStock, onView, onSoon }: Props) {
           if (e.kids) {
             const isOpen = open.includes(e.label);
             return (
-              <div className={`grp ${isOpen ? 'open' : ''} ${e.cls ?? ''}`} data-g={e.label} hidden={e.hidden} key={e.label}>
+              <div className={`grp ${isOpen ? 'open' : ''} ${e.cls ?? ''}`} data-g={e.label} hidden={e.label === 'Accounting' ? !acct : e.hidden} key={e.label}>
                 <button
                   className="ni"
                   aria-expanded={isOpen}

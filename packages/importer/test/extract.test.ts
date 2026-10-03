@@ -20,7 +20,7 @@ describe('fresh shop entered through the prototype', () => {
   it('reads business, parties with opening balances, items with opening stock', async () => {
     const s = await extractSnapshot(parseBackup(fx('fresh-shop.backup.json')), { browser });
     expect(s.backup).toMatchObject({ fresh: true, keptSampleItems: false });
-    expect(s.business).toMatchObject({ name: 'Gupta Electricals & Hardware', short: 'Gupta Electricals', owner: 'Ravi Gupta', gstin: '09AAGFG2231M1ZQ', state: '09', gstEnabled: true, invoiceNext: 101 });
+    expect(s.business).toMatchObject({ name: 'Gupta Electricals & Hardware', short: 'Gupta Electricals', owner: 'Ravi Gupta', gstin: '09AAGFG2231M1ZQ', state: '09', gstEnabled: true, invoiceNext: 101, cashOpen: 15000 });
     expect(s.parties.map((p) => p.name).sort()).toEqual(['Kanpur Cables Pvt Ltd', 'Mehta Electricals', 'Raju Electrician', 'Walk-in Ramesh']);
     const mehta = s.parties.find((p) => p.name === 'Mehta Electricals')!;
     expect(mehta).toMatchObject({ role: 'c', group: 'Wholesale customers', gstin: '09AAJPM7745Q1Z2', email: 'mehta@example.com', creditDays: 30, sample: false });
