@@ -30,7 +30,9 @@
   button says it isn't set up.
 - **Trial length:** the website version used 14 days, the prototype shows 7. The
   rebuild uses 14 (`TRIAL_DAYS`).
-- **Hosting** (AWS Mumbai + Cloudflare Pages) — not set up; nothing is deployed.
+- **Hosting** (AWS Mumbai + Cloudflare Pages) — not set up; nothing is deployed. The web app and
+  the API must sit on the same domain (e.g. app.yourshop.in and api.yourshop.in) so the
+  sign-in cookie works.
 
 ## Next: Phase 2 — Masters
 Parties, items/variants, price lists, godowns, settings, and the importer for the

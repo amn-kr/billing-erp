@@ -115,7 +115,7 @@ export function AppShell() {
 
   if (!token) return <GoLogin />;
   if (me.error instanceof ApiError && me.error.status === 403 && me.error.code === 'removed') return <GoLogin query="?removed=1" />;
-  if (me.isError) return <GoLogin />;
+  if (me.error instanceof ApiError && (me.error.status === 401 || me.error.status === 403)) return <GoLogin />;
   if (!me.data) return null;
   if (!me.data.business) return <GoLogin />;
 
