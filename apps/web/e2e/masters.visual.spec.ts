@@ -53,5 +53,72 @@ for (const width of WIDTHS) {
       await app.locator('#apName').blur();
       await same(`addparty-error-${width}`, await shot(proto, '#ap .mdl'), await shot(app, '#ap .mdl'));
     });
+
+    test('Items screen, Add item and Adjust stock', async ({ browser }) => {
+      const proto = await newPage(browser, width);
+      const app = await newPage(browser, width);
+      await prototypeWithBackup(proto);
+      await openPrototypeView(proto, 'items');
+      await signInAs(app, RAVI);
+      await app.goto(APP + '/items');
+      await app.waitForSelector('#itList .ptr');
+      await app.waitForSelector('#itHead h2');
+      await app.waitForTimeout(400);
+      await same(`items-${width}`, await shot(proto, '#vItems'), await shot(app, '#vItems'));
+
+      // an item with opening stock (third in the list)
+      await proto.click('#itList .ptr:nth-child(3)');
+      await app.click('#itList .ptr:nth-child(3)');
+      await app.waitForSelector('#itTx tr td.n');
+      await proto.waitForTimeout(200);
+      await app.waitForTimeout(300);
+      await same(`items-stock-${width}`, await shot(proto, '#itRight'), await shot(app, '#itRight'));
+
+      // Adjust stock
+      await proto.click('#itAdj');
+      await app.click('#itAdj');
+      await proto.fill('#adjQty', '5');
+      await app.fill('#adjQty', '5');
+      await proto.evaluate(() => document.getElementById('adjQty')!.dispatchEvent(new Event('input', { bubbles: true })));
+      await proto.locator('#adjQty').blur();
+      await app.locator('#adjQty').blur();
+      await same(`adjust-${width}`, await shot(proto, '#adj .mdl'), await shot(app, '#adj .mdl'));
+      // (the prototype asks "Discard this stock adjustment?" here; that confirmation comes with the shared discard dialog)
+      await proto.evaluate(() => (window as unknown as { closeM: (id: string) => void }).closeM('adj'));
+      await app.click('#adjCancel');
+
+      // Add item: product (both tabs), service, several brands/sizes, error
+      await proto.evaluate(() => (window as unknown as { openItem: () => void }).openItem());
+      await app.click('#vItems .pthd .btn.p');
+      await app.waitForSelector('#ai:not([hidden]) #aiUnit option', { state: 'attached' });
+      for (const tab of ['price', 'stock']) {
+        await proto.click(`#ai [data-aitab="${tab}"]`);
+        await app.click(`#ai [data-aitab="${tab}"]`);
+        await proto.mouse.move(0, 0);
+        await app.mouse.move(0, 0);
+        await same(`additem-${tab}-${width}`, await shot(proto, '#ai .mdl'), await shot(app, '#ai .mdl'));
+      }
+      await proto.click('#ai [data-aitab="price"]');
+      await app.click('#ai [data-aitab="price"]');
+      await proto.click('#aiSave');
+      await app.click('#aiSave');
+      await proto.locator('#aiName').blur();
+      await app.locator('#aiName').blur();
+      await same(`additem-error-${width}`, await shot(proto, '#ai .mdl'), await shot(app, '#ai .mdl'));
+      for (const p of [proto, app]) await p.evaluate(() => { const c = document.getElementById('aiVar') as HTMLInputElement; c.click(); });
+      await proto.mouse.move(0, 0);
+      await app.mouse.move(0, 0);
+      await same(`additem-variants-${width}`, await shot(proto, '#ai .mdl'), await shot(app, '#ai .mdl'));
+      // (unticking "different brands or sizes" crashes the prototype's script, so reopen the form instead)
+      await proto.evaluate(() => { const w = window as unknown as { closeM: (id: string) => void; openItem: () => void }; w.closeM('ai'); w.openItem(); });
+      await app.click('#aiClose');
+      await app.click('#vItems .pthd .btn.p');
+      for (const p of [proto, app]) await p.click('#aiTypeSw .tgs');
+      await proto.locator('#aiName').blur();
+      await app.locator('#aiName').blur();
+      await proto.mouse.move(0, 0);
+      await app.mouse.move(0, 0);
+      await same(`additem-service-${width}`, await shot(proto, '#ai .mdl'), await shot(app, '#ai .mdl'));
+    });
   });
 }

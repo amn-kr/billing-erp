@@ -116,6 +116,9 @@ describe('items and stock', () => {
     expect(d.body.godowns.map((x: { name: string; stock: string }) => `${x.name} ${x.stock}`).sort()).toEqual(['Aminabad godown 50.000', 'Main shop 150.000']);
     expect((await http().post(`/api/godowns/${g.body.id}/archive`).set(auth(o)).expect(400)).body.message).toMatch(/still has stock/);
     expect((await http().post(`/api/godowns/${main.id}/archive`).set(auth(o)).expect(400)).body.message).toMatch(/main godown/);
+    const gi = await http().get(`/api/godowns/${g.body.id}/items`).set(auth(o)).expect(200);
+    expect(gi.body).toEqual([{ itemId: it.body.id, name: 'LED bulb 9W', category: '', unit: 'PCS', inGodown: '50.000', total: '200.000', value: '3100.00' }]);
+    expect((await http().get('/api/stock-transfers').set(auth(o)).expect(200)).body[0]).toMatchObject({ number: 'TRF-0001', qty: '50.000', from: 'Main shop', to: 'Aminabad godown' });
     await http().post(`/api/stock-transfers/${t.body.id}/cancel`).set(auth(o)).expect(204);
     await http().post(`/api/godowns/${g.body.id}/archive`).set(auth(o)).expect(204);
   });

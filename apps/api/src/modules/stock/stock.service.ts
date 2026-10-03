@@ -37,6 +37,37 @@ export class StockService {
     });
   }
 
+  /** Items with stock in one godown (Godowns screen table), largest value first. */
+  godownItems(ctx: RequestContext, id: string) {
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      const g = await tx.godown.findFirst({ where: { id, archivedAt: null } });
+      if (!g) throw new NotFoundException({ message: 'That godown was not found.' });
+      const here = await tx.stockMovement.groupBy({ by: ['itemId'], where: { godownId: id }, _sum: { qty: true } });
+      const total = await tx.stockMovement.groupBy({ by: ['itemId'], _sum: { qty: true } });
+      const items = await tx.item.findMany({ where: { id: { in: here.map((h) => h.itemId) }, kind: 'goods' }, include: { category: true, unit: true } });
+      return here
+        .map((h) => {
+          const i = items.find((x) => x.id === h.itemId);
+          const q = money(h._sum.qty!.toString());
+          if (!i || q.isZero()) return null;
+          return {
+            itemId: i.id, name: i.name, category: i.category?.name ?? '', unit: i.unit?.code ?? '', inGodown: q3(q),
+            total: q3(total.find((t) => t.itemId === i.id)?._sum.qty ?? 0), value: toDb(q.times(i.purchasePrice.toString())), valueN: q.times(i.purchasePrice.toString()).toNumber(),
+          };
+        })
+        .filter((r): r is NonNullable<typeof r> => !!r)
+        .sort((a, b) => b.valueN - a.valueN)
+        .map(({ valueN: _v, ...r }) => r);
+    });
+  }
+
+  transfers(ctx: RequestContext) {
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      const rows = await tx.stockTransfer.findMany({ where: { cancelledAt: null }, include: { item: { include: { unit: true } }, fromGodown: true, toGodown: true }, orderBy: [{ date: 'desc' }, { createdAt: 'desc' }], take: 50 });
+      return rows.map((t) => ({ id: t.id, number: t.number, date: isoOf(t.date), item: t.item.name, unit: t.item.unit?.code ?? '', qty: q3(t.qty), from: t.fromGodown.name, to: t.toGodown.name }));
+    });
+  }
+
   async addGodown(ctx: RequestContext, input: GodownInput) {
     try {
       return await this.db.scoped(this.scope(ctx), async (tx) => {

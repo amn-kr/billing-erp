@@ -18,6 +18,18 @@ export class StockController {
     return this.stock.godowns(ctx);
   }
 
+  @RequirePermission('masters.view')
+  @Get('godowns/:id/items')
+  godownItems(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
+    return this.stock.godownItems(ctx, id);
+  }
+
+  @RequirePermission('masters.view')
+  @Get('stock-transfers')
+  transfers(@Ctx() ctx: RequestContext) {
+    return this.stock.transfers(ctx);
+  }
+
   @RequirePermission('masters.manage')
   @Post('godowns')
   addGodown(@Ctx() ctx: RequestContext, @Body(new ZodPipe(godownSchema)) body: GodownInput) {

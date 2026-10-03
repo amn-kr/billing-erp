@@ -20,7 +20,7 @@ export function itemView(i: Row, stock: Prisma.Decimal | string | null) {
     wholesale: toDb(i.wholesalePrice.toString()), wholesaleMinQty: q3(i.wholesaleMinQty), minStock: q3(i.minStock), location: i.location,
     stock: st,
     /** ok | low (at or below minimum) | out (none left) — prototype lvl() */
-    level: st === null ? 'ok' : money(st).lte(0) ? 'out' : min.gt(0) && money(st).lte(min) ? 'low' : 'ok',
+    level: st === null ? 'ok' : money(st).lte(0) ? 'out' : min.gt(0) && money(st).lt(min) ? 'low' : 'ok',
     archived: !!i.archivedAt, createdAt: i.createdAt,
   };
 }
@@ -54,7 +54,8 @@ export class ItemsService {
           ...(s ? { OR: [{ name: { contains: s, mode: 'insensitive' } }, { code: { contains: s, mode: 'insensitive' } }, { hsn: { startsWith: s } }] } : {}),
         },
         include,
-        orderBy: { name: 'asc' },
+        // newest first, like the prototype (IT.unshift)
+        orderBy: [{ createdAt: 'desc' }, { name: 'asc' }],
       });
       const stock = await stockByItem(tx);
       const out = rows.map((i) => itemView(i, stock.get(i.id) ?? null));
@@ -79,10 +80,15 @@ export class ItemsService {
       const movements = await tx.stockMovement.findMany({ where: { itemId: id }, include: { godown: true }, orderBy: [{ date: 'desc' }, { createdAt: 'desc' }] });
       const byGodown = await tx.stockMovement.groupBy({ by: ['godownId'], where: { itemId: id }, _sum: { qty: true } });
       const godowns = await tx.godown.findMany({ where: { archivedAt: null } });
+      const adjIds = movements.filter((m) => m.sourceType === 'stock_adjustment' && m.sourceId).map((m) => m.sourceId!);
+      const trfIds = movements.filter((m) => m.sourceType === 'stock_transfer' && m.sourceId).map((m) => m.sourceId!);
+      const adjs = new Map((await tx.stockAdjustment.findMany({ where: { id: { in: adjIds } } })).map((a) => [a.id, a]));
+      const trfs = new Map((await tx.stockTransfer.findMany({ where: { id: { in: trfIds } } })).map((t) => [t.id, t]));
+      const refOf = (m: (typeof movements)[number]) => (m.sourceId ? adjs.get(m.sourceId)?.number ?? trfs.get(m.sourceId)?.number ?? '' : '');
       return {
         ...item,
         godowns: godowns.map((g) => ({ id: g.id, name: g.name, stock: q3(byGodown.find((b) => b.godownId === g.id)?._sum.qty ?? '0') })),
-        movements: movements.map((m) => ({ id: m.id, date: isoOf(m.date), kind: m.kind, qty: q3(m.qty), rate: toDb(m.rate.toString()), godown: m.godown.name, note: m.note, sourceType: m.sourceType, sourceId: m.sourceId })),
+        movements: movements.map((m) => ({ id: m.id, date: isoOf(m.date), kind: m.kind, qty: q3(m.qty), rate: toDb(m.rate.toString()), godown: m.godown.name, note: m.note, sourceType: m.sourceType, sourceId: m.sourceId, ref: refOf(m), createdAt: m.createdAt })),
       };
     });
   }

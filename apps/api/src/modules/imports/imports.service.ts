@@ -130,8 +130,9 @@ export class ImportsService {
     const itemId = new Map<string, string>();
     for (const i of plan.items) itemId.set(i.legacyId, randomUUID());
     await tx.item.createMany({
-      data: plan.items.map((i) => ({
-        ...base, id: itemId.get(i.legacyId)!, legacyId: i.legacyId, kind: i.kind, name: i.name, code: i.code, hsn: i.hsn,
+      // the old app lists items newest first; keep that order
+      data: plan.items.map((i, k) => ({
+        ...base, id: itemId.get(i.legacyId)!, createdAt: new Date(Date.parse(backupAt || new Date().toISOString()) - k * 1000), legacyId: i.legacyId, kind: i.kind, name: i.name, code: i.code, hsn: i.hsn,
         unitId: unitId.get(i.unit) ?? null, categoryId: categoryId.get(i.category) ?? null, brandId: brandId.get(i.brand) ?? null,
         itemGroupId: itemGroupId.get(i.group) ?? null, series: i.series, gstRate: i.gstRate, salePrice: i.sale, purchasePrice: i.purchase,
         mrp: i.mrp, listPrice: i.listPrice, wholesalePrice: i.wholesale, wholesaleMinQty: i.wholesaleMinQty, minStock: i.minStock, location: i.location,
