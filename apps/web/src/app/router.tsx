@@ -3,6 +3,7 @@ import { AppShell } from '../features/shell/AppShell';
 import { HomePage } from '../features/home/HomePage';
 import { PartiesPage } from '../features/parties/PartiesPage';
 import { ItemsPage } from '../features/items/ItemsPage';
+import { AdjustmentsPage } from '../features/stock/AdjustmentsPage';
 import { GodownsPage } from '../features/stock/GodownsPage';
 
 export const router = createBrowserRouter([
@@ -13,6 +14,7 @@ export const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: 'parties', element: <PartiesPage /> },
       { path: 'items', element: <ItemsPage /> },
+      { path: 'stock-adjustments', element: <AdjustmentsPage /> },
       { path: 'godowns', element: <GodownsPage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],

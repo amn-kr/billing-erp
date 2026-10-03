@@ -177,5 +177,46 @@ for (const width of WIDTHS) {
       await same(`godowns-moved-${width}`, await shot(proto, '#vGds'), await shot(app, '#vGds'));
       await expect(app.locator('#toast')).toHaveText(await proto.locator('#toast').innerText());
     });
+
+    test('Stock adjustments screen and New adjustment', async ({ browser, request }) => {
+      const proto = await newPage(browser, width);
+      const app = await newPage(browser, width);
+      await prototypeWithBackup(proto);
+      await openPrototypeView(proto, 'adjs');
+      await signInAs(app, await freshShop(request, 'fresh-shop'));
+      await app.goto(APP + '/stock-adjustments');
+      await app.waitForSelector('#adjRows .ptempty');
+      await app.waitForTimeout(300);
+      const both = async (fn: (p: Page) => Promise<unknown>) => { for (const p of [proto, app]) await fn(p); };
+      const settle = async () => { await both((p) => p.mouse.move(0, 0)); await app.waitForTimeout(300); await proto.waitForTimeout(100); };
+      await same(`adjs-${width}`, await shot(proto, '#vAdjs'), await shot(app, '#vAdjs'));
+
+      // New adjustment: item picker shown, first item chosen
+      await both((p) => p.click('#adjNew'));
+      await app.waitForSelector('#adjItem option', { state: 'attached' });
+      await settle();
+      await same(`adjnew-${width}`, await shot(proto, '#adj .mdl'), await shot(app, '#adj .mdl'));
+      const label = (await app.locator('#adjItem option', { hasText: 'Copper wire' }).first().innerText()).trim();
+      await both((p) => p.selectOption('#adjItem', { label }));
+      await both((p) => p.click('#adjSeg [data-am="reduce"]'));
+      await both((p) => p.fill('#adjQty', '2'));
+      await proto.evaluate(() => document.getElementById('adjQty')!.dispatchEvent(new Event('input', { bubbles: true })));
+      await both((p) => p.selectOption('#adjWhy', 'Damaged'));
+      await settle();
+      await same(`adjnew-picked-${width}`, await shot(proto, '#adj .mdl'), await shot(app, '#adj .mdl'));
+      await both((p) => p.click('#adj [type="submit"]'));
+      await app.waitForSelector('#adjRows td.mono');
+      await expect(app.locator('#toast')).toHaveText(await proto.locator('#toast').innerText());
+      // the prototype makes up a random reference (ADJ-0xx); the rebuild numbers them, so show the same text before comparing
+      const ref = await app.locator('#adjRows td.mono').innerText();
+      await proto.evaluate((r) => { document.querySelector('#adjRows td.mono')!.textContent = r; }, ref);
+      await settle();
+      await same(`adjs-one-${width}`, await shot(proto, '#vAdjs'), await shot(app, '#vAdjs'));
+
+      // filters
+      await both((p) => p.click('#adjKind [data-ak="add"]'));
+      await settle();
+      await same(`adjs-nomatch-${width}`, await shot(proto, '#vAdjs'), await shot(app, '#vAdjs'));
+    });
   });
 }

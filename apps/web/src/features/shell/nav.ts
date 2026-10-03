@@ -78,7 +78,7 @@ export const NAV: NavRow[] = [
 ];
 
 /** Prototype view id → route path in the rebuild. Only built screens are routed. */
-export const VIEW_PATH: Record<string, string> = { dash: '/', parties: '/parties', items: '/items', gds: '/godowns' };
+export const VIEW_PATH: Record<string, string> = { dash: '/', parties: '/parties', items: '/items', adjs: '/stock-adjustments', gds: '/godowns' };
 
 /** Names used in the "… screen is coming next" toast for screens not rebuilt yet. */
 export const VIEW_LABEL: Record<string, string> = {
