@@ -10,6 +10,8 @@ import { useMe } from '../../lib/me';
 import { useSession } from '../../lib/session';
 import { today as todayFn } from '../../lib/time';
 import { useStyles } from '../../lib/useStyles';
+import { curStart, curStop } from '../../lib/currency';
+import { useSettings } from '../../lib/settings';
 import { goToLogin } from '../../lib/nav';
 import { APP_STYLES } from '../../styles';
 import { VIEW_LABEL, VIEW_PATH, type NavLink } from './nav';
@@ -50,6 +52,7 @@ export function AppShell() {
   useStyles(APP_STYLES, 'app');
   const token = useSession((s) => s.accessToken);
   const me = useMe();
+  const settings = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
   const qc = useQueryClient();
@@ -66,9 +69,19 @@ export function AppShell() {
       html.dataset.gst = business.gstEnabled ? 'on' : 'off';
       html.dataset.sub = business.plan === 'expired' ? 'ended' : business.plan === 'paid' ? 'active' : 'trial';
     }
-    document.body.className = 'nocur nomrp';
     document.title = 'Billing ERP – Dashboard';
   }, [pal, business]);
+  // Settings › General: currency symbol and MRP switches (body classes + the prototype's ₹ remover)
+  const sdata = settings.data?.data as { showCurrency?: boolean; mrp?: boolean } | undefined;
+  const curOn = !!sdata?.showCurrency;
+  const mrpOn = !!sdata?.mrp;
+  useLayoutEffect(() => {
+    document.body.classList.toggle('nocur', !curOn);
+    document.body.classList.toggle('nomrp', !mrpOn);
+    if (curOn) curStop();
+    else curStart();
+  }, [curOn, mrpOn]);
+  useLayoutEffect(() => () => curStop(), []);
   useLayoutEffect(
     () => () => {
       const html = document.documentElement;
