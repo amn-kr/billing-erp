@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function shop(id) { return get(/databases/$(database)/documents/shops/$(id)).data; }
+    function isMember(id) { return signedIn() && exists(/databases/$(database)/documents/shops/$(id)/members/$(request.auth.uid)); }
+    function isOwner(id) { return signedIn() && shop(id).owner == request.auth.uid; }
+    function myEmail() { return request.auth.token.email.lower(); }
+    // a shop may add entries while its trial or paid plan is running
+    function isActive(id) {
+      let s = shop(id);
+      return (s.plan == 'paid' && s.paidUntil > request.time) || s.trialEnds > request.time;
+    }
+
+    // which shop a person belongs to
+    match /users/{uid} {
+      allow read, delete: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && exists(/databases/$(database)/documents/shops/$(request.resource.data.shopId)/members/$(uid));
+    }
+
+    // staff invitations, one per email address
+    match /invites/{email} {
+      allow read: if signedIn() && (myEmail() == email || isOwner(resource.data.shopId));
+      allow create: if isOwner(request.resource.data.shopId) && request.resource.data.role == 'staff';
+      allow update: if isOwner(resource.data.shopId) && isOwner(request.resource.data.shopId) && request.resource.data.role == 'staff';
+      allow delete: if signedIn() && (myEmail() == email || isOwner(resource.data.shopId));
+    }
+
+    match /shops/{shopId} {
+      allow read: if isMember(shopId);
+      // a new shop starts on a free trial of at most 15 days
+      allow create: if signedIn() && request.resource.data.owner == request.auth.uid
+        && request.resource.data.plan == 'trial'
+        && request.resource.data.trialEnds <= request.time + duration.value(15, 'd')
+        && !('paidUntil' in request.resource.data);
+      // the owner may rename the shop; plan, trial and payment are set only by you in the Firebase console
+      allow update: if isOwner(shopId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name']);
+      allow delete: if false;
+
+      match /members/{uid} {
+        allow read: if isMember(shopId);
+        allow create: if signedIn() && request.auth.uid == uid && (
+          (isOwner(shopId) && request.resource.data.role == 'owner')
+          || (request.resource.data.role == 'staff'
+              && exists(/databases/$(database)/documents/invites/$(myEmail()))
+              && get(/databases/$(database)/documents/invites/$(myEmail())).data.shopId == shopId));
+        allow update: if signedIn() && request.auth.uid == uid
+          && request.resource.data.role == resource.data.role;
+        allow delete: if isOwner(shopId) && uid != request.auth.uid;
+      }
+
+      // the books: every member reads; writing needs an active trial or plan
+      match /{coll}/{doc=**} {
+        allow read: if coll != 'members' && isMember(shopId);
+        allow write: if coll != 'members' && isMember(shopId) && isActive(shopId);
+      }
+    }
+  }
+}

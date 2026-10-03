@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Billing ERP — sign in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3f5f4;--sf:#fff;--bd:#e3e8e6;--t1:#13201c;--t2:#5d6b66;--ac:#0f766e;--ac2:#0b5f58;--acs:#e6f4f2;--red:#dc2626;--amber:#b45309}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1513;--sf:#151f1c;--bd:#26332f;--t1:#e8efed;--t2:#93a39e;--ac:#2bb3a6;--ac2:#3fc7ba;--acs:#173a36;--red:#f87171;--amber:#fbbf24}}
+:root[data-theme="dark"]{--bg:#0e1513;--sf:#151f1c;--bd:#26332f;--t1:#e8efed;--t2:#93a39e;--ac:#2bb3a6;--ac2:#3fc7ba;--acs:#173a36;--red:#f87171;--amber:#fbbf24}
+*{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--t1);font:15px/1.5 Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{min-height:100vh;display:grid;grid-template-columns:1.05fr 1fr;max-width:1180px;margin:0 auto;padding:32px 24px;gap:48px;align-items:center}
+@media(max-width:900px){.wrap{grid-template-columns:1fr;gap:24px;padding:20px 16px}.pitch{order:2}}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px}.logo{width:38px;height:38px;border-radius:11px;background:var(--ac);color:#fff;display:grid;place-items:center;font-weight:800}
+.pitch h1{font-size:clamp(28px,4vw,42px);line-height:1.12;margin:22px 0 12px;letter-spacing:-.02em}.pitch p{color:var(--t2);margin:0 0 20px;max-width:520px}
+.feat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;margin:0;padding:0;list-style:none}.feat li{display:flex;gap:8px;font-size:14px}.feat li::before{content:'';flex:none;width:18px;height:18px;margin-top:2px;border-radius:50%;background:var(--acs) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230f766e' stroke-width='3'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E") center/12px no-repeat}
+@media(max-width:520px){.feat{grid-template-columns:1fr}}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:18px;padding:26px;box-shadow:0 10px 30px rgba(15,40,35,.07)}
+.card h2{margin:0 0 4px;font-size:22px}.mu{color:var(--t2);font-size:13.5px}
+.tabs{display:flex;background:var(--bg);border-radius:12px;padding:4px;margin:18px 0}.tabs button{flex:1;border:0;background:none;padding:9px;border-radius:9px;font:inherit;font-weight:600;color:var(--t2);cursor:pointer}.tabs button.on{background:var(--sf);color:var(--t1);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin:0 0 12px}input,select{display:block;width:100%;margin-top:5px;height:42px;border:1px solid var(--bd);border-radius:10px;padding:0 12px;font:inherit;color:var(--t1);background:var(--sf)}
+input:focus,select:focus{outline:2px solid color-mix(in srgb,var(--ac) 35%,transparent);border-color:var(--ac)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:420px){.two{grid-template-columns:1fr}}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;border-radius:11px;border:1px solid var(--bd);background:var(--sf);color:var(--t1);font:inherit;font-weight:700;cursor:pointer;padding:0 16px;width:100%;text-decoration:none}
+.btn.p{background:var(--ac);border-color:var(--ac);color:#fff}.btn.p:hover{background:var(--ac2)}.btn:disabled{opacity:.6;cursor:wait}
+.or{display:flex;align-items:center;gap:10px;color:var(--t2);font-size:12px;margin:14px 0}.or::before,.or::after{content:'';flex:1;height:1px;background:var(--bd)}
+.lnk{background:none;border:0;color:var(--ac);font:inherit;font-weight:600;cursor:pointer;padding:0}
+.msg{font-size:13px;margin:8px 0 0;min-height:1em}.msg.bad{color:var(--red)}.msg.ok{color:var(--ac)}
+.note{background:var(--acs);border-radius:12px;padding:12px 14px;font-size:13.5px;margin:0 0 14px}
+.demo{margin-top:14px;text-align:center;font-size:13.5px}
+[hidden]{display:none!important}
+#sGst::placeholder{text-transform:none}
+</style></head><body>
+<div class="wrap">
+ <section class="pitch"><div class="brand"><span class="logo" id="appLogo">B</span><span id="appName">Billing ERP</span></div>
+  <h1>Billing, stock and accounts for your shop — in the browser.</h1>
+  <p>GST invoices, purchases, payments, expenses, cash and bank, party statements and reports. Work from the counter, the godown or home; your staff see the same books.</p>
+  <ul class="feat"><li>GST &amp; non-GST invoices</li><li>Quotations &amp; delivery challans</li><li>Purchase bills &amp; supplier payments</li><li>Stock with low-stock alerts</li><li>Cash book, bank &amp; cheques</li><li>Party statements on WhatsApp</li><li>Staff accounts, shared live</li><li>Daily cloud backup</li></ul>
+ </section>
+ <section class="card" id="box" aria-live="polite">
+  <div id="vLoad"><h2>Loading…</h2><p class="mu">Checking your account.</p></div>
+  <div id="vAuth" hidden>
+   <h2 id="authT">Sign in</h2><p class="mu" id="authS">Welcome back.</p>
+   <div class="tabs" role="tablist"><button type="button" class="on" data-mode="in" role="tab">Sign in</button><button type="button" data-mode="up" role="tab">Create account</button></div>
+   <div id="removedNote" class="note" hidden>You no longer have access to that shop. Sign in with another account, or create your own shop.</div>
+   <form id="fAuth" novalidate>
+    <label id="lName" hidden>Your name<input id="aName" autocomplete="name"></label>
+    <label>Email<input id="aEmail" type="email" autocomplete="email" required></label>
+    <label>Password<input id="aPass" type="password" autocomplete="current-password" required minlength="6"></label>
+    <button class="btn p" id="aGo" type="submit">Sign in</button>
+    <div class="msg bad" id="aErr" role="alert"></div>
+   </form>
+   <div class="or">or</div>
+   <button class="btn" type="button" id="aGoogle"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 38.2 44 33 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Continue with Google</button>
+   <p class="mu" style="margin:12px 0 0;text-align:center"><button class="lnk" type="button" id="aForgot">Forgot password?</button></p>
+   <p class="demo mu">Just looking? <a class="lnk" href="app.html?demo=1" style="text-decoration:none">Open the demo shop</a></p>
+  </div>
+  <div id="vJoin" hidden>
+   <h2>Join <span id="jShop"></span></h2><p class="mu">You were invited as staff. Your entries will go into this shop’s books.</p>
+   <label style="margin-top:16px">Your name<input id="jName" autocomplete="name"></label>
+   <button class="btn p" type="button" id="jGo">Join shop</button><div class="msg bad" id="jErr" role="alert"></div>
+   <p class="mu" style="margin:14px 0 0;text-align:center"><button class="lnk" type="button" id="jOwn">Create my own shop instead</button> · <button class="lnk" type="button" data-out>Sign out</button></p>
+  </div>
+  <div id="vShop" hidden>
+   <h2>Set up your shop</h2><p class="mu">This goes on your invoices. You can change it later in Settings.</p>
+   <div class="note" style="margin-top:14px" id="trialNote">Free for 14 days. No card needed.</div>
+   <form id="fShop" novalidate>
+    <label>Business name<input id="sName" placeholder="e.g. Gupta Electricals &amp; Hardware" required></label>
+    <div class="two"><label>Your name<input id="sOwner" autocomplete="name" required></label><label>Phone<input id="sPhone" inputmode="tel" placeholder="+91 "></label></div>
+    <label>Address<input id="sAddr" placeholder="Shop no., street, area"></label>
+    <div class="two"><label>City<input id="sCity"></label><label>PIN code<input id="sPin" inputmode="numeric" maxlength="6"></label></div>
+    <div class="two"><label>State<select id="sState"></select></label><label>GSTIN <span style="font-weight:500">(if registered)</span><input id="sGst" style="text-transform:uppercase" maxlength="15" placeholder="15 characters"></label></div>
+    <label>First invoice number<input id="sInv" inputmode="numeric" value="1"></label>
+    <button class="btn p" id="sGo" type="submit">Create shop &amp; open books</button><div class="msg bad" id="sErr" role="alert"></div>
+   </form>
+   <p class="mu" style="margin:14px 0 0;text-align:center"><button class="lnk" type="button" data-out>Sign out</button></p>
+  </div>
+ </section>
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const APP=window.APP_NAME||'Billing ERP';$('appName').textContent=APP;$('appLogo').textContent=APP[0].toUpperCase();document.title=APP+' — sign in';
+const STATES=[['01','Jammu & Kashmir'],['02','Himachal Pradesh'],['03','Punjab'],['04','Chandigarh'],['05','Uttarakhand'],['06','Haryana'],['07','Delhi'],['08','Rajasthan'],['09','Uttar Pradesh'],['10','Bihar'],['11','Sikkim'],['12','Arunachal Pradesh'],['13','Nagaland'],['14','Manipur'],['15','Mizoram'],['16','Tripura'],['17','Meghalaya'],['18','Assam'],['19','West Bengal'],['20','Jharkhand'],['21','Odisha'],['22','Chhattisgarh'],['23','Madhya Pradesh'],['24','Gujarat'],['26','Dadra & Nagar Haveli and Daman & Diu'],['27','Maharashtra'],['29','Karnataka'],['30','Goa'],['31','Lakshadweep'],['32','Kerala'],['33','Tamil Nadu'],['34','Puducherry'],['35','Andaman & Nicobar'],['36','Telangana'],['37','Andhra Pradesh'],['38','Ladakh']];
+$('sState').innerHTML=STATES.map(s=>`<option value="${s[0]}" ${s[0]==='09'?'selected':''}>${s[0]} · ${s[1]}</option>`).join('');
+const TRIAL=+(window.TRIAL_DAYS||14);$('trialNote').textContent=`Free for ${TRIAL} days. No card needed.`;
+if(new URLSearchParams(location.search).has('removed'))$('removedNote').hidden=false;
+const show=v=>['vLoad','vAuth','vJoin','vShop'].forEach(x=>$(x).hidden=x!==v);
+const clearLocal=()=>{const ks=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('erp'))ks.push(k)}ks.forEach(k=>localStorage.removeItem(k));try{sessionStorage.clear()}catch(e){}};
+const prepLocal=(shopId,biz,settings)=>{if(localStorage.getItem('erp--shop')!==shopId){clearLocal();localStorage.setItem('erp--shop',shopId)}
+ if(biz)localStorage.setItem('erp-biz',JSON.stringify(biz));if(settings)localStorage.setItem('erp-settings',JSON.stringify(settings))};
+const goApp=()=>location.replace('app.html');
+const nice=e=>({'auth/invalid-credential':'Email or password is wrong.','auth/wrong-password':'Email or password is wrong.','auth/user-not-found':'No account with this email. Create an account first.','auth/email-already-in-use':'An account with this email already exists. Sign in instead.','auth/weak-password':'Use at least 6 characters for the password.','auth/invalid-email':'That email doesn’t look right.','auth/too-many-requests':'Too many tries. Wait a minute and try again.','auth/popup-closed-by-user':'Google sign-in was closed.','auth/network-request-failed':'No internet connection.','permission-denied':'Not allowed. Please sign out and in again.'}[e&&e.code]||(e&&e.message)||'Something went wrong.');
+if(!window.FIREBASE_CONFIG||!window.FIREBASE_CONFIG.apiKey||/PASTE/.test(window.FIREBASE_CONFIG.apiKey)){$('vLoad').innerHTML='<h2>Almost there</h2><p class="mu">This website isn’t connected to Firebase yet. Paste your project’s settings into <b>firebase-config.js</b> and deploy again (see README).</p><p class="demo"><a class="lnk" href="app.html?demo=1">Open the demo shop</a></p>';return}
+firebase.initializeApp(window.FIREBASE_CONFIG);const auth=firebase.auth(),fs=firebase.firestore();
+let mode='in',U=null,INV=null;
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('on',x===b));
+ $('lName').hidden=mode!=='up';$('aGo').textContent=mode==='up'?'Create account':'Sign in';$('authT').textContent=mode==='up'?'Create your account':'Sign in';$('authS').textContent=mode==='up'?'Then set up your shop in one step.':'Welcome back.';$('aPass').autocomplete=mode==='up'?'new-password':'current-password';$('aErr').textContent=''});
+$('fAuth').onsubmit=async e=>{e.preventDefault();const em=$('aEmail').value.trim(),pw=$('aPass').value;$('aErr').textContent='';$('aGo').disabled=true;
+ try{if(mode==='up'){const r=await auth.createUserWithEmailAndPassword(em,pw);const n=$('aName').value.trim();if(n)await r.user.updateProfile({displayName:n})}else await auth.signInWithEmailAndPassword(em,pw)}
+ catch(x){$('aErr').textContent=nice(x)}finally{$('aGo').disabled=false}};
+$('aGoogle').onclick=async()=>{$('aErr').textContent='';try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())}catch(x){$('aErr').textContent=nice(x)}};
+$('aForgot').onclick=async()=>{const em=$('aEmail').value.trim();if(!em){$('aErr').textContent='Type your email above first.';return}try{await auth.sendPasswordResetEmail(em);$('aErr').className='msg ok';$('aErr').textContent='Password reset email sent to '+em+'.'}catch(x){$('aErr').className='msg bad';$('aErr').textContent=nice(x)}};
+document.querySelectorAll('[data-out]').forEach(b=>b.onclick=async()=>{clearLocal();await auth.signOut()});
+/* who is this, and which shop? */
+auth.onAuthStateChanged(async u=>{U=u;if(!u){show('vAuth');return}show('vLoad');
+ try{const ud=await fs.doc('users/'+u.uid).get();
+  if(ud.exists){const sid=ud.data().shopId,m=await fs.doc(`shops/${sid}/members/${u.uid}`).get().catch(()=>null);if(m&&m.exists){prepLocal(sid);return goApp()}}
+  const em=(u.email||'').toLowerCase();const iv=em?await fs.doc('invites/'+em).get().catch(()=>null):null;
+  if(iv&&iv.exists){INV=iv.data();$('jShop').textContent=INV.shopName||'the shop';$('jName').value=u.displayName||'';show('vJoin');return}
+  $('sOwner').value=u.displayName||$('aName').value.trim()||'';show('vShop')}
+ catch(x){show('vAuth');$('aErr').textContent=nice(x)}});
+$('jOwn').onclick=()=>{$('sOwner').value=$('jName').value||U.displayName||'';show('vShop')};
+$('jGo').onclick=async()=>{const n=$('jName').value.trim();if(!n){$('jErr').textContent='Enter your name.';return}$('jGo').disabled=true;$('jErr').textContent='';
+ try{const em=U.email.toLowerCase();await fs.doc(`shops/${INV.shopId}/members/${U.uid}`).set({role:'staff',name:n,email:em,added:firebase.firestore.FieldValue.serverTimestamp()});
+  await fs.doc('users/'+U.uid).set({shopId:INV.shopId,role:'staff'});await fs.doc('invites/'+em).delete().catch(()=>{});prepLocal(INV.shopId);goApp()}
+ catch(x){$('jErr').textContent=nice(x);$('jGo').disabled=false}};
+const GST_RE=/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+$('fShop').onsubmit=async e=>{e.preventDefault();const v=id=>$(id).value.trim(),err=m=>{$('sErr').textContent=m};err('');
+ const o={name:v('sName'),owner:v('sOwner'),phone:v('sPhone'),addr:v('sAddr'),city:v('sCity'),pin:v('sPin'),state:$('sState').value,gstin:v('sGst').toUpperCase(),inv:v('sInv')||'1'};
+ if(!o.name)return err('Enter your business name.');if(!o.owner)return err('Enter your name.');
+ if(o.gstin&&!GST_RE.test(o.gstin))return err('This GSTIN doesn’t look right — 15 characters, like 09ABCDE1234F1Z5.');
+ if(o.gstin&&o.gstin.slice(0,2)!==o.state)return err(`GSTIN starts with ${o.gstin.slice(0,2)} — choose that state.`);
+ if(o.pin&&!/^\d{6}$/.test(o.pin))return err('PIN code has 6 digits.');if(!/^\d{1,6}$/.test(o.inv))return err('First invoice number should be a number.');
+ $('sGo').disabled=true;
+ try{const ref=fs.collection('shops').doc(),em=(U.email||'').toLowerCase();
+  await ref.set({name:o.name,owner:U.uid,ownerEmail:em,plan:'trial',trialEnds:firebase.firestore.Timestamp.fromMillis(Date.now()+TRIAL*864e5),created:firebase.firestore.FieldValue.serverTimestamp()});
+  await fs.doc(`shops/${ref.id}/members/${U.uid}`).set({role:'owner',name:o.owner,email:em,added:firebase.firestore.FieldValue.serverTimestamp()});
+  await fs.doc('users/'+U.uid).set({shopId:ref.id,role:'owner'});
+  prepLocal(ref.id,{fresh:true,epoch:Date.now(),name:o.name,short:o.name.split(/\s*&\s*|\s+and\s+/i)[0],owner:o.owner,phone:o.phone,email:em,addr:o.addr,city:o.city,pin:o.pin,invNext:+o.inv,cashOpen:0},{gst:!!o.gstin,gstin:o.gstin,state:o.state,upi:'',upiName:o.name});
+  goApp()}
+ catch(x){err(nice(x));$('sGo').disabled=false}};
+})();
+</script>
+</body></html>
