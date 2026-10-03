@@ -36,6 +36,12 @@ export function PriceSetup({ open, data, previewOpen, onPreview, onClose }: {
   const [sure, setSure] = useState(false);
   const [ed, setEd] = useState<Ed | null>(null);
   const [meta, setMeta] = useState({ inherit: false, noLpGroup: false });
+  /**
+   * The prototype's fitTables() adds .stk (a 520 px cap) to dialog tables only when the
+   * page behind changes — i.e. right after prices are applied — and the next redraw of
+   * this dialog drops it again.
+   */
+  const [fitted, setFitted] = useState(false);
   const sureT = useRef(0);
   const bodyRef = useRef<HTMLDivElement>(null);
   const ovRef = useRef<HTMLDivElement>(null);
@@ -52,10 +58,11 @@ export function PriceSetup({ open, data, previewOpen, onPreview, onClose }: {
     const x = pickEd(IT, F, from, g);
     setEd(x.ed);
     setMeta({ inherit: x.inherit, noLpGroup: x.noLpGroup });
+    setFitted(false);
   };
   useEffect(() => {
     if (!open) return;
-    setDr({}); setRaw({}); setSure(false);
+    setDr({}); setRaw({}); setSure(false); setFitted(false);
     const g = usePm.getState().pr.g;
     if (g) pick(g);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -100,7 +107,7 @@ export function PriceSetup({ open, data, previewOpen, onPreview, onClose }: {
     return () => document.removeEventListener('keydown', esc, true);
   }, [open, previewOpen]);
 
-  const rerender = () => setRaw({});
+  const rerender = () => { setRaw({}); setFitted(false); };
   async function saveRule(k: string, r: Ed | null) {
     const pin = usePm.getState().pin;
     const res = await api<{ rules: Record<string, PriceRuleSet> }>('/prices/rules', { body: { pin, key: k, rule: r } });
@@ -110,7 +117,7 @@ export function PriceSetup({ open, data, previewOpen, onPreview, onClose }: {
   async function go() {
     if (!rule) {
       if (!ch.length) return;
-      onPreview(ch, `Price Setup: ${ch.length} item-wise change${ch.length > 1 ? 's' : ''}`, 'Old → new. You can undo after saving.', () => { setDr({}); rerender(); });
+      onPreview(ch, `Price Setup: ${ch.length} item-wise change${ch.length > 1 ? 's' : ''}`, 'Old → new. You can undo after saving.', () => { setDr({}); setRaw({}); setFitted(true); });
       return;
     }
     if (!g || !ed) return;
@@ -119,7 +126,7 @@ export function PriceSetup({ open, data, previewOpen, onPreview, onClose }: {
       const saved = await saveRule(g, ed);
       const { ch: rch, fl } = ruleChanges(IT, F, saved, g, ed);
       showToast(`Rule saved for ${prLabel(g)}`);
-      if (rch.length) onPreview(rch, `Rule · ${prLabel(g)}`, `${fl ? fl + ' price' + (fl > 1 ? 's are' : ' is') + ' held at the minimum margin. ' : ''}Old → new. You can undo after saving.`, () => pick(g, saved));
+      if (rch.length) onPreview(rch, `Rule · ${prLabel(g)}`, `${fl ? fl + ' price' + (fl > 1 ? 's are' : ' is') + ' held at the minimum margin. ' : ''}Old → new. You can undo after saving.`, () => { pick(g, saved); setFitted(true); });
       else pick(g, saved);
     } catch (e) {
       showToast(e instanceof ApiError ? e.message : 'Could not save the rule.');
@@ -160,6 +167,7 @@ export function PriceSetup({ open, data, previewOpen, onPreview, onClose }: {
     if (kind === 'pf' && f === 'lp') F.forEach(([h]) => drop(h));
     else if (!(kind === 'pf' && f === 'mrp')) drop(f, kind);
     setRaw(nr);
+    setFitted(false);
   }
   const val = (key: string, v: string) => (key in raw ? raw[key]! : v);
   const warn = (i: PItem, p: number, mrp: number) => (mrpOn && mrp && p > mrp) || (i.purch && p && p < i.purch);
@@ -185,9 +193,9 @@ export function PriceSetup({ open, data, previewOpen, onPreview, onClose }: {
           <select className="fi" id="psSer" aria-label="Series" value={ser || 'all'} disabled={!sers.length} onChange={(e) => { setPsu({ ser: e.target.value }); rerender(); }}><option value="all">All series</option>{sers.map((x) => <option key={x}>{x}</option>)}</select><span className="mu" id="psN" style={{ fontSize: 12.5 }}>{L.length} item{L.length === 1 ? '' : 's'}</span></div>
         <div id="psBody" ref={bodyRef}>
           {rule ? (
-            <BrandRules IT={IT} F={F} rules={rules} ed={ed} setEd={setEd} meta={meta} onPick={(k) => pick(k)} onRemove={removeRule} />
+            <BrandRules IT={IT} F={F} rules={rules} ed={ed} setEd={(e) => { setEd(e); setFitted(false); }} meta={meta} fitted={fitted} onPick={(k) => pick(k)} onRemove={removeRule} />
           ) : (
-            <div className="tw pstw stk"><table className="ptt2 psit">
+            <div className={`tw pstw${fitted ? ' stk' : ''}`}><table className="ptt2 psit">
               <thead><tr><th rowSpan={2}>Item</th><th rowSpan={2} className="n">Purchase</th>{mrpOn && <th rowSpan={2} className="n">MRP</th>}<th rowSpan={2} className="n">LP</th>{F.map(([f, lb]) => <th colSpan={3} className="c psg" key={f}>{lb}</th>)}</tr>
                 <tr>{F.map(([f]) => [<th className="n sub" title="Discount on List Price" key={f + 'd'}>LP − %</th>, <th className="n sub" title="Margin on purchase price" key={f + 'm'}>Margin %</th>, <th className="n sub" key={f + 'p'}>Price</th>])}</tr></thead>
               <tbody>

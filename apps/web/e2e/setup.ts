@@ -103,7 +103,7 @@ export async function openPrototypeView(page: Page, view: string) {
 
 let shops = 0;
 /** A brand-new shop for tests that change data, so the screenshot shop stays as imported. */
-export async function freshShop(request: APIRequestContext, fixture?: string): Promise<{ email: string; password: string }> {
+export async function freshShop(request: APIRequestContext, fixture?: string, opts: { includeSample?: boolean } = {}): Promise<{ email: string; password: string }> {
   const who = { email: `e2e.${Date.now().toString(36)}.${process.pid}.${++shops}@flows.example.com`, password: 'flows password 1' };
   const reg = await request.post(APP + '/api/auth/register', { data: { ...who, name: fixture ? 'Ravi Gupta' : 'Pooja Verma' } }); // the fixtures' owner
   const biz = await request.post(APP + '/api/businesses', {
@@ -113,7 +113,7 @@ export async function freshShop(request: APIRequestContext, fixture?: string): P
   if (fixture) {
     const fs = await import('node:fs');
     const text = fs.readFileSync(path.join(ROOT, 'packages/importer/fixtures', `${fixture}.backup.json`), 'utf8');
-    const r = await request.post(APP + '/api/imports', { headers: { Authorization: `Bearer ${(await biz.json()).accessToken}` }, data: { fileName: `${fixture}.backup.json`, backup: text } });
+    const r = await request.post(APP + '/api/imports', { headers: { Authorization: `Bearer ${(await biz.json()).accessToken}` }, data: { fileName: `${fixture}.backup.json`, backup: text, includeSample: !!opts.includeSample } });
     if (!r.ok()) throw new Error(`import failed: ${r.status()} ${await r.text()}`);
   }
   return who;

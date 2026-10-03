@@ -281,5 +281,43 @@ for (const width of WIDTHS) {
       await settle();
       await same(`phm-${width}`, await shot(proto, '#phm .mdl'), await shot(app, '#phm .mdl'));
     });
+
+    test('Price Setup brand rules on the sample catalogue', async ({ browser, request }) => {
+      test.setTimeout(180_000);
+      const proto = await newPage(browser, width);
+      const app = await newPage(browser, width);
+      await prototypeWithBackup(proto, 'sample-shop');
+      await openPrototypeView(proto, 'prices');
+      await signInAs(app, await freshShop(request, 'sample-shop', { includeSample: true }));
+      await app.goto(APP + '/prices');
+      await app.waitForSelector('#pmRows tr td.pmv');
+      await app.waitForTimeout(500);
+      const both = async (fn: (p: Page) => Promise<unknown>) => { for (const p of [proto, app]) await fn(p); };
+      const settle = async () => { await both((p) => p.mouse.move(0, 0)); await app.waitForTimeout(300); await proto.waitForTimeout(150); };
+      await same(`prices-sample-${width}`, await shot(proto, '#vPrices'), await shot(app, '#vPrices'));
+      await both((p) => p.click('#pmLock'));
+      await both((p) => p.locator('#plkPin').pressSequentially('2468'));
+      await both((p) => p.locator('#plkPin2').pressSequentially('2468'));
+      await app.waitForSelector('#psm:not([hidden]) .prhd');
+      // let the "PIN saved" message go first (it sits over the dialog)
+      await both((p) => p.waitForFunction(() => !document.getElementById('toast')?.classList.contains('on'), null, { timeout: 10_000 }));
+      await settle();
+      // the first brand is picked; no rule saved yet
+      await same(`prules-${width}`, await shot(proto, '#psm .mdl'), await shot(app, '#psm .mdl'));
+      await both((p) => p.selectOption('#psBody [data-prf="sale"] [data-k="m"]', 'lp'));
+      await both((p) => p.fill('#psBody [data-prf="sale"] [data-k="v"]', '10'));
+      await both((p) => p.locator('#psBody [data-prf="sale"] [data-k="v"]').blur());
+      await settle();
+      await same(`prules-set-${width}`, await shot(proto, '#psm .mdl'), await shot(app, '#psm .mdl'));
+      await both((p) => p.click('#psGo'));
+      await app.waitForSelector('#ppv:not([hidden])');
+      await settle();
+      await same(`prules-ppv-${width}`, await shot(proto, '#ppv .mdl'), await shot(app, '#ppv .mdl'));
+      await both((p) => p.click('#ppvApply'));
+      await app.waitForSelector('#ppv', { state: 'hidden' });
+      await app.waitForTimeout(500);
+      await settle();
+      await same(`prules-saved-${width}`, await shot(proto, '#psm .mdl'), await shot(app, '#psm .mdl'));
+    });
   });
 }

@@ -73,8 +73,8 @@ export function ruleChanges(IT: PItem[], F: [Field, string][], rules: Record<str
   return { ch, skip, fl };
 }
 
-export function BrandRules({ IT, F, rules, ed, setEd, meta, onPick, onRemove }: {
-  IT: PItem[]; F: [Field, string][]; rules: Record<string, PriceRuleSet>; ed: Ed | null; setEd: (e: Ed) => void;
+export function BrandRules({ IT, F, rules, ed, setEd, meta, fitted, onPick, onRemove }: {
+  IT: PItem[]; F: [Field, string][]; rules: Record<string, PriceRuleSet>; ed: Ed | null; setEd: (e: Ed) => void; fitted: boolean;
   meta: { inherit: boolean; noLpGroup: boolean }; onPick: (g: string) => void; onRemove: () => void;
 }) {
   const pr = usePm((s) => s.pr);
@@ -149,7 +149,7 @@ export function BrandRules({ IT, F, rules, ed, setEd, meta, onPick, onRemove }: 
               )}
               <label className="prfloor cb2"><input type="checkbox" id="prFl" checked={!!ed.floor?.on} onChange={(e) => setSw('floor', { on: e.target.checked })} /> Never sell below purchase + <span className="pre3 ps3"><input className="fi n" id="prFlV" value={String(ed.floor ? ed.floor.v : 5)} inputMode="decimal" onChange={(e) => setSw('floor', { v: num(e.target.value) })} /><i>%</i></span> <small className="mu">minimum margin</small></label></div>
             <div className="prsum">{ch.length ? <><b>{ch.length} price{ch.length > 1 ? 's' : ''}</b> will change</> : 'No price changes with this rule'}{fl ? <> · <span className="lowq">{fl} held at the minimum margin</span></> : null}{skip ? <> · <span className="mu">{skip} skipped (no LP / purchase price)</span></> : null}</div>
-            <div className="tw prtw stk"><table className="ptt2 prt"><thead><tr><th>Item</th><th className="n">Purchase</th><th className="n">LP</th>{F.map(([f, lb]) => <th className="n" key={f}>{lb}</th>)}</tr></thead>
+            <div className={`tw prtw${fitted ? ' stk' : ''}`}><table className="ptt2 prt"><thead><tr><th>Item</th><th className="n">Purchase</th><th className="n">LP</th>{F.map(([f, lb]) => <th className="n" key={f}>{lb}</th>)}</tr></thead>
               <tbody>
                 {items.slice(0, 60).map((i) => {
                   const nn = byI.get(i.id) ?? {};
