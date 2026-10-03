@@ -1,6 +1,6 @@
 # Rebuild status
 
-## Phase 0 — Prepare ✅ (waiting for the owner's approval of the screenshots)
+## Phase 0 — Prepare ✅ (screenshots approved by the owner, 3 Oct 2026)
 - `pnpm baseline` photographs the prototype: the sign-in page, 26 app screens
   and 42 dialogs (41 + the invoice drawer) at 1280, 1366 and 1920 px.
 - Repeatable: clock frozen at 1 Oct 2026 14:00 IST, fonts served locally.
@@ -30,11 +30,16 @@
 - **Free trial:** 14 days (`TRIAL_DAYS=14`, the default).
 
 ## Still open
-- **Phase 0 approval** of the baseline screenshots.
 - **Hosting** (AWS Mumbai + Cloudflare Pages) — not set up; nothing is deployed. The web app and
   the API must sit on the same domain (e.g. app.yourshop.in and api.yourshop.in) so the
   sign-in cookie works.
 
-## Next: Phase 2 — Masters
-Parties, items/variants, price lists, godowns, settings, and the importer for the
-prototype's backup file. Gate: a real backup file imports cleanly.
+## Phase 2 — Masters (in progress)
+| Item | State |
+|---|---|
+| Database: parties, groups, addresses, contacts, items, units, categories, brands, item groups, HSN, godowns, stock ledger, adjustments, transfers, price lists, group rules, fixed prices, price history, electricians, commission rules | done, row-level security on all |
+| New shops start with the prototype's lists (taxes, groups, units, categories, price lists, Main shop, commission) | done |
+| API for parties, items, stock, godowns, price lists, prices, settings, electricians, commission | done, 56 API tests |
+| Importer: old app backup → new shop (dry run, all-or-nothing, refuses a shop that already has data) | done, tested with backups made in the old app |
+| Screens: Parties, Items, Price manager, Stock adjustments, Godowns, Settings (+ their dialogs) matching the prototype | next |
+| **Gate:** a real backup file imports cleanly | needs a real backup from the owner |
