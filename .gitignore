@@ -8,3 +8,8 @@ coverage/
 reference/tests/out/
 .DS_Store
 *.log
+# Screenshots are regenerated with `pnpm baseline` (deterministic: frozen clock, local fonts)
+reference/baseline/
+test-results/
+playwright-report/
+.turbo/
