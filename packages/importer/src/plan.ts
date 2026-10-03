@@ -28,6 +28,8 @@ export interface PlanParty {
   billing: { line: string; city: string; pin: string; stateCode: string } | null;
   shipping: { line: string } | null;
   contacts: { label: string; value: string }[];
+  /** day the party was added in the old app (ISO), or '' */
+  addedOn: string;
 }
 
 export interface PlanItem {
@@ -178,6 +180,7 @@ export function planImport(snap: Snapshot, opts: PlanOptions = {}): ImportPlan {
       billing: b.line || b.city || b.pin || b.state ? { line: b.line, city: b.city, pin: b.pin, stateCode: STATE_CODES.includes(b.state) ? b.state : '' } : null,
       shipping: p.shipping && p.shipping !== 'same' ? { line: p.shipping } : null,
       contacts: p.extra.filter((x) => x.value.trim()).map((x) => ({ label: x.field, value: x.value.trim() })),
+      addedOn: ISO.test(p.addedOn) ? p.addedOn : '',
     };
   });
 

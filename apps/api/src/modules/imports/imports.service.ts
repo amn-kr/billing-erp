@@ -110,8 +110,9 @@ export class ImportsService {
     const partyId = new Map<string, string>();
     for (const p of plan.parties) partyId.set(p.legacyId, randomUUID());
     await tx.party.createMany({
-      data: plan.parties.map((p) => ({
-        ...base, id: partyId.get(p.legacyId)!, legacyId: p.legacyId, name: p.name, kind: p.kind, groupId: groupId.get(p.group) ?? null,
+      // keep the old app's order: the day each party was added, then its place in the list
+      data: plan.parties.map((p, k) => ({
+        ...base, id: partyId.get(p.legacyId)!, ...(p.addedOn && { createdAt: new Date(Date.parse(p.addedOn + 'T00:00:00+05:30') + k * 1000) }), legacyId: p.legacyId, name: p.name, kind: p.kind, groupId: groupId.get(p.group) ?? null,
         phone: p.phone, email: p.email, gstin: p.gstin, gstType: p.gstType, stateCode: p.stateCode, creditLimit: p.creditLimit,
         creditDays: p.creditDays, openingBalance: p.opening?.amount ?? '0', openingType: p.opening?.type ?? (p.kind === 'supplier' ? 'pay' : 'receive'),
         openingDate: p.opening ? day(p.opening.date) : null,

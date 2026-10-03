@@ -64,3 +64,39 @@ export async function signIn(page: Page): Promise<void> {
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(300);
 }
+
+export const RAVI = { email: 'ravi@gupta.example.com', password: 'demo-password-1' };
+
+/** The prototype showing one of the importer fixtures (restored like "Restore books"). */
+export async function prototypeWithBackup(page: Page, fixture = 'fresh-shop'): Promise<void> {
+  const fs = await import('node:fs');
+  const bk = JSON.parse(fs.readFileSync(path.join(ROOT, 'packages/importer/fixtures', `${fixture}.backup.json`), 'utf8'));
+  await page.goto(PROTOTYPE);
+  await page.evaluate((keys: Record<string, string | null>) => {
+    localStorage.clear();
+    for (const [k, v] of Object.entries(keys)) if (v != null) localStorage.setItem(k, v);
+  }, bk.keys);
+  await page.goto(PROTOTYPE);
+  await page.waitForTimeout(800);
+  await page.evaluate(() => {
+    (window as unknown as { SYNC: { setSt: (s: string) => void } }).SYNC.setSt('ok');
+    document.getElementById('toast')?.classList.remove('on');
+  });
+  await page.evaluate(() => document.fonts.ready);
+}
+
+export async function signInAs(page: Page, who: { email: string; password: string }): Promise<void> {
+  await page.goto(APP + '/login');
+  await page.waitForSelector('#vAuth:not([hidden])');
+  await page.fill('#aEmail', who.email);
+  await page.fill('#aPass', who.password);
+  await page.click('#aGo');
+  await page.waitForSelector('#app');
+  await page.evaluate(() => document.fonts.ready);
+}
+
+/** Open a prototype screen by its view id, or the same screen in the rebuild through the sidebar. */
+export async function openPrototypeView(page: Page, view: string) {
+  await page.evaluate((v) => (window as unknown as { go: (v: string) => void }).go(v), view);
+  await page.waitForTimeout(400);
+}

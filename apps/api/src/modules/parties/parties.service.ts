@@ -49,7 +49,7 @@ export class PartiesService {
           ...(s ? { OR: [{ name: { contains: s, mode: 'insensitive' } }, { phone: { contains: s } }, { gstin: { contains: s.toUpperCase() } }] } : {}),
         },
         include,
-        orderBy: { name: 'asc' },
+        orderBy: [{ createdAt: 'asc' }, { name: 'asc' }],
       });
       return rows.map(partyView);
     });
