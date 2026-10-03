@@ -65,6 +65,8 @@ for (const width of WIDTHS) {
       await app.waitForSelector('#itHead h2');
       await app.waitForTimeout(400);
       await same(`items-${width}`, await shot(proto, '#vItems'), await shot(app, '#vItems'));
+      // sidebar, including the low-stock counter on Items & stock
+      await same(`items-side-${width}`, await shot(proto, '#side'), await shot(app, '#side'));
 
       // an item with opening stock (third in the list)
       await proto.click('#itList .ptr:nth-child(3)');

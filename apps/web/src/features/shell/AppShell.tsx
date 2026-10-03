@@ -4,8 +4,8 @@
  */
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
-import { apiWithToken, signOut, ApiError } from '../../lib/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { api, apiWithToken, signOut, ApiError } from '../../lib/api';
 import { useMe } from '../../lib/me';
 import { useSession } from '../../lib/session';
 import { today as todayFn } from '../../lib/time';
@@ -18,6 +18,7 @@ import { Sidebar } from './Sidebar';
 import { SignOutDialog } from './SignOutDialog';
 import { Toast } from './Toast';
 import { TopBar } from './TopBar';
+import type { Item } from '../items/ItemsPage';
 import { readLocal, soon, useShell, write } from './store';
 
 const savedPal = (): PalId => {
@@ -113,6 +114,10 @@ export function AppShell() {
     [navigate],
   );
 
+  // Items & stock counter, as the prototype's home refresh sets it: goods with a minimum, at or below it
+  const items = useQuery({ queryKey: ['items'], queryFn: () => api<Item[]>('/items'), enabled: !!me.data?.business });
+  const lowStock = (items.data ?? []).filter((i) => i.kind === 'goods' && Number(i.minStock) > 0 && Number(i.stock ?? 0) <= Number(i.minStock)).length;
+
   if (!token) return <GoLogin />;
   if (me.error instanceof ApiError && me.error.status === 403 && me.error.code === 'removed') return <GoLogin query="?removed=1" />;
   if (me.error instanceof ApiError && (me.error.status === 401 || me.error.status === 403)) return <GoLogin />;
@@ -124,7 +129,7 @@ export function AppShell() {
   return (
     <>
       <div className={mini ? 'app mini' : 'app'} id="app">
-        <Sidebar active={active} lowStock={0} onView={onView} onSoon={soon} />
+        <Sidebar active={active} lowStock={lowStock} onView={onView} onSoon={soon} />
         <div style={{ minWidth: 0 }}>
           <TopBar
             me={me.data}
