@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { money, toDb, type GodownInput, type StockAdjustmentInput, type StockTransferInput } from '@billing/shared';
+import { formatQty, money, toDb, type GodownInput, type StockAdjustmentInput, type StockTransferInput } from '@billing/shared';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import { NumberingService } from '../../common/numbering.service';
@@ -30,7 +30,8 @@ export class StockService {
       const items = await tx.item.findMany({ where: { kind: 'goods' }, select: { id: true, purchasePrice: true } });
       const price = new Map(items.map((i) => [i.id, money(i.purchasePrice.toString())]));
       return gs.map((g) => {
-        const mine = sums.filter((s) => s.godownId === g.id && !money(s._sum.qty!.toString()).isZero());
+        // like the prototype's cards: items with stock above zero here, valued at purchase price
+        const mine = sums.filter((s) => s.godownId === g.id && money(s._sum.qty!.toString()).gt(0));
         const value = mine.reduce((a, s) => a.plus(money(s._sum.qty!.toString()).times(price.get(s.itemId) ?? 0)), money(0));
         return { id: g.id, name: g.name, address: g.address, manager: g.manager, phone: g.phone, isDefault: g.isDefault, items: mine.length, value: toDb(value) };
       });
@@ -112,7 +113,7 @@ export class StockService {
   }
 
   private async goodsItem(tx: Tx, itemId: string) {
-    const item = await tx.item.findFirst({ where: { id: itemId, archivedAt: null } });
+    const item = await tx.item.findFirst({ where: { id: itemId, archivedAt: null }, include: { unit: true } });
     if (!item) throw new NotFoundException({ message: 'Choose an item.' });
     if (item.kind === 'service') throw new BadRequestException({ message: 'A service has no stock.' });
     return item;
@@ -136,7 +137,7 @@ export class StockService {
       const signed = input.mode === 'reduce' ? qty.neg() : qty;
       if (input.mode === 'reduce') {
         const have = await this.stockIn(tx, item.id, godownId);
-        if (have.lt(qty)) throw new BadRequestException({ message: `Only ${q3(have)} in stock. You can’t reduce by more than that.` });
+        if (have.lt(qty)) throw new BadRequestException({ message: `Only ${formatQty(have)} in stock. You can’t reduce by more than that.` });
       }
       const number = await this.numbers.next(tx, ctx.businessId!, ctx.userId, 'stock_adjustment', input.date);
       const rate = toDb(input.rate ?? item.purchasePrice.toString());
@@ -179,7 +180,7 @@ export class StockService {
       if (!from || !to) throw new NotFoundException({ message: 'Choose both godowns.' });
       const qty = money(input.qty).toDecimalPlaces(3);
       const have = await this.stockIn(tx, item.id, from.id);
-      if (have.lt(qty)) throw new BadRequestException({ message: `Only ${q3(have)} ${'in ' + from.name}. Enter a smaller quantity.` });
+      if (have.lt(qty)) throw new BadRequestException({ message: `Only ${formatQty(have)}${item.unit ? ' ' + item.unit.code : ''} available in ${from.name}.` });
       const number = await this.numbers.next(tx, ctx.businessId!, ctx.userId, 'stock_transfer', input.date);
       const t = await tx.stockTransfer.create({
         data: { businessId: ctx.businessId!, createdBy: ctx.userId, number, date: day(input.date), itemId: item.id, fromGodownId: from.id, toGodownId: to.id, qty: qty.toFixed(3), note: input.note },

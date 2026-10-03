@@ -1,16 +1,6 @@
 /** Phase 2 flows against the real API. */
 import { expect, test } from '@playwright/test';
-import { APP, newPage, signInAs } from './setup';
-
-let n = 0;
-/** A brand-new shop for tests that change data, so the screenshot shop stays as imported. */
-async function freshShop(request: import('@playwright/test').APIRequestContext) {
-  const who = { email: `masters.${Date.now().toString(36)}.${++n}@flows.example.com`, password: 'flows password 1' };
-  const reg = await request.post(APP + '/api/auth/register', { data: { ...who, name: 'Pooja Verma' } });
-  const token = (await reg.json()).accessToken;
-  await request.post(APP + '/api/businesses', { headers: { Authorization: `Bearer ${token}` }, data: { name: 'Verma Traders', owner: 'Pooja Verma', state: '09', gstin: '09AAGFG2231M1ZQ' } });
-  return who;
-}
+import { APP, freshShop, newPage, signInAs } from './setup';
 
 test('add a party from the Parties screen; it is saved and selected', async ({ browser, request }) => {
   const page = await newPage(browser, 1366);

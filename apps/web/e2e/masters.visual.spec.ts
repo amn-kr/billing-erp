@@ -5,7 +5,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { compare } from './compare';
-import { APP, RAVI, WIDTHS, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
+import { APP, RAVI, WIDTHS, freshShop, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
 
 const MAX_RATIO = 0;
 const shot = (p: Page, sel: string) => p.locator(sel).screenshot({ animations: 'disabled', caret: 'hide' });
@@ -121,6 +121,61 @@ for (const width of WIDTHS) {
       await proto.mouse.move(0, 0);
       await app.mouse.move(0, 0);
       await same(`additem-service-${width}`, await shot(proto, '#ai .mdl'), await shot(app, '#ai .mdl'));
+    });
+
+    test('Godowns screen, Add godown and Transfer stock', async ({ browser, request }) => {
+      const proto = await newPage(browser, width);
+      const app = await newPage(browser, width);
+      await prototypeWithBackup(proto);
+      await openPrototypeView(proto, 'gds');
+      // this test adds a godown and moves stock, so it gets its own copy of the imported books
+      await signInAs(app, await freshShop(request, 'fresh-shop'));
+      await app.goto(APP + '/godowns');
+      await app.waitForSelector('#gdRows tr');
+      await app.waitForSelector('#trRows .ptempty');
+      await app.waitForTimeout(300);
+      const both = async (fn: (p: Page) => Promise<unknown>) => { for (const p of [proto, app]) await fn(p); };
+      const settle = async () => { await both((p) => p.mouse.move(0, 0)); await app.waitForTimeout(300); await proto.waitForTimeout(100); };
+      await same(`godowns-${width}`, await shot(proto, '#vGds'), await shot(app, '#vGds'));
+
+      // Add godown: empty, refused, then saved (the new godown is selected)
+      await both((p) => p.click('#gdAdd'));
+      await settle();
+      await same(`gdm-${width}`, await shot(proto, '#gdm .mdl'), await shot(app, '#gdm .mdl'));
+      await both((p) => p.fill('#gdName', 'Aminabad godown'));
+      await both((p) => p.fill('#gdPh', '12345'));
+      await both((p) => p.click('#gdm [type="submit"]'));
+      await settle();
+      await same(`gdm-error-${width}`, await shot(proto, '#gdm .mdl'), await shot(app, '#gdm .mdl'));
+      await both((p) => p.fill('#gdAddr', 'Gali no. 3, Aminabad, Lucknow 226018'));
+      await both((p) => p.fill('#gdMgr', 'Ravi Yadav'));
+      await both((p) => p.fill('#gdPh', '98222 33344'));
+      await both((p) => p.click('#gdm [type="submit"]'));
+      await app.waitForSelector('#gdm', { state: 'hidden' });
+      await app.waitForSelector('#gdRows .ptempty');
+      await settle();
+      await same(`godowns-added-${width}`, await shot(proto, '#vGds'), await shot(app, '#vGds'));
+
+      // Transfer stock from the main shop: dialog, too much, then moved
+      await both((p) => p.click('#gdCards .gdc:first-child'));
+      await app.waitForSelector('#gdRows td.n');
+      await both((p) => p.click('#trBtn'));
+      await app.waitForSelector('#trAv:not(:empty)');
+      await settle();
+      await same(`trm-${width}`, await shot(proto, '#trm .mdl'), await shot(app, '#trm .mdl'));
+      await both((p) => p.fill('#trQty', '9999'));
+      await both((p) => p.click('#trm [type="submit"]'));
+      await settle();
+      await same(`trm-error-${width}`, await shot(proto, '#trm .mdl'), await shot(app, '#trm .mdl'));
+      // an item that has stock in the main shop (top row of the table)
+      const top = await app.locator('#gdRows tr:first-child td:first-child').innerText();
+      await both((p) => p.selectOption('#trItem', { label: top }));
+      await both((p) => p.fill('#trQty', '5'));
+      await both((p) => p.click('#trm [type="submit"]'));
+      await app.waitForSelector('#trRows .trr');
+      await settle();
+      await same(`godowns-moved-${width}`, await shot(proto, '#vGds'), await shot(app, '#vGds'));
+      await expect(app.locator('#toast')).toHaveText(await proto.locator('#toast').innerText());
     });
   });
 }

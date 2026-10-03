@@ -82,7 +82,7 @@ describe('items and stock', () => {
     const adj = await http().post('/api/stock-adjustments').set(auth(o)).send({ itemId: wire.body.id, mode: 'reduce', qty: 18, date: '2026-10-01', reason: 'Physical count correction' }).expect(201);
     expect(adj.body).toMatchObject({ number: 'ADJ-0001', stock: '7.000' });
     expect((await http().get('/api/items?level=low').set(auth(o)).expect(200)).body.map((i: { name: string }) => i.name)).toEqual(['Copper wire 1.5 sq mm (90 m)']);
-    expect((await http().post('/api/stock-adjustments').set(auth(o)).send({ itemId: wire.body.id, mode: 'reduce', qty: 8, date: '2026-10-01' }).expect(400)).body.message).toBe('Only 7.000 in stock. You can’t reduce by more than that.');
+    expect((await http().post('/api/stock-adjustments').set(auth(o)).send({ itemId: wire.body.id, mode: 'reduce', qty: 8, date: '2026-10-01' }).expect(400)).body.message).toBe('Only 7 in stock. You can’t reduce by more than that.');
     await http().post('/api/stock-adjustments').set(auth(o)).send({ itemId: svc.body.id, mode: 'add', qty: 1, date: '2026-10-01' }).expect(400);
 
     // cancel puts it back; numbers keep counting
@@ -110,6 +110,7 @@ describe('items and stock', () => {
     expect(main).toMatchObject({ name: 'Main shop', items: 1, value: '12400.00' });
     const t = await http().post('/api/stock-transfers').set(auth(o)).send({ itemId: it.body.id, fromGodownId: main.id, toGodownId: g.body.id, qty: 50, date: '2026-10-01' }).expect(201);
     expect(t.body.number).toBe('TRF-0001');
+    expect((await http().post('/api/stock-transfers').set(auth(o)).send({ itemId: it.body.id, fromGodownId: g.body.id, toGodownId: main.id, qty: 51, date: '2026-10-01' }).expect(400)).body.message).toBe('Only 50 PCS available in Aminabad godown.');
     expect((await http().post('/api/stock-transfers').set(auth(o)).send({ itemId: it.body.id, fromGodownId: g.body.id, toGodownId: g.body.id, qty: 1, date: '2026-10-01' }).expect(400)).body.message).toBe('Choose two different godowns.');
     const d = await http().get(`/api/items/${it.body.id}`).set(auth(o)).expect(200);
     expect(d.body.stock).toBe('200.000');

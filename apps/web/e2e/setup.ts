@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { Browser, Page } from '@playwright/test';
+import type { APIRequestContext, Browser, Page } from '@playwright/test';
 // Same frozen clock, timezone and local fonts as the Phase 0 baseline.
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const common = createRequire(import.meta.url)('../../../tools/design-baseline/common.cjs') as {
@@ -99,4 +99,22 @@ export async function signInAs(page: Page, who: { email: string; password: strin
 export async function openPrototypeView(page: Page, view: string) {
   await page.evaluate((v) => (window as unknown as { go: (v: string) => void }).go(v), view);
   await page.waitForTimeout(400);
+}
+
+let shops = 0;
+/** A brand-new shop for tests that change data, so the screenshot shop stays as imported. */
+export async function freshShop(request: APIRequestContext, fixture?: string): Promise<{ email: string; password: string }> {
+  const who = { email: `e2e.${Date.now().toString(36)}.${process.pid}.${++shops}@flows.example.com`, password: 'flows password 1' };
+  const reg = await request.post(APP + '/api/auth/register', { data: { ...who, name: 'Pooja Verma' } });
+  const biz = await request.post(APP + '/api/businesses', {
+    headers: { Authorization: `Bearer ${(await reg.json()).accessToken}` },
+    data: { name: 'Verma Traders', owner: 'Pooja Verma', state: '09', gstin: '09AAGFG2231M1ZQ' },
+  });
+  if (fixture) {
+    const fs = await import('node:fs');
+    const text = fs.readFileSync(path.join(ROOT, 'packages/importer/fixtures', `${fixture}.backup.json`), 'utf8');
+    const r = await request.post(APP + '/api/imports', { headers: { Authorization: `Bearer ${(await biz.json()).accessToken}` }, data: { fileName: `${fixture}.backup.json`, backup: text } });
+    if (!r.ok()) throw new Error(`import failed: ${r.status()} ${await r.text()}`);
+  }
+  return who;
 }

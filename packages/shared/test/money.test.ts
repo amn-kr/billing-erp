@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatInr0, formatInr2, formatRupees, money, round0, round2, sum, toDb } from '../src/money';
+import { formatInr0, formatInr2, formatQty, formatRupees, money, round0, round2, sum, toDb } from '../src/money';
 
 describe('money', () => {
   it('adds without float errors', () => {
@@ -38,5 +38,13 @@ describe('money', () => {
     for (const n of [0, 7, 999, 1000, 99999, 100000, 4130171, 987654321]) {
       expect(formatInr0(n)).toBe(Math.round(n).toLocaleString('en-IN'));
     }
+  });
+
+  it('formats quantities like the prototype (up to 2 decimals, no trailing zeros)', () => {
+    expect(formatQty('7.000')).toBe('7');
+    expect(formatQty('1250.500')).toBe('1,250.5');
+    expect(formatQty('0.125')).toBe('0.13');
+    expect(formatQty('-3')).toBe('-3');
+    expect(formatQty('123456.25')).toBe('1,23,456.25');
   });
 });
