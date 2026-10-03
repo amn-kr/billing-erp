@@ -70,19 +70,31 @@ model Business {
   series         DocumentSeries[]
   taxRates       TaxRate[]
   subscriptions  Subscription[]
+  partyGroups    PartyGroup[]
+  parties        Party[]
+  units          Unit[]
+  categories     Category[]
+  brands         Brand[]
+  itemGroups     ItemGroup[]
+  hsnCodes       HsnCode[]
+  items          Item[]
+  godowns        Godown[]
+  priceLists     PriceList[]
+  referrers      Referrer[]
+  imports        ImportRun[]
 
   @@map("businesses")
 }
 
 /// System roles have business_id NULL; a shop may add its own later.
 model Role {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  businessId  String?  @map("business_id") @db.Uuid
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String?  @map("business_id") @db.Uuid
   /// owner | manager | billing_staff | accountant (or a custom key)
-  key         String
-  name        String
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  key        String
+  name       String
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   permissions RolePermission[]
   memberships Membership[]
@@ -128,16 +140,16 @@ model Membership {
 }
 
 model Invite {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  businessId  String    @map("business_id") @db.Uuid
-  email       String
-  roleId      String    @map("role_id") @db.Uuid
-  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(6)
-  acceptedAt  DateTime? @map("accepted_at") @db.Timestamptz(6)
-  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(6)
-  createdBy   String    @map("created_by") @db.Uuid
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String    @map("business_id") @db.Uuid
+  email      String
+  roleId     String    @map("role_id") @db.Uuid
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
+  acceptedAt DateTime? @map("accepted_at") @db.Timestamptz(6)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdBy  String    @map("created_by") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   business Business @relation(fields: [businessId], references: [id])
   role     Role     @relation(fields: [roleId], references: [id])
@@ -241,13 +253,13 @@ model SubscriptionPayment {
 // ───────────────────────── Setup ─────────────────────────
 
 model BusinessSettings {
-  businessId     String   @id @map("business_id") @db.Uuid
-  gstEnabled     Boolean  @default(false) @map("gst_enabled")
+  businessId String   @id @map("business_id") @db.Uuid
+  gstEnabled Boolean  @default(false) @map("gst_enabled")
   /// Everything else from the prototype's Settings screens, filled in by later phases.
-  data           Json     @default("{}")
-  createdBy      String   @map("created_by") @db.Uuid
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  data       Json     @default("{}")
+  createdBy  String   @map("created_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   business Business @relation(fields: [businessId], references: [id])
 
@@ -297,8 +309,14 @@ model DocumentSeries {
 model TaxRate {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   businessId String   @map("business_id") @db.Uuid
+  /// GST | TCS | TDS
+  kind       String   @default("GST")
   name       String
   rate       Decimal  @db.Decimal(5, 2)
+  note       String   @default("")
+  /// older slab kept for earlier bills (prototype "old")
+  isOld      Boolean  @default(false) @map("is_old")
+  legacyId   String?  @map("legacy_id")
   isDefault  Boolean  @default(false) @map("is_default")
   active     Boolean  @default(true)
   createdBy  String   @map("created_by") @db.Uuid
@@ -307,7 +325,7 @@ model TaxRate {
 
   business Business @relation(fields: [businessId], references: [id])
 
-  @@unique([businessId, name])
+  @@unique([businessId, kind, name])
   @@map("tax_rates")
 }
 
@@ -329,4 +347,479 @@ model AuditLog {
 
   @@index([businessId, createdAt])
   @@map("audit_log")
+}
+
+// ───────────────────────── Parties ─────────────────────────
+
+model PartyGroup {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String    @map("business_id") @db.Uuid
+  name       String
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
+  createdBy  String    @map("created_by") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business       Business        @relation(fields: [businessId], references: [id])
+  parties        Party[]
+  priceListRules PriceListRule[]
+
+  @@unique([businessId, name])
+  @@map("party_groups")
+}
+
+/// A customer or supplier. Never deleted: archived.
+model Party {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId     String    @map("business_id") @db.Uuid
+  name           String
+  /// customer | supplier
+  kind           String
+  groupId        String?   @map("group_id") @db.Uuid
+  phone          String    @default("")
+  email          String    @default("")
+  gstin          String    @default("")
+  /// e.g. "Registered business – regular", "Unregistered / consumer"
+  gstType        String    @default("") @map("gst_type")
+  /// place of supply (GST state code); blank = the shop's own state
+  stateCode      String    @default("") @map("state_code")
+  /// null = no limit
+  creditLimit    Decimal?  @map("credit_limit") @db.Decimal(14, 2)
+  creditDays     Int       @default(0) @map("credit_days")
+  /// positive amount; openingType says which way
+  openingBalance Decimal   @default(0) @map("opening_balance") @db.Decimal(14, 2)
+  /// receive (they owe us) | pay (we owe them)
+  openingType    String    @default("receive") @map("opening_type")
+  openingDate    DateTime? @map("opening_date") @db.Date
+  notes          String    @default("")
+  /// id in the prototype's books, for imports
+  legacyId       String?   @map("legacy_id")
+  archivedAt     DateTime? @map("archived_at") @db.Timestamptz(6)
+  createdBy      String    @map("created_by") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business  Business       @relation(fields: [businessId], references: [id])
+  group     PartyGroup?    @relation(fields: [groupId], references: [id])
+  addresses PartyAddress[]
+  contacts  PartyContact[]
+  referrers Referrer[]
+
+  @@index([businessId, name])
+  @@index([businessId, legacyId])
+  @@map("parties")
+}
+
+model PartyAddress {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
+  partyId    String   @map("party_id") @db.Uuid
+  /// billing | shipping
+  kind       String
+  line       String   @default("")
+  city       String   @default("")
+  pin        String   @default("")
+  stateCode  String   @default("") @map("state_code")
+  createdBy  String   @map("created_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  party Party @relation(fields: [partyId], references: [id])
+
+  @@unique([partyId, kind])
+  @@map("party_addresses")
+}
+
+/// The prototype's "Additional fields": contact person, birthday, anniversary, transport.
+model PartyContact {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
+  partyId    String   @map("party_id") @db.Uuid
+  label      String
+  value      String
+  createdBy  String   @map("created_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  party Party @relation(fields: [partyId], references: [id])
+
+  @@map("party_contacts")
+}
+
+// ───────────────────────── Catalogue ─────────────────────────
+
+model Unit {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String    @map("business_id") @db.Uuid
+  /// PCS, BOX, KG, MTR, COIL, …
+  code       String
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
+  createdBy  String    @map("created_by") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id])
+  items    Item[]
+
+  @@unique([businessId, code])
+  @@map("units")
+}
+
+model Category {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String    @map("business_id") @db.Uuid
+  name       String
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
+  createdBy  String    @map("created_by") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business        Business         @relation(fields: [businessId], references: [id])
+  items           Item[]
+  commissionRules CommissionRule[]
+
+  @@unique([businessId, name])
+  @@map("categories")
+}
+
+model Brand {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String    @map("business_id") @db.Uuid
+  name       String
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
+  createdBy  String    @map("created_by") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id])
+  items    Item[]
+
+  @@unique([businessId, name])
+  @@map("brands")
+}
+
+/// An item family whose variants differ by brand and size, e.g. "Copper wire (90 m)".
+model ItemGroup {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String    @map("business_id") @db.Uuid
+  name       String
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
+  createdBy  String    @map("created_by") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id])
+  items    Item[]
+
+  @@unique([businessId, name])
+  @@map("item_groups")
+}
+
+model HsnCode {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId  String   @map("business_id") @db.Uuid
+  code        String
+  description String   @default("")
+  gstRate     Decimal? @map("gst_rate") @db.Decimal(5, 2)
+  createdBy   String   @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@unique([businessId, code])
+  @@map("hsn_codes")
+}
+
+/// A product or service. Prices are per unit; stock is the sum of stock_movements.
+model Item {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId      String    @map("business_id") @db.Uuid
+  /// goods | service
+  kind            String    @default("goods")
+  name            String
+  code            String    @default("")
+  hsn             String    @default("")
+  unitId          String?   @map("unit_id") @db.Uuid
+  categoryId      String?   @map("category_id") @db.Uuid
+  brandId         String?   @map("brand_id") @db.Uuid
+  itemGroupId     String?   @map("item_group_id") @db.Uuid
+  /// size / variant within the group, e.g. "1.5 sq mm"
+  series          String    @default("")
+  gstRate         Decimal   @default(0) @map("gst_rate") @db.Decimal(5, 2)
+  salePrice       Decimal   @default(0) @map("sale_price") @db.Decimal(14, 2)
+  purchasePrice   Decimal   @default(0) @map("purchase_price") @db.Decimal(14, 2)
+  mrp             Decimal   @default(0) @db.Decimal(14, 2)
+  /// brand's list price (LP)
+  listPrice       Decimal   @default(0) @map("list_price") @db.Decimal(14, 2)
+  wholesalePrice  Decimal   @default(0) @map("wholesale_price") @db.Decimal(14, 2)
+  wholesaleMinQty Decimal   @default(0) @map("wholesale_min_qty") @db.Decimal(14, 3)
+  minStock        Decimal   @default(0) @map("min_stock") @db.Decimal(14, 3)
+  location        String    @default("")
+  imageUrl        String    @default("") @map("image_url")
+  legacyId        String?   @map("legacy_id")
+  archivedAt      DateTime? @map("archived_at") @db.Timestamptz(6)
+  createdBy       String    @map("created_by") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business    Business          @relation(fields: [businessId], references: [id])
+  unit        Unit?             @relation(fields: [unitId], references: [id])
+  category    Category?         @relation(fields: [categoryId], references: [id])
+  brand       Brand?            @relation(fields: [brandId], references: [id])
+  itemGroup   ItemGroup?        @relation(fields: [itemGroupId], references: [id])
+  movements   StockMovement[]
+  prices      ItemPrice[]
+  history     PriceHistory[]
+  adjustments StockAdjustment[]
+  transfers   StockTransfer[]
+
+  @@index([businessId, name])
+  @@index([businessId, legacyId])
+  @@map("items")
+}
+
+// ───────────────────────── Stock ─────────────────────────
+
+model Godown {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String    @map("business_id") @db.Uuid
+  name       String
+  address    String    @default("")
+  manager    String    @default("")
+  phone      String    @default("")
+  isDefault  Boolean   @default(false) @map("is_default")
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
+  createdBy  String    @map("created_by") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business      Business          @relation(fields: [businessId], references: [id])
+  movements     StockMovement[]
+  adjustments   StockAdjustment[]
+  transfersFrom StockTransfer[]   @relation("transferFrom")
+  transfersTo   StockTransfer[]   @relation("transferTo")
+
+  @@unique([businessId, name])
+  @@map("godowns")
+}
+
+/// The stock ledger. Insert-only: a mistake is corrected with a new, opposite movement.
+model StockMovement {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
+  itemId     String   @map("item_id") @db.Uuid
+  godownId   String   @map("godown_id") @db.Uuid
+  date       DateTime @db.Date
+  /// + in, − out
+  qty        Decimal  @db.Decimal(14, 3)
+  rate       Decimal  @default(0) @db.Decimal(14, 2)
+  /// opening | purchase | sale | adjustment | transfer | return | cancel
+  kind       String
+  /// the document that caused it, e.g. stock_adjustment / sales_document
+  sourceType String   @default("") @map("source_type")
+  sourceId   String?  @map("source_id") @db.Uuid
+  note       String   @default("")
+  createdBy  String   @map("created_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  item   Item   @relation(fields: [itemId], references: [id])
+  godown Godown @relation(fields: [godownId], references: [id])
+
+  @@index([businessId, itemId])
+  @@index([businessId, sourceType, sourceId])
+  @@map("stock_movements")
+}
+
+/// Stock adjustment document (count correction, damage, …). Cancelled, never deleted.
+model StockAdjustment {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId  String    @map("business_id") @db.Uuid
+  number      String
+  date        DateTime  @db.Date
+  itemId      String    @map("item_id") @db.Uuid
+  godownId    String    @map("godown_id") @db.Uuid
+  /// + add, − reduce
+  qty         Decimal   @db.Decimal(14, 3)
+  rate        Decimal   @default(0) @db.Decimal(14, 2)
+  reason      String    @default("")
+  cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  cancelledBy String?   @map("cancelled_by") @db.Uuid
+  createdBy   String    @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  item   Item   @relation(fields: [itemId], references: [id])
+  godown Godown @relation(fields: [godownId], references: [id])
+
+  @@unique([businessId, number])
+  @@map("stock_adjustments")
+}
+
+model StockTransfer {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId   String    @map("business_id") @db.Uuid
+  number       String
+  date         DateTime  @db.Date
+  itemId       String    @map("item_id") @db.Uuid
+  fromGodownId String    @map("from_godown_id") @db.Uuid
+  toGodownId   String    @map("to_godown_id") @db.Uuid
+  qty          Decimal   @db.Decimal(14, 3)
+  note         String    @default("")
+  cancelledAt  DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  cancelledBy  String?   @map("cancelled_by") @db.Uuid
+  createdBy    String    @map("created_by") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  item       Item   @relation(fields: [itemId], references: [id])
+  fromGodown Godown @relation("transferFrom", fields: [fromGodownId], references: [id])
+  toGodown   Godown @relation("transferTo", fields: [toGodownId], references: [id])
+
+  @@unique([businessId, number])
+  @@map("stock_transfers")
+}
+
+// ───────────────────────── Pricing ─────────────────────────
+
+/// A price list: Retail (the item's sale price), or sale price − % / purchase price + %.
+model PriceList {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String    @map("business_id") @db.Uuid
+  name       String
+  isDefault  Boolean   @default(false) @map("is_default")
+  /// base | disc | mark
+  rule       String    @default("base")
+  value      Decimal   @default(0) @db.Decimal(7, 3)
+  /// round to the nearest this many rupees; 0 = paise
+  roundTo    Decimal   @default(0) @map("round_to") @db.Decimal(10, 2)
+  active     Boolean   @default(true)
+  legacyId   String?   @map("legacy_id")
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
+  createdBy  String    @map("created_by") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business        @relation(fields: [businessId], references: [id])
+  rules    PriceListRule[]
+  prices   ItemPrice[]
+
+  @@unique([businessId, name])
+  @@map("price_lists")
+}
+
+/// Which party groups get a price list automatically.
+model PriceListRule {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId   String   @map("business_id") @db.Uuid
+  priceListId  String   @map("price_list_id") @db.Uuid
+  partyGroupId String   @map("party_group_id") @db.Uuid
+  createdBy    String   @map("created_by") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  priceList  PriceList  @relation(fields: [priceListId], references: [id])
+  partyGroup PartyGroup @relation(fields: [partyGroupId], references: [id])
+
+  @@unique([priceListId, partyGroupId])
+  @@map("price_list_rules")
+}
+
+/// A fixed price for one item in one price list (overrides the list's rule).
+model ItemPrice {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId  String   @map("business_id") @db.Uuid
+  priceListId String   @map("price_list_id") @db.Uuid
+  itemId      String   @map("item_id") @db.Uuid
+  price       Decimal  @db.Decimal(14, 2)
+  createdBy   String   @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  priceList PriceList @relation(fields: [priceListId], references: [id])
+  item      Item      @relation(fields: [itemId], references: [id])
+
+  @@unique([priceListId, itemId])
+  @@map("item_prices")
+}
+
+/// Every price change (Price manager › History). Insert-only.
+model PriceHistory {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
+  itemId     String   @map("item_id") @db.Uuid
+  /// sale | purchase | mrp | list | wholesale | pl:<price list id>
+  field      String
+  oldValue   Decimal? @map("old_value") @db.Decimal(14, 2)
+  newValue   Decimal? @map("new_value") @db.Decimal(14, 2)
+  /// how it changed, e.g. "Sale price +5%, rounded to ₹1"
+  how        String   @default("")
+  createdBy  String   @map("created_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  item Item @relation(fields: [itemId], references: [id])
+
+  @@index([businessId, itemId])
+  @@map("price_history")
+}
+
+// ───────────────────────── Commission ─────────────────────────
+
+/// Electricians / referrers who bring sales and earn commission.
+model Referrer {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String    @map("business_id") @db.Uuid
+  name       String
+  phone      String    @default("")
+  city       String    @default("")
+  /// the same person as a party, if they also buy
+  partyId    String?   @map("party_id") @db.Uuid
+  legacyId   String?   @map("legacy_id")
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
+  createdBy  String    @map("created_by") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id])
+  party    Party?   @relation(fields: [partyId], references: [id])
+
+  @@map("referrers")
+}
+
+/// Commission per item category: none, percent of the line, or fixed per unit.
+model CommissionRule {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
+  categoryId String   @map("category_id") @db.Uuid
+  /// none | percent | fixed
+  kind       String
+  value      Decimal  @default(0) @db.Decimal(14, 2)
+  createdBy  String   @map("created_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  category Category @relation(fields: [categoryId], references: [id])
+
+  @@unique([businessId, categoryId])
+  @@map("commission_rules")
+}
+
+// ───────────────────────── Imports ─────────────────────────
+
+/// One run of the importer (prototype backup → these tables).
+model ImportRun {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
+  fileName   String   @default("") @map("file_name")
+  backupAt   String   @default("") @map("backup_at")
+  /// done | failed
+  status     String
+  counts     Json     @default("{}")
+  warnings   Json     @default("[]")
+  createdBy  String   @map("created_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@map("import_runs")
 }

@@ -1,6 +1,9 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { addDays, financialYearOf, todayIst, type CreateBusinessInput } from '@billing/shared';
+import {
+  addDays, DEFAULT_CATEGORIES, DEFAULT_COMMISSION, DEFAULT_PARTY_GROUPS, DEFAULT_PRICE_LISTS, DEFAULT_TAXES, DEFAULT_UNITS,
+  financialYearOf, todayIst, type CreateBusinessInput,
+} from '@billing/shared';
 import { config } from '../../config';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
@@ -12,15 +15,32 @@ export const SERIES: ReadonlyArray<[docType: string, prefix: string]> = [
   ['purchase_order', 'PO-'], ['bill', 'PB-'], ['debit_note', 'DN-'], ['payment', 'PO-PAY-'], ['expense', 'EXP-'],
 ];
 
-/** Standard GST slabs, as in the prototype's tax list. */
-export const GST_RATES: ReadonlyArray<[name: string, rate: string]> = [
-  ['GST 0%', '0'], ['GST 0.25%', '0.25'], ['GST 3%', '3'], ['GST 5%', '5'], ['GST 12%', '12'], ['GST 18%', '18'], ['GST 28%', '28'],
-];
-
 const dateOnly = (iso: string) => new Date(iso + 'T00:00:00Z');
 
 /** "Sharma Electricals & Hardware" -> "Sharma Electricals" (same rule as the website). */
 export const shortName = (name: string) => name.split(/\s*&\s*|\s+and\s+/i)[0]!.trim() || name;
+
+/** The lists a new shop starts with (same as the prototype after "Start fresh"). */
+export async function seedMasters(tx: Tx, o: { businessId: string; userId: string; owner: string; phone: string; address: string }) {
+  const base = { businessId: o.businessId, createdBy: o.userId };
+  await tx.taxRate.createMany({
+    data: DEFAULT_TAXES.map((t) => ({ ...base, kind: t.kind, name: t.name, rate: t.rate, note: t.note, isOld: !!t.old, legacyId: t.legacyId, isDefault: t.legacyId === 'g18' })),
+  });
+  await tx.partyGroup.createMany({ data: DEFAULT_PARTY_GROUPS.map((name) => ({ ...base, name })) });
+  await tx.unit.createMany({ data: DEFAULT_UNITS.map((code) => ({ ...base, code })) });
+  await tx.category.createMany({ data: DEFAULT_CATEGORIES.map((name) => ({ ...base, name })) });
+  await tx.godown.create({ data: { ...base, name: 'Main shop', address: o.address, manager: o.owner, phone: o.phone.replace(/\D/g, '').slice(-10), isDefault: true } });
+  const groups = await tx.partyGroup.findMany({ where: { businessId: o.businessId } });
+  for (const pl of DEFAULT_PRICE_LISTS) {
+    const row = await tx.priceList.create({ data: { ...base, name: pl.name, isDefault: pl.isDefault, rule: pl.rule, value: pl.value, roundTo: pl.roundTo, active: pl.active, legacyId: pl.legacyId } });
+    const ids = groups.filter((g) => pl.groups.includes(g.name)).map((g) => g.id);
+    if (ids.length) await tx.priceListRule.createMany({ data: ids.map((partyGroupId) => ({ ...base, priceListId: row.id, partyGroupId })) });
+  }
+  const cats = await tx.category.findMany({ where: { businessId: o.businessId } });
+  await tx.commissionRule.createMany({
+    data: cats.filter((c) => DEFAULT_COMMISSION[c.name]).map((c) => ({ ...base, categoryId: c.id, kind: DEFAULT_COMMISSION[c.name]!.kind, value: DEFAULT_COMMISSION[c.name]!.value })),
+  });
+}
 
 @Injectable()
 export class BusinessesService {
@@ -58,9 +78,7 @@ export class BusinessesService {
           businessId: id, financialYearId: year.id, docType, prefix, nextNumber: docType === 'invoice' ? +input.inv || 1 : 1, createdBy: ctx.userId,
         })),
       });
-      await tx.taxRate.createMany({
-        data: GST_RATES.map(([name, rate]) => ({ businessId: id, name, rate, isDefault: rate === '18', createdBy: ctx.userId })),
-      });
+      await seedMasters(tx, { businessId: id, userId: ctx.userId, owner: input.owner, phone: input.phone, address: [input.addr, [input.city, input.pin].filter(Boolean).join(' ')].filter(Boolean).join(', ') });
       await this.audit.log(tx, { businessId: id, userId: ctx.userId, action: 'create', entity: 'business', entityId: id, after: business, ip: ctx.ip });
       return business;
     });
