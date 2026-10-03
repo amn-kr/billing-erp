@@ -5,7 +5,7 @@
  *   DATABASE_URL=... pnpm --filter @billing/api db:seed
  *
  * Env: DEMO_EMAIL, DEMO_PASSWORD, SEED_TODAY (YYYY-MM-DD, for repeatable
- * screenshot tests), SEED_TRIAL_DAYS (default 7, as in the prototype),
+ * screenshot tests), SEED_TRIAL_DAYS (default 14; the screenshot tests pass 7 to match the prototype),
  * SEED_BUSINESS_CODE (e.g. BE-1012, the code the prototype shows).
  */
 import 'reflect-metadata';
@@ -36,7 +36,7 @@ async function main() {
       name: 'Sharma Electricals & Hardware', owner: 'Aman Kumar', phone: '+91 98765 43210', addr: 'Shop 12, Naka Hindola',
       city: 'Lucknow', pin: '226018', state: '09', gstin: '09ABCPS4821K1Z6', inv: '1',
     },
-    { today: process.env.SEED_TODAY ?? todayIst(), trialDays: Number(process.env.SEED_TRIAL_DAYS ?? 7) },
+    { today: process.env.SEED_TODAY ?? todayIst(), trialDays: Number(process.env.SEED_TRIAL_DAYS ?? 14) },
   );
   if (process.env.SEED_BUSINESS_CODE) {
     await db.scoped({ businessId: b.id, userId: user.id, email: user.email }, (tx) =>

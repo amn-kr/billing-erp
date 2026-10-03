@@ -23,13 +23,14 @@
 | API tests | 41 passing |
 | Browser tests | 8 flows + 12 screenshot comparisons passing |
 
-## Waiting on the owner (decisions that cost money or need accounts)
-- **Email provider** for "Forgot password" and staff invite emails (e.g. AWS SES,
-  ~₹0.01 per email). Until then the sign-in page says reset by email is not on yet.
-- **Google sign-in** needs a Google Cloud OAuth client in your name. Until then the
-  button says it isn't set up.
-- **Trial length:** the website version used 14 days, the prototype shows 7. The
-  rebuild uses 14 (`TRIAL_DAYS`).
+## Owner decisions (3 Oct 2026)
+- **Email provider:** not now — set up before selling starts. Until then "Forgot password"
+  says reset by email isn't switched on, and staff join by signing up with the invited email.
+- **Google sign-in:** not now, later. The button says it isn't set up.
+- **Free trial:** 14 days (`TRIAL_DAYS=14`, the default).
+
+## Still open
+- **Phase 0 approval** of the baseline screenshots.
 - **Hosting** (AWS Mumbai + Cloudflare Pages) — not set up; nothing is deployed. The web app and
   the API must sit on the same domain (e.g. app.yourshop.in and api.yourshop.in) so the
   sign-in cookie works.
