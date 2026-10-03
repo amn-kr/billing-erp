@@ -13,14 +13,14 @@ const importSchema = z.object({
 });
 
 /** Settings › Import from the old app. Owner only (it replaces the shop's starting data). */
-@Controller('imports')
+@Controller()
 export class ImportsController {
   constructor(private readonly imports: ImportsService) {}
 
   /** ?dryRun=true checks the file and reports what would be imported, without saving anything. */
   @RequirePermission('business.update')
   @HttpCode(200)
-  @Post()
+  @Post('imports')
   run(@Ctx() ctx: RequestContext, @Body(new ZodPipe(importSchema)) body: z.infer<typeof importSchema>, @Query('dryRun') dryRun?: string) {
     return this.imports.run(
       { userId: ctx.userId, email: ctx.email, businessId: ctx.businessId!, ip: ctx.ip },
@@ -29,8 +29,15 @@ export class ImportsController {
   }
 
   @RequirePermission('business.update')
-  @Get()
+  @Get('imports')
   list(@Ctx() ctx: RequestContext) {
     return this.imports.list({ userId: ctx.userId, email: ctx.email, businessId: ctx.businessId! });
+  }
+
+  /** Settings › Backup & restore › Download backup */
+  @RequirePermission('business.update')
+  @Get('backup')
+  backup(@Ctx() ctx: RequestContext) {
+    return this.imports.backup({ userId: ctx.userId, email: ctx.email, businessId: ctx.businessId! });
   }
 }

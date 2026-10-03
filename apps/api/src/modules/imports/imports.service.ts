@@ -222,4 +222,26 @@ export class ImportsService {
   list(actor: Pick<ImportActor, 'userId' | 'email' | 'businessId'>) {
     return this.db.scoped({ businessId: actor.businessId, userId: actor.userId, email: actor.email }, (tx) => tx.importRun.findMany({ orderBy: { createdAt: 'desc' } }));
   }
+
+  /**
+   * Settings › Download backup: this shop's books as one JSON file (format
+   * "billing-erp-cloud" v2). Secrets (price PIN, sign-in data) are never included.
+   */
+  backup(ctx: { userId: string; email: string; businessId: string }) {
+    return this.db.scoped(ctx, async (tx) => {
+      const b = await tx.business.findUniqueOrThrow({ where: { id: ctx.businessId } });
+      const data = {
+        business: { name: b.name, shortName: b.shortName, code: b.code, phone: b.phone, email: b.email, address: b.address, city: b.city, pin: b.pin, stateCode: b.stateCode, gstin: b.gstin },
+        settings: await tx.businessSettings.findUnique({ where: { businessId: ctx.businessId } }),
+        taxRates: await tx.taxRate.findMany(), series: await tx.documentSeries.findMany(),
+        partyGroups: await tx.partyGroup.findMany(), parties: await tx.party.findMany(), partyAddresses: await tx.partyAddress.findMany(), partyContacts: await tx.partyContact.findMany(),
+        units: await tx.unit.findMany(), categories: await tx.category.findMany(), brands: await tx.brand.findMany(), itemGroups: await tx.itemGroup.findMany(), items: await tx.item.findMany(),
+        godowns: await tx.godown.findMany(), stockMovements: await tx.stockMovement.findMany(), stockAdjustments: await tx.stockAdjustment.findMany(), stockTransfers: await tx.stockTransfer.findMany(),
+        priceLists: await tx.priceList.findMany(), priceListRules: await tx.priceListRule.findMany(), itemPrices: await tx.itemPrice.findMany(), priceHistory: await tx.priceHistory.findMany(),
+        referrers: await tx.referrer.findMany(), commissionRules: await tx.commissionRule.findMany(),
+      };
+      const counts = Object.fromEntries(Object.entries(data).filter(([, v]) => Array.isArray(v)).map(([k, v]) => [k, (v as unknown[]).length]));
+      return { app: 'billing-erp-cloud', v: 2, at: new Date().toISOString(), biz: b.name, counts, data };
+    }, { timeout: 60_000 });
+  }
 }

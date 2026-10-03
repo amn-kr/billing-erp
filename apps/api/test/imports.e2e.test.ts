@@ -102,6 +102,17 @@ describe('POST /api/imports', () => {
     expect(await asShop(o.businessId, (tx) => tx.stockMovement.count())).toBe(0);
   });
 
+  it('download backup: the shop’s books as JSON, owner only, no secrets', async () => {
+    const o = await owner(app);
+    await http().post('/api/imports').set(auth(o)).send({ backup: backup('fresh-shop.backup.json') }).expect(200);
+    await http().post('/api/prices/pin').set(auth(o)).send({ pin: '2468' }).expect(204);
+    const res = await http().get('/api/backup').set(auth(o)).expect(200);
+    expect(res.body).toMatchObject({ app: 'billing-erp-cloud', v: 2, biz: 'Gupta Electricals & Hardware', counts: { parties: 4, items: 4 } });
+    expect(JSON.stringify(res.body)).not.toMatch(/argon2|pinHash|passwordHash/);
+    const acc = await member(app, o, 'accountant');
+    await http().get('/api/backup').set(auth(acc)).expect(403);
+  });
+
   it('explains a wrong file in plain words', async () => {
     const o = await owner(app);
     const res = await http().post('/api/imports').set(auth(o)).send({ backup: '{"hello":1}' }).expect(422);

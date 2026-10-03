@@ -127,7 +127,8 @@ export class BusinessesService {
       const before = await tx.business.findUniqueOrThrow({ where: { id: ctx.businessId! } });
       const state = input.state ?? before.stateCode;
       const gstin = input.gstin ?? before.gstin;
-      if (gstin && gstin.slice(0, 2) !== state) throw new BadRequestException({ message: `GSTIN starts with ${gstin.slice(0, 2)}, but the state chosen is ${state}. Pick the matching state.`, field: 'gstin' });
+      // a new GSTIN must match the state (Business details); changing only the state is allowed — Taxes & GST then shows a warning
+      if (input.gstin && gstin.slice(0, 2) !== state) throw new BadRequestException({ message: `GSTIN starts with ${gstin.slice(0, 2)}, but the state chosen is ${state}. Pick the matching state.`, field: 'gstin' });
       const after = await tx.business.update({
         where: { id: before.id },
         data: {
