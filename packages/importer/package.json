@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "./src/index.ts",
+  "main": "./dist/index.cjs",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "fixtures": "node --experimental-strip-types scripts/make-fixtures.ts"
+    "fixtures": "node --experimental-strip-types scripts/make-fixtures.ts",
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean --shims"
   },
   "dependencies": {
     "@billing/shared": "workspace:*",
@@ -16,6 +17,15 @@
   },
   "devDependencies": {
     "@types/node": "22.18.0",
-    "vitest": "3.2.4"
+    "vitest": "3.2.4",
+    "tsup": "8.5.0"
+  },
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
   }
 }
