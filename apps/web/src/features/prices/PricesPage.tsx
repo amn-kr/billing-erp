@@ -15,6 +15,9 @@ import { HistoryDialog } from './HistoryDialog';
 import { PinDialog } from './PinDialog';
 import { PreviewDialog, type Preview } from './PreviewDialog';
 import { PriceSetup } from './PriceSetup';
+import { RateList, useRl } from './RateList';
+import { readCsv, readXlsx, saveFile, xlsxBlob } from '../../lib/files';
+import { today } from '../../lib/time';
 import { ruleOf } from './BrandRules';
 
 const UNDO = '<path d="M9 14L4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3"/>';
@@ -49,6 +52,8 @@ export function PricesPage() {
   const [pinOpen, setPinOpen] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [preview, setPreview] = useState<Preview | null>(null);
+  const [rateOpen, setRateOpen] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const tabRef = useRef<HTMLTableElement>(null);
   const twRef = useRef<HTMLDivElement>(null);
   const locked = !pin;
@@ -105,14 +110,53 @@ export function PricesPage() {
     if (ch.length) setTimeout(() => showPreview(ch, `Follow pricing rules (${hit.size} item${hit.size > 1 ? 's' : ''} had new LP / purchase price)`, 'These sale prices follow your saved brand rules. Apply to update them, or close to keep the old prices.'), 250);
   };
 
+  /** Export Excel: the shown items with every price (prototype pmExport) */
+  const exportXlsx = () => {
+    const rows: (string | number)[][] = [['Item code', 'Item', 'Group', 'Brand', 'Series / size', 'Category', 'HSN', 'GST %', 'Unit', 'MRP', 'LP', 'Purchase', 'Retail', ...plCols.map((p) => p.name)],
+      ...L.map((i) => [i.code, i.name, i.grp, i.brand, i.series, i.cat, i.hsn, i.gst || 0, i.unit, i.mrp || '', i.lp || '', i.purch || 0, i.sale || 0, ...plCols.map((p) => getP(i, `pl:${p.id}`))])];
+    if (!mrpOn) rows.forEach((r) => r.splice(9, 1));
+    void xlsxBlob([{ name: 'Prices', rows, widths: [12, 40, 24, 14, 14, 18, 10, 8, 8, 10, 10, 10, 10, ...plCols.map(() => 12)], freeze: 1, styles: { 0: 1 }, money: [9, 10, 11, 12, ...plCols.map((_, k) => 13 + k)] }]).then((b) => saveFile(`price-list-${today()}.xlsx`, b));
+  };
+  /** Import Excel: match rows by item code or name, preview the price changes (prototype pmFile) */
+  const importFile = async (f: File) => {
+    let rows: string[][];
+    try { rows = /\.csv$/i.test(f.name) ? readCsv(await f.text()) : await readXlsx(await f.arrayBuffer()); } catch { return showToast('Couldn’t read that file. Use .xlsx or .csv'); }
+    if (!rows || rows.length < 2) return showToast('The file has no rows');
+    const hdr = rows[0]!.map((h) => String(h).toLowerCase().trim());
+    const find = (...ks: string[]) => hdr.findIndex((h) => ks.some((k) => h === k || h.startsWith(k)));
+    const cCode = find('item code', 'code', 'sku', 'barcode');
+    const cName = find('item', 'name', 'item name', 'product');
+    const map = ([[find('mrp'), 'mrp'], [hdr.findIndex((h) => h === 'lp' || h === 'list price' || h.startsWith('lp ')), 'lp'], [find('retail', 'sale', 'sale price', 'rate'), 'sale'], ...plCols.map((p) => [find(p.name.toLowerCase()), `pl:${p.id}`])] as [number, Field][]).filter((m) => m[0] >= 0);
+    if (cCode < 0 && cName < 0) return showToast('Add an “Item code” or “Item” column to match items');
+    if (!map.length) return showToast('Add at least one price column: MRP, Purchase, Retail or a price list name');
+    const changes: Change[] = [];
+    let unmatched = 0;
+    let matched = 0;
+    rows.slice(1).forEach((r) => {
+      const code = cCode >= 0 ? String(r[cCode] ?? '').trim().toLowerCase() : '';
+      const nm = cName >= 0 ? String(r[cName] ?? '').trim().toLowerCase() : '';
+      const i = (code && IT.find((x) => x.code.toLowerCase() === code)) || (nm && IT.find((x) => x.name.toLowerCase() === nm));
+      if (!i) { if (code || nm) unmatched++; return; }
+      matched++;
+      map.forEach(([c, fld]) => {
+        const v = Number(String(r[c] ?? '').replace(/[₹,\s]/g, ''));
+        if (String(r[c] ?? '').trim() === '' || !(v >= 0)) return;
+        const ov = getP(i, fld);
+        if (Math.abs(v - ov) > 0.001) changes.push({ i, f: fld, ov, nv: v });
+      });
+    });
+    if (!changes.length) return showToast(`${matched} items matched, no prices changed${unmatched ? ` · ${unmatched} rows not found` : ''}`);
+    showPreview(changes, `Imported from ${f.name}`, <>{matched} items matched.{unmatched ? <> <span className="lowq">{unmatched} rows didn’t match any item code or name and were skipped.</span></> : null}</>);
+  };
+
   return (
     <section id="vPrices" className={locked ? 'plocked' : undefined}>
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Price manager</h1><span className="pttot" id="pmCount">{L.length} of {IT.length} items</span><div className="sp"></div>
         <button className="btn" id="pmUndo" disabled={locked || !undo.length} title={last ? `Undo: ${last.how}` : 'Nothing to undo'} aria-label="Undo"><RawIcon d={UNDO} />Undo</button>
         <button className="btn" id="pmHist" onClick={() => setHist(true)} title="History" aria-label="History"><RawIcon d={HIST} />History</button>
-        <button className="btn" id="pmImport" disabled={locked}><RawIcon d={UP} />Import Excel</button><input type="file" id="pmFile" accept=".xlsx,.csv" hidden />
-        <button className="btn" id="pmExport" onClick={() => showToast('Excel export comes with the rate list')}><RawIcon d={DOWN} />Export Excel</button>
-        <button className="btn" id="pmNewPl" onClick={() => (locked ? nudgeLock() : showToast('New price list'))}><RawIcon d={PLUS} />New price list</button><button className="btn p" id="pmRate" onClick={() => showToast('Rate list comes next')}><RawIcon d={DOWN} />Download rate list</button></div>
+        <button className="btn" id="pmImport" disabled={locked} onClick={() => fileRef.current?.click()}><RawIcon d={UP} />Import Excel</button><input type="file" id="pmFile" accept=".xlsx,.csv" hidden ref={fileRef} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void importFile(f); }} />
+        <button className="btn" id="pmExport" onClick={exportXlsx}><RawIcon d={DOWN} />Export Excel</button>
+        <button className="btn" id="pmNewPl" onClick={() => (locked ? nudgeLock() : showToast('New price list'))}><RawIcon d={PLUS} />New price list</button><button className="btn p" id="pmRate" onClick={() => { useRl.getState().set({ pick: null, brands: null }); setRateOpen(true); }}><RawIcon d={DOWN} />Download rate list</button></div>
       <div className="card ptxc">
         <div className="ptfil" style={{ padding: '14px 16px', alignItems: 'center' }}><h3 className="pmvt"><RawIcon d={VIEW} />Price View</h3><label className="search" htmlFor="pmQ" style={{ maxWidth: 300, height: 36 }}><RawIcon d={SEARCH} /><input id="pmQ" placeholder="Search item or code" autoComplete="off" value={q} onChange={(e) => { usePm.getState().set({ hint: 'view' }); setQ(e.target.value) }} /></label>
           <select className="fi" id="pmCat" aria-label="Category" value={cat} onChange={(e) => { usePm.getState().set({ hint: 'view' }); setCat(e.target.value) }}><option value="all">All categories</option>{cats.map((c) => <option key={c}>{c}</option>)}</select><select className="fi" id="pmBrand" aria-label="Brand" value={brand} onChange={(e) => { usePm.getState().set({ hint: 'view' }); setBrand(e.target.value) }}><option value="all">All brands</option>{brands.map((b) => <option key={b}>{b}</option>)}</select>
@@ -133,6 +177,7 @@ export function PricesPage() {
       <HistoryDialog open={hist} fname={data.fname} onClose={() => setHist(false)} />
       <PinDialog open={pinOpen} onClose={() => setPinOpen(false)} onUnlocked={() => { usePm.getState().set({ hint: 'unlocked' }); setPinOpen(false); setSetupOpen(true); }} />
       <PriceSetup open={setupOpen} data={data} onPreview={showPreview} previewOpen={!!preview} onClose={() => { setSetupOpen(false); usePm.getState().set({ pin: null, hint: 'locked' }); showToast('Price Setup closed · prices locked'); }} />
+      <RateList open={rateOpen} data={data} onClose={() => setRateOpen(false)} />
       <PreviewDialog preview={preview} data={data} mrpOn={mrpOn} onClose={() => setPreview(null)} onApplied={follow} />
     </section>
   );

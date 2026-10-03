@@ -319,5 +319,47 @@ for (const width of WIDTHS) {
       await settle();
       await same(`prules-saved-${width}`, await shot(proto, '#psm .mdl'), await shot(app, '#psm .mdl'));
     });
+
+    test('Price manager: rate list and Excel files', async ({ browser, request }) => {
+      const proto = await newPage(browser, width);
+      const app = await newPage(browser, width);
+      await prototypeWithBackup(proto);
+      await openPrototypeView(proto, 'prices');
+      await signInAs(app, await freshShop(request, 'fresh-shop'));
+      await app.goto(APP + '/prices');
+      await app.waitForSelector('#pmRows tr td.pmv');
+      const both = async (fn: (p: Page) => Promise<unknown>) => { for (const p of [proto, app]) await fn(p); };
+      const settle = async () => { await both((p) => p.mouse.move(0, 0)); await app.waitForTimeout(300); await proto.waitForTimeout(100); };
+      await both((p) => p.click('#pmRate'));
+      await app.waitForSelector('#rlSheet .rlh small:not(:empty)');
+      await settle();
+      await same(`rlm-${width}`, await shot(proto, '#rlm .mdl'), await shot(app, '#rlm .mdl'));
+      await both((p) => p.selectOption('#rlGroup', 'brand'));
+      await both((p) => p.click('#rlCols [data-rlcol="unit"]'));
+      await both((p) => p.fill('#rlTitle', 'Contractor rates'));
+      await settle();
+      await same(`rlm-brand-${width}`, await shot(proto, '#rlm .mdl'), await shot(app, '#rlm .mdl'));
+      if (width !== 1366) return;
+      // the files: same names and the same cells as the prototype's
+      const { default: ExcelJS } = await import('exceljs');
+      const cells = async (path: string) => {
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.readFile(path);
+        const out: unknown[][] = [];
+        wb.worksheets[0]!.eachRow({ includeEmpty: true }, (r, n) => { out[n - 1] = (r.values as unknown[]).slice(1).map((v) => (v === undefined ? null : v)); });
+        return Array.from(out, (r) => r ?? []);
+      };
+      const grab = async (p: Page, sel: string) => { const [d] = await Promise.all([p.waitForEvent('download'), p.click(sel)]); return { name: d.suggestedFilename(), path: await d.path() }; };
+      const [px, ax] = [await grab(proto, '#rlXls'), await grab(app, '#rlXls')];
+      expect(ax.name).toBe(px.name);
+      expect(await cells(ax.path)).toEqual(await cells(px.path));
+      const [pp, ap] = [await grab(proto, '#rlPdf'), await grab(app, '#rlPdf')];
+      expect(ap.name).toBe(pp.name);
+      expect((await import('node:fs')).readFileSync(ap.path).subarray(0, 5).toString()).toBe('%PDF-');
+      await both((p) => p.click('#rlClose'));
+      const [pe, ae] = [await grab(proto, '#pmExport'), await grab(app, '#pmExport')];
+      expect(ae.name).toBe(pe.name);
+      expect(await cells(ae.path)).toEqual(await cells(pe.path));
+    });
   });
 }

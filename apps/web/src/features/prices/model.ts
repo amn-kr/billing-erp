@@ -15,6 +15,7 @@ interface Catalogue { brands: { name: string }[] }
 
 export interface PItem {
   id: string; name: string; grp: string; code: string; svc: boolean; brand: string; series: string; cat: string; unit: string;
+  hsn: string; gst: number; stock: number;
   mrp: number; lp: number; purch: number; sale: number;
   /** price-list prices and whether the item has its own price there */
   pl: Record<string, { p: number; own: boolean }>;
@@ -36,6 +37,7 @@ export function usePriceData() {
   const pm = new Map(prices.data.items.map((p) => [p.id, p.lists]));
   const IT: PItem[] = items.data.map((i) => ({
     id: i.id, name: i.name, grp: i.group, code: i.code, svc: i.kind === 'service', brand: i.brand, series: i.series, cat: i.category, unit: i.unit,
+    hsn: i.hsn, gst: Number(i.gstRate), stock: Number(i.stock ?? 0),
     mrp: Number(i.mrp), lp: Number(i.listPrice), purch: Number(i.purchase), sale: Number(i.sale),
     pl: Object.fromEntries(Object.entries(pm.get(i.id) ?? {}).map(([k, v]) => [k, { p: Number(v.price), own: v.fixed }])),
   }));
