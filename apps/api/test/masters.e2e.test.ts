@@ -230,6 +230,27 @@ describe('settings and commission', () => {
     await http().patch('/api/settings').set(auth(o)).send({ data: { nested: { x: 1 } } }).expect(400);
   });
 
+  it('tax list: real usage, add, refuse duplicates, switch off (not delete), keep the only chosen TCS rate', async () => {
+    const o = await owner(app);
+    await http().post('/api/items').set(auth(o)).send({ name: 'Copper wire', sale: '1890', gstRate: 18 }).expect(201);
+    let s = (await http().get('/api/settings').set(auth(o)).expect(200)).body;
+    expect(s.taxes.map((t: { name: string }) => t.name).slice(-7)).toEqual(['194C · 1%', '194C · 2%', '194J · 10%', '194J · 2%', '194H · 2%', '194I · 10%', '194Q · 0.1%']);
+    const g18 = s.taxes.find((t: { name: string }) => t.name === 'GST 18%');
+    expect(g18.used).toBe(1);
+    expect((await http().post(`/api/settings/taxes/${g18.id}/remove`).set(auth(o)).expect(400)).body.message).toBe('GST 18% is used by 1 items. Move those items to another rate before deleting it.');
+    s = (await http().post('/api/settings/taxes').set(auth(o)).send({ kind: 'GST', name: 'GST 6%', rate: 6 }).expect(201)).body;
+    expect(s.taxes.find((t: { name: string }) => t.name === 'GST 6%')).toMatchObject({ note: 'Custom rate', used: 0 });
+    expect((await http().post('/api/settings/taxes').set(auth(o)).send({ kind: 'GST', name: 'gst 6%', rate: 6 }).expect(409)).body.message).toBe('A GST rate named “gst 6%” already exists.');
+    await http().post('/api/settings/taxes').set(auth(o)).send({ kind: 'GST', name: 'Too much', rate: 101 }).expect(400);
+    const g6 = s.taxes.find((t: { name: string }) => t.name === 'GST 6%');
+    s = (await http().post(`/api/settings/taxes/${g6.id}/remove`).set(auth(o)).expect(200)).body;
+    expect(s.taxes.some((t: { name: string }) => t.name === 'GST 6%')).toBe(false);
+    const tcs = s.taxes.find((t: { kind: string }) => t.kind === 'TCS');
+    expect((await http().post(`/api/settings/taxes/${tcs.id}/remove`).set(auth(o)).expect(400)).body.message).toBe('TCS 1% is your only TCS rate. Add another before deleting it.');
+    const acc = await member(app, o, 'accountant');
+    await http().post('/api/settings/taxes').set(auth(acc)).send({ kind: 'GST', name: 'GST 7%', rate: 7 }).expect(403);
+  });
+
   it('electricians and commission rules', async () => {
     const o = await owner(app);
     const r = await http().post('/api/referrers').set(auth(o)).send({ name: 'Raju Electrician', phone: '98390 11223', city: 'Lucknow' }).expect(201);

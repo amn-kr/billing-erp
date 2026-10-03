@@ -90,6 +90,21 @@ export class ImportsService {
       if (hit) await tx.taxRate.update({ where: { id: hit.id }, data: { name: t.name, rate: t.rate, note: t.note, isOld: t.isOld, legacyId: t.legacyId } });
       else await tx.taxRate.create({ data: { ...base, kind: t.kind, name: t.name, rate: t.rate, note: t.note, isOld: t.isOld, legacyId: t.legacyId } });
     }
+    // rates the old app's tax list no longer had were deleted there: switch them off here
+    if (plan.taxes.length) await tx.taxRate.updateMany({ where: { legacyId: { notIn: plan.taxes.map((t) => t.legacyId) } }, data: { active: false } });
+
+    /* the old app's Settings switches, under the names the new screens use */
+    {
+      const o = plan.settings as Record<string, unknown>;
+      const ids = new Map((await tx.taxRate.findMany({ where: { active: true } })).map((t) => [t.legacyId, t.id]));
+      const pick: Record<string, unknown> = {};
+      for (const k of ['reg', 'hsn', 'pos', 'rcm', 'cess', 'tcs', 'tds', 'tdsBill', 'tdsExp', 'payQr', 'waLink', 'acct', 'upiName']) if (o[k] !== undefined && o[k] !== null && typeof o[k] !== 'object') pick[k] = o[k];
+      if (typeof o.curSym === 'boolean') pick.showCurrency = o.curSym;
+      if (typeof o.showMrp === 'boolean') pick.mrp = o.showMrp;
+      for (const k of ['tcsRate', 'tdsRate']) if (typeof o[k] === 'string' && ids.get(o[k] as string)) pick[k] = ids.get(o[k] as string);
+      const cur = await tx.businessSettings.findUniqueOrThrow({ where: { businessId } });
+      await tx.businessSettings.update({ where: { businessId }, data: { data: { ...(cur.data as object), ...pick } as Prisma.InputJsonValue } });
+    }
 
     /* simple lists */
     const ensure = async <K extends 'partyGroup' | 'category' | 'brand' | 'itemGroup'>(model: K, names: string[]) => {

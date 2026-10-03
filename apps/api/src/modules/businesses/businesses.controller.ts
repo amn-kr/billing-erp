@@ -11,6 +11,8 @@ import { TokensService } from '../auth/tokens.service';
 import { meta, setRefreshCookie } from '../auth/cookies';
 import { BusinessesService } from './businesses.service';
 
+const startFreshSchema = z.object({ keepItems: z.boolean().optional(), cash: z.string().trim().max(20).regex(/^\d*\.?\d{0,2}$/, 'Cash in hand should be an amount, e.g. 2500.').optional() });
+
 const user = (ctx: RequestContext) => ({ id: ctx.userId, email: ctx.email });
 
 @Controller('businesses')
@@ -24,8 +26,13 @@ export class BusinessesController {
 
   /** "Set up your shop". Returns tokens for the new shop. */
   @Post()
-  async create(@Ctx() ctx: RequestContext, @Body(new ZodPipe(createBusinessSchema)) body: CreateBusinessInput, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const b = await this.businesses.create(ctx, body);
+  async create(@Ctx() ctx: RequestContext, @Body() raw: unknown, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const body = new ZodPipe(createBusinessSchema).transform(raw) as CreateBusinessInput;
+    // Settings › Start fresh: a new, empty set of books (the current ones are kept), optionally with the current item list
+    const extra = startFreshSchema.safeParse(raw ?? {});
+    if (!extra.success) throw new BadRequestException({ message: firstError(extra.error) });
+    const copyItems = extra.data.keepItems && ctx.businessId ? await this.businesses.itemsToCopy(ctx) : undefined;
+    const b = await this.businesses.create(ctx, body, { copyItems, cash: extra.data.cash || undefined });
     const t = await this.tokens.switchBusiness(ctx.sessionId, user(ctx), b.id, meta(req));
     setRefreshCookie(res, t);
     return { business: { id: b.id, code: b.code, name: b.name }, accessToken: t.accessToken, expiresIn: t.expiresIn };
@@ -52,7 +59,7 @@ export class BusinessesController {
   @RequirePermission('business.update')
   @Patch('current')
   update(@Ctx() ctx: RequestContext, @Body() body: unknown) {
-    const partial = createBusinessSchema.innerType().partial().safeParse(body ?? {});
+    const partial = createBusinessSchema.innerType().partial().extend({ short: z.string().trim().max(80).optional(), email: z.union([z.literal(''), z.string().trim().email('Enter a valid email.').max(160)]).optional() }).safeParse(body ?? {});
     if (!partial.success) throw new BadRequestException({ message: firstError(partial.error) });
     return this.businesses.update(ctx, partial.data);
   }

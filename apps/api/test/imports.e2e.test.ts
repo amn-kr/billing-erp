@@ -52,6 +52,10 @@ describe('POST /api/imports', () => {
     }));
     expect(got.business).toMatchObject({ name: 'Gupta Electricals & Hardware', shortName: 'Gupta Electricals', gstin: '09AAGFG2231M1ZQ', city: 'Lucknow', pin: '226001' });
     expect(got.settings.gstEnabled).toBe(true);
+    // the old app's Settings switches arrive under the new names; TCS/TDS choices point at the new tax rates
+    const sd = got.settings.data as Record<string, unknown>;
+    expect(sd).toMatchObject({ reg: 'regular', hsn: true, pos: true, tcs: false, tdsBill: true, payQr: true, waLink: true, acct: false, upiName: 'Gupta Electricals & Hardware' });
+    expect(await asShop(o.businessId, (tx) => tx.taxRate.findFirst({ where: { id: sd.tcsRate as string } }))).toMatchObject({ legacyId: 'tcs1' });
     expect(got.series.nextNumber).toBe(101);
     expect(got.parties.map((p) => p.name)).toEqual(['Kanpur Cables Pvt Ltd', 'Mehta Electricals', 'Raju Electrician', 'Walk-in Ramesh']);
     const mehta = got.parties.find((p) => p.name === 'Mehta Electricals')!;
