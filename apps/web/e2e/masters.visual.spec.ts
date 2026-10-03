@@ -3,6 +3,8 @@
  * (packages/importer/fixtures/fresh-shop.backup.json, imported into the
  * rebuild's e2e shop). Pixel comparison at 1280, 1366 and 1920 px.
  */
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { compare } from './compare';
 import { APP, RAVI, WIDTHS, freshShop, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
@@ -520,6 +522,28 @@ for (const width of WIDTHS) {
       await both((p) => p.evaluate(() => (document.activeElement as HTMLElement | null)?.blur()));
       await settle();
       await sameShot(`bzm-${width}`, proto, app, '#bzm .mdl');
+    });
+
+    test('Restore books window (import upload)', async ({ browser, request }) => {
+      const proto = await newPage(browser, width);
+      const app = await newPage(browser, width);
+      await prototypeWithBackup(proto);
+      await openPrototypeView(proto, 'set');
+      // (the prototype's General button only works once another tab has been opened)
+      await proto.click('#subnav [data-settab="items"]');
+      await proto.click('#subnav [data-settab="gen"]');
+      await signInAs(app, await freshShop(request));
+      await app.goto(APP + '/settings');
+      await app.click('#subnav [data-settab="gen"]');
+      const file = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../../packages/importer/fixtures/fresh-shop.backup.json');
+      for (const p of [proto, app]) await p.setInputFiles('#bkpFile', file);
+      await app.waitForSelector('#rsmCheck');
+      await proto.waitForSelector('#rsm:not([hidden])');
+      for (const p of [proto, app]) await p.mouse.move(0, 0);
+      await app.waitForTimeout(300);
+      // header and the summary of what is in the file; the explanation below differs on purpose (the rebuild adds, it never replaces)
+      await sameShot(`rsm-head-${width}`, proto, app, '#rsm .dh');
+      await sameShot(`rsm-summary-${width}`, proto, app, '#rsmBody .rcv');
     });
   });
 }

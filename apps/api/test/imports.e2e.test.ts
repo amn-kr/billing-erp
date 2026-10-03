@@ -81,6 +81,7 @@ describe('POST /api/imports', () => {
 
     // a second import would enter everything twice: refused
     const again = await http().post('/api/imports').set(auth(o)).send({ backup: backup('fresh-shop.backup.json') }).expect(409);
+    await http().post('/api/imports?dryRun=true').set(auth(o)).send({ backup: backup('fresh-shop.backup.json') }).expect(409);
     expect(again.body.message).toMatch(/already has parties or items/);
     const list = await http().get('/api/imports').set(auth(o)).expect(200);
     expect(list.body).toHaveLength(1);

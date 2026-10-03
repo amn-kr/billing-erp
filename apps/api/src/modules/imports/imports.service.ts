@@ -54,7 +54,12 @@ export class ImportsService {
 
   async run(actor: ImportActor, req: ImportRequest): Promise<ImportResult> {
     const { plan, backupAt } = await this.plan(req);
-    if (req.dryRun) return { dryRun: true, importId: null, counts: plan.counts, warnings: plan.warnings };
+    if (req.dryRun) {
+      // the check also says up front when the shop already has data (the import would refuse)
+      const [parties, items] = await this.db.scoped({ businessId: actor.businessId, userId: actor.userId, email: actor.email }, (tx) => Promise.all([tx.party.count(), tx.item.count()]));
+      if (parties || items) throw new ConflictException({ message: 'This shop already has parties or items. Import into a new, empty shop so nothing is entered twice.' });
+      return { dryRun: true, importId: null, counts: plan.counts, warnings: plan.warnings };
+    }
     const importId = await this.db.scoped({ businessId: actor.businessId, userId: actor.userId, email: actor.email }, (tx) => this.write(tx, actor, plan, req.fileName, backupAt), { timeout: 120_000 });
     return { dryRun: false, importId, counts: plan.counts, warnings: plan.warnings };
   }

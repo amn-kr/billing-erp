@@ -1,6 +1,11 @@
 /** Phase 2 flows against the real API. */
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { APP, freshShop, newPage, signInAs } from './setup';
+
+const FIXTURES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../packages/importer/fixtures');
 
 test('add a party from the Parties screen; it is saved and selected', async ({ browser, request }) => {
   const page = await newPage(browser, 1366);
@@ -94,4 +99,59 @@ test('add items (with opening stock, service, brands/sizes) and adjust stock', a
   await page.click('#aiSave');
   await expect(page.locator('#itKind')).toHaveText('Services');
   await expect(page.locator('#itHead h2')).toHaveText('Fan installation');
+});
+
+test('import upload: the old app’s backup is checked, then imported into empty books', async ({ browser, request }) => {
+  const page = await newPage(browser, 1366);
+  await signInAs(page, await freshShop(request));
+  await page.goto(APP + '/settings');
+  await page.click('#subnav [data-settab="gen"]');
+  await page.setInputFiles('#bkpFile', path.join(FIXTURES, 'fresh-shop.backup.json'));
+  await expect(page.locator('#rsm')).toBeVisible();
+  await expect(page.locator('#rsmSub')).toHaveText('From file · fresh-shop.backup.json');
+  await expect(page.locator('#rsmBody .rcv')).toContainText('Gupta Electricals & Hardware');
+  await expect(page.locator('#rsmCheck')).toContainText('Ready: 4 parties and 4 items.');
+  await expect(page.locator('#rsmGo')).toBeDisabled();
+  await page.click('#rsmOk');
+  // the safety copy of the current books downloads first
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#rsmGo')]);
+  expect(dl.suggestedFilename()).toMatch(/^Verma-Traders-backup-\d{4}-\d{2}-\d{2}-\d{4}\.json$/);
+  await expect(page.locator('#toast')).toContainText('4 parties and 4 items came in.');
+  await page.goto(APP + '/parties');
+  await expect(page.locator('#ptList .ptr')).toHaveCount(4);
+  // a second import is refused in plain words (it would enter everything twice)
+  await page.goto(APP + '/settings');
+  await page.click('#subnav [data-settab="gen"]');
+  await page.setInputFiles('#bkpFile', path.join(FIXTURES, 'fresh-shop.backup.json'));
+  await expect(page.locator('#rsmErr')).toContainText('already has parties or items');
+  await page.click('#rsmCancel');
+  // a file that isn't a backup
+  await page.setInputFiles('#bkpFile', { name: 'notes.json', mimeType: 'application/json', buffer: Buffer.from('{"hello":1}') });
+  await expect(page.locator('#toast')).toHaveText('This file isn’t a backup from this app.');
+});
+
+test('download backup gives this shop’s books; start fresh keeps the old books', async ({ browser, request }) => {
+  const page = await newPage(browser, 1366);
+  await signInAs(page, await freshShop(request, 'fresh-shop'));
+  await page.goto(APP + '/settings');
+  await page.click('#subnav [data-settab="gen"]');
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#bkpDlBtn')]);
+  const data = JSON.parse(fs.readFileSync(await dl.path(), 'utf8'));
+  expect(data).toMatchObject({ app: 'billing-erp-cloud', biz: 'Gupta Electricals & Hardware', counts: { parties: 4, items: 4 } });
+  await expect(page.locator('#bkpLastTxt')).toContainText('Last downloaded on this device');
+  // start fresh with the item list
+  await page.click('#bzFreshBtn');
+  await page.fill('#bzfName', 'Gupta Traders');
+  await page.click('#bzfKeep');
+  await expect(page.locator('#bzmGo')).toBeDisabled();
+  await page.click('#bzfOk');
+  await page.click('#bzmGo');
+  await expect(page.locator('#toast')).toHaveText('Fresh books started for Gupta Traders. Add your parties and items to begin.');
+  await page.goto(APP + '/items');
+  await expect(page.locator('#itList .ptr')).toHaveCount(3); // goods only (the service is on the Services list)
+  await page.goto(APP + '/parties');
+  await expect(page.locator('#ptHead .ptempty b')).toHaveText('Add your first party');
+  // the old books are still there, in the shop menu
+  await page.click('#orgBtn');
+  await expect(page.locator('#orgPop')).toContainText('Gupta Electricals & Hardware');
 });
