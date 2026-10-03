@@ -37,9 +37,25 @@
 ## Phase 2 — Masters (in progress)
 | Item | State |
 |---|---|
-| Database: parties, groups, addresses, contacts, items, units, categories, brands, item groups, HSN, godowns, stock ledger, adjustments, transfers, price lists, group rules, fixed prices, price history, electricians, commission rules | done, row-level security on all |
+| Database: parties, groups, addresses, contacts, items, units, categories, brands, item groups, HSN, godowns, stock ledger, adjustments, transfers, price lists, group rules, fixed prices, price history, electricians, commission rules, price PIN | done, row-level security on all |
 | New shops start with the prototype's lists (taxes, groups, units, categories, price lists, Main shop, commission) | done |
-| API for parties, items, stock, godowns, price lists, prices, settings, electricians, commission | done, 56 API tests |
-| Importer: old app backup → new shop (dry run, all-or-nothing, refuses a shop that already has data) | done, tested with backups made in the old app |
-| Screens: Parties, Items, Price manager, Stock adjustments, Godowns, Settings (+ their dialogs) matching the prototype | next |
-| **Gate:** a real backup file imports cleanly | needs a real backup from the owner |
+| API for parties, items, stock, godowns, price lists, prices, price PIN, brand rules, settings, electricians, commission | done, 58 API tests |
+| Importer: old app backup → new shop (dry run, all-or-nothing, refuses a shop that already has data) | done; price-list on/off and brand rules now come across correctly |
+| Parties screen + Add party | done — 0 pixel difference at 1280/1366/1920 |
+| Items screen + Add item (product, service, brands/sizes) + Adjust stock; sidebar low-stock count | done — 0 pixel difference |
+| Godowns + Add godown + Transfer stock | done — 0 pixel difference |
+| Stock adjustments + New adjustment | done — 0 pixel difference |
+| Price manager: Price View, price PIN, Price Setup (brand rules, fine-tune items), preview, undo, history, rate list (Excel / PDF / WhatsApp / print), Excel export and import | done — 0 pixel difference; Excel files match the prototype's cell for cell |
+| Currency symbol switch (₹ hidden by default) works on every screen, as in the prototype | done |
+| Settings (Taxes & GST, tax list, Items & prices, General: display, MRP, UPI, business details, backup & restore, import from the old app) | next |
+| Discard-changes question when closing a filled-in dialog | to do |
+| **Gate:** a real backup file imports cleanly | done — the owner's backup imports cleanly (tested 3 Oct 2026; the file is not stored in the repository) |
+
+### Differences from the prototype (on purpose)
+- Unticking "comes in different brands or sizes" in Add item returns to the single-item form (the prototype's script crashes there).
+- Document numbers are real and per financial year (ADJ-0001, TRF-0001); the prototype makes up random ones.
+- The price PIN is checked by the server, with the same 5 tries / 60-second wait; the prototype kept it in the browser.
+- Prices are worked out with exact decimal maths, so a few prototype results that were off by 1 paisa (computer rounding) are now exact.
+
+### Questions for the owner
+- **New price list:** in the prototype's final version this button always says "Prices are locked", because the only way to unlock is Price Setup, which then covers the button. Should entering the PIN open "New price list"? (Until decided it behaves like the prototype.)
