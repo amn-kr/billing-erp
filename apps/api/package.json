@@ -12,7 +12,8 @@
     "db:seed": "node -r @swc-node/register prisma/seed-demo.ts",
     "prisma:generate": "prisma generate",
     "db:reset-test": "node scripts/reset-db.mjs",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "import": "node -r @swc-node/register scripts/import-backup.ts"
   },
   "dependencies": {
     "@billing/shared": "workspace:*",
@@ -26,7 +27,8 @@
     "cookie-parser": "1.4.7",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
-    "zod": "3.25.76"
+    "zod": "3.25.76",
+    "@billing/importer": "workspace:*"
   },
   "devDependencies": {
     "@nestjs/testing": "10.4.22",

@@ -16,6 +16,8 @@ import { MembersController } from './modules/members/members.controller';
 import { MembersService } from './modules/members/members.service';
 import { AuditController } from './modules/audit/audit.controller';
 import { HealthController } from './modules/health/health.controller';
+import { ImportsController } from './modules/imports/imports.controller';
+import { ImportsService } from './modules/imports/imports.service';
 
 @Module({
   imports: [
@@ -26,7 +28,7 @@ import { HealthController } from './modules/health/health.controller';
       skipIf: () => config().NODE_ENV === 'test' && process.env.TEST_THROTTLE !== '1',
     }),
   ],
-  controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HealthController],
+  controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HealthController, ImportsController],
   providers: [
     DbService,
     AuditService,
@@ -34,6 +36,7 @@ import { HealthController } from './modules/health/health.controller';
     AuthService,
     BusinessesService,
     MembersService,
+    ImportsService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
   ],

@@ -20,6 +20,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@billing/importer':
+        specifier: workspace:*
+        version: link:../../packages/importer
       '@billing/shared':
         specifier: workspace:*
         version: link:../../packages/shared
