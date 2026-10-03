@@ -34,28 +34,37 @@
   the API must sit on the same domain (e.g. app.yourshop.in and api.yourshop.in) so the
   sign-in cookie works.
 
-## Phase 2 — Masters (in progress)
+## Phase 2 — Masters ✅ (gate passed: the owner's real backup imports cleanly)
 | Item | State |
 |---|---|
 | Database: parties, groups, addresses, contacts, items, units, categories, brands, item groups, HSN, godowns, stock ledger, adjustments, transfers, price lists, group rules, fixed prices, price history, electricians, commission rules, price PIN | done, row-level security on all |
 | New shops start with the prototype's lists (taxes, groups, units, categories, price lists, Main shop, commission) | done |
-| API for parties, items, stock, godowns, price lists, prices, price PIN, brand rules, settings, electricians, commission | done, 58 API tests |
-| Importer: old app backup → new shop (dry run, all-or-nothing, refuses a shop that already has data) | done; price-list on/off and brand rules now come across correctly |
+| API for parties, items, stock, godowns, price lists, prices, price PIN, brand rules, settings, tax list, business details, backup, electricians, commission | done, 62 API tests |
+| Importer: old app backup → new shop (checked first, all-or-nothing, refuses a shop that already has data); brings parties, items, opening stock and balances, prices, price lists (on/off), brand rules, godowns, electricians, commission, tax list, Settings switches, owner, cash in hand | done |
 | Parties screen + Add party | done — 0 pixel difference at 1280/1366/1920 |
-| Items screen + Add item (product, service, brands/sizes) + Adjust stock; sidebar low-stock count | done — 0 pixel difference |
+| Items screen + Add item (product, service, brands/sizes) + Adjust stock; sidebar and bell low-stock count | done — 0 pixel difference |
 | Godowns + Add godown + Transfer stock | done — 0 pixel difference |
 | Stock adjustments + New adjustment | done — 0 pixel difference |
-| Price manager: Price View, price PIN, Price Setup (brand rules, fine-tune items), preview, undo, history, rate list (Excel / PDF / WhatsApp / print), Excel export and import | done — 0 pixel difference; Excel files match the prototype's cell for cell |
-| Currency symbol switch (₹ hidden by default) works on every screen, as in the prototype | done |
-| Settings (Taxes & GST, tax list, Items & prices, General: display, MRP, UPI, business details, backup & restore, import from the old app) | next |
-| Discard-changes question when closing a filled-in dialog | to do |
-| **Gate:** a real backup file imports cleanly | done — the owner's backup imports cleanly (tested 3 Oct 2026; the file is not stored in the repository) |
+| Price manager: Price View, price PIN, Price Setup (brand rules, fine-tune items), preview, undo, history, rate list (Excel / PDF / WhatsApp / print), Excel export and import, New price list | done — 0 pixel difference; Excel files match the prototype's cell for cell |
+| Settings: Taxes & GST (GST/TCS/TDS, GSTIN check, live preview, tax list), Items & prices (price lists on/off), General (business details, ₹ and MRP display, payment links, Accounting module, backup & restore, start fresh, cloud sync) | done — 0 pixel difference |
+| Import upload: Settings › General › Backup & restore › Restore from file takes the old app's backup | done — flow test from file to imported parties |
+| "Discard this …?" question when closing a filled-in window (Enter twice / Esc) | done for Adjust stock, Start fresh and Restore; Phase 3 documents will use the same piece |
+| Currency symbol switch (₹ hidden by default) works on every screen | done |
+| **Gate:** a real backup file imports cleanly | ✅ the owner's backup imports cleanly (rechecked 4 Oct 2026; the file is not stored in the repository) |
 
 ### Differences from the prototype (on purpose)
 - Unticking "comes in different brands or sizes" in Add item returns to the single-item form (the prototype's script crashes there).
 - Document numbers are real and per financial year (ADJ-0001, TRF-0001); the prototype makes up random ones.
 - The price PIN is checked by the server, with the same 5 tries / 60-second wait; the prototype kept it in the browser.
 - Prices are worked out with exact decimal maths, so a few prototype results that were off by 1 paisa (computer rounding) are now exact.
+- The tax list shows how many of your items really use each rate (the prototype shows sample numbers). Removing a rate switches it off; it is kept for old documents.
+- **Start fresh never deletes anything:** it starts a new, empty set of books (optionally with your item list) and keeps the current books in the shop menu. The prototype wiped all entries.
+- **Restore from file** adds the old app's backup to empty books instead of replacing books. Backups made by the new app are restored with the hosting work (Phase 5).
+- "Storage on this device" says the books are kept on the server (the prototype measured the browser's storage).
+- The bell's low-stock count and the General settings button work straight away (in the prototype the count refreshed only when opened, and General needed another tab opened first).
 
 ### Owner decisions (4 Oct 2026)
 - **New price list** asks for the price PIN and then opens (in the prototype it could no longer be reached). Prices lock again when it closes; the server checks the PIN too.
+
+### Still open for the owner
+- The importer leaves out the old app's demo entries (14 sample parties and 288 sample items in your backup). If your shop used them for real, tick "Also bring in the old app's sample entries" in the Restore window.

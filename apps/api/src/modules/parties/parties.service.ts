@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { money, todayIst, toDb, type PartyInput } from '@billing/shared';
+import { money, todayIst, toDb, type PartyInput, DEFAULT_PARTY_GROUPS } from '@billing/shared';
 import type { Prisma } from '@prisma/client';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
@@ -165,6 +165,9 @@ export class PartiesService {
   groups(ctx: RequestContext) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const gs = await tx.partyGroup.findMany({ where: { archivedAt: null }, include: { _count: { select: { parties: { where: { archivedAt: null } } } } }, orderBy: { createdAt: 'asc' } });
+      // the prototype's built-in groups first, in its order (rows made together share a timestamp), then your own by date added
+      const order = (n: string) => { const k = (DEFAULT_PARTY_GROUPS as readonly string[]).indexOf(n); return k < 0 ? 999 : k; };
+      gs.sort((a, b) => order(a.name) - order(b.name) || a.createdAt.getTime() - b.createdAt.getTime() || a.name.localeCompare(b.name));
       return gs.map((g) => ({ id: g.id, name: g.name, parties: g._count.parties }));
     });
   }

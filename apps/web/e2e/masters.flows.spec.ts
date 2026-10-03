@@ -66,7 +66,15 @@ test('add items (with opening stock, service, brands/sizes) and adjust stock', a
   await page.fill('#adjQty', '41');
   await page.click('#adj button[type="submit"]');
   await expect(page.locator('#adjErr')).toHaveText('You only have 40 PCS in stock.');
+  // something was typed, so Cancel asks first; Esc keeps editing, Discard closes
   await page.click('#adjCancel');
+  await expect(page.locator('#dcfT')).toHaveText('Discard this stock adjustment?');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#dcf')).toBeHidden();
+  await expect(page.locator('#adjQty')).toHaveValue('41');
+  await page.click('#adjCancel');
+  await page.click('#dcfYes');
+  await expect(page.locator('#adj')).toBeHidden();
 
   // an item in several brands
   await page.click('#vItems .pthd .btn.p');

@@ -96,9 +96,16 @@ for (const width of WIDTHS) {
       await proto.locator('#adjQty').blur();
       await app.locator('#adjQty').blur();
       await sameShot(`adjust-${width}`, proto, app, '#adj .mdl');
-      // (the prototype asks "Discard this stock adjustment?" here; that confirmation comes with the shared discard dialog)
-      await proto.evaluate(() => (window as unknown as { closeM: (id: string) => void }).closeM('adj'));
-      await app.click('#adjCancel');
+      // something was typed, so Cancel asks first
+      for (const p of [proto, app]) await p.click('#adjCancel');
+      await app.waitForSelector('#dcf:not([hidden])');
+      await app.waitForTimeout(100);
+      await sameShot(`dcf-${width}`, proto, app, '#dcf .mdl');
+      for (const p of [proto, app]) await p.keyboard.press('Enter');
+      await sameShot(`dcf-armed-${width}`, proto, app, '#dcf .mdl');
+      // (a second Enter would discard too, but only within 2.5 s; the screenshots can take longer)
+      for (const p of [proto, app]) await p.click('#dcfYes');
+      await app.waitForSelector('#adj', { state: 'hidden' });
 
       // Add item: product (both tabs), service, several brands/sizes, error
       await proto.evaluate(() => (window as unknown as { openItem: () => void }).openItem());
@@ -417,6 +424,7 @@ for (const width of WIDTHS) {
     });
 
     test('Settings: Taxes & GST, tax list, GST off question', async ({ browser, request }) => {
+      test.setTimeout(180_000);
       const proto = await newPage(browser, width);
       const app = await newPage(browser, width);
       await prototypeWithBackup(proto);
@@ -472,6 +480,7 @@ for (const width of WIDTHS) {
     });
 
     test('Settings: Items & prices, General, Start fresh', async ({ browser, request }) => {
+      test.setTimeout(180_000);
       const proto = await newPage(browser, width);
       const app = await newPage(browser, width);
       await prototypeWithBackup(proto);

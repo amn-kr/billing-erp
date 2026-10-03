@@ -13,6 +13,7 @@ import { saveFile } from '../../lib/files';
 import { today } from '../../lib/time';
 import { useOpenFocus } from '../../lib/useOpenFocus';
 import { Icon, RawIcon } from '../../components/Icon';
+import { useDiscardGuard } from '../../components/Discard';
 import { useShell } from '../shell/store';
 import { Sw, useS, useSaveS } from './model';
 
@@ -162,13 +163,16 @@ function StartFresh({ open, biz, cash, onClose }: { open: boolean; biz?: Biz; ca
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   useOpenFocus(open, ref);
+  const close = useDiscardGuard(open, ref, 'setup', onClose);
+  const closeRef = useRef(close);
+  closeRef.current = close;
   useEffect(() => {
     if (!open) return;
     // like the prototype for books that were started fresh: the form starts from the current business
     setO({ name: biz?.name ?? '', short: '', owner: biz?.ownerName ?? '', phone: biz?.phone ?? '', email: biz?.email ?? '', upi: '', addr: biz?.address ?? '', city: biz?.city ?? '', pin: biz?.pin ?? '', state: biz?.stateCode ?? '09', gstin: biz?.gstin ?? '', inv: String(biz?.invoiceNext ?? 1), cash: cash ?? '' });
     setKeep(false); setOk(false); setErr(''); setBusy(false);
     setTimeout(() => document.getElementById('bzfName')?.focus(), 30);
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && closeRef.current();
     document.addEventListener('keydown', esc);
     return () => document.removeEventListener('keydown', esc);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -194,9 +198,9 @@ function StartFresh({ open, biz, cash, onClose }: { open: boolean; biz?: Biz; ca
     }
   }
   return (
-    <div className="ov c" id="bzm" ref={ref} hidden={!open} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'bzm') onClose(); }}>
+    <div className="ov c" id="bzm" ref={ref} hidden={!open} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'bzm') close(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="bzmT" style={{ width: 'min(680px,100%)' }}>
-        <div className="dh"><div><h3 id="bzmT" style={{ margin: 0, fontSize: 18 }}>Start fresh with your own business</h3><small className="mu">New books start empty. These books are kept.</small></div><button className="ib" type="button" id="bzmClose" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
+        <div className="dh"><div><h3 id="bzmT" style={{ margin: 0, fontSize: 18 }}>Start fresh with your own business</h3><small className="mu">New books start empty. These books are kept.</small></div><button className="ib" type="button" id="bzmClose" aria-label="Close" onClick={close}><Icon name="x" /></button></div>
         <div id="bzmBody" style={{ marginTop: 12 }}>
           <div className="two"><Field id="bzfName" lbl="Business name" v={o.name} set={f('name')} ph="e.g. Gupta Electricals & Hardware" /><Field id="bzfOwner" lbl="Owner name" v={o.owner} set={f('owner')} /></div>
           <div className="two"><Field id="bzfPhone" lbl="Phone" v={o.phone} set={f('phone')} im="tel" ph="+91 " /><Field id="bzfEmail" lbl="Email" v={o.email} set={f('email')} im="email" /></div>
@@ -209,7 +213,7 @@ function StartFresh({ open, biz, cash, onClose }: { open: boolean; biz?: Biz; ca
           <label className="cb2" style={{ marginTop: 6, alignItems: 'flex-start' }}><input type="checkbox" id="bzfOk" style={{ marginTop: 3 }} checked={ok} onChange={(e) => setOk(e.target.checked)} /> <span><b>I understand</b> new, empty books are started for this business. The current books are kept and can be opened again from the shop menu.</span></label>
         </div>
         <div className="msg bad" id="bzmErr" role="alert">{err}</div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}><button className="btn" type="button" id="bzmCancel" onClick={onClose}>Cancel</button><button className="btn dz" type="button" id="bzmGo" disabled={!ok || busy} onClick={() => void go()}>{busy ? 'Starting fresh…' : 'Start new books'}</button></div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}><button className="btn" type="button" id="bzmCancel" onClick={close}>Cancel</button><button className="btn dz" type="button" id="bzmGo" disabled={!ok || busy} onClick={() => void go()}>{busy ? 'Starting fresh…' : 'Start new books'}</button></div>
       </div>
     </div>
   );
@@ -228,11 +232,14 @@ function RestoreBackup({ src, onClose, download }: { src: { text: string; file: 
   const [sample, setSample] = useState(false);
   const [busy, setBusy] = useState(false);
   useOpenFocus(!!src, ref);
+  const close = useDiscardGuard(!!src, ref, 'restore', onClose);
+  const closeRef = useRef(close);
+  closeRef.current = close;
   const fresh = !!(src?.d as { fresh?: boolean } | undefined)?.fresh;
   useEffect(() => {
     if (!src) return;
     setCheck(null); setErr(''); setSafe(true); setOk(false); setSample(false); setBusy(false);
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && closeRef.current();
     document.addEventListener('keydown', esc);
     return () => document.removeEventListener('keydown', esc);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -264,9 +271,9 @@ function RestoreBackup({ src, onClose, download }: { src: { text: string; file: 
     }
   }
   return (
-    <div className="ov c" id="rsm" ref={ref} hidden={!src} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'rsm') onClose(); }}>
+    <div className="ov c" id="rsm" ref={ref} hidden={!src} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'rsm') close(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="rsmT" style={{ width: 'min(560px,100%)' }}>
-        <div className="dh"><div><h3 id="rsmT" style={{ margin: 0, fontSize: 18 }}>Restore books</h3><small className="mu" id="rsmSub">{src ? 'From file · ' + src.file : ''}</small></div><button className="ib" type="button" id="rsmClose" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
+        <div className="dh"><div><h3 id="rsmT" style={{ margin: 0, fontSize: 18 }}>Restore books</h3><small className="mu" id="rsmSub">{src ? 'From file · ' + src.file : ''}</small></div><button className="ib" type="button" id="rsmClose" aria-label="Close" onClick={close}><Icon name="x" /></button></div>
         <div id="rsmBody" style={{ marginTop: 12 }}>
           {src && (
             <>
@@ -281,7 +288,7 @@ function RestoreBackup({ src, onClose, download }: { src: { text: string; file: 
           )}
         </div>
         <div className="msg bad" id="rsmErr" role="alert">{err}</div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}><button className="btn" type="button" id="rsmCancel" onClick={onClose}>Cancel</button><button className="btn dz" type="button" id="rsmGo" disabled={!ok || busy || !check} onClick={() => void go()}>{busy ? 'Restoring…' : 'Restore these books'}</button></div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}><button className="btn" type="button" id="rsmCancel" onClick={close}>Cancel</button><button className="btn dz" type="button" id="rsmGo" disabled={!ok || busy || !check} onClick={() => void go()}>{busy ? 'Restoring…' : 'Restore these books'}</button></div>
       </div>
     </div>
   );

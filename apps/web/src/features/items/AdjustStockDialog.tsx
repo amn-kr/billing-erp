@@ -1,11 +1,12 @@
 /** Adjust stock (#adj) — same markup and checks as the prototype; saves a numbered stock adjustment. */
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { money } from '@billing/shared';
 import { api, ApiError } from '../../lib/api';
 import { useCur } from '../../lib/settings';
 import { today } from '../../lib/time';
 import { useShell } from '../shell/store';
+import { useDiscardGuard } from '../../components/Discard';
 import { qfmt, type Item } from './ItemsPage';
 
 const REASONS = ['Physical count correction', 'Damaged', 'Expired', 'Lost or stolen', 'Free sample / gift', 'Own use', 'Other'];
@@ -24,14 +25,19 @@ export function AdjustStockDialog({ item, choices, onClose }: { item: Item | nul
   const qtyRef = useRef<HTMLInputElement>(null);
   const pickRef = useRef<HTMLSelectElement>(null);
   const [it, setIt] = useState<Item | null>(item);
+  const ovRef = useRef<HTMLDivElement>(null);
+  const close = useDiscardGuard(!!item, ovRef, 'stock adjustment', onClose);
+  const closeRef = useRef(close);
+  closeRef.current = close;
   const [picked, setPicked] = useState(false);
 
-  useEffect(() => {
+  // reset before the window is painted, so nothing typed straight away is lost
+  useLayoutEffect(() => {
     if (!item) return;
     setIt(item); setPicked(false);
     setMode('add'); setQty(''); setPrice(String(Number(item.purchase))); setDate(today()); setWhy(REASONS[0]!); setErr('');
     setTimeout(() => (choices ? pickRef.current : qtyRef.current)?.focus(), 0);
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && closeRef.current();
     document.addEventListener('keydown', esc);
     return () => document.removeEventListener('keydown', esc);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -55,7 +61,7 @@ export function AdjustStockDialog({ item, choices, onClose }: { item: Item | nul
   }
 
   return (
-    <div className="ov c" id="adj" hidden={!item} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'adj') onClose(); }}>
+    <div className="ov c" id="adj" ref={ovRef} hidden={!item} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'adj') close(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="adjT">
         <h3 id="adjT" style={{ margin: '0 0 4px', fontSize: 18 }}>Adjust stock</h3>
         <p id="adjFor" style={{ margin: '0 0 14px', color: 'var(--t2)', fontSize: 13 }}>{it ? (picked ? `In stock ${qfmt(s)} ${it.unit}` : `${it.name} · in stock ${qfmt(s)} ${it.unit}`) : ''}</p>
@@ -76,7 +82,7 @@ export function AdjustStockDialog({ item, choices, onClose }: { item: Item | nul
           <div className="hint" id="adjAfter" style={{ margin: '0 0 6px' }}>{q && it ? <>Stock after: <b>{qfmt(money(s).plus(mode === 'add' ? q : -q).toNumber())} {it.unit}</b></> : ''}</div>
           <div className="msg bad" id="adjErr" role="alert">{err}</div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button className="btn" type="button" id="adjCancel" onClick={onClose}>Cancel</button>
+            <button className="btn" type="button" id="adjCancel" onClick={close}>Cancel</button>
             <button className="btn p" type="submit">Save adjustment</button>
           </div>
         </form>

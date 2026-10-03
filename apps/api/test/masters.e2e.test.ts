@@ -251,6 +251,13 @@ describe('settings and commission', () => {
     await http().post('/api/settings/taxes').set(auth(acc)).send({ kind: 'GST', name: 'GST 7%', rate: 7 }).expect(403);
   });
 
+  it('starting lists keep the prototype’s order', async () => {
+    const o = await owner(app);
+    expect((await http().get('/api/party-groups').set(auth(o)).expect(200)).body.map((g: { name: string }) => g.name)).toEqual(['General', 'Retail customers', 'Wholesale customers', 'Contractors', 'Suppliers', 'Electricians']);
+    const cat = (await http().get('/api/catalogue').set(auth(o)).expect(200)).body;
+    expect(cat.units.slice(0, 3).map((u: { code: string }) => u.code)).toEqual(['PCS', 'BOX', 'KG']);
+  });
+
   it('electricians and commission rules', async () => {
     const o = await owner(app);
     const r = await http().post('/api/referrers').set(auth(o)).send({ name: 'Raju Electrician', phone: '98390 11223', city: 'Lucknow' }).expect(201);

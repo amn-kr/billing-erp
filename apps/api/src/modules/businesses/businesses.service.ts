@@ -25,12 +25,15 @@ export const shortName = (name: string) => name.split(/\s*&\s*|\s+and\s+/i)[0]!.
 /** The lists a new shop starts with (same as the prototype after "Start fresh"). */
 export async function seedMasters(tx: Tx, o: { businessId: string; userId: string; owner: string; phone: string; address: string }) {
   const base = { businessId: o.businessId, createdBy: o.userId };
+  // rows made together are stamped a millisecond apart, so lists keep the prototype's order
+  const t0 = Date.now();
+  const at = (k: number) => ({ createdAt: new Date(t0 + k) });
   await tx.taxRate.createMany({
-    data: DEFAULT_TAXES.map((t) => ({ ...base, kind: t.kind, name: t.name, rate: t.rate, note: t.note, isOld: !!t.old, legacyId: t.legacyId, isDefault: t.legacyId === 'g18' })),
+    data: DEFAULT_TAXES.map((t, k) => ({ ...base, ...at(k), kind: t.kind, name: t.name, rate: t.rate, note: t.note, isOld: !!t.old, legacyId: t.legacyId, isDefault: t.legacyId === 'g18' })),
   });
-  await tx.partyGroup.createMany({ data: DEFAULT_PARTY_GROUPS.map((name) => ({ ...base, name })) });
-  await tx.unit.createMany({ data: DEFAULT_UNITS.map((code) => ({ ...base, code })) });
-  await tx.category.createMany({ data: DEFAULT_CATEGORIES.map((name) => ({ ...base, name })) });
+  await tx.partyGroup.createMany({ data: DEFAULT_PARTY_GROUPS.map((name, k) => ({ ...base, ...at(k), name })) });
+  await tx.unit.createMany({ data: DEFAULT_UNITS.map((code, k) => ({ ...base, ...at(k), code })) });
+  await tx.category.createMany({ data: DEFAULT_CATEGORIES.map((name, k) => ({ ...base, ...at(k), name })) });
   await tx.godown.create({ data: { ...base, name: 'Main shop', address: o.address, manager: o.owner, phone: o.phone.replace(/\D/g, '').slice(-10), isDefault: true } });
   const groups = await tx.partyGroup.findMany({ where: { businessId: o.businessId } });
   for (const pl of DEFAULT_PRICE_LISTS) {

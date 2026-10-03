@@ -117,7 +117,8 @@ export class ImportsService {
     const ensure = async <K extends 'partyGroup' | 'category' | 'brand' | 'itemGroup'>(model: K, names: string[]) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const m = tx[model] as any;
-      await m.createMany({ data: names.map((name: string) => ({ ...base, name })), skipDuplicates: true });
+      const t0 = Date.now(); // a millisecond apart: the old app's list order is kept
+      await m.createMany({ data: names.map((name: string, k: number) => ({ ...base, name, createdAt: new Date(t0 + k) })), skipDuplicates: true });
       const rows: { id: string; name: string }[] = await m.findMany({ select: { id: true, name: true } });
       return new Map(rows.map((r) => [r.name, r.id]));
     };
@@ -125,7 +126,7 @@ export class ImportsService {
     const categoryId = await ensure('category', plan.categories);
     const brandId = await ensure('brand', plan.brands);
     const itemGroupId = await ensure('itemGroup', plan.itemGroups);
-    await tx.unit.createMany({ data: plan.units.map((code) => ({ ...base, code })), skipDuplicates: true });
+    { const t0 = Date.now(); await tx.unit.createMany({ data: plan.units.map((code, k) => ({ ...base, code, createdAt: new Date(t0 + k) })), skipDuplicates: true }); }
     const unitId = new Map((await tx.unit.findMany()).map((u) => [u.code, u.id]));
 
     /* parties */

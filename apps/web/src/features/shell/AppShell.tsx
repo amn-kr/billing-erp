@@ -19,6 +19,7 @@ import { PAL, type PalId } from './palette';
 import { Sidebar } from './Sidebar';
 import { SignOutDialog } from './SignOutDialog';
 import { Toast } from './Toast';
+import { DiscardDialog } from '../../components/Discard';
 import { TopBar } from './TopBar';
 import type { Item } from '../items/ItemsPage';
 import { readLocal, soon, useShell, write } from './store';
@@ -186,6 +187,7 @@ export function AppShell() {
         }}
       />
       <Toast />
+      <DiscardDialog />
     </>
   );
 }
