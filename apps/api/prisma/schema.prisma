@@ -1,0 +1,332 @@
+// Billing ERP — database schema.
+//
+// Rules (see CLAUDE.md and docs/ARCHITECTURE.md):
+// - every shop-owned table has business_id, protected by row-level security
+//   (policies live in the SQL migrations, not here);
+// - UUID ids, created_by / created_at / updated_at;
+// - money is numeric(14,2), quantities numeric(14,3);
+// - documents are cancelled (cancelled_at), never deleted.
+//
+// Phase 1 covers accounts & SaaS, setup and the audit log. Masters and
+// transactions are added in later phases.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────── Accounts & SaaS ─────────────────────────
+
+/// A person who can sign in. Not owned by a shop: one person can belong to several shops.
+model User {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String    @unique
+  name          String    @default("")
+  phone         String    @default("")
+  passwordHash  String    @map("password_hash")
+  emailVerified DateTime? @map("email_verified_at") @db.Timestamptz(6)
+  lastLoginAt   DateTime? @map("last_login_at") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  memberships    Membership[]
+  sessions       Session[]
+  passwordResets PasswordReset[]
+
+  @@map("users")
+}
+
+/// A shop (tenant). Its id is the business_id every other shop table points to.
+model Business {
+  id          String    @id @db.Uuid
+  /// Short public code shown in the account menu, e.g. BE-1012.
+  code        String    @unique
+  name        String
+  shortName   String    @map("short_name")
+  ownerId     String    @map("owner_user_id") @db.Uuid
+  phone       String    @default("")
+  email       String    @default("")
+  address     String    @default("")
+  city        String    @default("")
+  pin         String    @default("")
+  stateCode   String    @map("state_code")
+  gstin       String    @default("")
+  /// trial | paid | expired
+  planStatus  String    @default("trial") @map("plan_status")
+  trialEndsOn DateTime  @map("trial_ends_on") @db.Date
+  paidUntil   DateTime? @map("paid_until") @db.Date
+  createdBy   String    @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  memberships    Membership[]
+  invites        Invite[]
+  settings       BusinessSettings?
+  financialYears FinancialYear[]
+  series         DocumentSeries[]
+  taxRates       TaxRate[]
+  subscriptions  Subscription[]
+
+  @@map("businesses")
+}
+
+/// System roles have business_id NULL; a shop may add its own later.
+model Role {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId  String?  @map("business_id") @db.Uuid
+  /// owner | manager | billing_staff | accountant (or a custom key)
+  key         String
+  name        String
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  permissions RolePermission[]
+  memberships Membership[]
+  invites     Invite[]
+
+  @@unique([businessId, key])
+  @@map("roles")
+}
+
+model RolePermission {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  roleId     String  @map("role_id") @db.Uuid
+  businessId String? @map("business_id") @db.Uuid
+  permission String
+
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@unique([roleId, permission])
+  @@map("role_permissions")
+}
+
+/// A person's place in a shop.
+model Membership {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId  String    @map("business_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  roleId      String    @map("role_id") @db.Uuid
+  displayName String    @default("") @map("display_name")
+  /// active | removed
+  status      String    @default("active")
+  removedAt   DateTime? @map("removed_at") @db.Timestamptz(6)
+  createdBy   String    @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+  role     Role     @relation(fields: [roleId], references: [id])
+
+  @@unique([businessId, userId])
+  @@index([userId])
+  @@map("memberships")
+}
+
+model Invite {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId  String    @map("business_id") @db.Uuid
+  email       String
+  roleId      String    @map("role_id") @db.Uuid
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(6)
+  acceptedAt  DateTime? @map("accepted_at") @db.Timestamptz(6)
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdBy   String    @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id])
+  role     Role     @relation(fields: [roleId], references: [id])
+
+  @@index([email])
+  @@index([businessId])
+  @@map("invites")
+}
+
+/// A signed-in device. The refresh token is stored only as a SHA-256 hash.
+model Session {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  businessId String?   @map("business_id") @db.Uuid
+  tokenHash  String    @unique @map("token_hash")
+  userAgent  String    @default("") @map("user_agent")
+  ip         String    @default("")
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(6)
+  replacedBy String?   @map("replaced_by") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model PasswordReset {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("password_resets")
+}
+
+/// Plans you sell (global).
+model Plan {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code         String   @unique
+  name         String
+  priceMonthly Decimal  @map("price_monthly") @db.Decimal(14, 2)
+  priceYearly  Decimal  @map("price_yearly") @db.Decimal(14, 2)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId             String   @map("business_id") @db.Uuid
+  planId                 String   @map("plan_id") @db.Uuid
+  /// pending | active | cancelled | expired
+  status                 String
+  /// month | year
+  billingPeriod          String   @map("billing_period")
+  startsOn               DateTime @map("starts_on") @db.Date
+  endsOn                 DateTime @map("ends_on") @db.Date
+  razorpaySubscriptionId String?  @map("razorpay_subscription_id")
+  createdBy              String   @map("created_by") @db.Uuid
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business              @relation(fields: [businessId], references: [id])
+  plan     Plan                  @relation(fields: [planId], references: [id])
+  payments SubscriptionPayment[]
+
+  @@index([businessId])
+  @@map("subscriptions")
+}
+
+model SubscriptionPayment {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId        String    @map("business_id") @db.Uuid
+  subscriptionId    String    @map("subscription_id") @db.Uuid
+  amount            Decimal   @db.Decimal(14, 2)
+  /// created | paid | failed | refunded
+  status            String
+  razorpayPaymentId String?   @map("razorpay_payment_id")
+  paidAt            DateTime? @map("paid_at") @db.Timestamptz(6)
+  createdBy         String    @map("created_by") @db.Uuid
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([businessId])
+  @@map("subscription_payments")
+}
+
+// ───────────────────────── Setup ─────────────────────────
+
+model BusinessSettings {
+  businessId     String   @id @map("business_id") @db.Uuid
+  gstEnabled     Boolean  @default(false) @map("gst_enabled")
+  /// Everything else from the prototype's Settings screens, filled in by later phases.
+  data           Json     @default("{}")
+  createdBy      String   @map("created_by") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@map("business_settings")
+}
+
+model FinancialYear {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
+  /// e.g. 2026-27
+  label      String
+  startDate  DateTime @map("start_date") @db.Date
+  endDate    DateTime @map("end_date") @db.Date
+  isClosed   Boolean  @default(false) @map("is_closed")
+  createdBy  String   @map("created_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business         @relation(fields: [businessId], references: [id])
+  series   DocumentSeries[]
+
+  @@unique([businessId, label])
+  @@map("financial_years")
+}
+
+/// Document numbering: the server assigns numbers, per type per financial year.
+model DocumentSeries {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId      String   @map("business_id") @db.Uuid
+  financialYearId String   @map("financial_year_id") @db.Uuid
+  /// invoice | quotation | challan | credit_note | receipt | purchase_order | bill | debit_note | payment | expense
+  docType         String   @map("doc_type")
+  prefix          String
+  nextNumber      Int      @map("next_number")
+  padding         Int      @default(4)
+  createdBy       String   @map("created_by") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business      Business      @relation(fields: [businessId], references: [id])
+  financialYear FinancialYear @relation(fields: [financialYearId], references: [id])
+
+  @@unique([businessId, financialYearId, docType])
+  @@map("document_series")
+}
+
+model TaxRate {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
+  name       String
+  rate       Decimal  @db.Decimal(5, 2)
+  isDefault  Boolean  @default(false) @map("is_default")
+  active     Boolean  @default(true)
+  createdBy  String   @map("created_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@unique([businessId, name])
+  @@map("tax_rates")
+}
+
+// ───────────────────────── System ─────────────────────────
+
+/// Append-only: the app role may insert and read, never update or delete.
+model AuditLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  /// create | update | cancel | sign_in | invite | ...
+  action     String
+  entity     String
+  entityId   String?  @map("entity_id")
+  before     Json?
+  after      Json?
+  ip         String   @default("")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([businessId, createdAt])
+  @@map("audit_log")
+}
