@@ -158,6 +158,25 @@ importers:
         specifier: 3.2.4
         version: 3.2.4(@types/node@26.6.4)(jiti@2.7.0)(jsdom@26.1.0)
 
+  packages/importer:
+    dependencies:
+      '@billing/shared':
+        specifier: workspace:*
+        version: link:../shared
+      playwright-core:
+        specifier: 1.56.1
+        version: 1.56.1
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: 22.18.0
+        version: 22.18.0
+      vitest:
+        specifier: 3.2.4
+        version: 3.2.4(@types/node@22.18.0)(jiti@2.7.0)(jsdom@26.1.0)
+
   packages/shared:
     dependencies:
       decimal.js:
