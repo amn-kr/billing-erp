@@ -33,6 +33,8 @@ describe('fresh shop entered through the prototype', () => {
     expect(s.items.find((i) => i.name === 'Fan installation')).toMatchObject({ service: true, stock: null });
     expect(s.godowns).toEqual([expect.objectContaining({ name: 'Main shop', isDefault: true })]);
     expect(s.taxes.find((t) => t.id === 'g18')).toMatchObject({ rate: 18, type: 'GST' });
+    // the prototype starts with Contractor rate and Bulk project switched off
+    expect(s.priceLists.map((p) => `${p.name} ${p.active ? 'on' : 'off'}`)).toEqual(['Retail price on', 'Wholesale on', 'Contractor rate off', 'Bulk project (cost plus) off']);
   });
 });
 

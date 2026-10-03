@@ -63,10 +63,10 @@ function readBooks(): unknown {
     opening: (i.tx || []).filter((t: any) => t.type === 'Opening stock').map((t: any) => ({ qty: n(t.qty), price: n(t.price), date: isoOf(str(t.date)) })),
     stock: i.svc ? null : g('stockOf')(i), sample: !i.isNew,
   }));
-  const activeMap = (() => { try { return JSON.parse(localStorage.getItem('erp-pl-active') || '{}') || {}; } catch { return {}; } })();
   const priceLists = PLS.map((p: any) => ({
     id: str(p.id), name: str(p.name), isDefault: !!p.def, rule: str(p.rule), value: n(p.val), round: n(p.round),
-    groups: (p.groups || []).map(str), active: p.def ? true : activeMap[p.id] !== false,
+    // the page's PLS already has the prototype's defaults (Contractor rate and Bulk project off) with erp-pl-active applied
+    groups: (p.groups || []).map(str), active: p.def ? true : p.active !== false,
     overrides: Object.fromEntries(Object.entries(PLO[p.id] || {}).map(([k, v]) => [k, n(v)])),
   }));
   const keys: Record<string, unknown> = {};

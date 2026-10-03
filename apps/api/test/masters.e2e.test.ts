@@ -199,6 +199,14 @@ describe('price lists and prices', () => {
     await http().post('/api/prices/pin').set(auth(o)).send({ pin: '2468', currentPin: '1357' }).expect(204);
     await http().post('/api/prices/unlock').set(auth(o)).send({ pin: '1357' }).expect(400);
     await http().post('/api/prices/changes').set(auth(o)).send({ pin: '2468', changes: [{ itemId: it.body.id, field: 'sale', value: 270 }] }).expect(200);
+    // brand / series rules are saved in settings, with the PIN
+    const rule = { sale: { m: 'lp', v: '10', rd: '1' }, floor: { on: true, v: 5 }, noLp: { on: true, v: 20 } };
+    await http().post('/api/prices/rules').set(auth(o)).send({ pin: '1111', key: 'Havells|*', rule }).expect(400);
+    expect((await http().post('/api/prices/rules').set(auth(o)).send({ pin: '2468', key: 'Havells|*', rule }).expect(200)).body.rules).toEqual({ 'Havells|*': rule });
+    await http().post('/api/prices/rules').set(auth(o)).send({ pin: '2468', key: 'Havells|*', rule: { sale: { m: 'lp', v: 'ten', rd: '1' } } }).expect(400);
+    await http().post('/api/prices/rules').set(auth(o)).send({ pin: '2468', key: 'Havells|*', rule: { hack: { on: true, v: 1 } } }).expect(400);
+    expect((await http().get('/api/settings').set(auth(o)).expect(200)).body.data.priceRules).toEqual({ 'Havells|*': rule });
+    expect((await http().post('/api/prices/rules').set(auth(o)).send({ pin: '2468', key: 'Havells|*', rule: null }).expect(200)).body.rules).toEqual({});
     // the PIN hash never leaves the server, and staff without masters.manage can't use it
     expect(JSON.stringify((await http().get('/api/settings').set(auth(o)).expect(200)).body)).not.toMatch(/argon2/);
     const acc = await member(app, o, 'accountant');

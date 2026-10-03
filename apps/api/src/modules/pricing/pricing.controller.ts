@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Put, Query } from '@nestjs/common';
-import { pinSchema, priceChangesSchema, priceListSchema, type PriceChangesInput, type PriceListInput } from '@billing/shared';
+import { pinSchema, priceChangesSchema, priceListSchema, priceRuleSaveSchema, type PriceChangesInput, type PriceListInput, type PriceRuleSaveInput } from '@billing/shared';
 import { z } from 'zod';
 import { Ctx, RequirePermission } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
@@ -51,6 +51,13 @@ export class PricingController {
   @Post('prices/changes')
   changes(@Ctx() ctx: RequestContext, @Body(new ZodPipe(priceChangesSchema)) body: PriceChangesInput) {
     return this.pricing.applyChanges(ctx, body);
+  }
+
+  @RequirePermission('masters.manage')
+  @HttpCode(200)
+  @Post('prices/rules')
+  saveRule(@Ctx() ctx: RequestContext, @Body(new ZodPipe(priceRuleSaveSchema)) body: PriceRuleSaveInput) {
+    return this.pricing.saveRule(ctx, body);
   }
 
   /** Is a price PIN set? (the first unlock asks to set one) */

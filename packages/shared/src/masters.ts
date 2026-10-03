@@ -138,6 +138,19 @@ export const priceChangesSchema = z.object({
     .min(1, 'No prices would change')
     .max(5000),
 });
+const ruleField = z.object({ m: z.enum(['none', 'lp', 'margin', 'lpup']), v: z.string().max(12).regex(/^\d*\.?\d*$/, 'Enter a number.'), rd: z.enum(['0', '1', '5', '10']) });
+const ruleSwitch = z.object({ on: z.boolean(), v: z.union([z.string().max(12), z.number().min(0).max(1000)]) });
+/** Price Setup › Brand rules: key "Brand|series", "Brand|*" or "—|cat:Category"; null removes the rule. */
+export const priceRuleSaveSchema = z.object({
+  pin: pinSchema,
+  key: z.string().min(3).max(200).regex(/\|/, 'Unknown rule.'),
+  rule: z
+    .record(z.string(), z.union([ruleField, ruleSwitch]))
+    .refine((r) => Object.entries(r).every(([k, v]) => (k === 'floor' || k === 'noLp' ? 'on' in v : (k === 'sale' || /^pl:[0-9a-f-]{36}$/i.test(k)) && 'm' in v)), 'Unknown rule.')
+    .refine((r) => Object.keys(r).length <= 40)
+    .nullable(),
+});
+export type PriceRuleSaveInput = z.infer<typeof priceRuleSaveSchema>;
 export type PriceChangesInput = z.infer<typeof priceChangesSchema>;
 
 export const referrerSchema = z.object({

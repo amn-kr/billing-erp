@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { hash, verify } from '@node-rs/argon2';
-import { listPrice, money, toDb, type PriceChangesInput, type PriceListInput, type PriceRule } from '@billing/shared';
+import { listPrice, money, toDb, type PriceChangesInput, type PriceListInput, type PriceRule, type PriceRuleSaveInput } from '@billing/shared';
 import { Prisma } from '@prisma/client';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
@@ -143,6 +143,22 @@ export class PricingService {
     await this.db.scoped(this.scope(ctx), async (tx) => {
       await tx.priceLock.upsert({ where: { businessId: ctx.businessId! }, create: { businessId: ctx.businessId!, createdBy: ctx.userId, pinHash }, update: { pinHash, fails: 0, waitUntil: null } });
       await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: exists ? 'update' : 'create', entity: 'price_pin', ip: ctx.ip });
+    });
+  }
+
+  /** Save (or with null remove) one brand / series rule, kept in the shop settings as the prototype's erp-prules. */
+  async saveRule(ctx: RequestContext, input: PriceRuleSaveInput) {
+    await this.checkPin(ctx, input.pin);
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      const s = await tx.businessSettings.findUniqueOrThrow({ where: { businessId: ctx.businessId! } });
+      const data = (s.data ?? {}) as Record<string, unknown>;
+      const rules = { ...((data.priceRules ?? {}) as Record<string, unknown>) };
+      const before = rules[input.key] ?? null;
+      if (input.rule) rules[input.key] = input.rule;
+      else delete rules[input.key];
+      await tx.businessSettings.update({ where: { businessId: ctx.businessId! }, data: { data: { ...data, priceRules: rules } as Prisma.InputJsonValue } });
+      await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: input.rule ? 'update' : 'cancel', entity: 'price_rule', before: { key: input.key, rule: before }, after: { key: input.key, rule: input.rule }, ip: ctx.ip });
+      return { rules };
     });
   }
 

@@ -172,6 +172,17 @@ export class ImportsService {
       }),
     });
 
+    /* brand / series price rules: their price-list fields point at the new lists (rules for unknown lists are dropped) */
+    if (Object.keys(plan.priceRules).length) {
+      const rules = Object.fromEntries(Object.entries(plan.priceRules).map(([k, r]) => [k, Object.fromEntries(Object.entries(r as Record<string, unknown>).flatMap(([f, x]) => {
+        if (!f.startsWith('pl:')) return [[f, x]];
+        const id = listIds.get(f.slice(3));
+        return id ? [[`pl:${id}`, x]] : [];
+      }))]));
+      const cur = await tx.businessSettings.findUniqueOrThrow({ where: { businessId } });
+      await tx.businessSettings.update({ where: { businessId }, data: { data: { ...(cur.data as object), priceRules: rules } as Prisma.InputJsonValue } });
+    }
+
     /* electricians and commission */
     await tx.referrer.createMany({
       data: plan.referrers.map((r) => ({ ...base, legacyId: r.legacyId, name: r.name, phone: r.phone, city: r.city, partyId: partyId.get(r.partyLegacyId) ?? null })),

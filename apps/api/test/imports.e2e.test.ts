@@ -81,6 +81,15 @@ describe('POST /api/imports', () => {
     expect(list.body).toHaveLength(1);
   });
 
+  it('brand / series price rules come along, pointing at the new price lists', async () => {
+    const o = await owner(app);
+    const bk = JSON.parse(backup('fresh-shop.backup.json'));
+    bk.keys['erp-prules'] = JSON.stringify({ 'Havells|*': { sale: { m: 'lp', v: '10', rd: '1' }, 'pl:pl2': { m: 'margin', v: '15', rd: '5' }, 'pl:gone': { m: 'lp', v: '1', rd: '1' }, floor: { on: true, v: 5 } } });
+    await http().post('/api/imports').set(auth(o)).send({ backup: JSON.stringify(bk) }).expect(200);
+    const got = await asShop(o.businessId, async (tx) => ({ s: await tx.businessSettings.findFirstOrThrow(), wholesale: await tx.priceList.findFirstOrThrow({ where: { name: 'Wholesale' } }) }));
+    expect((got.s.data as { priceRules: unknown }).priceRules).toEqual({ 'Havells|*': { sale: { m: 'lp', v: '10', rd: '1' }, [`pl:${got.wholesale.id}`]: { m: 'margin', v: '15', rd: '5' }, floor: { on: true, v: 5 } } });
+  });
+
   it('a shop that kept the sample catalogue gets those items, without stock', async () => {
     const o = await owner(app);
     const res = await http().post('/api/imports').set(auth(o)).send({ backup: backup('fresh-kept-items.backup.json') }).expect(200);
