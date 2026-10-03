@@ -74,13 +74,19 @@ interface PmState {
   undo: UndoEntry[];
   /** the PIN while Price Setup is open (memory only; the server checks it on every change) */
   pin: string | null;
-  /** Price Setup was closed once (the prototype's hint then says "locked") */
-  relocked: boolean;
-  psu: { tab: 'rule' | 'item'; q: string; cat: string; brand: string; ser: string; rules: Record<string, { m: string; v: string; rd: string }> };
+  /**
+   * The hint beside the filters, as the prototype leaves it: a plain render says "view-only",
+   * unlocking says how to edit, locking again says "locked".
+   */
+  hint: 'view' | 'unlocked' | 'locked';
+  psu: { tab: 'rule' | 'item'; q: string; cat: string; brand: string; ser: string };
+  /** Brand rules tab: the brand / series picked, brands opened, search */
+  pr: { g: string | null; open: string[]; q: string };
   set: (p: Partial<Omit<PmState, 'set'>>) => void;
 }
 export const usePm = create<PmState>((set) => ({
-  undo: [], pin: null, relocked: false,
-  psu: { tab: 'rule', q: '', cat: 'all', brand: 'all', ser: 'all', rules: {} },
+  undo: [], pin: null, hint: 'view',
+  psu: { tab: 'rule', q: '', cat: 'all', brand: 'all', ser: 'all' },
+  pr: { g: null, open: [], q: '' },
   set: (p) => set(p),
 }));

@@ -218,5 +218,68 @@ for (const width of WIDTHS) {
       await settle();
       await same(`adjs-nomatch-${width}`, await shot(proto, '#vAdjs'), await shot(app, '#vAdjs'));
     });
+
+    test('Price manager: Price View, PIN, Price Setup, preview and history', async ({ browser, request }) => {
+      const proto = await newPage(browser, width);
+      const app = await newPage(browser, width);
+      await prototypeWithBackup(proto);
+      await openPrototypeView(proto, 'prices');
+      await signInAs(app, await freshShop(request, 'fresh-shop'));
+      await app.goto(APP + '/prices');
+      await app.waitForSelector('#pmRows tr td.pmv');
+      await app.waitForTimeout(300);
+      const both = async (fn: (p: Page) => Promise<unknown>) => { for (const p of [proto, app]) await fn(p); };
+      const settle = async () => { await both((p) => p.mouse.move(0, 0)); await app.waitForTimeout(300); await proto.waitForTimeout(100); };
+      await same(`prices-${width}`, await shot(proto, '#vPrices'), await shot(app, '#vPrices'));
+
+      // Price Setup asks for a PIN; the first time it sets one
+      await both((p) => p.click('#pmLock'));
+      await app.waitForSelector('#plkm:not([hidden])');
+      await settle();
+      await same(`plkm-set-${width}`, await shot(proto, '#plkm .mdl'), await shot(app, '#plkm .mdl'));
+      await both((p) => p.locator('#plkPin').pressSequentially('2468'));
+      await both((p) => p.locator('#plkPin2').pressSequentially('1357'));
+      await settle();
+      await same(`plkm-mismatch-${width}`, await shot(proto, '#plkm .mdl'), await shot(app, '#plkm .mdl'));
+      await both((p) => p.locator('#plkPin2').pressSequentially('2468'));
+      await app.waitForSelector('#psm:not([hidden])');
+      await proto.waitForSelector('#psm:not([hidden])');
+      await settle();
+      await same(`psm-rule-${width}`, await shot(proto, '#psm .mdl'), await shot(app, '#psm .mdl'));
+
+      // this shop has no brands yet, so Brand rules asks to pick one; Fine-tune items: LED bulb 9W at purchase + 25 %
+      await both((p) => p.click('#psTabs [data-pst="item"]'));
+      await settle();
+      await same(`psm-item-${width}`, await shot(proto, '#psm .mdl'), await shot(app, '#psm .mdl'));
+      const row = (p: Page) => p.locator('#psBody tr[data-psi]', { hasText: 'LED bulb 9W' }).locator('[data-pm]').first();
+      await both((p) => row(p).fill('25'));
+      // (the prototype selects the box's text on focus, racing the typing; leave the box so both look settled)
+      await both((p) => row(p).blur());
+      await settle();
+      await same(`psm-item-typed-${width}`, await shot(proto, '#psm .mdl'), await shot(app, '#psm .mdl'));
+      await both((p) => p.click('#psGo'));
+      await app.waitForSelector('#ppv:not([hidden])');
+      await settle();
+      await same(`ppv-${width}`, await shot(proto, '#ppv .mdl'), await shot(app, '#ppv .mdl'));
+      await both((p) => p.click('#ppvApply'));
+      await app.waitForSelector('#ppv', { state: 'hidden' });
+      await expect(app.locator('#toast')).toHaveText(await proto.locator('#toast').innerText());
+      await settle();
+      await same(`psm-item-saved-${width}`, await shot(proto, '#psm .mdl'), await shot(app, '#psm .mdl'));
+      await both((p) => p.click('#psClose'));
+      await app.waitForSelector('#psm', { state: 'hidden' });
+      await expect(app.locator('#toast')).toHaveText(await proto.locator('#toast').innerText());
+      await app.waitForTimeout(400);
+      await settle();
+      await same(`prices-after-${width}`, await shot(proto, '#vPrices'), await shot(app, '#vPrices'));
+
+      // History: the server's clock stamps the rebuild's rows, so show the same time before comparing
+      await both((p) => p.click('#pmHist'));
+      await app.waitForSelector('#phRows tr td.mu');
+      const times = await app.locator('#phRows tr td:first-child').allInnerTexts();
+      await proto.evaluate((t) => document.querySelectorAll('#phRows tr td:first-child').forEach((td, k) => { td.textContent = t[k] ?? td.textContent; }), times);
+      await settle();
+      await same(`phm-${width}`, await shot(proto, '#phm .mdl'), await shot(app, '#phm .mdl'));
+    });
   });
 }
