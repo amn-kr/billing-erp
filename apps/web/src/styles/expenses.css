@@ -1,0 +1,17 @@
+
+.exwrap{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px;align-items:start}
+#vExp .ptt2 td small{display:block}.expd{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.excat{padding:14px 16px}.excat h3{margin:0 0 2px;font-size:15px}.excat .mu{font-size:12px}
+.excl{display:flex;flex-direction:column;gap:2px;margin-top:10px}
+.excb{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;text-align:left;padding:8px 10px;border-radius:10px;border:1px solid transparent;background:none;color:inherit;font:inherit;cursor:pointer}
+.excb:hover{background:var(--bg2,rgba(0,0,0,.04))}.excb.on{background:color-mix(in srgb,var(--ac) 10%,transparent);border-color:color-mix(in srgb,var(--ac) 35%,transparent)}
+.excb span{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.excb b{font-size:13px;font-variant-numeric:tabular-nums}
+.excb i{grid-column:1/-1;height:5px;border-radius:3px;background:var(--bd,#e2e8f0);overflow:hidden;display:block}.excb i em{display:block;height:100%;background:var(--ac);border-radius:3px}
+.excb small{grid-column:1/-1;margin-top:-2px;font-size:11px;color:var(--t2)}
+.exsrc{font-size:10px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+.exlt{width:100%;border-collapse:collapse;margin-top:4px}.exlt th{font-size:11px;font-weight:600;color:var(--t2);text-align:left;padding:4px 6px;text-transform:uppercase;letter-spacing:.03em}
+.exlt th.n,.exlt td.n{text-align:right}.exlt td{padding:3px 4px}.exlt .fi{height:36px;margin:0}.exlt td.x{width:34px}
+.exadd{margin-top:6px}.extot{display:flex;flex-direction:column;align-items:flex-end;gap:2px;margin:10px 0 0;font-size:13px}.extot b{font-size:20px}
+.exacc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.xcrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--bd,#e2e8f0)}.xcrow:first-child{border-top:0}.xcrow .fi{flex:1;margin:0;height:36px}.xcrow small{min-width:110px;text-align:right}
+@media(max-width:1560px){.exwrap{grid-template-columns:1fr}.excat{order:-1;padding:12px 14px}.excl{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:2px 8px;max-height:150px;overflow:auto}.excb{padding:6px 8px}}

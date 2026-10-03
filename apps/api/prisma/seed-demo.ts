@@ -5,7 +5,8 @@
  *   DATABASE_URL=... pnpm --filter @billing/api db:seed
  *
  * Env: DEMO_EMAIL, DEMO_PASSWORD, SEED_TODAY (YYYY-MM-DD, for repeatable
- * screenshot tests), SEED_TRIAL_DAYS (default 7, as in the prototype).
+ * screenshot tests), SEED_TRIAL_DAYS (default 7, as in the prototype),
+ * SEED_BUSINESS_CODE (e.g. BE-1012, the code the prototype shows).
  */
 import 'reflect-metadata';
 import { hash } from '@node-rs/argon2';
@@ -37,6 +38,12 @@ async function main() {
     },
     { today: process.env.SEED_TODAY ?? todayIst(), trialDays: Number(process.env.SEED_TRIAL_DAYS ?? 7) },
   );
+  if (process.env.SEED_BUSINESS_CODE) {
+    await db.scoped({ businessId: b.id, userId: user.id, email: user.email }, (tx) =>
+      tx.business.update({ where: { id: b.id }, data: { code: process.env.SEED_BUSINESS_CODE } }),
+    );
+    b.code = process.env.SEED_BUSINESS_CODE;
+  }
   console.log(`Demo shop ${b.name} (${b.code}) — sign in as ${EMAIL}`);
   await db.$disconnect();
 }

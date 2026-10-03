@@ -10,7 +10,8 @@
     "test": "vitest run",
     "db:migrate": "node scripts/migrate.mjs",
     "db:seed": "node -r @swc-node/register prisma/seed-demo.ts",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "db:reset-test": "node scripts/reset-db.mjs"
   },
   "dependencies": {
     "@billing/shared": "workspace:*",
