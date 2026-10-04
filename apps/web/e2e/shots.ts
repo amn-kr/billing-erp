@@ -3,7 +3,7 @@ import { expect, type Page } from '@playwright/test';
 import { compare } from './compare';
 import { settle } from './setup';
 
-/** Both pages render on the same machine, so the target is an exact match. */
+/** Both pages render on the same machine, so the target is an exact match (apart from text-edge shading, see compare.ts). */
 export const MAX_RATIO = 0;
 
 /**

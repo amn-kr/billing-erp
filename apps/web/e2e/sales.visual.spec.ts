@@ -110,6 +110,7 @@ for (const width of WIDTHS) {
     });
 
     test('Invoice editor: new sale, a credit sale with items, discount & charges, payment', async ({ browser }) => {
+      test.setTimeout(150_000); // five side-by-side shots of a large screen
       const { proto, app } = await pages(browser, width, 'sales', '/sales', '#slRows tr[data-sno]');
       await proto.evaluate(() => (window as unknown as { openInvoice: () => void }).openInvoice());
       await app.click('#vSales .pthd .btn.p');
