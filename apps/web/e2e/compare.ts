@@ -21,11 +21,13 @@ export interface Diff {
  * only when each image's colour lies within the colour range of the 3×3 pixels around
  * the same spot in the other image: a letter edge shaded differently, or a line of text
  * that Chrome rounded to the pixel above or below (text at a half-pixel position).
- * A colour change on a flat area is still a difference. At most 0.2% of the area (about
- * a line or two of text) may be forgiven; above that every differing pixel counts, so a
- * moved block or screen fails. Sizes must always match exactly.
+ * A colour change on a flat area is still a difference. At most 0.5% of the area and
+ * never more than 1,500 pixels (a few short lines of text) may be forgiven; above that
+ * every differing pixel counts, so a moved block or screen fails. Sizes must always match exactly.
  */
-export const TEXT_EDGE_MAX = 0.002;
+export const TEXT_EDGE_MAX = 0.005;
+/** and never more than this many pixels, however large the picture */
+export const TEXT_EDGE_CAP = 1500;
 const SLACK = 8;
 function inRange(src: Uint8Array, other: Uint8Array, w: number, h: number, x: number, y: number): boolean {
   const i = (y * w + x) * 4;
@@ -77,7 +79,7 @@ export function compare(name: string, expected: Buffer, actual: Buffer): Diff {
       if (diff.data[i] === 255 && diff.data[i + 1] === 0 && diff.data[i + 2] === 0 && inRange(A.data, B.data, width, height, x, y) && inRange(B.data, A.data, width, height, x, y)) cand.push(y * width + x);
     }
     const ok = cand;
-    if (ok.length <= TEXT_EDGE_MAX * width * height) {
+    if (ok.length <= Math.min(TEXT_EDGE_MAX * width * height, TEXT_EDGE_CAP)) {
       textEdgePixels = ok.length;
       real = raw - ok.length;
       for (const p of ok) { diff.data[p * 4] = 0; diff.data[p * 4 + 1] = 140; diff.data[p * 4 + 2] = 255; } // forgiven: blue in the diff image
