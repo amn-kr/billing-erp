@@ -1,8 +1,8 @@
 /**
- * E2E only: a second shop whose books are the importer fixture
- * packages/importer/fixtures/fresh-shop.backup.json, so the rebuilt masters
- * screens can be compared with the prototype showing the same backup.
- * Sign in as ravi@gupta.example.com / demo-password-1.
+ * E2E only: shops whose books are importer fixtures, so the rebuilt screens can
+ * be compared with the prototype showing the same backup.
+ * - fresh-shop.backup.json (masters): ravi@gupta.example.com / demo-password-1
+ * - sales-shop.backup.json (sales documents): ravi.sales@gupta.example.com / demo-password-1
  */
 import 'reflect-metadata';
 import fs from 'node:fs';
@@ -12,19 +12,27 @@ import { AuditService } from '../src/common/audit.service';
 import { DbService } from '../src/common/db.service';
 import { BusinessesService } from '../src/modules/businesses/businesses.service';
 import { ImportsService } from '../src/modules/imports/imports.service';
+import { LedgerService } from '../src/common/ledger.service';
+import { NumberingService } from '../src/common/numbering.service';
 
-async function main() {
-  const db = new DbService();
-  const email = 'ravi@gupta.example.com';
+async function seed(db: DbService, email: string, fixture: string) {
   const user = await db.user.create({ data: { email, name: 'Ravi Gupta', passwordHash: await hash('demo-password-1', { memoryCost: 19456, timeCost: 2, parallelism: 1 }) } });
   const shop = await new BusinessesService(db, new AuditService()).create(
     { userId: user.id, email, ip: '' },
     { name: 'Gupta Electricals & Hardware', owner: 'Ravi Gupta', phone: '', addr: '', city: 'Lucknow', pin: '', state: '09', gstin: '09AAGFG2231M1ZQ', inv: '101' },
     { today: '2026-10-01', trialDays: 14 },
   );
-  const file = path.resolve(__dirname, '../../../packages/importer/fixtures/fresh-shop.backup.json');
-  const r = await new ImportsService(db, new AuditService()).run({ userId: user.id, email, businessId: shop.id, ip: '' }, { fileName: 'fresh-shop.backup.json', text: fs.readFileSync(file, 'utf8') });
+  const file = path.resolve(__dirname, '../../../packages/importer/fixtures', fixture);
+  const imports = new ImportsService(db, new AuditService(), new LedgerService(), new NumberingService());
+  return imports.run({ userId: user.id, email, businessId: shop.id, ip: '' }, { fileName: fixture, text: fs.readFileSync(file, 'utf8') });
+}
+
+async function main() {
+  const db = new DbService();
+  const r = await seed(db, 'ravi@gupta.example.com', 'fresh-shop.backup.json');
   console.log(`E2E masters shop ready: ${r.counts.parties} parties, ${r.counts.items} items`);
+  const s = await seed(db, 'ravi.sales@gupta.example.com', 'sales-shop.backup.json');
+  console.log(`E2E sales shop ready: ${s.counts.invoices} invoices, ${s.counts.receipts} payments`);
   await db.$disconnect();
 }
 main().catch((e) => {

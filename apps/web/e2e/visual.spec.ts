@@ -5,6 +5,7 @@
  */
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { compare } from './compare';
+import { shot } from './shots';
 import { APP, PROTOTYPE_LOGIN, WIDTHS, newPage, prototypeFresh, signIn } from './setup';
 
 /** Allowed share of differing pixels. Both pages render on the same machine, so the target is an exact match. */
@@ -22,7 +23,6 @@ async function same(name: string, a: Buffer, b: Buffer) {
   expect.soft(d.ratio, `${name}: ${d.diffPixels} pixels differ (see test-results/visual/${name}-diff.png)`).toBeLessThanOrEqual(MAX_RATIO);
 }
 
-const shot = (p: Page, sel: string) => p.locator(sel).screenshot({ animations: 'disabled', caret: 'hide' });
 
 for (const width of WIDTHS) {
   test.describe(`${width}px`, () => {

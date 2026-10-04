@@ -11,7 +11,47 @@ const common = createRequire(import.meta.url)('../../../tools/design-baseline/co
   newPage: (b: Browser, w: number) => Promise<Page>;
 };
 
-export const { WIDTHS, newPage } = common;
+export const { WIDTHS } = common;
+
+/* ---------- waiting for a page to be still before a screenshot ---------- */
+const pending = new WeakMap<Page, number>();
+/** Counts the page's open requests to the API (the rebuild's screens load data in several requests). */
+function trackApi(page: Page) {
+  pending.set(page, 0);
+  const isApi = (u: string) => u.includes('/api/');
+  page.on('request', (r) => { if (isApi(r.url())) pending.set(page, (pending.get(page) ?? 0) + 1); });
+  const done = (r: { url(): string }) => { if (isApi(r.url())) pending.set(page, Math.max(0, (pending.get(page) ?? 1) - 1)); };
+  page.on('requestfinished', done);
+  page.on('requestfailed', done);
+}
+
+/** A page from the shared screenshot settings (frozen clock, local fonts), with its API requests counted. */
+export async function newPage(browser: Browser, width: number): Promise<Page> {
+  const page = await common.newPage(browser, width);
+  trackApi(page);
+  return page;
+}
+
+/**
+ * Wait until the page is still: no API request open for a quiet spell (a screen
+ * often asks for more data once the first answer arrives), every font loaded,
+ * and two frames painted. Fixed waits were not enough on a busy CI machine.
+ */
+export async function settle(page: Page, quietMs = 300, maxMs = 15_000): Promise<void> {
+  const start = Date.now();
+  let quietSince = (pending.get(page) ?? 0) === 0 ? Date.now() : 0;
+  while (Date.now() - start < maxMs) {
+    if ((pending.get(page) ?? 0) === 0) {
+      quietSince ||= Date.now();
+      if (Date.now() - quietSince >= quietMs) break;
+    } else quietSince = 0;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  });
+}
 const ROOT = path.resolve(HERE, '../../..');
 export const PROTOTYPE = 'file://' + path.join(ROOT, 'reference/design/app.html');
 export const PROTOTYPE_LOGIN = 'file://' + path.join(ROOT, 'reference/firebase-site/public/index.html');
@@ -66,6 +106,8 @@ export async function signIn(page: Page): Promise<void> {
 }
 
 export const RAVI = { email: 'ravi@gupta.example.com', password: 'demo-password-1' };
+/** The shop holding packages/importer/fixtures/sales-shop.backup.json (sales documents). */
+export const SALES = { email: 'ravi.sales@gupta.example.com', password: 'demo-password-1' };
 
 /** The prototype showing one of the importer fixtures (restored like "Restore books"). */
 export async function prototypeWithBackup(page: Page, fixture = 'fresh-shop'): Promise<void> {
