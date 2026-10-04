@@ -3,6 +3,7 @@
  * be compared with the prototype showing the same backup.
  * - fresh-shop.backup.json (masters): ravi@gupta.example.com / demo-password-1
  * - sales-shop.backup.json (sales documents): ravi.sales@gupta.example.com / demo-password-1
+ * - purchase-shop.backup.json (sales and purchases): ravi.purchases@gupta.example.com / demo-password-1
  */
 import 'reflect-metadata';
 import fs from 'node:fs';
@@ -33,6 +34,8 @@ async function main() {
   console.log(`E2E masters shop ready: ${r.counts.parties} parties, ${r.counts.items} items`);
   const s = await seed(db, 'ravi.sales@gupta.example.com', 'sales-shop.backup.json');
   console.log(`E2E sales shop ready: ${s.counts.invoices} invoices, ${s.counts.receipts} payments`);
+  const pu = await seed(db, 'ravi.purchases@gupta.example.com', 'purchase-shop.backup.json');
+  console.log(`E2E purchase shop ready: ${pu.counts.purchaseBills} bills, ${pu.counts.paymentsMade} payments made`);
   await db.$disconnect();
 }
 main().catch((e) => {

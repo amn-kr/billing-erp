@@ -164,6 +164,40 @@ async function salesShop(page: Page) {
   await sale(page, { quote: true, party: 'Mehta Electricals', lines: [['MCB 32A double pole', 4], ['Copper wire 1.5 sq mm (90 m)', 1]] });
 }
 
+interface PurSpec { kind: 'bill' | 'po' | 'dn'; party: string; date: string; due?: string; exp?: string; ref?: string; lines: [item: string, qty: number, rate: number, disc?: number][]; pays?: [mode: string, amt: number, ref?: string][]; against?: string; reason?: string; fromPo?: string; chTr?: number }
+async function purchase(page: Page, s: PurSpec) {
+  await later(page);
+  await ev(page, `(() => {
+    const s = ${JSON.stringify(s)};
+    const party = allParties().find((p) => p.name === s.party);
+    openPDoc(s.kind, { party: party.id, ...(s.fromPo ? { fromPo: s.fromPo, notes: 'Against order ' + s.fromPo + '.' } : {}) });
+    PE.date = s.date; if (s.due) PE.due = s.due; if (s.exp) PE.exp = s.exp; if (s.ref) PE.ref = s.ref;
+    if (s.against) PE.against = s.against; if (s.reason) PE.reason = s.reason; if (s.chTr) PE.chTr = String(s.chTr);
+    PE.lines = s.lines.map(([n, q, r, d]) => { const it = IT.find((i) => i.name === n); return { id: it.id, name: it.name, hsn: it.hsn || '', qty: q, unit: it.unit, rate: r, disc: d || 0, gst: it.gst || 0 }; });
+    if (s.pays) PE.pays = s.pays.map(([mode, amt, ref]) => ({ mode, amt, ref: ref || '' }));
+    renderPE();
+    savePE();
+    if (PE && PE.err && document.getElementById('vPEd') && !document.getElementById('vPEd').hidden) throw new Error('purchase not saved: ' + PE.err);
+  })()`);
+}
+
+async function purchaseShop(page: Page) {
+  await purchase(page, { kind: 'bill', party: 'Kanpur Cables Pvt Ltd', date: '2026-09-20', due: '2026-10-20', ref: 'KC/2209', lines: [['Copper wire 1.5 sq mm (90 m)', 10, 1500], ['LED bulb 9W', 100, 58]], pays: [['Bank transfer', 5000, 'NEFT 4471']] });
+  await purchase(page, { kind: 'po', party: 'Kanpur Cables Pvt Ltd', date: '2026-09-25', exp: '2026-09-30', lines: [['LED bulb 9W', 50, 58]] });
+  await purchase(page, { kind: 'po', party: 'Kanpur Cables Pvt Ltd', date: '2026-09-29', exp: '2026-10-05', lines: [['MCB 32A double pole', 20, 300]] });
+  await purchase(page, { kind: 'bill', party: 'Kanpur Cables Pvt Ltd', date: '2026-09-30', due: '2026-10-30', ref: 'KC/2240', fromPo: 'ORD-0001', lines: [['LED bulb 9W', 50, 58]] });
+  await purchase(page, { kind: 'dn', party: 'Kanpur Cables Pvt Ltd', date: '2026-10-01', against: 'PB-0001', reason: 'Damaged goods', lines: [['LED bulb 9W', 5, 58]] });
+  // a cheque payment, settled oldest bill first
+  await later(page);
+  await ev(page, `(() => { const p = allParties().find((x) => x.name === 'Kanpur Cables Pvt Ltd'); openPayModal(p.id); })()`);
+  await page.fill('#pyAmt', '10000');
+  await page.dispatchEvent('#pyAmt', 'input');
+  await page.selectOption('#pyMode', 'Cheque');
+  await page.fill('#pyRef', '004890');
+  await page.dispatchEvent('#pyRef', 'input');
+  await page.click('#pySave');
+}
+
 // 1. the sample shop, untouched
 {
   const { page, close } = await open();
@@ -189,6 +223,8 @@ async function salesShop(page: Page) {
   await save(page, 'fresh-shop.backup.json');
   await salesShop(page);
   await save(page, 'sales-shop.backup.json');
+  await purchaseShop(page);
+  await save(page, 'purchase-shop.backup.json');
   await close();
 }
 

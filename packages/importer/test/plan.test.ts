@@ -11,7 +11,7 @@ let browser: Browser;
 const snaps: Record<string, Snapshot> = {};
 beforeAll(async () => {
   browser = await chromium.launch();
-  for (const n of ['fresh-shop', 'fresh-kept-items', 'sample-shop', 'sales-shop']) snaps[n] = await extractSnapshot(parseBackup(fx(`${n}.backup.json`)), { browser });
+  for (const n of ['fresh-shop', 'fresh-kept-items', 'sample-shop', 'sales-shop', 'purchase-shop']) snaps[n] = await extractSnapshot(parseBackup(fx(`${n}.backup.json`)), { browser });
 });
 afterAll(async () => { await browser.close(); });
 
@@ -160,5 +160,33 @@ describe('sales documents (made through the prototype’s editor and dialogs)', 
     expect([p.sales.quoteGrid!.rows.length, p.sales.quoteGrid!.ser.length]).toEqual([22, 6]);
     expect(p.warnings.join(' ')).not.toMatch(/brand-wise/);
     expect(p.warnings.some((w) => /stock changes/.test(w))).toBe(false);
+  });
+});
+
+describe('purchases (made through the prototype’s purchase screens)', () => {
+  it('maps bills, orders, a debit note and payments made, in the order they happened', () => {
+    const p = planImport(snaps['purchase-shop']!);
+    expect(p.counts).toMatchObject({ purchaseBills: 2, purchaseOrders: 2, debitNotes: 1, paymentsMade: 2 });
+    expect(p.purchases.docs.map((d) => [d.kind, d.number, d.date, d.total, d.status])).toEqual([
+      ['bill', 'PB-0001', '2026-09-20', '24196.00', 'open'], ['order', 'ORD-0001', '2026-09-25', '3248.00', 'received'], ['order', 'ORD-0002', '2026-09-29', '7080.00', 'open'],
+      ['bill', 'PB-0002', '2026-09-30', '3248.00', 'open'], ['debit_note', 'DN-0001', '2026-10-01', '325.00', 'open'],
+    ]);
+    expect(p.purchases.docs[0]).toMatchObject({ supplierRef: 'KC/2209', dueDate: '2026-10-20', lines: [{ qty: '10.000', rate: '1500.00', gstRate: '18.00' }, { qty: '100.000', rate: '58.00', gstRate: '12.00' }] });
+    expect(p.purchases.docs[3]).toMatchObject({ fromOrderNo: 'ORD-0001' });
+    expect(p.purchases.docs[4]).toMatchObject({ againstNo: 'PB-0001', reason: 'Damaged goods' });
+    expect(p.purchases.payments).toEqual([
+      { number: 'PO-0001', date: '2026-09-20', partyLegacyId: expect.any(String), amount: '5000.00', mode: 'Bank transfer', ref: 'NEFT 4471', alloc: [{ billNo: 'PB-0001', amount: '5000.00' }] },
+      { number: 'PO-0002', date: '2026-10-01', partyLegacyId: expect.any(String), amount: '10000.00', mode: 'Cheque', ref: '004890', alloc: [{ billNo: 'PB-0001', amount: '10000.00' }] },
+    ]);
+  });
+
+  it('the old app’s demo purchase orders stay out unless the demo data is asked for', () => {
+    const s = snaps['sample-shop']!;
+    const demo = { kind: 'po', no: 'ORD-0105', date: '29/09/2026', party: s.parties.find((x) => x.sample)!.id, status: 'open', lines: [{ id: s.items.find((i) => i.sample)!.id, name: 'x', qty: 1, rate: 10, gst: 18 }] };
+    const withDemo = { ...s, documents: { ...s.documents, 'erp-pdocs': [demo] } };
+    const p = planImport(withDemo);
+    expect(p.purchases.docs).toHaveLength(0);
+    expect(p.warnings.some((w) => /demo purchase order/.test(w))).toBe(true);
+    expect(planImport(withDemo, { includeSample: true }).purchases.docs).toHaveLength(1);
   });
 });

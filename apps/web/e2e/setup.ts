@@ -108,6 +108,7 @@ export async function signIn(page: Page): Promise<void> {
 export const RAVI = { email: 'ravi@gupta.example.com', password: 'demo-password-1' };
 /** The shop holding packages/importer/fixtures/sales-shop.backup.json (sales documents). */
 export const SALES = { email: 'ravi.sales@gupta.example.com', password: 'demo-password-1' };
+export const PURCHASES = { email: 'ravi.purchases@gupta.example.com', password: 'demo-password-1' };
 
 /** The prototype showing one of the importer fixtures (restored like "Restore books"). */
 export async function prototypeWithBackup(page: Page, fixture = 'fresh-shop'): Promise<void> {

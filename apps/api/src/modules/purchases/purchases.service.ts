@@ -52,7 +52,16 @@ export class PurchasesService {
   /* ───────── bills, orders, debit notes ───────── */
 
   save(ctx: RequestContext, input: PurchaseInput) {
-    return this.db.scoped(this.scope(ctx), async (tx) => {
+    return this.db.scoped(this.scope(ctx), (tx) => this.saveIn(tx, ctx, input));
+  }
+
+  /**
+   * Save inside a transaction. `legacy` is for documents brought from the old app's backup: the
+   * number is kept as its old id, an order keeps its status, and a return is not refused for stock
+   * (the old app already allowed it).
+   */
+  async saveIn(tx: Tx, ctx: RequestContext, input: PurchaseInput, legacy?: { status?: 'open' | 'received' | 'cancelled' }) {
+    {
       const businessId = ctx.businessId!;
       const k = input.kind;
       const party = await tx.party.findFirst({ where: { id: input.partyId, archivedAt: null }, include: { addresses: { where: { kind: 'billing' } } } });
@@ -68,7 +77,7 @@ export class PurchasesService {
       let number = input.number.trim();
       if (number && (await tx.purchaseDocument.findFirst({ where: { kind: k, number } }))) throw new BadRequestException({ message: `Number ${number} is already used.`, field: 'number' });
       // returning goods: no more than is in stock (prototype)
-      if (k === 'debit_note') {
+      if (k === 'debit_note' && !legacy) {
         const st = new Map((await tx.stockMovement.groupBy({ by: ['itemId'], where: { itemId: { in: input.lines.map((l) => l.itemId) } }, _sum: { qty: true } })).map((r) => [r.itemId, money(r._sum.qty?.toString() ?? 0)]));
         for (const l of input.lines) {
           const it = items.get(l.itemId)!;
@@ -94,8 +103,8 @@ export class PurchasesService {
           dueDate: k === 'debit_note' ? null : day(input.dueDate ?? input.date), partyId: party.id, taxMode: books.mode, pricesInclTax: input.pricesInclTax, interState: inter, roundOff: input.roundOff,
           billDiscPct: d2(input.billDiscPct), billDiscAmt: input.billDiscPct ? null : d2(input.billDiscAmt), transport: toDb(input.transport), labour: toDb(input.labour),
           itemsTotal: t.items.toFixed(2), billDiscount: t.bdisc.toFixed(2), taxable: t.taxable.toFixed(2), tax: t.tax.toFixed(2), cgst: t.cgst.toFixed(2), sgst: t.sgst.toFixed(2), igst: t.igst.toFixed(2),
-          roundAmount: t.round.toFixed(2), total: t.total.toFixed(2), status: k === 'order' ? 'open' : k === 'bill' ? 'open' : 'open', notes: input.notes,
-          reason: k === 'debit_note' ? input.reason : '', sourceId: k === 'bill' ? input.fromOrderId ?? null : k === 'debit_note' ? against?.id ?? null : null,
+          roundAmount: t.round.toFixed(2), total: t.total.toFixed(2), status: 'open', notes: input.notes,
+          reason: k === 'debit_note' ? input.reason : '', ...(legacy && { legacyId: number, ...(k === 'order' && legacy.status && { status: legacy.status, ...(legacy.status === 'cancelled' && { cancelledAt: new Date(), cancelledBy: ctx.userId, cancelReason: 'Cancelled in the old app' }) }) }), sourceId: k === 'bill' ? input.fromOrderId ?? null : k === 'debit_note' ? against?.id ?? null : null,
         },
       });
       await tx.purchaseDocumentLine.createMany({
@@ -164,7 +173,7 @@ export class PurchasesService {
       }
       await this.audit.log(tx, { businessId, userId: ctx.userId, action: 'create', entity: 'purchase_document', entityId: doc.id, after: { ...doc, lines: input.lines }, ip: ctx.ip });
       return { id: doc.id, number, kind: k, total: t.total.toFixed(2), priceChanges };
-    });
+    }
   }
 
   /** Cancel a bill, order or debit note: the record stays; stock and the books are put back. */
@@ -211,13 +220,15 @@ export class PurchasesService {
     });
   }
 
-  private async payOutIn(tx: Tx, ctx: RequestContext, o: { partyId: string; partyName: string; date: string; amount: Money; mode: string; ref: string; notes: string; alloc: { billId: string; amount: Money }[]; atBill: string | null }) {
+  /** Record a payment made inside a transaction; `legacyNo` keeps the old app's number (import). */
+  async payOutIn(tx: Tx, ctx: RequestContext, o: { partyId: string; partyName: string; date: string; amount: Money; mode: string; ref: string; notes: string; alloc: { billId: string; amount: Money }[]; atBill: string | null; legacyNo?: string }) {
     const businessId = ctx.businessId!;
-    const number = await this.numbers.next(tx, businessId, ctx.userId, 'payment', o.date);
+    const number = o.legacyNo ?? (await this.numbers.next(tx, businessId, ctx.userId, 'payment', o.date));
+    if (o.legacyNo) await this.numbers.claim(tx, businessId, ctx.userId, 'payment', o.date, o.legacyNo);
     const p = await tx.payment.create({
       data: {
         businessId, createdBy: ctx.userId, direction: 'out', number, date: day(o.date), partyId: o.partyId, amount: o.amount.toFixed(2), mode: o.mode, reference: o.ref, notes: o.notes,
-        atSale: !!o.atBill, sourceId: o.atBill, splits: [{ mode: o.mode, amount: o.amount.toFixed(2), ref: o.ref }] as Prisma.InputJsonValue,
+        atSale: !!o.atBill, sourceId: o.atBill, ...(o.legacyNo && { legacyId: o.legacyNo }), splits: [{ mode: o.mode, amount: o.amount.toFixed(2), ref: o.ref }] as Prisma.InputJsonValue,
       },
     });
     if (o.alloc.length) await tx.paymentAllocation.createMany({ data: o.alloc.map((a) => ({ businessId, kind: 'document', partyId: o.partyId, paymentId: p.id, purchaseDocumentId: a.billId, amount: a.amount.toFixed(2) })) });

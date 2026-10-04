@@ -7,6 +7,9 @@ import { AuditService } from '../../common/audit.service';
 import { LedgerService } from '../../common/ledger.service';
 import { NumberingService } from '../../common/numbering.service';
 import { writeSales } from './sales-import';
+import { writePurchases } from './purchase-import';
+import { PurchasesService } from '../purchases/purchases.service';
+import type { RequestContext } from '../../common/context';
 import { setCashOpening, shortName } from '../businesses/businesses.service';
 
 export interface ImportRequest extends PlanOptions {
@@ -228,6 +231,10 @@ export class ImportsService {
     /* sales documents (invoices, payments, credit notes, challans, quotations) */
     const referrerId = new Map((await tx.referrer.findMany({ where: { legacyId: { not: null } } })).map((r) => [r.legacyId!, r.id]));
     await writeSales(tx, { businessId, userId: actor.userId, partyId, itemId, referrerId, ledger: this.ledger, numbers: this.numbers, warnings: plan.warnings }, plan.sales);
+
+    /* purchases (bills, orders, debit notes, payments made), through the same rules as new ones */
+    const pctx = { businessId, userId: actor.userId, email: '', ip: actor.ip } as RequestContext;
+    await writePurchases(tx, pctx, new PurchasesService(this.db, this.audit, this.numbers, this.ledger), { partyId, itemId, warnings: plan.warnings }, plan.purchases);
 
     const run = await tx.importRun.create({
       data: { ...base, fileName: fileName.slice(0, 200), backupAt, status: 'done', counts: plan.counts, warnings: plan.warnings },

@@ -65,7 +65,7 @@ export interface SalesContext {
 }
 
 /** Party and item ids that the old app's documents use (so demo entries a shop really used are kept). */
-export function usedByDocuments(docs: Record<string, unknown>): { parties: Set<string>; items: Set<string> } {
+export function usedByDocuments(docs: Record<string, unknown>, demoPurchase: (d: Record<string, unknown>) => boolean = () => false): { parties: Set<string>; items: Set<string> } {
   const parties = new Set<string>();
   const items = new Set<string>();
   const lines = (d: Record<string, unknown>) => arr(d.lines).forEach((l) => l.id && items.add(str(l.id)));
@@ -74,6 +74,8 @@ export function usedByDocuments(docs: Record<string, unknown>): { parties: Set<s
   for (const c of arr(docs['erp-cnotes'])) { if (c.party) parties.add(str(c.party)); lines(c); }
   for (const d of arr(docs['erp-dchal'])) { if (d.party) parties.add(str(d.party)); lines(d); }
   for (const q of arr(docs['erp-quotes'])) if (q.type === 'items') { if (q.party) parties.add(str(q.party)); lines(q); }
+  for (const d of arr(docs['erp-pdocs'])) if (!demoPurchase(d)) { if (d.party) parties.add(str(d.party)); lines(d); }
+  for (const p of arr(docs['erp-ppays'])) if (p.party) parties.add(str(p.party));
   return { parties, items };
 }
 

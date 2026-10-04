@@ -9,6 +9,7 @@
 import { GSTIN_RE, money, MONEY_MAX, STATE_CODES, toDb } from '@billing/shared';
 import type { Snapshot, SnapshotItem, SnapshotParty } from './snapshot.ts';
 import { planSales, usedByDocuments, type PlanSales } from './sales.ts';
+import { isDemoPurchase, planPurchases, type PlanPurchases } from './purchases.ts';
 
 const qty = (v: number) => money(v).toDecimalPlaces(3).toFixed(3);
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -78,6 +79,8 @@ export interface ImportPlan {
   priceRules: Record<string, unknown>;
   /** invoices, payments received, credit notes, challans, quotations (Phase 3) */
   sales: PlanSales;
+  /** bills, orders, debit notes, payments made (Phase 3) */
+  purchases: PlanPurchases;
   counts: Record<string, number>;
   /** Plain-language notes for the person importing, e.g. renamed duplicates. */
   warnings: string[];
@@ -126,7 +129,8 @@ export function planImport(snap: Snapshot, opts: PlanOptions = {}): ImportPlan {
   const warnings: string[] = [];
   const keepSample = !!opts.includeSample;
   // demo entries the shop's own documents use were used for real: keep them
-  const used = usedByDocuments(snap.documents);
+  const demoParty = (id: string) => snap.parties.some((p) => p.id === id && p.sample);
+  const used = usedByDocuments(snap.documents, (d) => !keepSample && isDemoPurchase(d, demoParty));
   const keepItem = (i: SnapshotItem) => !i.sample || keepSample || snap.backup.keptSampleItems || used.items.has(i.id);
   const keepParty = (p: SnapshotParty) => !p.sample || keepSample || used.parties.has(p.id);
   {
@@ -325,6 +329,11 @@ export function planImport(snap: Snapshot, opts: PlanOptions = {}): ImportPlan {
     referrerIds: new Set(referrers.map((r) => r.legacyId)),
     warnings,
   }, snap.backup.at.slice(0, 10));
+  const purchases = planPurchases(snap.documents, {
+    partyId: (id) => { const k = merged.get(id) ?? id; return planPartyIds.has(k) ? k : null; },
+    itemId: (id) => (planItemIds.has(id) ? id : null),
+    referrerIds: new Set(), warnings, demoParty, keepDemo: keepSample,
+  }, snap.backup.at.slice(0, 10));
 
   const plan: ImportPlan = {
     business: snap.business,
@@ -335,7 +344,7 @@ export function planImport(snap: Snapshot, opts: PlanOptions = {}): ImportPlan {
     categories: [...categories].filter(Boolean),
     brands: [...brands].filter(Boolean),
     itemGroups: [...itemGroups].filter(Boolean),
-    parties, items, priceLists, godowns, referrers, commission, priceHistory, priceRules: snap.priceRules, sales,
+    parties, items, priceLists, godowns, referrers, commission, priceHistory, priceRules: snap.priceRules, sales, purchases,
     counts: {},
     warnings,
   };
@@ -346,6 +355,7 @@ export function planImport(snap: Snapshot, opts: PlanOptions = {}): ImportPlan {
     fixedPrices: priceLists.reduce((a, p) => a + p.overrides.length, 0), godowns: godowns.length, referrers: referrers.length, priceHistory: priceHistory.length,
     brands: plan.brands.length, categories: plan.categories.length, units: plan.units.length, partyGroups: plan.partyGroups.length,
     invoices: sales.invoices.length, receipts: sales.receipts.length, creditNotes: sales.creditNotes.length, challans: sales.challans.length, quotations: sales.quotations.length,
+    purchaseBills: purchases.docs.filter((d) => d.kind === 'bill').length, purchaseOrders: purchases.docs.filter((d) => d.kind === 'order').length, debitNotes: purchases.docs.filter((d) => d.kind === 'debit_note').length, paymentsMade: purchases.payments.length,
   };
   return plan;
 }
