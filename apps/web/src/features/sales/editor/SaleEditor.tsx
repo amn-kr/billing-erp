@@ -25,6 +25,8 @@ import { ComboList, Grid, comboKey, focusRow, partyOpts, useCombo } from './Grid
 import { useEditorLayout } from './layout';
 import { DGACC, DGIMG, ToolBody, type ToolKey } from './ToolsPop';
 import { cmBillModal, useElecModal } from './Referral';
+import { ImportQuote, QuoteRefs, qrefRemoveModal } from './ImportQuote';
+import type { SlModalProps } from '../SlModal';
 import { SlModal } from '../SlModal';
 import {
   DG_TERMS, SI_MODES, SI_TT, addDaysIso, blankLine, calc, cmApply, daysDiff, hasContent, lineComm, lineFor, newSI, partyState, paySum, priceListFor, r2, unitPrice, useSI, useTab, TabCtx, isDirty,
@@ -211,6 +213,8 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
   const [busy, setBusy] = useState(false);
   // referral windows: commission on this bill, add electrician
   const [cmView, setCmView] = useState(false);
+  const [iq, setIq] = useState(false);
+  const [slm, setSlm] = useState<SlModalProps | null>(null);
   const setRef = (id: string) => { up2((x) => { x.ref = id; x.lines.forEach((l) => cmApply(ctx, x, l)); }); full(); };
   const elec = useElecModal({ onSaved: (id) => { void qc.invalidateQueries({ queryKey: ['referrers'] }); void qc.invalidateQueries({ queryKey: ['parties'] }); setRef(id); toast('Referral set · rates updated'); } });
   useEditorLayout(ref);
@@ -364,7 +368,7 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
 
   return (
     <>
-    <section id="vNewInv" ref={ref}>
+    <section id="vNewInv" ref={ref} onClick={(e) => { if (!quote && (e.target as HTMLElement).closest('#siImpQ')) setIq(true); }}>
       <div className="sitop"><Tabs ops={ops} /><button className="ib" type="button" id="siCancel" aria-label="Back to sales" title="Back to sales" onClick={back}><RawIcon d={BACK} /></button><h1 id="siTitle">{title}</h1><span className="dgtag" id="siKind">{kind}</span>
         <div className="dgsw" id="siMode" role="group" aria-label="Sale type"><span className={cash ? '' : 'on'}>{quote ? 'Party' : 'Credit'}</span><button type="button" className={`dgtg ${cash ? 'on' : ''}`} role="switch" aria-checked={cash} aria-label="Cash sale" data-simode={cash ? 'credit' : 'cash'}
           onClick={() => { up2((x) => { x.mode = cash ? 'credit' : 'cash'; x.recvTouched = quote; if (x.mode === 'cash') { x.party = null; x.pos = ctx.state; } x.pays = []; }); full(); }}><i></i></button><span className={cash ? 'on' : ''}>{quote ? 'Walk-in' : 'Cash'}</span></div>
@@ -389,7 +393,7 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
                 <div><span>Balance: <b className={p.balance > 0 ? 'pos' : p.balance < 0 ? 'neg' : ''}>{inr(Math.abs(p.balance))} {p.balance > 0 ? 'to receive' : p.balance < 0 ? 'to pay' : ''}</b></span>{p.limit ? <span>Credit limit {inr(p.limit)}</span> : null}{plist && plist !== ctx.defaultList ? <span className="st b">{ctx.listName[plist]} prices</span> : null}</div></div> : null}</>
           )}
         </div>
-        <div className="dgc" id="siMid">{quote ? <div className="dg2"><label className="ff"><input className="fi" id="siPo" defaultValue={s.poNo} placeholder=" " autoComplete="off" onInput={(e) => up((x) => { x.poNo = (e.target as HTMLInputElement).value; })} /><span>Enquiry / reference no.</span></label><span></span></div> : null}</div>
+        <div className="dgc" id="siMid"><QuoteRefs s={s} onRemove={(no) => setSlm(qrefRemoveModal(s, no, { up: up2, close: () => setSlm(null), toast, full }))} />{quote ? <div className="dg2"><label className="ff"><input className="fi" id="siPo" defaultValue={s.poNo} placeholder=" " autoComplete="off" onInput={(e) => up((x) => { x.poNo = (e.target as HTMLInputElement).value; })} /><span>Enquiry / reference no.</span></label><span></span></div> : null}</div>
         <div className="dgc dgr" id="siMeta" key={`mt${rk}`}>
           {quote ? <div className="dg2"><label className="ff on"><input className="fi" id="siValid" defaultValue={s.valid} placeholder=" " autoComplete="off" type="date" onChange={(e) => up((x) => { x.valid = e.target.value; })} /><span>Valid till</span></label><span></span></div>
             : cash ? null : <div className="dg2"><label className="ff on"><select className="fi" id="siTerms" defaultValue={hit ? String(hit[0]) : 'c'} onChange={(e) => { if (e.target.value === 'c') return; up2((x) => { x.due = addDaysIso(x.date, Number(e.target.value)); x.dueTouched = true; }); full(); }}>{DG_TERMS.map(([n, l]) => <option value={n} key={n}>{l}</option>)}<option value="c">Custom{hit || isNaN(termsD) ? '' : ` (${termsD} days)`}</option></select><span>Payment terms</span></label>
@@ -488,7 +492,8 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
       <SnapshotKeeper d={d} prefill={addParty ?? addItem?.q ?? null} kind={addParty !== null ? 'party' : addItem ? 'item' : null} />
     </section>
       {/* outside the editor, like the prototype's #slm (the editor turns off sticky table headings) */}
-      <SlModal m={elec.modal ?? (cmView ? cmBillModal({ ctx, name: d.refs.find((r) => r.id === s.ref)?.name ?? '', up: up2, close: () => setCmView(false) }) : null)} onClose={() => { elec.close(); setCmView(false); }} />
+      <SlModal m={elec.modal ?? slm ?? (cmView ? cmBillModal({ ctx, name: d.refs.find((r) => r.id === s.ref)?.name ?? '', up: up2, close: () => setCmView(false) }) : null)} onClose={() => { elec.close(); setCmView(false); setSlm(null); }} />
+      <ImportQuote open={iq} onClose={() => setIq(false)} d={d} s={s} up={(fn) => { up2(fn); full(); }} toast={toast} />
     </>
   );
 }

@@ -103,6 +103,8 @@
 - **Invoices are never deleted.** "Delete" in the invoice menu is greyed out ("cancel instead"); cancelling keeps the record, returns stock and turns money received into an advance.
 - Brand-wise quotations in old backups come across with the Quotation page (the import report says so).
 - Escape closes the invoice preview and the small confirmation window, as in the prototype (the rebuild had missed this).
+- **Import from quotation keeps the quoted rates.** When the quotation's customer is filled in for you, the prototype re-prices every line from the price list, losing the rates its own message promises; the rebuild applies the price list only to lines that were already on the invoice. Brand-wise quotations are offered once the Quotation page is built.
+- Adding an electrician links them to the customer with the same mobile or name, or adds them as a party in "Electricians" (15 days' credit), as the prototype does; party names stay unique.
 
 ### Owner decisions (Phase 3)
 - **Screenshot comparison allows tiny text-edge differences.** Chrome sometimes shades the edges of the same letters differently between runs, or rounds a line of text that sits on a half pixel to the pixel above or below. A differing pixel is forgiven only when its colour is one already present right next to that spot in the other picture (a letter edge), and at most 0.5% of the picture, never more than 1,500 pixels (a few short lines of text), may be forgiven. Sizes must match exactly; any colour change on a flat area, and anything bigger, still fails. Forgiven pixels show in blue in the diff pictures (real differences in red). Rule and checks: `apps/web/e2e/compare.ts`.
