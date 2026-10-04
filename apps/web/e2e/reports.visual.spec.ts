@@ -84,5 +84,20 @@ for (const width of WIDTHS) {
       await open(proto, app, 'spg', '#rpMain .rpt tbody tr[data-rpk]');
       await sameShot(`rep-spg-${width}`, proto, app, '#rpMain');
     });
+
+    test('Expense reports: list, filtered by category, by category, by item', async ({ browser }) => {
+      test.setTimeout(150_000);
+      const { proto, app } = await pages(browser, width);
+      await open(proto, app, 'expl', '#rpMain .rpt tbody tr[data-rpk]');
+      await sameShot(`rep-expl-${width}`, proto, app, '#rpMain');
+      await open(proto, app, 'expc', '#rpMain .rpt tbody tr[data-rpk]');
+      await sameShot(`rep-expc-${width}`, proto, app, '#rpMain');
+      // a category opens its entries in the Expense report
+      await both(proto, app, (p) => p.click('#rpMain .rpt tbody tr[data-rpk]'));
+      await app.waitForSelector('#rpMain #rpXc');
+      await sameShot(`rep-expl-cat-${width}`, proto, app, '#rpMain');
+      await open(proto, app, 'expi', '#rpMain .rpt tbody tr');
+      await sameShot(`rep-expi-${width}`, proto, app, '#rpMain');
+    });
   });
 }

@@ -5,7 +5,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { BOOK_EXPENSE_CATEGORY, XP_GST, XP_MODES, expenseTotals } from '@billing/shared';
 import { api, ApiError } from '../../lib/api';
 import { dmy, inr, inr2f } from '../../lib/format';
@@ -55,6 +55,9 @@ export function ExpensesPage() {
   const [xc, setXc] = useState<{ back: boolean } | null>(null);
   const [modal, setModal] = useState<SlModalProps | null>(null);
   const ev = useEntryView(accts.data ?? []);
+  const loc = useLocation(), nav = useNavigate();
+  const [want, setWant] = useState<string | null>((loc.state as { open?: string } | null)?.open ?? null);
+  useEffect(() => { if ((loc.state as { open?: string } | null)?.open) nav('.', { replace: true, state: null }); }, [loc.state, nav]);
   const qc = useQueryClient();
   const [params, setParams] = useSearchParams();
   // "New expense" from the + menu, the sidebar or Alt+E
@@ -78,6 +81,8 @@ export function ExpensesPage() {
     const a = accts.data.find((y) => y.id === x.accountId);
     if (a) void ev.open({ key: x.key, date: x.date, amt: '-' + x.total, kind: BOOK_CAT[x.category] ?? x.category, party: x.payee, doc: x.number, mode: '', ref: x.reference, note: '', src: 'bank_entry', sourceId: x.id, run: '0' }, a);
   };
+  // from the Expense report: open that entry (prototype xpOpen / bkView)
+  if (want) { const x = all.data.find((y) => y.key === want); setWant(null); if (x) queueMicrotask(() => open(x)); }
   return (
     <section id="vExp">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Expenses</h1><span className="pttot" id="exTotTxt">Money spent running the shop</span><div className="sp"></div><button className="btn" id="exCats" onClick={() => setXc({ back: false })}><Icon name="gear" />Categories</button><button className="btn p" id="exNew" onClick={() => setXp({ cat: cat !== 'all' ? cat : undefined })}><RawIcon d={PLUS} />Add expense <kbd className="kh" style={KBD}>Alt+E</kbd></button></div>

@@ -14,6 +14,7 @@ import { useFitTables } from '../../lib/useFitTables';
 import { useMe } from '../../lib/me';
 import { Icon, RawIcon } from '../../components/Icon';
 import { soon, useShell } from '../shell/store';
+import { statementOf } from '../reports/party';
 import { AddPartyDialog } from './AddPartyDialog';
 
 export interface Party {
@@ -235,7 +236,7 @@ function PartyHead({ p, shop, onCopied }: { p: Party; shop: string; onCopied: (t
         {/* the prototype adds Statement just before "New invoice", so suppliers don't get it */}
         {p.kind === 'customer' && (
           <>
-            <button className="btn" id="ptStmtBtn" type="button" style={{ marginRight: 8 }} onClick={() => soon('Party statement')}><Icon name="doc" />Statement</button>
+            <button className="btn" id="ptStmtBtn" type="button" style={{ marginRight: 8 }} onClick={() => { statementOf(p.id); go('/reports?r=pstmt'); }}><Icon name="doc" />Statement</button>
             <button className="btn p sm" data-sellparty={p.id} onClick={() => go(`/sales/new?party=${p.id}`)}><Icon name="plus" />New invoice</button>
           </>
         )}
