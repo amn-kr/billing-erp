@@ -23,6 +23,7 @@ import { InvoicePreview } from '../InvoicePreview';
 import { useEditorData, type EditorData } from './data';
 import { ComboList, Grid, comboKey, focusRow, partyOpts, useCombo } from './Grid';
 import { useEditorLayout } from './layout';
+import { DGACC, DGIMG, ToolBody, type ToolKey } from './ToolsPop';
 import {
   DG_TERMS, SI_MODES, SI_TT, addDaysIso, blankLine, calc, cmApply, daysDiff, hasContent, lineComm, lineFor, newSI, partyState, paySum, priceListFor, r2, unitPrice, useSI, useTab, TabCtx, isDirty,
   type EItem, type EParty, type Line, type SI,
@@ -32,7 +33,6 @@ const BACK = '<path d="M15 6l-6 6 6 6"/>';
 const CHG = '<path d="M19 5L5 19M7.5 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM16.5 18a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/>';
 const PRINT = '<path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z"/>';
 const TOOLS: [string, string, string][] = [['tr', '<path d="M3 6h11v10H3zM14 9h4l3 3v4h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>', 'Transport details'], ['te', '<path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h5"/>', 'Terms & conditions'], ['de', '<path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"/>', 'Description'], ['at', '<path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9"/>', 'Attachments'], ['pl', '<path d="M4 20V4M4 20h16M8 16v-5M13 16V8M18 16v-3"/>', 'Profit & loss on this bill']];
-const DGACC = 'image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt';
 const fmtPhone = (p: string) => `+91 ${p.slice(0, 5)} ${p.slice(5)}`;
 
 const nextNo = (doc: SI['doc'], date: string) => ({
@@ -201,7 +201,7 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
   const ref = useRef<HTMLElement>(null);
   const [rk, setRk] = useState(0);
   const full = useCallback(() => setRk((k) => k + 1), []);
-  const [pop, setPop] = useState<'pay' | 'chg' | 'cm' | null>(null);
+  const [pop, setPop] = useState<'pay' | 'chg' | 'cm' | ToolKey | null>(null);
   const [chgMsg, setChgMsg] = useState('');
   const pending = useRef<{ again: boolean; print: boolean } | null>(null);
   const [addParty, setAddParty] = useState<string | null>(null);
@@ -300,7 +300,7 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
     const k = (e: KeyboardEvent) => {
       const modal = [...document.querySelectorAll<HTMLElement>('.ov')].some((o) => !o.hidden);
       if ((e.ctrlKey || e.metaKey) && e.code === 'KeyS' && !modal) { e.preventDefault(); void saveRef.current(e.shiftKey); return; }
-      if (e.key === 'Escape' && !modal) setPop((p) => { if (p) { e.stopPropagation(); setTimeout(() => document.getElementById(p === 'pay' ? 'siPayBtn' : p === 'chg' ? 'siChgBtn' : 'siCmBtn')?.focus(), 0); } return null; });
+      if (e.key === 'Escape' && !modal) setPop((p) => { if (p) { e.stopPropagation(); setTimeout(() => (p === 'pay' || p === 'chg' || p === 'cm' ? document.getElementById(p === 'pay' ? 'siPayBtn' : p === 'chg' ? 'siChgBtn' : 'siCmBtn') : document.querySelector<HTMLElement>(`#siTools [data-dgt="si:${p}"]`))?.focus(), 0); } return null; });
     };
     document.addEventListener('keydown', k, true);
     const down = (e: MouseEvent) => {
@@ -308,6 +308,8 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
       setPop((p) => {
         if (p === 'pay' && !el.closest('#siPayPop') && !el.closest('#siPayBtn')) return null;
         if (p === 'chg' && !el.closest('#siChgPop') && !el.closest('#siChgBtn')) { pending.current = null; return null; }
+        // the extras pop-up stays open for clicks in it and on the tool buttons (prototype dgPopClose)
+        if (p && p !== 'pay' && p !== 'chg' && p !== 'cm' && !el.closest('.dgpop') && !el.closest('[data-dgt]') && !el.closest('.dgtools')) return null;
         if (p === 'cm' && !el.closest('#siCmPop') && !el.closest('#siCmBtn') && !el.closest('#slm') && !el.closest('#ai')) return null;
         return p;
       });
@@ -316,17 +318,28 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
     return () => { document.removeEventListener('keydown', k, true); document.removeEventListener('mousedown', down, true); };
   }, []);
 
-  /* pop-ups sit above the footer, under their button (prototype payPopOpen / chgOpen / cmPopOpen) */
-  // place the open pop-up above its footer button, kept 12px inside the window (prototype payPopOpen / chgOpen / cmPopOpen)
+  // place the open pop-up above its footer button, kept 12px inside the window (prototype payPopOpen / chgOpen / cmPopOpen / dgPopOpen)
   useLayoutEffect(() => {
-    const ids: [string, string] | null = pop === 'pay' ? ['siPayPop', 'siPayBtn'] : pop === 'chg' ? ['siChgPop', 'siChgBtn'] : pop === 'cm' ? ['siCmPop', 'siCmBtn'] : null;
-    if (!ids) return;
-    const pp = document.getElementById(ids[0]), b = document.getElementById(ids[1]), foot = document.querySelector('#vNewInv .sift');
-    if (!pp || !b || !foot) return;
-    const r = b.getBoundingClientRect();
-    pp.style.left = Math.max(12, Math.min(r.left, innerWidth - pp.offsetWidth - 12)) + 'px';
-    pp.style.bottom = innerHeight - foot.getBoundingClientRect().top + 8 + 'px';
+    if (!pop) return;
+    const tool = pop !== 'pay' && pop !== 'chg' && pop !== 'cm';
+    const place = () => {
+      const pp = document.getElementById(tool ? 'siPop' : pop === 'pay' ? 'siPayPop' : pop === 'chg' ? 'siChgPop' : 'siCmPop');
+      const b = tool ? document.querySelector(`#siTools [data-dgt="si:${pop}"]`) ?? document.getElementById('siTools') : document.getElementById(pop === 'pay' ? 'siPayBtn' : pop === 'chg' ? 'siChgBtn' : 'siCmBtn');
+      const foot = document.querySelector('#vNewInv .sift');
+      if (!pp || !b || !foot) return;
+      const r = b.getBoundingClientRect();
+      pp.style.left = Math.max(12, Math.min(r.left, innerWidth - pp.offsetWidth - 12)) + 'px';
+      pp.style.bottom = innerHeight - foot.getBoundingClientRect().top + 8 + 'px';
+    };
+    place();
+    if (!tool) return;
+    // the extras pop-up follows a window resize and focuses its first box (prototype dgPopOpen)
+    const t = setTimeout(() => document.querySelector<HTMLElement>('#siPop textarea, #siPop input:not([type=file]), #siPop select')?.focus(), 20);
+    addEventListener('resize', place);
+    return () => { clearTimeout(t); removeEventListener('resize', place); };
   }, [pop]);
+  const tool = (k: ToolKey) => setPop((p) => (p === k ? null : k));
+  const addFiles = (names: string[]) => up2((x) => { x.attach = [...x.attach, ...names]; });
 
   const title = quote ? (s.editOf ? 'Edit quotation' : 'Quotation') : s.editOf ? `Edit sale · ${s.editOf}` : 'Sale';
   const kind = quote ? 'Item-wise' : G ? 'Tax invoice' : ctx.mode === 'bos' ? 'Bill of supply' : 'Bill';
@@ -380,8 +393,9 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
 
       <div className="card dggrid"><div className="tw dgw"><table className="dgt"><Grid d={d} c={c} rk={rk} full={full} toast={toast} onAddItem={(q, then) => setAddItem({ q, then })} /></table></div></div>
       <div className="dgb"><div className="dgbl2"><div className="dgx" id="siExtra" aria-label="Added details">
-        {st.tr ? <button type="button" className="dgxc" data-dgt="si:tr"><RawIcon d={TOOLS[0]![1]} /><span>{[s.transport, s.vehicle, s.delivDate ? s.delivDate.split('-').reverse().join('/') : ''].filter(Boolean).join(' · ')}</span></button> : null}
-        {st.de ? <button type="button" className="dgxc" data-dgt="si:de"><RawIcon d={TOOLS[2]![1]} /><span>{s.desc.trim().split('\n')[0]!.slice(0, 40)}</span></button> : null}
+        {st.tr ? <button type="button" className="dgxc" data-dgt="si:tr" onClick={() => tool('tr')}><RawIcon d={TOOLS[0]![1]} /><span>{[s.transport, s.vehicle, s.delivDate ? s.delivDate.split('-').reverse().join('/') : ''].filter(Boolean).join(' · ')}</span></button> : null}
+        {st.de ? <button type="button" className="dgxc" data-dgt="si:de" onClick={() => tool('de')}><RawIcon d={TOOLS[2]![1]} /><span>{s.desc.trim().split('\n')[0]!.slice(0, 40)}</span></button> : null}
+        {st.at ? (() => { const ph = s.attach.filter((n) => DGIMG.test(n)).length, dc = s.attach.length - ph; return <button type="button" className="dgxc" data-dgt="si:at" onClick={() => tool('at')}><RawIcon d={TOOLS[3]![1]} /><span>{[ph ? `${ph} photo${ph > 1 ? 's' : ''}` : '', dc ? `${dc} document${dc > 1 ? 's' : ''}` : ''].filter(Boolean).join(' · ')}</span></button>; })() : null}
       </div></div><div className="card sitot dgtot" hidden style={{ display: 'none' }}></div></div>
 
       {/* payment received (prototype payRender) */}
@@ -399,7 +413,10 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
           <div className="dgpys"><div><span>Received</span><b id="siPRecv">₹{inr2f(rec)}</b></div><div><span>Balance due</span><b id="siPBal" className={xp ? 'warn' : bal > 0 ? 'neg' : bal < 0 ? 'warn' : 'pos'}>{xp ? `${inr2f(xp)} extra` : bal < 0 ? `₹${inr2f(-bal)} extra` : '₹' + inr2f(bal)}</b></div></div>
           {xp ? <div id="siPXtra" className="xpnote"><Icon name="dn" /><span>{!p ? <>Walk-in sale: return <b>₹{inr2f(xp)}</b> change to the customer. Only the invoice total is recorded as received.</> : (() => { const pd = Math.max(0, pre ?? 0), set2 = r2(Math.min(xp, pd)), adv = r2(xp - set2); return <>Extra <b>₹{inr2f(xp)}</b> from {p.name}: {set2 > 0 ? <><b>₹{inr2f(set2)}</b> clears previous dues (oldest bill first)</> : null}{set2 > 0 && adv > 0 ? ' and ' : ''}{adv > 0 ? <><b>₹{inr2f(adv)}</b> is saved as advance payment</> : null}.</>; })()}</span></div> : null}
         </div><div className="dgpf"><button type="button" className="btn p sm" data-paydone="si" onClick={() => setPop(null)}>Done</button></div></div>
-      <div className="dgpop" id="siPop" role="dialog" aria-label="Invoice details" hidden></div>
+      <div className={`dgpop${pop === 'pl' ? ' dgpl2' : ''}`} id="siPop" role="dialog" aria-label="Invoice details" hidden={!pop || pop === 'pay' || pop === 'chg' || pop === 'cm'}>
+        {pop && pop !== 'pay' && pop !== 'chg' && pop !== 'cm' ? <><ToolBody key={pop} k={pop} s={s} ctx={ctx} up={up2} onFiles={addFiles} toast={toast} />
+          <div className="dgpf"><button type="button" className="btn p sm" data-dgdone onClick={() => setPop(null)}>Done</button></div></> : null}
+      </div>
       {/* discount & charges (prototype chgOpen), checked once before the first save */}
       <div className="dgpop dgchgpop" id="siChgPop" role="dialog" aria-labelledby="siChgT" hidden={pop !== 'chg'}>
         <div className="dgchgh"><b id="siChgT">Discount &amp; charges</b><small className="mu">Check these before saving the invoice</small></div>
@@ -427,8 +444,9 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
         {TOOLS.map(([k, ic, lbl]) => {
           const v = st[k as keyof typeof st];
           const n = typeof v === 'number' ? v : 0;
-          if (k === 'at' && !n) return <label className="dgtb" title="Attach photo or document" aria-label="Attach photo or document" key={k}><RawIcon d={ic} /><input type="file" hidden data-dgfile="si" accept={DGACC} multiple onChange={(e) => { const f = e.target.files; if (f?.length) { const names = [...f].map((x) => x.name); up((x) => { x.attach = [...x.attach, ...names]; }); toast(`${names.length} file${names.length > 1 ? 's' : ''} attached`); } }} /></label>;
-          return <button type="button" className={`dgtb ${v ? 'on' : ''} `} data-dgt={`si:${k}`} title={`${lbl}${n ? ` (${n})` : v ? ' · added' : ''}`} aria-label={lbl} aria-expanded="false" key={k}><RawIcon d={ic} />{n ? <em>{n}</em> : null}</button>;
+          if (k === 'at' && !n) return <label className="dgtb" title="Attach photo or document" aria-label="Attach photo or document" key={k}><RawIcon d={ic} /><input type="file" hidden data-dgfile="si" accept={DGACC} multiple onChange={(e) => { const f = e.target.files; if (f?.length) { const names = [...f].map((x) => x.name); addFiles(names); toast(`${names.length} file${names.length > 1 ? 's' : ''} attached`); e.target.value = ''; } }} /></label>;
+          const open = pop === k;
+          return <button type="button" className={`dgtb ${v ? 'on' : ''} ${open ? 'open' : ''}`} data-dgt={`si:${k}`} title={`${lbl}${n ? ` (${n})` : v ? ' · added' : ''}`} aria-label={lbl} aria-expanded={open} key={k} onClick={() => tool(k as ToolKey)}><RawIcon d={ic} />{n ? <em>{n}</em> : null}</button>;
         })}</div>
         <button type="button" className={`dgtb cmfb${s.ref ? ' on' : ''}`} id="siCmBtn" title="Referral" aria-label="Referral" aria-haspopup="dialog" aria-expanded={pop === 'cm'} onClick={() => setPop(pop === 'cm' ? null : 'cm')}><Icon name="users" /><i className="cmdot" hidden={!s.ref}></i></button>
         <span className="dgcnt" id="siCount">{t.count} item{t.count === 1 ? '' : 's'}</span>

@@ -144,5 +144,42 @@ for (const width of WIDTHS) {
       await withTabs(proto, app);
       await sameShot(`editor-footer-${width}`, proto, app, '#vNewInv .sift');
     });
+
+    test('Invoice editor extras: transport, terms, description, attachments, profit & loss', async ({ browser }) => {
+      test.setTimeout(150_000);
+      const { proto, app } = await pages(browser, width, 'sales', '/sales', '#slRows tr[data-sno]');
+      await proto.evaluate(() => (window as unknown as { openInvoice: () => void }).openInvoice());
+      await app.click('#vSales .pthd .btn.p');
+      await app.waitForSelector('#vNewInv #siRows tr[data-ln]');
+      await both(proto, app, async (p) => { await p.fill('#siParty', 'Mehta'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); });
+      for (const [item, qty] of [['LED bulb', '10'], ['Copper wire', '1']] as const) {
+        await both(proto, app, async (p) => { await p.locator('#qeItem').fill(item); await p.waitForTimeout(100); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); await p.locator('#qeQty').fill(qty); await p.locator('#qeQty').press('Control+Enter'); });
+      }
+      const tool = (k: string) => both(proto, app, async (p) => { await p.click(`#siTools [data-dgt="si:${k}"]`); await p.waitForTimeout(100); });
+      // (copied in first: the prototype reopens an open extras pop-up on resize, which moves focus)
+      await withTabs(proto, app);
+      // transport details, typed in
+      await tool('tr');
+      await both(proto, app, async (p) => { await p.click('#siTrans'); await p.keyboard.type('Sharma Roadways'); await p.click('#siVeh'); await p.keyboard.type('UP32 AB 1234'); });
+      await sameShot(`editor-transport-${width}`, proto, app, '#siPop');
+      await tool('te');
+      await sameShot(`editor-terms-${width}`, proto, app, '#siPop');
+      await tool('de');
+      await both(proto, app, async (p) => { await p.click('#siDesc'); await p.keyboard.type('Site: Gomti Nagar'); });
+      // attach a photo with the paper-clip (a file picker until something is attached)
+      await both(proto, app, (p) => p.locator('#siTools input[data-dgfile="si"]').setInputFiles({ name: 'site-photo.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('x') }));
+      await proto.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
+      await app.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
+      await sameShot(`editor-description-${width}`, proto, app, '#siPop');
+      await tool('at');
+      await sameShot(`editor-attachments-${width}`, proto, app, '#siPop');
+      await tool('pl');
+      await sameShot(`editor-profit-${width}`, proto, app, '#siPop');
+      // the chips under the items and the tool buttons show what was added
+      await both(proto, app, async (p) => { await p.click('#siPop [data-dgdone]'); await p.mouse.move(0, 0); });
+      await withTabs(proto, app);
+      await sameShot(`editor-extras-${width}`, proto, app, '#vNewInv .dgb');
+      await sameShot(`editor-tools-${width}`, proto, app, '#vNewInv .sift');
+    });
   });
 }
