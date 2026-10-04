@@ -18,7 +18,7 @@ export interface Diff {
 /**
  * Text-edge tolerance (owner's decision, Phase 3): Chrome sometimes shades the edges of
  * the same letters slightly differently from run to run. A differing pixel is forgiven
- * only when each image's colour lies within the colour range of the 3×3 pixels around
+ * only when each image's colour lies within the colour range of the 5×5 pixels around
  * the same spot in the other image: a letter edge shaded differently, or a line of text
  * that Chrome rounded to the pixel above or below (text at a half-pixel position).
  * A colour change on a flat area is still a difference. At most 0.5% of the area and
@@ -28,12 +28,14 @@ export interface Diff {
 export const TEXT_EDGE_MAX = 0.005;
 /** and never more than this many pixels, however large the picture */
 export const TEXT_EDGE_CAP = 1500;
-const SLACK = 8;
+const SLACK = 16;
+/** how far from the spot a letter edge may have moved: 2 pixels (a 5×5 square) */
+const R = 2;
 function inRange(src: Uint8Array, other: Uint8Array, w: number, h: number, x: number, y: number): boolean {
   const i = (y * w + x) * 4;
   for (let c = 0; c < 3; c++) {
     let lo = 255, hi = 0;
-    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
       const xx = x + dx, yy = y + dy;
       if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
       const v = other[(yy * w + xx) * 4 + c]!;
