@@ -23,7 +23,7 @@ import { BK_KEYS, bkCol, bkMask, ledger, tint, useAccounts, useBook, type Accoun
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const PLUS = '<path d="M12 5v14M5 12h14"/>';
 const PER: [BkPer, string][] = [['all', 'All'], ['oct', 'This month'], ['sep', 'Last month']];
-type Move = { kind: 'transfer' | 'deposit' | 'withdraw' | 'in' | 'out'; acct?: string; cat?: string };
+export type Move = { kind: 'transfer' | 'deposit' | 'withdraw' | 'in' | 'out'; acct?: string; cat?: string };
 
 /* ───────── the ledger card (prototype ledCard + ledRender) ───────── */
 function LedgerCard({ p, a, book, head, onEntry, per, setPer }: { p: 'bk' | 'ca'; a: Account; book: Book; head: (r: ReturnType<typeof ledger>) => React.ReactNode; onEntry: (e: BookEntry) => void; per: BkPer; setPer: (p: BkPer) => void }) {
@@ -173,7 +173,7 @@ const BM_H: Record<Move['kind'], string> = {
   in: 'For money that isn’t a customer payment — interest, owner’s capital, a loan.', out: 'For money that isn’t a supplier payment — bank charges, shop expenses, drawings.',
 };
 
-function MoveMoney({ open, accounts, onClose }: { open: Move | null; accounts: Account[]; onClose: () => void }) {
+export function MoveMoney({ open, accounts, onClose }: { open: Move | null; accounts: Account[]; onClose: () => void }) {
   const qc = useQueryClient();
   const { showToast } = useShell();
   const ref = useRef<HTMLDivElement>(null);

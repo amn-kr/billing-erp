@@ -103,7 +103,9 @@
 | Bell: overdue purchase bills and sales invoices | done |
 | Banking & cash: Bank accounts and Cash in hand pages (cards, money book, periods), add / edit account, Move money, Count cash; accounts and hand entries come across from old backups | done — matching screenshots at 1280/1366/1920; API, importer and flow tests; imported balances match the prototype's |
 | Expenses: list with category breakdown, Add / Edit expense (lines, GST input credit, paid from cash / bank / cheque), categories window; cash-book shop expenses, salary and bank charges listed too; expenses and categories come across from old backups | done — matching screenshots at 1280/1366/1920; API, importer and flow tests |
-| Cheques, reconciliation, commission | next |
+| Cheques (received / issued, deposited or cleared, bounced with bank charges, undo) and Reconciliation (statement date and balance, tick entries, difference); cheque states come across from old backups | done — matching screenshots at 1280/1366/1920; API, importer and flow tests |
+| Commission screen | next |
+| A bounced customer cheque as its own line in Receive payment (the customer's balance already goes up) | later |
 | CI reliability: screenshot tests wait until the page is still (fixes the failure on main after PR #2) | done here; confirmed by CI on the Phase 3 pull request |
 
 ### Differences from the prototype (on purpose)
@@ -115,6 +117,7 @@
 - **Prototype reload quirks are not copied.** When the old app reopens its saved data it replays a debit note before the bill it was made against (so the note stops reducing that bill) and counts some saved sales twice in an item's stock. The rebuild keeps the figures the old app showed right after saving; the screenshot tests put the prototype back in that state before comparing.
 - **Bank and cash entries typed by hand are cancelled, never deleted.** The entry window's button reads "Cancel entry" (the prototype says "Delete entry"); the entry leaves the book and stays in the records.
 - **Expenses are cancelled, never deleted.** The edit window's button reads "Cancel expense" (the prototype says "Delete"); the money goes back into its account and the record stays.
+- **No demo dates in cheques and reconciliation.** The prototype treats every cheque dated before 20 Sep 2026 as already cleared, and starts reconciliation with entries up to 25 Sep 2026 ticked and a demo statement balance. The rebuild starts cheques as pending and reconciliation with nothing ticked (statement date: the last day of last month). The screenshot tests start the prototype the same way. Your own backup has no cheques affected by this.
 - **Expense numbers start at EXP-0001.** The prototype's first expense is EXP-0002 (it counts from "1 + 1"); numbers from an old backup are kept as they were.
 - **Demo bank accounts are not brought across.** A shop that did not start fresh carries the old app's demo HDFC / SBI accounts and four demo entries; the import leaves them out unless the demo data is asked for. A demo account that one of your own entries uses is kept with a zero opening balance, and the import says so.
 - Adding an electrician links them to the customer with the same mobile or name, or adds them as a party in "Electricians" (15 days' credit), as the prototype does; party names stay unique.

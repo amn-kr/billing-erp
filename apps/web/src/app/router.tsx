@@ -13,6 +13,7 @@ import { CreditNotesPage } from '../features/sales/CreditNotesPage';
 import { ChallansPage } from '../features/sales/ChallansPage';
 import { SaleEditor } from '../features/sales/editor/SaleEditor';
 import { QuotationsPage } from '../features/quotations/QuotationsPage';
+import { ChequesPage, ReconciliationPage } from '../features/banking/ChequesPages';
 import { ExpensesPage } from '../features/expenses/ExpensesPage';
 import { BankAccountsPage, CashPage } from '../features/banking/BankingPages';
 import { PurchaseEditor } from '../features/purchases/PurchaseEditor';
@@ -44,6 +45,8 @@ export const router = createBrowserRouter([
       { path: 'bank-accounts', element: <BankAccountsPage /> },
       { path: 'cash-in-hand', element: <CashPage /> },
       { path: 'expenses', element: <ExpensesPage /> },
+      { path: 'cheques', element: <ChequesPage /> },
+      { path: 'reconciliation', element: <ReconciliationPage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
