@@ -193,3 +193,16 @@ describe('importing purchases', () => {
   });
 });
 
+describe('banking import', () => {
+  it('brings cash and bank accounts and the money moved by hand; balances match the old app', async () => {
+    const o = await owner(app);
+    const res = await http().post('/api/imports').set(auth(o)).send({ fileName: 'bank.json', backup: backup('bank-shop.backup.json') }).expect(200);
+    expect(res.body.counts).toMatchObject({ bankAccounts: 2, bankEntries: 5 });
+    const accs = (await http().get('/api/banking/accounts').set(auth(o)).expect(200)).body as { name: string; balance: string; isDefault: boolean; accountNo: string; ifsc: string; branch: string }[];
+    // the prototype's own balances for the same backup: cash 5,270, HDFC 1,06,646, SBI 65,412
+    expect(accs.map((a) => [a.name, a.balance, a.isDefault])).toEqual([['Cash in hand', '5270.00', true], ['HDFC Bank', '106646.00', true], ['State Bank of India', '65412.00', false]]);
+    expect(accs[1]).toMatchObject({ accountNo: '50200012347703', ifsc: 'HDFC0001234', branch: 'Hazratganj, Lucknow' });
+    const next = (await http().post('/api/banking/entries').set(auth(o)).send({ date: '2026-10-02', kind: 'in', accountId: (accs as unknown as { id: string }[])[0]!.id, amount: '1', category: 'Other' }).expect(201)).body;
+    expect(next.number).toBe('BT-0006');
+  });
+});

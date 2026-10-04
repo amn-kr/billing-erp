@@ -198,6 +198,46 @@ async function purchaseShop(page: Page) {
   await page.click('#pySave');
 }
 
+/* ---------- banking, through the prototype's account and move-money windows ---------- */
+async function bankAccount(page: Page, f: { name: string; type: string; no: string; ifsc: string; branch: string; open: string; od: string; def?: boolean }) {
+  await later(page);
+  await ev(page, 'bamOpen()');
+  await page.fill('#bamName', f.name);
+  await page.selectOption('#bamType', f.type);
+  await page.fill('#bamNo', f.no);
+  await page.fill('#bamIfsc', f.ifsc);
+  await page.fill('#bamBr', f.branch);
+  await page.fill('#bamOpen', f.open);
+  await page.fill('#bamOd', f.od);
+  await page.setChecked('#bamDef', !!f.def);
+  await page.click('#bamSave');
+  if (!(await page.locator('#bam').isHidden())) throw new Error('account not saved: ' + (await page.textContent('#bamErr')));
+}
+async function moveMoney(page: Page, f: { kind: string; date: string; amount: string; from?: string; to?: string; acct?: string; cat?: string; ref?: string; note?: string }) {
+  await later(page);
+  await ev(page, `bmmOpen(${JSON.stringify(f.kind)})`);
+  const id = (name: string) => ev(page, `ACCTS.find((a) => a.name === ${JSON.stringify(name)}).id`) as Promise<string>;
+  if (f.from) await page.selectOption('#bmmFrom', await id(f.from));
+  if (f.to) await page.selectOption('#bmmTo', await id(f.to));
+  if (f.acct) await page.selectOption('#bmmAcct', await id(f.acct));
+  if (f.cat) await page.selectOption('#bmmCat', f.cat);
+  await page.fill('#bmmAmt', f.amount);
+  await page.fill('#bmmDate', f.date);
+  await page.fill('#bmmRef', f.ref ?? '');
+  await page.fill('#bmmNote', f.note ?? '');
+  await page.click('#bmmSave');
+  if (!(await page.locator('#bmm').isHidden())) throw new Error('entry not saved: ' + (await page.textContent('#bmmErr')));
+}
+async function bankShop(page: Page) {
+  await bankAccount(page, { name: 'HDFC Bank', type: 'Current account', no: '50200012347703', ifsc: 'HDFC0001234', branch: 'Hazratganj, Lucknow', open: '125000', od: '2026-09-01', def: true });
+  await bankAccount(page, { name: 'State Bank of India', type: 'Savings account', no: '32190012190', ifsc: 'SBIN0000125', branch: 'Aminabad, Lucknow', open: '40000', od: '2026-09-01' });
+  await moveMoney(page, { kind: 'deposit', date: '2026-09-28', amount: '10000', from: 'Cash in hand', to: 'HDFC Bank', ref: 'Slip 2231', note: 'Cash deposited at branch' });
+  await moveMoney(page, { kind: 'transfer', date: '2026-09-29', amount: '25000', from: 'HDFC Bank', to: 'State Bank of India', ref: 'IMPS 66120', note: 'Moved to savings' });
+  await moveMoney(page, { kind: 'out', date: '2026-09-30', amount: '354', acct: 'HDFC Bank', cat: 'Bank charges', note: 'SMS & service charges' });
+  await moveMoney(page, { kind: 'in', date: '2026-09-30', amount: '412', acct: 'State Bank of India', cat: 'Interest received', note: 'Quarterly interest' });
+  await moveMoney(page, { kind: 'out', date: '2026-10-01', amount: '650', acct: 'Cash in hand', cat: 'Shop expense', note: 'Tea & snacks' });
+}
+
 // 1. the sample shop, untouched
 {
   const { page, close } = await open();
@@ -225,6 +265,8 @@ async function purchaseShop(page: Page) {
   await save(page, 'sales-shop.backup.json');
   await purchaseShop(page);
   await save(page, 'purchase-shop.backup.json');
+  await bankShop(page);
+  await save(page, 'bank-shop.backup.json');
   await close();
 }
 

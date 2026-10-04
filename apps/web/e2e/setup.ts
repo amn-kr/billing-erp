@@ -109,6 +109,8 @@ export const RAVI = { email: 'ravi@gupta.example.com', password: 'demo-password-
 /** The shop holding packages/importer/fixtures/sales-shop.backup.json (sales documents). */
 export const SALES = { email: 'ravi.sales@gupta.example.com', password: 'demo-password-1' };
 export const PURCHASES = { email: 'ravi.purchases@gupta.example.com', password: 'demo-password-1' };
+/** The purchase shop plus two bank accounts and money moved by hand (bank-shop.backup.json). */
+export const BANK = { email: 'ravi.bank@gupta.example.com', password: 'demo-password-1' };
 
 /** The prototype showing one of the importer fixtures (restored like "Restore books"). */
 export async function prototypeWithBackup(page: Page, fixture = 'fresh-shop'): Promise<void> {
