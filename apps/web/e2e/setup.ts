@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { APIRequestContext, Browser, Page } from '@playwright/test';
+import { test, type APIRequestContext, type Browser, type Page } from '@playwright/test';
 // Same frozen clock, timezone and local fonts as the Phase 0 baseline.
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const common = createRequire(import.meta.url)('../../../tools/design-baseline/common.cjs') as {
@@ -25,9 +25,25 @@ function trackApi(page: Page) {
   page.on('requestfailed', done);
 }
 
+/*
+ * Tests open their pages straight on the worker's shared browser, which Playwright does not
+ * close after each test. Left open, a full run piles up hundreds of live pages and every
+ * later test slows down until screenshot tests run out of time. So the first page a new test
+ * opens closes the ones earlier tests left behind.
+ */
+const open: { owner: string; page: Page }[] = [];
+async function closeLeftovers(owner: string) {
+  const old = open.filter((o) => o.owner !== owner);
+  for (const o of old) { open.splice(open.indexOf(o), 1); await o.page.context().close().catch(() => {}); }
+}
+
 /** A page from the shared screenshot settings (frozen clock, local fonts), with its API requests counted. */
 export async function newPage(browser: Browser, width: number): Promise<Page> {
+  let owner = 'hook';
+  try { owner = test.info().testId; } catch { /* outside a test: kept until a test opens pages */ }
+  await closeLeftovers(owner);
   const page = await common.newPage(browser, width);
+  open.push({ owner, page });
   trackApi(page);
   return page;
 }
