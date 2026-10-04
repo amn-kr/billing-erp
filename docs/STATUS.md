@@ -95,7 +95,8 @@
 | Delivery challans + New challan + print view | done — 0 pixel difference |
 | Invoice editor: party, rapid entry, items grid, discount & charges, payment, save / save & new / save & print, edit, copy, from challan, credit-limit question | done — 0 pixel difference at 1280/1366/1920 (new, filled, charges, payment, footer); flow test saves an invoice and opens it again |
 | Several open bills (tabs) in the invoice editor | done — tests for the owner's four rules (see below) |
-| Editor extras: tools pop-up, referral per bill, quotation import, previous rates, quick sale, Quotations page | next |
+| Editor extras: tools pop-up (transport, terms, description, attachments, profit & loss), referral (add electrician, commission on this bill), previous rates, import from quotation, Quick sale (⚡ / Alt+N) | done — matching screenshots at 1280/1366/1920; flow tests for saving |
+| Quotations page (brand-wise and item-wise) | next |
 | Purchases, expenses, banking & cash, cheques, reconciliation, commission | after sales |
 | CI reliability: screenshot tests wait until the page is still (fixes the failure on main after PR #2) | done here; confirmed by CI on the Phase 3 pull request |
 

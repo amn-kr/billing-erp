@@ -225,6 +225,22 @@ for (const width of WIDTHS) {
       await expect(app.locator('#siRows tr[data-ln]')).toHaveCount(1);
     });
 
+    test('Quick sale window: empty, with a customer and items, credit', async ({ browser }) => {
+      const { proto, app } = await pages(browser, width, 'sales', '/sales', '#slRows tr[data-sno]');
+      await both(proto, app, (p) => p.click('#qsBtn'));
+      await app.waitForSelector('#qsm .qsr');
+      await both(proto, app, (p) => p.waitForTimeout(100));
+      await sameShot(`quick-${width}`, proto, app, '#qsm .mdl');
+      await both(proto, app, async (p) => {
+        await p.fill('#qsParty', 'Mehta'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter');
+        await p.locator('#qsRows .qs-item').first().fill('LED'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter');
+        await p.locator('#qsRows .qsq').first().fill('3');
+        await p.click('#qsPay [data-qspay="Credit"]');
+      });
+      await sameShot(`quick-filled-${width}`, proto, app, '#qsm .mdl');
+      // (saving is checked in sales.flows: the shared sales shop must stay as the prototype's)
+    });
+
     test('Invoice editor referral: add electrician, commission loaded on the rates, commission on this bill', async ({ browser, request }) => {
       test.setTimeout(150_000);
       // adds an electrician (and party), so it works in a copy of the sales shop

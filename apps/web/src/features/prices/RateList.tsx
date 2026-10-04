@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { create } from 'zustand';
 import { money, round2 } from '@billing/shared';
 import { api } from '../../lib/api';
-import { inr2f } from '../../lib/format';
+import { fmtD, inr2f } from '../../lib/format';
 import { saveFile, xlsxBlob } from '../../lib/files';
 import { useSettings } from '../../lib/settings';
 import { today } from '../../lib/time';
@@ -34,7 +34,6 @@ export const useRl = create<RlState>((set) => ({
   set: (p) => set(p),
 }));
 
-const fmtD = (iso: string) => new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 const vlabel = (i: PItem) => `${i.brand || ''}${i.series ? ' ' + i.series : ''}`.trim() || i.name;
 
 export function RateList({ open, data, onClose }: { open: boolean; data: PriceData; onClose: () => void }) {

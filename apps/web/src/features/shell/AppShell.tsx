@@ -2,6 +2,7 @@
  * The app frame: <div class="app" id="app"> with sidebar, top bar and <main class="page">.
  * Same DOM as the prototype; screens render inside <main> through the router.
  */
+import { QuickSale, useQuick } from '../sales/QuickSale';
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -131,13 +132,14 @@ export function AppShell() {
     },
     [navigate],
   );
-  // Alt shortcuts, like desktop billing software (prototype KS): Alt+S new invoice, Alt+R receive payment
+  // Alt shortcuts, like desktop billing software (prototype KS): Alt+S new invoice, Alt+R receive payment, Alt+N quick sale
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if (!e.altKey || e.ctrlKey || e.metaKey) return;
       if ([...document.querySelectorAll<HTMLElement>('.ov')].some((o) => !o.hidden)) return;
       if (e.code === 'KeyS') { e.preventDefault(); act('New invoice'); }
       else if (e.code === 'KeyR') { e.preventDefault(); act('Receive payment'); }
+      else if (e.code === 'KeyN') { e.preventDefault(); useQuick.getState().show(); }
     };
     document.addEventListener('keydown', k);
     return () => document.removeEventListener('keydown', k);
@@ -213,6 +215,7 @@ export function AppShell() {
       />
       <Toast />
       <DiscardDialog />
+      <QuickSale />
     </>
   );
 }

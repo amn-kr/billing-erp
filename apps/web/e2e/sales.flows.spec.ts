@@ -177,3 +177,26 @@ test('bill tabs: “New invoice” from the side menu while in the editor opens 
   await page.keyboard.press('Alt+s');
   await expect(tabs(page)).toHaveCount(2);
 });
+
+test('Quick sale (Alt+N): a walk-in cash sale is saved as an invoice, and its number is used only then', async ({ browser, request }) => {
+  const page = await newPage(browser, 1366);
+  await signInAs(page, await freshShop(request, 'sales-shop'));
+  await page.goto(APP + '/sales');
+  await page.waitForSelector('#slRows tr[data-sno]');
+  await page.keyboard.press('Alt+n');
+  await expect(page.locator('#qsNo')).toHaveText('INV-0107');
+  // closing without saving uses nothing up
+  await page.click('#qsClose');
+  await page.click('#qsBtn');
+  await expect(page.locator('#qsNo')).toHaveText('INV-0107');
+  await page.fill('#qsParty', 'Sunil');
+  await page.locator('#qsRows .qs-item').first().fill('LED');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await page.locator('#qsRows .qsq').first().fill('2');
+  await page.click('#qsPay [data-qspay="UPI"]');
+  await page.click('#qsSave');
+  await expect(page.locator('#toast')).toHaveText('INV-0107 saved · 190.00 · UPI');
+  await expect(page.locator('#qsm')).toHaveCount(0);
+  await expect(page.locator('#slRows tr[data-sno="INV-0107"]')).toContainText('Sunil');
+});

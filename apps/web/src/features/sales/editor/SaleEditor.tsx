@@ -75,6 +75,8 @@ export function SaleEditor() {
     if (!d || started.current === key) return;
     started.current = key;
     void (async () => {
+      // a bill already put in a tab (Quick sale › Open full invoice): just show it
+      if (params.get('keep') !== null && useSI.getState().active) return;
       const doc = params.get('quote') !== null ? 'quote' : 'sale';
       const edit = params.get('edit');
       const same = edit && useSI.getState().tabs.find((t) => t.si.editId === edit);

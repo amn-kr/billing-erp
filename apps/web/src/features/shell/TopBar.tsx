@@ -1,4 +1,5 @@
 /** <header class="top"> — same markup as the prototype's top bar. */
+import { useQuick } from '../sales/QuickSale';
 import { Fragment, type MouseEvent as RMouseEvent, type ReactNode } from 'react';
 import { ROLE_LABELS, daysBetween, formatLongDate, type MeResponse } from '@billing/shared';
 import { Icon, RawIcon } from '../../components/Icon';
@@ -126,7 +127,7 @@ export function TopBar({ me, today, lowItems = 0, pal, online, onPal, onView, on
         <input id="q" placeholder="Search invoice, party, item…" autoComplete="off" onKeyDown={(e) => { const v = e.currentTarget.value.trim(); if (e.key === 'Enter' && v) onSearch(v); }} />
       </label>
       <div className="sp"></div>
-      <button className="ib qsb" id="qsBtn" title="Quick sale (Alt+N)" aria-label="Quick sale" onClick={() => onSoon('Quick sale')}><RawIcon d={BOLT} /></button>
+      <button className="ib qsb" id="qsBtn" title="Quick sale (Alt+N)" aria-label="Quick sale" onClick={() => useQuick.getState().show()}><RawIcon d={BOLT} /></button>
       <div className="rel" hidden style={{ display: 'none' }}>
         <button className="ib plus" id="qcBtn" aria-label="Create new" aria-haspopup="true" aria-expanded={pop === 'qcPop'} onClick={toggle('qcPop')}><Icon name="plus" /></button>
         <div className="pop qc" id="qcPop" hidden={pop !== 'qcPop'}>
