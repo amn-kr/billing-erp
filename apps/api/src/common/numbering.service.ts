@@ -18,7 +18,7 @@ export class NumberingService {
     year ??= await tx.financialYear.create({ data: { businessId, label: fy.label, startDate: day(fy.start), endDate: day(fy.end), createdBy: userId } });
     const prefix = SERIES.find(([t]) => t === docType)?.[1] ?? docType.toUpperCase() + '-';
     await tx.documentSeries.createMany({
-      data: [{ businessId, financialYearId: year.id, docType, prefix, nextNumber: 1, createdBy: userId }],
+      data: [{ businessId, financialYearId: year.id, docType, prefix, nextNumber: docType === 'quotation' ? 101 : 1, createdBy: userId }],
       skipDuplicates: true,
     });
     const rows = await tx.$queryRaw<{ prefix: string; n: number; padding: number }[]>`

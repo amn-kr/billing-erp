@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/com
 import { randomUUID } from 'node:crypto';
 import { namedId, unitIdFor } from '../../common/lookups';
 import {
-  addDays, DEFAULT_CATEGORIES, DEFAULT_COMMISSION, DEFAULT_PARTY_GROUPS, DEFAULT_PRICE_LISTS, DEFAULT_TAXES, DEFAULT_UNITS,
+  addDays, DEFAULT_CATEGORIES, DEFAULT_COMMISSION, DEFAULT_EXPENSE_CATEGORIES, LEDGER_ACCOUNTS, DEFAULT_PARTY_GROUPS, DEFAULT_PRICE_LISTS, DEFAULT_TAXES, DEFAULT_UNITS,
   financialYearOf, todayIst, type CreateBusinessInput,
 } from '@billing/shared';
 import { config } from '../../config';
@@ -12,9 +12,9 @@ import type { RequestContext } from '../../common/context';
 
 /** Prototype default prefixes (INV-0412, PB-0209, DC-…). */
 export const SERIES: ReadonlyArray<[docType: string, prefix: string]> = [
-  ['invoice', 'INV-'], ['quotation', 'QT-'], ['challan', 'DC-'], ['credit_note', 'CN-'], ['receipt', 'PI-'],
-  ['purchase_order', 'PO-'], ['bill', 'PB-'], ['debit_note', 'DN-'], ['payment', 'PO-PAY-'], ['expense', 'EXP-'],
-  ['stock_adjustment', 'ADJ-'], ['stock_transfer', 'TRF-'],
+  ['invoice', 'INV-'], ['quotation', 'Q-'], ['challan', 'DC-'], ['credit_note', 'CN-'], ['receipt', 'PI-'],
+  ['purchase_order', 'ORD-'], ['bill', 'PB-'], ['debit_note', 'DN-'], ['payment', 'PO-'], ['expense', 'EXP-'],
+  ['stock_adjustment', 'ADJ-'], ['stock_transfer', 'TRF-'], ['bank_entry', 'BT-'], ['commission_payout', 'CP-'],
 ];
 
 const dateOnly = (iso: string) => new Date(iso + 'T00:00:00Z');
@@ -45,6 +45,15 @@ export async function seedMasters(tx: Tx, o: { businessId: string; userId: strin
   await tx.commissionRule.createMany({
     data: cats.filter((c) => DEFAULT_COMMISSION[c.name]).map((c) => ({ ...base, categoryId: c.id, kind: DEFAULT_COMMISSION[c.name]!.kind, value: DEFAULT_COMMISSION[c.name]!.value })),
   });
+  // the books: "Cash in hand" (the prototype's one account in a new shop), expense categories, ledger accounts
+  await tx.cashBankAccount.create({ data: { ...base, kind: 'cash', name: 'Cash in hand', sub: 'Shop counter', isDefault: true, openingDate: dateOnly(todayIst()) } });
+  await tx.expenseCategory.createMany({ data: DEFAULT_EXPENSE_CATEGORIES.map((name, k) => ({ ...base, ...at(k), name })) });
+  await tx.ledgerAccount.createMany({ data: LEDGER_ACCOUNTS.map((a) => ({ ...base, ...a })) });
+}
+
+/** The opening cash in hand (Settings › Start fresh, import): kept on the cash account and in settings. */
+export async function setCashOpening(tx: Tx, amount: string) {
+  await tx.cashBankAccount.updateMany({ where: { kind: 'cash', isDefault: true }, data: { openingBalance: amount } });
 }
 
 @Injectable()
@@ -87,7 +96,7 @@ export class BusinessesService {
       });
       await tx.documentSeries.createMany({
         data: SERIES.map(([docType, prefix]) => ({
-          businessId: id, financialYearId: year.id, docType, prefix, nextNumber: docType === 'invoice' ? +input.inv || 1 : 1, createdBy: ctx.userId,
+          businessId: id, financialYearId: year.id, docType, prefix, nextNumber: docType === 'invoice' ? +input.inv || 1 : docType === 'quotation' ? 101 : 1, createdBy: ctx.userId,
         })),
       });
       await seedMasters(tx, { businessId: id, userId: ctx.userId, owner: input.owner, phone: input.phone, address: [input.addr, [input.city, input.pin].filter(Boolean).join(' ')].filter(Boolean).join(', ') });
@@ -102,7 +111,10 @@ export class BusinessesService {
           },
         });
       }
-      if (opts.cash) await tx.businessSettings.update({ where: { businessId: id }, data: { data: { showCurrency: false, mrp: false, cashOpen: opts.cash } } });
+      if (opts.cash) {
+        await tx.businessSettings.update({ where: { businessId: id }, data: { data: { showCurrency: false, mrp: false, cashOpen: opts.cash } } });
+        await setCashOpening(tx, opts.cash);
+      }
       await this.audit.log(tx, { businessId: id, userId: ctx.userId, action: 'create', entity: 'business', entityId: id, after: { ...business, copiedItems: opts.copyItems?.length ?? 0 }, ip: ctx.ip });
       return business;
     });

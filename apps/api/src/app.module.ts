@@ -19,6 +19,7 @@ import { HealthController } from './modules/health/health.controller';
 import { ImportsController } from './modules/imports/imports.controller';
 import { ImportsService } from './modules/imports/imports.service';
 import { NumberingService } from './common/numbering.service';
+import { LedgerService } from './common/ledger.service';
 import { PartiesController } from './modules/parties/parties.controller';
 import { PartiesService } from './modules/parties/parties.service';
 import { ItemsController } from './modules/items/items.controller';
@@ -50,6 +51,7 @@ import { CommissionController } from './modules/commission/commission.controller
     MembersService,
     ImportsService,
     NumberingService,
+    LedgerService,
     PartiesService,
     ItemsService,
     StockService,
