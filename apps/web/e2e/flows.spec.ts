@@ -139,8 +139,9 @@ test('sidebar groups, collapse and colours are remembered', async ({ browser }) 
 test('screens not rebuilt yet say so, like the prototype', async ({ browser }) => {
   const page = await newPage(browser, 1366);
   await signIn(page);
-  await page.click('.grp[data-g="Sales"] a[data-view="sales"]');
-  await expect(page.locator('#toast')).toHaveText('Sales invoices screen is coming next');
+  await page.click('.grp[data-g="Purchases"] > .ni');
+  await page.click('.grp[data-g="Purchases"] a[data-view="pur"]');
+  await expect(page.locator('#toast')).toHaveText('Purchase bills screen is coming next');
   await expect(page.locator('#toast')).toHaveClass(/on/);
   await page.click('#heroActs button.p');
   await expect(page.locator('#toast')).toHaveText('New invoice screen is coming next');

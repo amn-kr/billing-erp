@@ -71,7 +71,10 @@ describe('sale invoice', () => {
     expect(r.body).toMatchObject({ total: '1890.00', received: '1890.00', balance: '0.00', settledOld: '1000.00', advance: '610.00' });
     expect(await balanceOf(o, verma.id)).toBe('-610.00');
     const rc = (await http().get('/api/receipts').set(auth(o)).expect(200)).body;
-    expect(rc[0]).toMatchObject({ number: 'PI-0001', amount: '3500.00', unused: '610.00', mode: 'UPI + Cash', against: 'INV-0001, Opening balance' });
+    // like the old app: the bill's receipt, and the extra as XP-<invoice no.>
+    expect(rc.map((r: { number: string; amount: string; unused: string; mode: string; against: string }) => [r.number, r.amount, r.unused, r.mode, r.against])).toEqual([
+      ['XP-INV-0001', '1610.00', '610.00', 'UPI + Cash', 'Opening balance'], ['PI-0001', '1890.00', '0.00', 'UPI + Cash', 'INV-0001'],
+    ]);
     expect((await http().get(`/api/parties/${verma.id}/dues`).set(auth(o)).expect(200)).body).toEqual([]);
   });
 
@@ -127,7 +130,8 @@ describe('payments received', () => {
     const { o, fan, verma } = await shop();
     const a = (await sale(o, { partyId: verma.id, lines: [line(fan, '1', '1890')] }).expect(201)).body;
     const dues = (await http().get(`/api/parties/${verma.id}/dues`).set(auth(o)).expect(200)).body;
-    expect(dues.map((d: { number: string; balance: string }) => [d.number, d.balance])).toEqual([['Opening balance', '1000.00'], ['INV-0001', '1890.00']]);
+    // same day: the invoice first, the opening balance last (as the old app lists them)
+    expect(dues.map((d: { number: string; balance: string }) => [d.number, d.balance])).toEqual([['INV-0001', '1890.00'], ['Opening balance', '1000.00']]);
     const msg = async (b: object) => (await http().post('/api/receipts').set(auth(o)).send({ partyId: verma.id, date: D, mode: 'Cash', ...b }).expect(400)).body.message;
     expect(await msg({ amount: '0' })).toBe('Enter the amount received.');
     expect(await msg({ amount: '100', mode: 'Cheque' })).toBe('Enter the cheque number.');

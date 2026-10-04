@@ -76,6 +76,8 @@ export class ReceiptsService {
       const docIds = [...new Set(pays.flatMap((p) => p.allocations.flatMap((a) => (a.salesDocumentId ? [a.salesDocumentId] : []))))];
       const src = await tx.salesDocument.findMany({ where: { id: { in: [...docIds, ...pays.flatMap((p) => (p.sourceId ? [p.sourceId] : []))] } }, select: { id: true, number: true, cashName: true, cancelledAt: true } });
       const no = new Map(src.map((d) => [d.id, d]));
+      // prototype order: newest date first, then number (text, descending)
+      pays.sort((a, b) => b.date.getTime() - a.date.getTime() || b.number.localeCompare(a.number));
       return pays.map((p) => {
         const sale = p.sourceId ? no.get(p.sourceId) : undefined;
         const against = p.allocations.map((a) => (a.kind === 'opening' ? 'Opening balance' : (no.get(a.salesDocumentId ?? '')?.number ?? '')));

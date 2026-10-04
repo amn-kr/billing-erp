@@ -153,7 +153,7 @@ describe('importing sales documents', () => {
     ]);
     const rc = (await http().get('/api/receipts').set(auth(o)).expect(200)).body as { number: string; amount: string; unused: string; mode: string }[];
     expect(rc.map((r) => [r.number, r.amount, r.unused, r.mode])).toEqual([
-      ['PI-0625', '5000.00', '0.00', 'Cheque'], ['PI-0624', '500.00', '0.00', 'Cash'], ['PI-0621', '420.00', '0.00', 'Cash'], ['PI-0620', '2000.00', '0.00', 'UPI'],
+      ['XP-INV-0105', '310.00', '0.00', 'Cash'], ['PI-0625', '5000.00', '0.00', 'Cheque'], ['PI-0624', '190.00', '0.00', 'Cash'], ['PI-0621', '420.00', '0.00', 'Cash'], ['PI-0620', '2000.00', '0.00', 'UPI'],
     ]);
     // numbers carry on after the imported ones
     const next = async (kind: string) => (await http().get(`/api/sales/next-number?kind=${kind}&date=2026-10-01`).set(auth(o)).expect(200)).body.number;

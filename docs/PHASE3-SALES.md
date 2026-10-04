@@ -19,8 +19,9 @@ They describe the behaviour the new app must keep; "New app" says how it is stor
   Received = min(paid, total). Paid above the total:
   - party: the extra settles that party's older dues, oldest first, the rest is an advance (`xpApply` 7813);
   - walk-in: change is returned; only the total is recorded.
-  New app: one receipt (PI-) for everything taken on the invoice screen, allocated to this invoice first,
-  then older dues oldest first; the rest stays unused (= advance). (Prototype made a separate XP- entry.)
+  New app (same as the prototype): a receipt (PI-) for what is kept on the bill, and from a party a second
+  entry "XP-<invoice no.>" for the extra, settling older dues oldest first; the rest stays unused (= advance).
+  One helper does this for new, edited and imported invoices (apps/api/src/modules/sales/at-sale.ts).
 - Referral (electrician): commission is loaded on top of the rate per category rule (or a per-bill /
   per-item override) — `cmApply` 8661. Line keeps base price, rule and commission. Not printed.
 - Quotation / challan it came from are linked; saving marks them converted / invoiced.

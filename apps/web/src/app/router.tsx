@@ -7,6 +7,10 @@ import { AdjustmentsPage } from '../features/stock/AdjustmentsPage';
 import { PricesPage } from '../features/prices/PricesPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { GodownsPage } from '../features/stock/GodownsPage';
+import { SalesPage } from '../features/sales/SalesPage';
+import { PaymentsReceivedPage } from '../features/sales/PaymentsReceivedPage';
+import { CreditNotesPage } from '../features/sales/CreditNotesPage';
+import { ChallansPage } from '../features/sales/ChallansPage';
 
 export const router = createBrowserRouter([
   {
@@ -20,6 +24,10 @@ export const router = createBrowserRouter([
       { path: 'settings', element: <SettingsPage /> },
       { path: 'stock-adjustments', element: <AdjustmentsPage /> },
       { path: 'godowns', element: <GodownsPage /> },
+      { path: 'sales', element: <SalesPage /> },
+      { path: 'payments-received', element: <PaymentsReceivedPage /> },
+      { path: 'credit-notes', element: <CreditNotesPage /> },
+      { path: 'delivery-challans', element: <ChallansPage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

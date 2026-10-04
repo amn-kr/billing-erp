@@ -49,7 +49,7 @@ export async function openingDue(tx: Tx, partyId: string): Promise<Money> {
   return due.isNegative() ? money(0) : due;
 }
 
-export interface Due { to: string; kind: 'opening' | 'invoice'; number: string; date: string; dueDate: string | null; total: Money; balance: Money }
+export interface Due { to: string; kind: 'opening' | 'invoice'; number: string; date: string; dueDate: string | null; total: Money; balance: Money; at?: number }
 
 /**
  * A customer's open dues, oldest first (prototype openDues): unpaid invoices and
@@ -73,9 +73,12 @@ export async function openDues(tx: Tx, partyId: string, o: { upTo?: string; exce
   }
   for (const d of docs) {
     const b = bal.get(d.id) ?? money(0);
-    if (b.gt(0)) out.push({ to: d.id, kind: 'invoice', number: d.number, date: isoOf(d.date)!, dueDate: isoOf(d.dueDate), total: money(d.total.toString()), balance: b });
+    if (b.gt(0)) out.push({ to: d.id, kind: 'invoice', number: d.number, date: isoOf(d.date)!, dueDate: isoOf(d.dueDate), total: money(d.total.toString()), balance: b, at: d.createdAt.getTime() });
   }
-  return out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  // oldest date first; on the same day the old app lists the newest entry first and the opening balance last
+  return out
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.kind !== b.kind ? (a.kind === 'opening' ? 1 : -1) : (b.at ?? 0) - (a.at ?? 0)))
+    .map(({ at: _at, ...d }) => d);
 }
 
 /** Fill dues oldest first with an amount; returns the allocations and what is left over. */

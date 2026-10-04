@@ -9,8 +9,8 @@ import { NumberingService } from '../../common/numbering.service';
 import { LedgerService, type PostLine } from '../../common/ledger.service';
 import type { RequestContext } from '../../common/context';
 import { day, isoOf } from '../../common/lookups';
-import { autoAllocate, invoiceBalances, openDues, unusedAmounts } from './dues';
-import { capSplits, moneyInLines } from './money-in';
+import { invoiceBalances, openDues, unusedAmounts } from './dues';
+import { writeAtSale } from './at-sale';
 
 const q3 = (v: { toString(): string }) => money(v.toString()).toDecimalPlaces(3).toFixed(3);
 const d2 = (v: { toString(): string } | null | undefined) => (v === null || v === undefined ? null : toDb(v.toString()));
@@ -167,7 +167,10 @@ export class SalesService {
         date: input.date, sourceType: 'sales_document', sourceId: doc.id, number, narration: `Sale ${number} · ${party?.name ?? head.cashName}`,
         lines: invoiceLines(t, party?.id ?? null),
       });
-      const r = await this.atSaleReceipt(tx, ctx, { doc, party, input, total: t.total, paid });
+      const r = await writeAtSale(tx, { businessId, userId: ctx.userId, ledger: this.ledger, numbers: this.numbers }, {
+        docId: doc.id, docNumber: number, date: input.date, partyId: party?.id ?? null, total: t.total,
+        parts: input.payments.map((p) => ({ mode: p.mode as string, amount: money(p.amount), ref: p.ref })),
+      });
       settledOld = r.settledOld;
       advance = r.advance;
       /* the quotations and challan it came from */
@@ -219,64 +222,6 @@ export class SalesService {
           date: day(date), qty: n._sum.qty!.neg().toFixed(3), kind: 'cancel', note,
         })),
       });
-  }
-
-  /**
-   * Money taken on the invoice screen: one receipt, settled against this invoice first,
-   * any extra against the party's older dues (oldest first), the rest kept as advance.
-   * A walk-in sale records only the bill amount (the rest is change).
-   */
-  private async atSaleReceipt(
-    tx: Tx, ctx: RequestContext,
-    o: { doc: { id: string; number: string; date: Date }; party: { id: string; name: string } | null; input: SaleInput; total: Money; paid: Money },
-  ) {
-    const businessId = ctx.businessId!;
-    const date = isoOf(o.doc.date)!;
-    const old = await tx.payment.findFirst({ where: { sourceId: o.doc.id, atSale: true, cancelledAt: null } });
-    const amount = o.party ? o.paid : o.paid.lt(o.total) ? o.paid : o.total;
-    const zero = { settledOld: money(0), advance: money(0) };
-    if (old) {
-      await tx.cheque.updateMany({ where: { paymentId: old.id, status: 'pending' }, data: { status: 'cancelled', statusDate: day(date), note: `Replaced when ${o.doc.number} was edited` } });
-      await tx.paymentAllocation.deleteMany({ where: { paymentId: old.id } });
-    }
-    if (!amount.gt(0)) {
-      if (old) {
-        await tx.payment.update({ where: { id: old.id }, data: { cancelledAt: new Date(), cancelledBy: ctx.userId } });
-        await this.ledger.cancel(tx, 'payment', old.id);
-      }
-      return zero;
-    }
-    const splits = o.party ? o.input.payments.map((p) => ({ mode: p.mode as string, amount: money(p.amount), ref: p.ref })).filter((p) => p.amount.gt(0)) : capSplits(o.input.payments, amount);
-    const modes = [...new Set(splits.map((s) => s.mode))];
-    const data = {
-      date: day(date), partyId: o.party?.id ?? null, amount: amount.toFixed(2), mode: modes.join(' + '), reference: splits.map((s) => s.ref).filter(Boolean).join(', '),
-      splits: splits.map((s) => ({ mode: s.mode, amount: s.amount.toFixed(2), ref: s.ref })) as Prisma.InputJsonValue, notes: `Received with ${o.doc.number}`,
-    };
-    const pay = old
-      ? await tx.payment.update({ where: { id: old.id }, data })
-      : await tx.payment.create({ data: { ...data, businessId, createdBy: ctx.userId, direction: 'in', atSale: true, sourceId: o.doc.id, number: await this.numbers.next(tx, businessId, ctx.userId, 'receipt', date) } });
-    const onBill = amount.lt(o.total) ? amount : o.total;
-    const alloc = [{ to: o.doc.id, amount: onBill }];
-    let left = amount.minus(onBill);
-    let settledOld = money(0);
-    if (o.party && left.gt(0)) {
-      const r = autoAllocate(await openDues(tx, o.party.id, { upTo: date, except: o.doc.id }), left);
-      alloc.push(...r.alloc);
-      settledOld = left.minus(r.left);
-      left = r.left;
-    }
-    await tx.paymentAllocation.createMany({
-      data: alloc.map((a) => ({
-        businessId, paymentId: pay.id, amount: a.amount.toFixed(2),
-        ...(a.to === 'opening' ? { kind: 'opening', partyId: o.party!.id } : { salesDocumentId: a.to, partyId: o.party?.id ?? null }),
-      })),
-    });
-    const debit = await moneyInLines(tx, { businessId, userId: ctx.userId }, { splits, paymentId: pay.id, partyId: o.party?.id ?? null, date, memo: pay.number });
-    await this.ledger.repost(tx, { businessId, userId: ctx.userId }, {
-      date, sourceType: 'payment', sourceId: pay.id, number: pay.number, narration: `Received with ${o.doc.number}`,
-      lines: [...debit, { account: 'receivable', partyId: o.party?.id ?? null, credit: amount }],
-    });
-    return { settledOld, advance: left };
   }
 
   /* ───────── cancel ───────── */

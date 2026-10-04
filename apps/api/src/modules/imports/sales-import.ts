@@ -10,7 +10,8 @@ import { Prisma } from '@prisma/client';
 import type { Tx } from '../../common/db.service';
 import type { LedgerService, PostLine } from '../../common/ledger.service';
 import type { NumberingService } from '../../common/numbering.service';
-import { autoAllocate, invoiceBalances, openDues, openingDue } from '../sales/dues';
+import { invoiceBalances, openingDue } from '../sales/dues';
+import { writeAtSale } from '../sales/at-sale';
 import { accountFor, moneyInLines } from '../sales/money-in';
 
 const day = (iso: string) => new Date(iso + 'T00:00:00Z');
@@ -42,6 +43,9 @@ export async function writeSales(tx: Tx, c: SalesImportCtx, s: PlanSales) {
       basePrice: l.basePrice, commOverride: l.commOverride ? (l.commOverride as Prisma.InputJsonValue) : Prisma.DbNull, commType: l.commType, commValue: l.commValue, commAmount: l.commAmount,
     }));
   const invId = new Map<string, string>();
+  // documents written together are stamped a millisecond apart, so "newest first" keeps the old app's order
+  let tick = 0;
+  const stamp = () => ({ createdAt: new Date(Date.now() + ++tick) });
 
   /* 1. invoices, oldest first */
   for (const v of s.invoices) {
@@ -51,7 +55,7 @@ export async function writeSales(tx: Tx, c: SalesImportCtx, s: PlanSales) {
     const items = v.lines.reduce((a, l) => a.plus(m(l.amount)), money(0));
     const doc = await tx.salesDocument.create({
       data: {
-        ...base, kind: 'invoice', number: v.number, legacyId: v.number, date: day(v.date), dueDate: day(v.mode === 'cash' ? v.date : v.dueDate), mode: v.mode, partyId,
+        ...base, ...stamp(), kind: 'invoice', number: v.number, legacyId: v.number, date: day(v.date), dueDate: day(v.mode === 'cash' ? v.date : v.dueDate), mode: v.mode, partyId,
         cashName: v.cashName, cashPhone: v.cashPhone, billName: v.billName, taxMode: v.taxMode, pricesInclTax: v.pricesInclTax, placeOfSupply: v.placeOfSupply,
         roundOff: true, billDiscAmt: m(t.billDiscount).isZero() ? null : t.billDiscount, transport: t.transport, labour: t.labour, bankCharge: t.bankCharge,
         itemsTotal: items.toFixed(2), billDiscount: t.billDiscount, taxable: t.taxable, tax: tax.toFixed(2), cgst: t.cgst, sgst: t.sgst, igst: t.igst, tcs: t.tcs,
@@ -85,38 +89,17 @@ export async function writeSales(tx: Tx, c: SalesImportCtx, s: PlanSales) {
     });
     await claim('invoice', v.date, v.number);
 
-    /* money taken on the invoice */
+    /* money taken on the invoice (any extra: a separate XP- entry, as in the old app) */
     const received = m(v.received);
     const amount = partyId ? received.plus(m(v.extraPaid)) : received;
     if (amount.gt(0)) {
-      let splits = v.pays.map((p) => ({ mode: p.mode, amount: m(p.amount), ref: p.ref }));
-      const paid = splits.reduce((a, p) => a.plus(p.amount), money(0));
-      if (!paid.eq(amount)) {
-        // walk-in change, or an old invoice without the split: record what was kept, in the first mode
-        splits = [{ mode: splits[0]?.mode ?? 'Cash', amount, ref: splits.map((p) => p.ref).filter(Boolean).join(', ') }];
-      }
-      const number = v.receiptNo || (await c.numbers.next(tx, c.businessId, c.userId, 'receipt', v.date));
-      const pay = await tx.payment.create({
-        data: {
-          ...base, direction: 'in', number, legacyId: number, date: day(v.date), partyId, amount: amount.toFixed(2), mode: [...new Set(splits.map((p) => p.mode))].join(' + '),
-          reference: splits.map((p) => p.ref).filter(Boolean).join(', '), atSale: true, sourceId: doc.id, notes: `Received with ${v.number}`,
-          splits: splits.map((p) => ({ mode: p.mode, amount: p.amount.toFixed(2), ref: p.ref })) as Prisma.InputJsonValue,
-        },
+      let parts = v.pays.map((p) => ({ mode: p.mode, amount: m(p.amount), ref: p.ref }));
+      const paid = parts.reduce((a, p) => a.plus(p.amount), money(0));
+      // walk-in change, or an old invoice without the split: record what was kept, in the first mode
+      if (!paid.eq(amount)) parts = [{ mode: parts[0]?.mode ?? 'Cash', amount, ref: parts.map((p) => p.ref).filter(Boolean).join(', ') }];
+      await writeAtSale(tx, { businessId: c.businessId, userId: c.userId, ledger: c.ledger, numbers: c.numbers }, {
+        docId: doc.id, docNumber: v.number, date: v.date, partyId, total, parts, receiptNo: v.receiptNo || undefined, legacy: true,
       });
-      if (v.receiptNo) await claim('receipt', v.date, number);
-      const onBill = min(received, total);
-      const alloc = [{ to: doc.id, amount: onBill }];
-      let left = amount.minus(onBill);
-      if (partyId && left.gt(0)) {
-        const r = autoAllocate(await openDues(tx, partyId, { upTo: v.date, except: doc.id }), left);
-        alloc.push(...r.alloc);
-        left = r.left;
-      }
-      await tx.paymentAllocation.createMany({
-        data: alloc.filter((a) => a.amount.gt(0)).map((a) => ({ businessId: c.businessId, paymentId: pay.id, amount: a.amount.toFixed(2), partyId, ...(a.to === 'opening' ? { kind: 'opening' } : { salesDocumentId: a.to }) })),
-      });
-      const debit = await moneyInLines(tx, who, { splits, paymentId: pay.id, partyId, date: v.date, memo: number });
-      await c.ledger.post(tx, who, { date: v.date, sourceType: 'payment', sourceId: pay.id, number, narration: `Received with ${v.number} (imported)`, lines: [...debit, { account: 'receivable', partyId, credit: amount }] });
     }
   }
 
@@ -145,7 +128,7 @@ export async function writeSales(tx: Tx, c: SalesImportCtx, s: PlanSales) {
     const amount = m(r.amount);
     const pay = await tx.payment.create({
       data: {
-        ...base, direction: 'in', number: r.number, legacyId: r.number, date: day(r.date), partyId, amount: amount.toFixed(2), mode: r.mode, reference: r.ref,
+        ...base, ...stamp(), direction: 'in', number: r.number, legacyId: r.number, date: day(r.date), partyId, amount: amount.toFixed(2), mode: r.mode, reference: r.ref,
         splits: [{ mode: r.mode, amount: amount.toFixed(2), ref: r.ref }] as Prisma.InputJsonValue,
       },
     });
@@ -184,7 +167,7 @@ export async function writeSales(tx: Tx, c: SalesImportCtx, s: PlanSales) {
     const sgst = inter ? money(0) : tax.minus(cgst);
     const doc = await tx.salesDocument.create({
       data: {
-        ...base, kind: 'credit_note', number: cn.number, legacyId: cn.number, date: day(cn.date), mode: partyId ? 'credit' : 'cash', partyId, cashName: cn.cashName,
+        ...base, ...stamp(), kind: 'credit_note', number: cn.number, legacyId: cn.number, date: day(cn.date), mode: partyId ? 'credit' : 'cash', partyId, cashName: cn.cashName,
         taxMode: books?.gstEnabled ? 'gst' : 'none', placeOfSupply: firstInv?.placeOfSupply ?? state, roundOff: false, itemsTotal: total.toFixed(2), taxable: taxable.toFixed(2),
         tax: tax.toFixed(2), cgst: cgst.toFixed(2), sgst: sgst.toFixed(2), igst: (inter ? tax : money(0)).toFixed(2), total: total.toFixed(2), status: cn.settle, reason: cn.reason,
         extra: { refundMode: cn.settle === 'refund' ? cn.refundMode : '', invoices: cn.invoices.map((i) => i.no) }, sourceId: firstInv ? (invId.get(firstInv.number) ?? null) : null,
@@ -230,7 +213,7 @@ export async function writeSales(tx: Tx, c: SalesImportCtx, s: PlanSales) {
   for (const d of s.challans) {
     const doc = await tx.salesDocument.create({
       data: {
-        ...base, kind: 'challan', number: d.number, legacyId: d.number, date: day(d.date), mode: d.partyLegacyId ? 'credit' : 'cash', partyId: pid(d.partyLegacyId),
+        ...base, ...stamp(), kind: 'challan', number: d.number, legacyId: d.number, date: day(d.date), mode: d.partyLegacyId ? 'credit' : 'cash', partyId: pid(d.partyLegacyId),
         cashName: d.cashName, cashPhone: d.cashPhone, taxMode: 'gst', notes: d.note, status: d.status,
         extra: { transport: d.transport, vehicle: d.vehicle, ...(d.invoiceNo && { invoiceNo: d.invoiceNo, invoiceId: invId.get(d.invoiceNo) }) },
         ...(d.status === 'cancelled' && { cancelledAt: new Date(d.date + 'T12:00:00+05:30'), cancelledBy: c.userId }),
@@ -247,7 +230,7 @@ export async function writeSales(tx: Tx, c: SalesImportCtx, s: PlanSales) {
     const t = q.totals;
     const doc = await tx.salesDocument.create({
       data: {
-        ...base, kind: 'quotation', number: q.number, legacyId: q.number, date: day(q.date), dueDate: q.validTill ? day(q.validTill) : null, mode: q.mode, partyId: pid(q.partyLegacyId),
+        ...base, ...stamp(), kind: 'quotation', number: q.number, legacyId: q.number, date: day(q.date), dueDate: q.validTill ? day(q.validTill) : null, mode: q.mode, partyId: pid(q.partyLegacyId),
         cashName: q.cashName, cashPhone: q.cashPhone, taxMode: q.taxMode, pricesInclTax: q.pricesInclTax, placeOfSupply: q.placeOfSupply,
         transport: t.transport, labour: t.labour, bankCharge: t.bankCharge, billDiscount: t.billDiscount, billDiscAmt: m(t.billDiscount).isZero() ? null : t.billDiscount,
         itemsTotal: q.lines.reduce((a, l) => a.plus(m(l.amount)), money(0)).toFixed(2), taxable: t.taxable, tax: m(t.cgst).plus(m(t.sgst)).plus(m(t.igst)).toFixed(2),
