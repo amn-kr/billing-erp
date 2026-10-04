@@ -48,6 +48,11 @@ export class CommissionService {
     for (const p of add) await tx.referrer.create({ data: { businessId: ctx.businessId!, createdBy: ctx.userId, name: p.name, phone: p.phone, city: p.addresses[0]?.city ?? '', partyId: p.id } });
   }
 
+  /** Each electrician's referred bills with their commission and returns (used by the reports). */
+  bills(tx: Tx) {
+    return this.summaryIn(tx);
+  }
+
   private async summaryIn(tx: Tx, only?: string) {
     const refs = await tx.referrer.findMany({ where: { archivedAt: null, ...(only && { id: only }) }, orderBy: { createdAt: 'asc' } });
     const invs = await tx.salesDocument.findMany({
