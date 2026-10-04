@@ -30,6 +30,7 @@ import { PricingController } from './modules/pricing/pricing.controller';
 import { PricingService } from './modules/pricing/pricing.service';
 import { SettingsController } from './modules/settings/settings.controller';
 import { CommissionController } from './modules/commission/commission.controller';
+import { CommissionService } from './modules/commission/commission.service';
 import { SalesController } from './modules/sales/sales.controller';
 import { QuotesController } from './modules/sales/quotes.controller';
 import { PurchasesController } from './modules/purchases/purchases.controller';
@@ -64,6 +65,7 @@ import { ReceiptsService } from './modules/sales/receipts.service';
     NumberingService,
     LedgerService,
     BankingService,
+    CommissionService,
     ChequesService,
     ExpensesService,
     PartiesService,

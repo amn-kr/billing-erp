@@ -99,7 +99,7 @@ async function save(page: Page, name: string) {
 /* ---------- sales, through the prototype's own editor and dialogs ---------- */
 const ev = (page: Page, js: string) => page.evaluate((code) => (0, eval)(code), js);
 
-interface SaleSpec { party?: string; cash?: string; date?: string; due?: string; lines: [item: string, qty: number, disc?: number][]; pays?: [mode: string, amt: number, ref?: string][]; bdiscP?: number; chTr?: number; quote?: boolean; challan?: string }
+interface SaleSpec { party?: string; cash?: string; date?: string; due?: string; lines: [item: string, qty: number, disc?: number][]; pays?: [mode: string, amt: number, ref?: string][]; bdiscP?: number; chTr?: number; quote?: boolean; challan?: string; ref?: string; full?: boolean }
 async function sale(page: Page, s: SaleSpec) {
   await later(page);
   await ev(page, `(() => {
@@ -110,11 +110,13 @@ async function sale(page: Page, s: SaleSpec) {
     else openInvoice(party ? { party: party.id } : {});
     if (!party && !s.challan) { SI.mode = 'cash'; SI.cashName = s.cash || ''; }
     if (s.date) { SI.date = s.date; SI.due = s.due || s.date; SI.dueTouched = true; }
+    if (s.ref) SI.ref = ELEC.find((e) => e.name === s.ref).id;
     if (!s.challan) SI.lines = s.lines.map(([n, q, d]) => { const L = lineFor(IT.find((i) => i.name === n)); L.qty = q; L.disc = d || 0; return L; });
     if (s.bdiscP) SI.bdiscP = String(s.bdiscP);
     if (s.chTr) SI.chTr = String(s.chTr);
     renderSI();
-    if (s.pays) { SI.pays = s.pays.map(([mode, amt, ref]) => ({ mode, amt, ref: ref || '' })); SI.recvTouched = true; }
+    if (s.full) { SI.pays = [{ mode: 'UPI', amt: calc().total, ref: '' }]; SI.recvTouched = true; }
+    else if (s.pays) { SI.pays = s.pays.map(([mode, amt, ref]) => ({ mode, amt, ref: ref || '' })); SI.recvTouched = true; }
     else if (!s.quote) { SI.recvTouched = true; SI.pays = [{ mode: SI.mode === 'cash' ? 'Cash' : 'UPI', amt: SI.mode === 'cash' ? calc().total : 0, ref: '' }]; }
     renderSI();
     SI.chgOk = true;
@@ -281,6 +283,34 @@ async function expenseShop(page: Page) {
   await expense(page, { cat: 'Generator diesel', date: '2026-10-01', payee: 'Indian Oil', mode: 'Cash', acct: 'Cash in hand', note: 'Power cut', lines: [['Diesel', '20', '92.5', '0']] });
 }
 
+/* ---------- electrician commission, through the prototype's commission page ---------- */
+async function commissionShop(page: Page) {
+  await later(page);
+  await ev(page, 'elecEdit()');
+  await page.fill('#elN', 'Sunil Electrician');
+  await page.fill('#elP', '9839044556');
+  await page.fill('#elC', 'Lucknow');
+  await page.click('#slmOk');
+  await sale(page, { party: 'Mehta Electricals', ref: 'Sunil Electrician', date: '2026-09-25', due: '2026-10-25', lines: [['MCB 32A double pole', 5]], full: true });
+  await sale(page, { party: 'Raju Electrician', ref: 'Sunil Electrician', date: '2026-09-29', due: '2026-10-14', lines: [['MCB 32A double pole', 2]], pays: [['Cash', 300]] });
+  await sale(page, { party: 'Sunil Electrician', date: '2026-09-30', due: '2026-10-15', lines: [['LED bulb 9W', 10]] });
+  // one MCB back from the fully paid referred bill
+  await later(page);
+  await ev(page, `cnOpen({ inv: 'INV-0107' })`);
+  await page.fill('#cnRowsI tr[data-cnk="0"] [data-cnq]', '1');
+  await page.dispatchEvent('#cnRowsI tr[data-cnk="0"] [data-cnq]', 'input');
+  await page.click('#cnSave');
+  // pay some commission in cash, then adjust some against his own bill
+  for (const [mode, amt] of [['Cash', '100'], ['Adjust', '50']] as const) {
+    await later(page);
+    await ev(page, `cmPay(ELEC.find((e) => e.name === 'Sunil Electrician').id)`);
+    await page.selectOption('#cpM', mode);
+    await page.fill('#cpA', amt);
+    await page.click('#slmOk');
+    if (!(await page.locator('#slm').isHidden())) throw new Error('commission not paid: ' + (await page.textContent('#cpErr')));
+  }
+}
+
 // 1. the sample shop, untouched
 {
   const { page, close } = await open();
@@ -311,6 +341,8 @@ async function expenseShop(page: Page) {
   await bankShop(page);
   await expenseShop(page);
   await save(page, 'bank-shop.backup.json');
+  await commissionShop(page);
+  await save(page, 'commission-shop.backup.json');
   await close();
 }
 

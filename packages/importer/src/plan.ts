@@ -12,6 +12,7 @@ import { planSales, usedByDocuments, type PlanSales } from './sales.ts';
 import { isDemoPurchase, planPurchases, type PlanPurchases } from './purchases.ts';
 import { planBanking, type PlanBanking } from './banking.ts';
 import { planExpenses, type PlanExpenses } from './expenses.ts';
+import { planPayouts, type PlanPayout } from './commission.ts';
 
 const qty = (v: number) => money(v).toDecimalPlaces(3).toFixed(3);
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -87,6 +88,8 @@ export interface ImportPlan {
   banking: PlanBanking;
   /** expense categories and expenses (Phase 3) */
   expenses: PlanExpenses;
+  /** commission paid to electricians (Phase 3) */
+  payouts: PlanPayout[];
   counts: Record<string, number>;
   /** Plain-language notes for the person importing, e.g. renamed duplicates. */
   warnings: string[];
@@ -341,6 +344,7 @@ export function planImport(snap: Snapshot, opts: PlanOptions = {}): ImportPlan {
     referrerIds: new Set(), warnings, demoParty, keepDemo: keepSample,
   }, snap.backup.at.slice(0, 10));
   const banking = planBanking(snap.documents, { fresh: snap.backup.fresh, keepDemo: keepSample, warnings }, snap.backup.at.slice(0, 10));
+  const payouts = planPayouts(snap.documents, new Set(referrers.map((r) => r.legacyId)), warnings, snap.backup.at.slice(0, 10));
   const expenses = planExpenses(snap.documents, { fresh: snap.backup.fresh, keepDemo: keepSample, warnings }, snap.backup.at.slice(0, 10));
 
   const plan: ImportPlan = {
@@ -352,7 +356,7 @@ export function planImport(snap: Snapshot, opts: PlanOptions = {}): ImportPlan {
     categories: [...categories].filter(Boolean),
     brands: [...brands].filter(Boolean),
     itemGroups: [...itemGroups].filter(Boolean),
-    parties, items, priceLists, godowns, referrers, commission, priceHistory, priceRules: snap.priceRules, sales, purchases, banking, expenses,
+    parties, items, priceLists, godowns, referrers, commission, priceHistory, priceRules: snap.priceRules, sales, purchases, banking, expenses, payouts,
     counts: {},
     warnings,
   };
@@ -364,7 +368,7 @@ export function planImport(snap: Snapshot, opts: PlanOptions = {}): ImportPlan {
     brands: plan.brands.length, categories: plan.categories.length, units: plan.units.length, partyGroups: plan.partyGroups.length,
     invoices: sales.invoices.length, receipts: sales.receipts.length, creditNotes: sales.creditNotes.length, challans: sales.challans.length, quotations: sales.quotations.length,
     purchaseBills: purchases.docs.filter((d) => d.kind === 'bill').length, purchaseOrders: purchases.docs.filter((d) => d.kind === 'order').length, debitNotes: purchases.docs.filter((d) => d.kind === 'debit_note').length, paymentsMade: purchases.payments.length,
-    bankAccounts: banking.accounts.filter((a) => a.kind === 'bank').length, bankEntries: banking.entries.length, expenses: expenses.expenses.length,
+    bankAccounts: banking.accounts.filter((a) => a.kind === 'bank').length, bankEntries: banking.entries.length, expenses: expenses.expenses.length, commissionPayouts: payouts.length,
   };
   return plan;
 }

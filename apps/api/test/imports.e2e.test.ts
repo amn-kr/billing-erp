@@ -213,3 +213,21 @@ describe('banking import', () => {
     expect(next.number).toBe('BT-0006');
   });
 });
+
+describe('commission import', () => {
+  it('referred bills, a return and both kinds of payout: earnings and balances match the old app', async () => {
+    const o = await owner(app);
+    const res = await http().post('/api/imports').set(auth(o)).send({ fileName: 'commission.json', backup: backup('commission-shop.backup.json') }).expect(200);
+    expect(res.body.counts).toMatchObject({ commissionPayouts: 2 });
+    const C = (await http().get('/api/commission').set(auth(o)).expect(200)).body as { name: string; bills: number; business: string; comm: string; ret: string; earned: string; paid: string; due: string; invoices: { number: string; comm: string; ret: string; f: number; earned: string }[]; payouts: { number: string; mode: string; note: string }[] }[];
+    const s = C.find((x) => x.name === 'Sunil Electrician')!;
+    // the prototype's cmStats for the same backup
+    expect(s).toMatchObject({ bills: 2, business: '3047.00', comm: '202.04', ret: '32.71', earned: '153.96', paid: '150.00', due: '3.96' });
+    expect(s.invoices.map((b) => [b.number, b.comm, b.ret, b.earned])).toEqual([['INV-0108', '71.19', '0.00', '23.11'], ['INV-0107', '163.56', '32.71', '130.85']]);
+    expect(s.payouts.map((p) => [p.number, p.mode, p.note])).toEqual([['CP-0001', 'Cash', ''], ['CP-0002', 'Adjusted in his account', 'PI-0628 · INV-0109']]);
+    const accs = (await http().get('/api/banking/accounts').set(auth(o)).expect(200)).body as { name: string; balance: string }[];
+    expect(accs.map((a) => [a.name, a.balance])).toEqual([['Cash in hand', '1280.00'], ['HDFC Bank', '85819.00'], ['State Bank of India', '65412.00']]);
+    const sunil = ((await http().get('/api/parties').set(auth(o)).expect(200)).body as { name: string; balance: string }[]).find((p) => p.name === 'Sunil Electrician')!;
+    expect(sunil.balance).toBe('900.00');
+  });
+});

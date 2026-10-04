@@ -142,7 +142,7 @@ export async function writeSales(tx: Tx, c: SalesImportCtx, s: PlanSales) {
       left = left.minus(u);
     }
     const lines: PostLine[] = /adjust/i.test(r.mode)
-      ? [{ account: 'commission_payable', debit: amount, memo: `${r.mode} · ${r.number}` }]
+      ? [{ account: 'commission', debit: amount, memo: `${r.mode} · ${r.number}` }]
       : await moneyInLines(tx, who, { splits: [{ mode: r.mode, amount, ref: r.ref }], paymentId: pay.id, partyId, date: r.date, memo: r.number });
     await c.ledger.post(tx, who, { date: r.date, sourceType: 'payment', sourceId: pay.id, number: r.number, narration: 'Payment received (imported)', lines: [...lines, { account: 'receivable', partyId, credit: amount }] });
   }

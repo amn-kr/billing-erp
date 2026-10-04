@@ -111,6 +111,8 @@ export const SALES = { email: 'ravi.sales@gupta.example.com', password: 'demo-pa
 export const PURCHASES = { email: 'ravi.purchases@gupta.example.com', password: 'demo-password-1' };
 /** The purchase shop plus two bank accounts and money moved by hand (bank-shop.backup.json). */
 export const BANK = { email: 'ravi.bank@gupta.example.com', password: 'demo-password-1' };
+/** The bank shop plus an electrician with referred bills, a return and two payouts (commission-shop.backup.json). */
+export const COMMISSION = { email: 'ravi.commission@gupta.example.com', password: 'demo-password-1' };
 
 /** The prototype showing one of the importer fixtures (restored like "Restore books"). */
 export async function prototypeWithBackup(page: Page, fixture = 'fresh-shop'): Promise<void> {

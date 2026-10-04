@@ -5,6 +5,7 @@
  * - sales-shop.backup.json (sales documents): ravi.sales@gupta.example.com / demo-password-1
  * - purchase-shop.backup.json (sales and purchases): ravi.purchases@gupta.example.com / demo-password-1
  * - bank-shop.backup.json (the purchase shop + bank accounts and entries): ravi.bank@gupta.example.com / demo-password-1
+ * - commission-shop.backup.json (the bank shop + an electrician, referred bills and payouts): ravi.commission@gupta.example.com / demo-password-1
  */
 import 'reflect-metadata';
 import fs from 'node:fs';
@@ -39,6 +40,8 @@ async function main() {
   console.log(`E2E purchase shop ready: ${pu.counts.purchaseBills} bills, ${pu.counts.paymentsMade} payments made`);
   const bk = await seed(db, 'ravi.bank@gupta.example.com', 'bank-shop.backup.json');
   console.log(`E2E bank shop ready: ${bk.counts.bankAccounts} bank accounts, ${bk.counts.bankEntries} entries`);
+  const cm = await seed(db, 'ravi.commission@gupta.example.com', 'commission-shop.backup.json');
+  console.log(`E2E commission shop ready: ${cm.counts.commissionPayouts} commission payouts`);
   await db.$disconnect();
 }
 main().catch((e) => {

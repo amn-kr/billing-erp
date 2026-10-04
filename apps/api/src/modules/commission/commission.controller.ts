@@ -7,6 +7,10 @@ import { DbService } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import type { RequestContext } from '../../common/context';
 import { namedId } from '../../common/lookups';
+import { CommissionService } from './commission.service';
+import { z as zz } from 'zod';
+
+const paySchema = zz.object({ referrerId: zz.string().uuid(), amount: zz.union([zz.string(), zz.number()]).transform((v) => String(v).replace(/[^\d.]/g, '')), mode: zz.enum(['Cash', 'UPI', 'Bank transfer', 'Adjust']), note: zz.string().trim().max(200).optional().default('') });
 
 /** Electricians (referrers) and commission per item category. */
 @Controller()
@@ -14,7 +18,20 @@ export class CommissionController {
   constructor(
     private readonly db: DbService,
     private readonly audit: AuditService,
+    private readonly commission: CommissionService,
   ) {}
+
+  @RequirePermission('sales.view')
+  @Get('commission')
+  summary(@Ctx() ctx: RequestContext) {
+    return this.commission.summary(ctx);
+  }
+
+  @RequirePermission('money.manage')
+  @Post('commission/payouts')
+  pay(@Ctx() ctx: RequestContext, @Body(new ZodPipe(paySchema)) body: zz.infer<typeof paySchema>) {
+    return this.commission.pay(ctx, body);
+  }
 
   private scope(ctx: RequestContext) {
     return { businessId: ctx.businessId, userId: ctx.userId, email: ctx.email };

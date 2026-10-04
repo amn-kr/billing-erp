@@ -1,3 +1,4 @@
+import { money } from '@billing/shared';
 import { ConflictException, Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { extractSnapshot, ImportError, parseBackup, planImport, type ImportPlan, type PlanOptions } from '@billing/importer';
@@ -10,6 +11,7 @@ import { writeSales } from './sales-import';
 import { writePurchases } from './purchase-import';
 import { writeAccounts, writeChequeStates, writeEntries } from './banking-import';
 import { ChequesService } from '../banking/cheques.service';
+import { CommissionService } from '../commission/commission.service';
 import { writeExpenses } from './expense-import';
 import { ExpensesService } from '../expenses/expenses.service';
 import { BankingService } from '../banking/banking.service';
@@ -249,6 +251,13 @@ export class ImportsService {
 
     /* expense categories and expenses */
     await writeExpenses(tx, pctx, new ExpensesService(this.db, this.audit, this.numbers, this.ledger), plan.expenses, acctIds);
+
+    /* commission paid to electricians */
+    const cms = new CommissionService(this.db, this.audit, this.numbers, this.ledger);
+    for (const x of plan.payouts) {
+      const ref = referrerId.get(x.referrerLegacyId);
+      if (ref) await cms.importPayout(tx, pctx, { number: x.number, date: x.date, referrerId: ref, amount: money(x.amount), mode: x.mode, note: x.note });
+    }
 
     /* cheques the old app marked deposited / cleared or bounced */
     await writeChequeStates(tx, pctx, new ChequesService(this.db, this.audit, this.ledger), plan.banking, acctIds, plan.warnings);

@@ -11,7 +11,7 @@ import { day, isoOf } from '../../common/lookups';
 const CATEGORY_ACCOUNT: Record<string, string> = {
   'Interest received': 'other_income', 'Capital added by owner': 'capital', 'Loan received': 'loans', 'Other income': 'other_income',
   'Bank charges': 'bank_charges', 'Shop expense': 'expenses', 'Owner drawings': 'drawings', 'Loan repayment': 'loans', Salary: 'expenses',
-  'Cash excess on count': 'cash_difference', 'Cash short on count': 'cash_difference',
+  'Cash excess on count': 'cash_difference', 'Cash short on count': 'cash_difference', 'Commission paid': 'commission',
 };
 const MOVE_LABEL: Record<string, string> = { deposit: 'Cash deposited', withdraw: 'Cash withdrawn', transfer: 'Transfer' };
 
@@ -159,6 +159,7 @@ export class BankingService {
     const chqs = new Map((await tx.cheque.findMany({ where: { id: { in: ids('cheque') } } })).map((c) => [c.id, c]));
     const chqPay = new Map((await tx.payment.findMany({ where: { id: { in: [...chqs.values()].flatMap((c) => (c.paymentId ? [c.paymentId] : [])) } }, include: { party: { select: { name: true } } } })).map((p) => [p.id, p]));
     const chqExp = new Map((await tx.expense.findMany({ where: { id: { in: [...chqs.values()].flatMap((c) => (c.expenseId ? [c.expenseId] : [])) } }, include: { lines: { take: 1, orderBy: { position: 'asc' } } } })).map((x) => [x.id, x]));
+    const cps = new Map((await tx.commissionPayout.findMany({ where: { id: { in: ids('commission_payout') } }, include: { referrer: { select: { name: true } } } })).map((x) => [x.id, x]));
     const bes = await tx.bankEntry.findMany({ where: { id: { in: ids('bank_entry') } } });
     const be = new Map(bes.map((b) => [b.id, b]));
     const accIds = [...new Set(bes.flatMap((b) => [b.accountId, b.toAccountId ?? '']).filter(Boolean))];
@@ -194,6 +195,10 @@ export class BankingService {
           if (l.memo === 'bounce charges') return { ...base, sk: key + ':chg', kind: 'Cheque bounce charges', party, doc, mode: '', ref: c.chequeNo };
           return { ...base, sk: key, kind: c.direction === 'received' ? 'Cheque deposited' : 'Cheque cleared', party, doc, mode: 'Cheque', ref: c.chequeNo };
         }
+      }
+      if (e.sourceType === 'commission_payout') {
+        const x = cps.get(e.sourceId);
+        if (x) return { ...base, sk: 'CP:' + x.number, kind: 'Commission paid', party: x.referrer.name, mode: x.mode, note: x.note };
       }
       if (e.sourceType === 'expense') {
         const x = exps.get(e.sourceId);
