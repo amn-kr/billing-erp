@@ -32,6 +32,7 @@
 ## On hold (waiting for a later phase or an owner decision)
 | Item | Waiting for |
 |---|---|
+| **Phase 5 — SaaS + launch** (Razorpay, admin console, onboarding, security review, load test, beta, hosting). **On hold by the owner's decision (4 Oct 2026): do not start Phase 5 until the owner asks.** | owner: do not start yet |
 | **Hosting** (AWS Mumbai + Cloudflare Pages) — nothing is deployed. Web app and API must share a domain (e.g. app.yourshop.in / api.yourshop.in) so the sign-in cookie works. Costs money: owner approval first. | owner decision (Phase 5) |
 | **Email provider** (password reset by email, invite emails) | owner: before selling starts |
 | **Google sign-in** | owner: later |
@@ -142,6 +143,8 @@
 
 ## Phase 4 — Reports + Home (in progress)
 Scope set by the owner: only the 9 reports that already work in the prototype, plus Home. GST reports, stock reports and the ~30 placeholder reports stay on hold.
+
+**Gate ("figures match the pilot"):** the owner decided on 4 Oct 2026 that their own shop's backup alone is the pilot, since no other shop uses the app yet.
 
 | Item | State |
 |---|---|
