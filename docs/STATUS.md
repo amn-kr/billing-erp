@@ -104,7 +104,7 @@
 | Banking & cash: Bank accounts and Cash in hand pages (cards, money book, periods), add / edit account, Move money, Count cash; accounts and hand entries come across from old backups | done — matching screenshots at 1280/1366/1920; API, importer and flow tests; imported balances match the prototype's |
 | Expenses: list with category breakdown, Add / Edit expense (lines, GST input credit, paid from cash / bank / cheque), categories window; cash-book shop expenses, salary and bank charges listed too; expenses and categories come across from old backups | done — matching screenshots at 1280/1366/1920; API, importer and flow tests |
 | Cheques (received / issued, deposited or cleared, bounced with bank charges, undo) and Reconciliation (statement date and balance, tick entries, difference); cheque states come across from old backups | done — matching screenshots at 1280/1366/1920; API, importer and flow tests |
-| Commission screen | next |
+| Electrician commission page: commission on referred bills less returns, earned as customers pay, pay in cash / UPI / bank or adjust against his own bills, electrician details, add / edit, commission rules; payouts come across from old backups | done — matching screenshots at 1280/1366/1920; API, importer and flow tests; imported figures match the prototype's |
 | A bounced customer cheque as its own line in Receive payment (the customer's balance already goes up) | later |
 | CI reliability: screenshot tests wait until the page is still (fixes the failure on main after PR #2) | done here; confirmed by CI on the Phase 3 pull request |
 

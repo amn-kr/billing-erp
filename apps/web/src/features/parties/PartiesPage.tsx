@@ -70,7 +70,8 @@ export function PartiesPage() {
   const me = useMe().data;
   const { showToast } = useShell();
   const list = useQuery({ queryKey: ['parties'], queryFn: () => api<Party[]>('/parties') });
-  const [sel, setSel] = useState<string | null>(null);
+  // ?sel=<party id> opens on that party (the commission page's "Ledger" link)
+  const [sel, setSel] = useState<string | null>(() => new URLSearchParams(location.search).get('sel'));
   const [kind, setKind] = useState<Kind>('all');
   const [bal, setBal] = useState<Bal>('all');
   const [q, setQ] = useState('');
