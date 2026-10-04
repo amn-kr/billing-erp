@@ -19,6 +19,7 @@ import { HealthController } from './modules/health/health.controller';
 import { ImportsController } from './modules/imports/imports.controller';
 import { ImportsService } from './modules/imports/imports.service';
 import { NumberingService } from './common/numbering.service';
+import { LedgerService } from './common/ledger.service';
 import { PartiesController } from './modules/parties/parties.controller';
 import { PartiesService } from './modules/parties/parties.service';
 import { ItemsController } from './modules/items/items.controller';
@@ -29,6 +30,18 @@ import { PricingController } from './modules/pricing/pricing.controller';
 import { PricingService } from './modules/pricing/pricing.service';
 import { SettingsController } from './modules/settings/settings.controller';
 import { CommissionController } from './modules/commission/commission.controller';
+import { CommissionService } from './modules/commission/commission.service';
+import { SalesController } from './modules/sales/sales.controller';
+import { QuotesController } from './modules/sales/quotes.controller';
+import { PurchasesController } from './modules/purchases/purchases.controller';
+import { PurchasesService } from './modules/purchases/purchases.service';
+import { BankingController } from './modules/banking/banking.controller';
+import { BankingService } from './modules/banking/banking.service';
+import { ChequesService } from './modules/banking/cheques.service';
+import { ExpensesController } from './modules/expenses/expenses.controller';
+import { ExpensesService } from './modules/expenses/expenses.service';
+import { SalesService } from './modules/sales/sales.service';
+import { ReceiptsService } from './modules/sales/receipts.service';
 
 @Module({
   imports: [
@@ -40,7 +53,7 @@ import { CommissionController } from './modules/commission/commission.controller
     }),
   ],
   controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HealthController, ImportsController,
-    PartiesController, ItemsController, StockController, PricingController, SettingsController, CommissionController],
+    PartiesController, ItemsController, StockController, PricingController, SettingsController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController],
   providers: [
     DbService,
     AuditService,
@@ -50,10 +63,18 @@ import { CommissionController } from './modules/commission/commission.controller
     MembersService,
     ImportsService,
     NumberingService,
+    LedgerService,
+    BankingService,
+    CommissionService,
+    ChequesService,
+    ExpensesService,
     PartiesService,
     ItemsService,
     StockService,
     PricingService,
+    SalesService,
+    ReceiptsService,
+    PurchasesService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
   ],

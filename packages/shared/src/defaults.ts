@@ -72,3 +72,39 @@ export const DEFAULT_EXPENSE_CATEGORIES = [
   'Rent', 'Salary & wages', 'Electricity', 'Telephone & internet', 'Transport & freight', 'Petrol & travel', 'Tea & refreshments',
   'Packing material', 'Shop maintenance', 'Repairs', 'Office & stationery', 'Advertising', 'Professional fees', 'Bank charges', 'Shop expenses', 'Other',
 ] as const;
+
+/**
+ * The books behind every document. Each sale, bill, payment and expense is
+ * written as a balanced journal entry against these accounts. Cash and bank
+ * accounts get their own ledger account each (key "cb:<id>").
+ */
+export const LEDGER_ACCOUNTS: ReadonlyArray<{ key: string; name: string; type: 'asset' | 'liability' | 'income' | 'expense' | 'equity' }> = [
+  { key: 'receivable', name: 'Sundry debtors (customers)', type: 'asset' },
+  { key: 'payable', name: 'Sundry creditors (suppliers)', type: 'liability' },
+  { key: 'cheques_in_hand', name: 'Cheques in hand', type: 'asset' },
+  { key: 'cheques_issued', name: 'Cheques issued (not cleared)', type: 'liability' },
+  { key: 'sales', name: 'Sales', type: 'income' },
+  { key: 'sales_returns', name: 'Sales returns', type: 'income' },
+  { key: 'charges_income', name: 'Transport, labour & bank charges collected', type: 'income' },
+  { key: 'purchases', name: 'Purchases', type: 'expense' },
+  { key: 'purchase_returns', name: 'Purchase returns', type: 'expense' },
+  { key: 'charges_expense', name: 'Transport & labour on purchases', type: 'expense' },
+  { key: 'output_cgst', name: 'Output CGST', type: 'liability' },
+  { key: 'output_sgst', name: 'Output SGST', type: 'liability' },
+  { key: 'output_igst', name: 'Output IGST', type: 'liability' },
+  { key: 'input_cgst', name: 'Input CGST', type: 'asset' },
+  { key: 'input_sgst', name: 'Input SGST', type: 'asset' },
+  { key: 'input_igst', name: 'Input IGST', type: 'asset' },
+  { key: 'tcs_payable', name: 'TCS collected', type: 'liability' },
+  { key: 'round_off', name: 'Round off', type: 'expense' },
+  { key: 'expenses', name: 'Shop expenses', type: 'expense' },
+  { key: 'commission', name: 'Referral commission', type: 'expense' },
+  { key: 'commission_payable', name: 'Commission payable', type: 'liability' },
+  { key: 'opening', name: 'Opening balances', type: 'equity' },
+  { key: 'other_income', name: 'Interest & other income', type: 'income' },
+  { key: 'capital', name: 'Owner’s capital', type: 'equity' },
+  { key: 'drawings', name: 'Owner’s drawings', type: 'equity' },
+  { key: 'loans', name: 'Loans', type: 'liability' },
+  { key: 'bank_charges', name: 'Bank charges', type: 'expense' },
+  { key: 'cash_difference', name: 'Cash short / excess', type: 'expense' },
+];

@@ -2,6 +2,7 @@
  * The app frame: <div class="app" id="app"> with sidebar, top bar and <main class="page">.
  * Same DOM as the prototype; screens render inside <main> through the router.
  */
+import { QuickSale, useQuick } from '../sales/QuickSale';
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -13,6 +14,7 @@ import { useStyles } from '../../lib/useStyles';
 import { curStart, curStop } from '../../lib/currency';
 import { useSettings } from '../../lib/settings';
 import { goToLogin } from '../../lib/nav';
+import { setGo } from '../../lib/go';
 import { APP_STYLES } from '../../styles';
 import { VIEW_LABEL, VIEW_PATH, type NavLink } from './nav';
 import { PAL, type PalId } from './palette';
@@ -22,6 +24,8 @@ import { Toast } from './Toast';
 import { DiscardDialog } from '../../components/Discard';
 import { TopBar } from './TopBar';
 import type { Item } from '../items/ItemsPage';
+import { statusOf, type SaleRow } from '../sales/model';
+import { statusOfBill, type PurchaseRow } from '../purchases/model';
 import { readLocal, soon, useShell, write } from './store';
 
 const savedPal = (): PalId => {
@@ -118,6 +122,36 @@ export function AppShell() {
     };
   }, [closeAll, setPop, setPal]);
 
+  useEffect(() => setGo(navigate), [navigate]);
+  // entry points that now open real screens (the rest still say "coming next")
+  const act = useCallback(
+    (what: string) => {
+      // a fresh address each time, so pressing it inside the editor opens another bill (or the empty one)
+      if (what === 'New invoice') navigate(`/sales/new?n=${Date.now()}`);
+      else if (/^(Receive payment|Payments|New payment received)$/i.test(what)) navigate('/payments-received?party=');
+      else if (/^New delivery challan$/i.test(what)) navigate('/delivery-challans?new=1');
+      else if (/^New (purchase )?bill$/i.test(what)) navigate(`/purchases/new?kind=bill&n=${Date.now()}`);
+      else if (/^New payment made$/i.test(what)) navigate('/payments-made?new=1');
+      else if (/^(new expense|expense|add expense)$/i.test(what)) navigate(`/expenses?new=${Date.now()}`);
+      else soon(what);
+    },
+    [navigate],
+  );
+  // Alt shortcuts, like desktop billing software (prototype KS): Alt+S new invoice, Alt+R receive payment, Alt+P new purchase bill, Alt+E new expense, Alt+N quick sale
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (!e.altKey || e.ctrlKey || e.metaKey) return;
+      if ([...document.querySelectorAll<HTMLElement>('.ov')].some((o) => !o.hidden)) return;
+      if (e.code === 'KeyS') { e.preventDefault(); act('New invoice'); }
+      else if (e.code === 'KeyR') { e.preventDefault(); act('Receive payment'); }
+      else if (e.code === 'KeyP') { e.preventDefault(); act('New purchase bill'); }
+      else if (e.code === 'KeyE') { e.preventDefault(); act('New expense'); }
+      else if (e.code === 'KeyN') { e.preventDefault(); useQuick.getState().show(); }
+    };
+    document.addEventListener('keydown', k);
+    return () => document.removeEventListener('keydown', k);
+  }, [act]);
+
   const onView = useCallback(
     (view: string, link?: NavLink) => {
       useShell.getState().setSideOpen(false);
@@ -130,6 +164,11 @@ export function AppShell() {
 
   // Items & stock counter, as the prototype's home refresh sets it: goods with a minimum, at or below it
   const items = useQuery({ queryKey: ['items'], queryFn: () => api<Item[]>('/items'), enabled: !!me.data?.business });
+  // overdue bills and invoices for the bell (staff without purchases simply get none)
+  const sales = useQuery({ queryKey: ['sales', 'invoice'], queryFn: () => api<SaleRow[]>('/sales?kind=invoice'), enabled: !!me.data?.business, retry: false });
+  const bills = useQuery({ queryKey: ['purchases', 'bill'], queryFn: () => api<PurchaseRow[]>('/purchases?kind=bill'), enabled: !!me.data?.business, retry: false });
+  const odBills = (bills.data ?? []).filter((b) => Number(b.balance) > 0 && statusOfBill(b).t.startsWith('Overdue'));
+  const odSales = (sales.data ?? []).filter((x) => Number(x.balance) > 0 && statusOf(x).t.startsWith('Overdue'));
   const lowStock = (items.data ?? []).filter((i) => i.kind === 'goods' && Number(i.minStock) > 0 && Number(i.stock ?? 0) <= Number(i.minStock)).length;
 
   if (!token) return <GoLogin />;
@@ -143,11 +182,12 @@ export function AppShell() {
   return (
     <>
       <div className={mini ? 'app mini' : 'app'} id="app">
-        <Sidebar active={active} lowStock={lowStock} acct={!!sdata?.acct} onView={onView} onSoon={soon} />
+        <Sidebar active={active} lowStock={lowStock} acct={!!sdata?.acct} onView={onView} onSoon={act} />
         <div style={{ minWidth: 0 }}>
           <TopBar
             me={me.data}
             today={todayFn()}
+            overdue={{ bills: odBills, sales: odSales }}
             lowItems={(items.data ?? []).filter((i) => i.kind === 'goods' && i.level !== 'ok').length}
             pal={pal}
             online={online}
@@ -157,7 +197,7 @@ export function AppShell() {
               showToast(`${PAL.find((p) => p.id === id)!.name} applied`);
             }}
             onView={onView}
-            onSoon={soon}
+            onSoon={act}
             onSwitch={async (businessId) => {
               try {
                 await apiWithToken('/businesses/switch', { businessId });
@@ -188,6 +228,7 @@ export function AppShell() {
       />
       <Toast />
       <DiscardDialog />
+      <QuickSale />
     </>
   );
 }

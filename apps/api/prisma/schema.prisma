@@ -63,26 +63,43 @@ model Business {
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  memberships    Membership[]
-  invites        Invite[]
-  settings       BusinessSettings?
-  priceLock      PriceLock?
-  financialYears FinancialYear[]
-  series         DocumentSeries[]
-  taxRates       TaxRate[]
-  subscriptions  Subscription[]
-  partyGroups    PartyGroup[]
-  parties        Party[]
-  units          Unit[]
-  categories     Category[]
-  brands         Brand[]
-  itemGroups     ItemGroup[]
-  hsnCodes       HsnCode[]
-  items          Item[]
-  godowns        Godown[]
-  priceLists     PriceList[]
-  referrers      Referrer[]
-  imports        ImportRun[]
+  memberships           Membership[]
+  invites               Invite[]
+  settings              BusinessSettings?
+  priceLock             PriceLock?
+  cashBankAccounts      CashBankAccount[]
+  salesDocuments        SalesDocument[]
+  salesDocumentLines    SalesDocumentLine[]
+  purchaseDocuments     PurchaseDocument[]
+  purchaseDocumentLines PurchaseDocumentLine[]
+  payments              Payment[]
+  paymentAllocations    PaymentAllocation[]
+  bankEntries           BankEntry[]
+  cheques               Cheque[]
+  reconciliations       Reconciliation[]
+  expenseCategories     ExpenseCategory[]
+  expenses              Expense[]
+  expenseLines          ExpenseLine[]
+  commissionPayouts     CommissionPayout[]
+  ledgerAccounts        LedgerAccount[]
+  journalEntries        JournalEntry[]
+  journalLines          JournalLine[]
+  financialYears        FinancialYear[]
+  series                DocumentSeries[]
+  taxRates              TaxRate[]
+  subscriptions         Subscription[]
+  partyGroups           PartyGroup[]
+  parties               Party[]
+  units                 Unit[]
+  categories            Category[]
+  brands                Brand[]
+  itemGroups            ItemGroup[]
+  hsnCodes              HsnCode[]
+  items                 Item[]
+  godowns               Godown[]
+  priceLists            PriceList[]
+  referrers             Referrer[]
+  imports               ImportRun[]
 
   @@map("businesses")
 }
@@ -416,11 +433,14 @@ model Party {
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  business  Business       @relation(fields: [businessId], references: [id])
-  group     PartyGroup?    @relation(fields: [groupId], references: [id])
-  addresses PartyAddress[]
-  contacts  PartyContact[]
-  referrers Referrer[]
+  business          Business           @relation(fields: [businessId], references: [id])
+  group             PartyGroup?        @relation(fields: [groupId], references: [id])
+  addresses         PartyAddress[]
+  contacts          PartyContact[]
+  referrers         Referrer[]
+  salesDocuments    SalesDocument[]
+  purchaseDocuments PurchaseDocument[]
+  payments          Payment[]
 
   @@index([businessId, name])
   @@index([businessId, legacyId])
@@ -797,8 +817,10 @@ model Referrer {
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  business Business @relation(fields: [businessId], references: [id])
-  party    Party?   @relation(fields: [partyId], references: [id])
+  business       Business           @relation(fields: [businessId], references: [id])
+  party          Party?             @relation(fields: [partyId], references: [id])
+  salesDocuments SalesDocument[]
+  payouts        CommissionPayout[]
 
   @@map("referrers")
 }
@@ -839,4 +861,506 @@ model ImportRun {
   business Business @relation(fields: [businessId], references: [id])
 
   @@map("import_runs")
+}
+
+/**
+ * ───────────────────────── Phase 3: transactions ─────────────────────────
+ */
+
+/// Cash in hand, bank accounts (prototype erp-accts). Each has a ledger account.
+model CashBankAccount {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId     String    @map("business_id") @db.Uuid
+  /// cash | bank
+  kind           String
+  name           String
+  /// bank & branch, or "Shop counter"
+  sub            String    @default("")
+  accountNo      String    @default("") @map("account_no")
+  ifsc           String    @default("")
+  branch         String    @default("")
+  upi            String    @default("")
+  openingBalance Decimal   @default(0) @map("opening_balance") @db.Decimal(14, 2)
+  openingDate    DateTime? @map("opening_date") @db.Date
+  isDefault      Boolean   @default(false) @map("is_default")
+  legacyId       String?   @map("legacy_id")
+  archivedAt     DateTime? @map("archived_at") @db.Timestamptz(6)
+  createdBy      String    @map("created_by") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@index([businessId, legacyId])
+  @@map("cash_bank_accounts")
+}
+
+/// Quotation, delivery challan, sales invoice or credit note — never deleted, only cancelled.
+model SalesDocument {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId    String    @map("business_id") @db.Uuid
+  /// quotation | challan | invoice | credit_note
+  kind          String
+  number        String
+  date          DateTime  @db.Date
+  dueDate       DateTime? @map("due_date") @db.Date
+  /// credit | cash (walk-in)
+  mode          String    @default("credit")
+  partyId       String?   @map("party_id") @db.Uuid
+  /// walk-in customer, or a billing name printed instead of the party's
+  cashName      String    @default("") @map("cash_name")
+  cashPhone     String    @default("") @map("cash_phone")
+  billName      String    @default("") @map("bill_name")
+  /// gst | bos | none, fixed when saved
+  taxMode       String    @map("tax_mode")
+  pricesInclTax Boolean   @default(true) @map("prices_incl_tax")
+  placeOfSupply String    @default("") @map("place_of_supply")
+  roundOff      Boolean   @default(true) @map("round_off")
+  billDiscPct   Decimal?  @map("bill_disc_pct") @db.Decimal(7, 3)
+  billDiscAmt   Decimal?  @map("bill_disc_amt") @db.Decimal(14, 2)
+  transport     Decimal   @default(0) @db.Decimal(14, 2)
+  labour        Decimal   @default(0) @db.Decimal(14, 2)
+  bankCharge    Decimal   @default(0) @map("bank_charge") @db.Decimal(14, 2)
+  tcsRate       Decimal?  @map("tcs_rate") @db.Decimal(5, 2)
+  /// totals worked out by packages/shared saleTotals() when saved
+  itemsTotal    Decimal   @default(0) @map("items_total") @db.Decimal(14, 2)
+  billDiscount  Decimal   @default(0) @map("bill_discount") @db.Decimal(14, 2)
+  taxable       Decimal   @default(0) @db.Decimal(14, 2)
+  tax           Decimal   @default(0) @db.Decimal(14, 2)
+  cgst          Decimal   @default(0) @db.Decimal(14, 2)
+  sgst          Decimal   @default(0) @db.Decimal(14, 2)
+  igst          Decimal   @default(0) @db.Decimal(14, 2)
+  tcs           Decimal   @default(0) @db.Decimal(14, 2)
+  roundAmount   Decimal   @default(0) @map("round_amount") @db.Decimal(14, 2)
+  total         Decimal   @default(0) @db.Decimal(14, 2)
+  /// quotation / challan: open | converted; credit note: adjust | refund
+  status        String    @default("open")
+  notes         String    @default("")
+  reason        String    @default("")
+  /// printed details: poNo, poDate, challanNo, ewb, transport, vehicle, deliveryDate, description,
+  /// attachments, quoteRefs, validTill, refundMode, commission overrides per category …
+  extra         Json      @default("{}")
+  /// electrician who brought the sale (commission)
+  referrerId    String?   @map("referrer_id") @db.Uuid
+  /// the quotation or challan this invoice came from
+  sourceId      String?   @map("source_id") @db.Uuid
+  cancelledAt   DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  cancelledBy   String?   @map("cancelled_by") @db.Uuid
+  cancelReason  String    @default("") @map("cancel_reason")
+  legacyId      String?   @map("legacy_id")
+  createdBy     String    @map("created_by") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business            @relation(fields: [businessId], references: [id])
+  party    Party?              @relation(fields: [partyId], references: [id])
+  referrer Referrer?           @relation(fields: [referrerId], references: [id])
+  lines    SalesDocumentLine[]
+
+  @@unique([businessId, kind, number])
+  @@index([businessId, kind, date])
+  @@index([businessId, partyId])
+  @@map("sales_documents")
+}
+
+model SalesDocumentLine {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId   String   @map("business_id") @db.Uuid
+  documentId   String   @map("document_id") @db.Uuid
+  position     Int
+  itemId       String?  @map("item_id") @db.Uuid
+  name         String
+  hsn          String   @default("")
+  qty          Decimal  @db.Decimal(14, 3)
+  unit         String   @default("")
+  /// price-list rate before the line discount
+  price        Decimal  @db.Decimal(14, 2)
+  discPct      Decimal  @default(0) @map("disc_pct") @db.Decimal(12, 8)
+  gstRate      Decimal  @default(0) @map("gst_rate") @db.Decimal(5, 2)
+  taxable      Decimal  @default(0) @db.Decimal(14, 2)
+  tax          Decimal  @default(0) @db.Decimal(14, 2)
+  amount       Decimal  @default(0) @db.Decimal(14, 2)
+  /// referral: the rate before the commission was loaded on it
+  basePrice    Decimal? @map("base_price") @db.Decimal(14, 2)
+  /// referral: a rule set for this line only ({t, v})
+  commOverride Json?    @map("comm_override")
+  /// commission: p (percent) | f (fixed per unit) | none, and the amount worked out
+  commType     String   @default("none") @map("comm_type")
+  commValue    Decimal  @default(0) @map("comm_value") @db.Decimal(14, 2)
+  commAmount   Decimal  @default(0) @map("comm_amount") @db.Decimal(14, 2)
+  /// credit note line: the invoice it returns against
+  againstId    String?  @map("against_id") @db.Uuid
+
+  business Business      @relation(fields: [businessId], references: [id])
+  document SalesDocument @relation(fields: [documentId], references: [id])
+
+  @@index([businessId, documentId])
+  @@map("sales_document_lines")
+}
+
+/// Purchase order, purchase bill or debit note.
+model PurchaseDocument {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId    String    @map("business_id") @db.Uuid
+  /// order | bill | debit_note
+  kind          String
+  number        String
+  /// the supplier's own bill number
+  supplierRef   String    @default("") @map("supplier_ref")
+  date          DateTime  @db.Date
+  /// bill: due date; order: expected delivery
+  dueDate       DateTime? @map("due_date") @db.Date
+  partyId       String    @map("party_id") @db.Uuid
+  taxMode       String    @map("tax_mode")
+  pricesInclTax Boolean   @default(false) @map("prices_incl_tax")
+  interState    Boolean   @default(false) @map("inter_state")
+  roundOff      Boolean   @default(true) @map("round_off")
+  billDiscPct   Decimal?  @map("bill_disc_pct") @db.Decimal(7, 3)
+  billDiscAmt   Decimal?  @map("bill_disc_amt") @db.Decimal(14, 2)
+  transport     Decimal   @default(0) @db.Decimal(14, 2)
+  labour        Decimal   @default(0) @db.Decimal(14, 2)
+  itemsTotal    Decimal   @default(0) @map("items_total") @db.Decimal(14, 2)
+  billDiscount  Decimal   @default(0) @map("bill_discount") @db.Decimal(14, 2)
+  taxable       Decimal   @default(0) @db.Decimal(14, 2)
+  tax           Decimal   @default(0) @db.Decimal(14, 2)
+  cgst          Decimal   @default(0) @db.Decimal(14, 2)
+  sgst          Decimal   @default(0) @db.Decimal(14, 2)
+  igst          Decimal   @default(0) @db.Decimal(14, 2)
+  roundAmount   Decimal   @default(0) @map("round_amount") @db.Decimal(14, 2)
+  total         Decimal   @default(0) @db.Decimal(14, 2)
+  /// order: open | received | cancelled
+  status        String    @default("open")
+  notes         String    @default("")
+  reason        String    @default("")
+  /// the order this bill came from
+  sourceId      String?   @map("source_id") @db.Uuid
+  cancelledAt   DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  cancelledBy   String?   @map("cancelled_by") @db.Uuid
+  cancelReason  String    @default("") @map("cancel_reason")
+  legacyId      String?   @map("legacy_id")
+  createdBy     String    @map("created_by") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business               @relation(fields: [businessId], references: [id])
+  party    Party                  @relation(fields: [partyId], references: [id])
+  lines    PurchaseDocumentLine[]
+
+  @@unique([businessId, kind, number])
+  @@index([businessId, kind, date])
+  @@index([businessId, partyId])
+  @@map("purchase_documents")
+}
+
+model PurchaseDocumentLine {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String  @map("business_id") @db.Uuid
+  documentId String  @map("document_id") @db.Uuid
+  position   Int
+  itemId     String? @map("item_id") @db.Uuid
+  name       String
+  hsn        String  @default("")
+  qty        Decimal @db.Decimal(14, 3)
+  unit       String  @default("")
+  rate       Decimal @db.Decimal(14, 2)
+  discPct    Decimal @default(0) @map("disc_pct") @db.Decimal(9, 6)
+  gstRate    Decimal @default(0) @map("gst_rate") @db.Decimal(5, 2)
+  taxable    Decimal @default(0) @db.Decimal(14, 2)
+  tax        Decimal @default(0) @db.Decimal(14, 2)
+  amount     Decimal @default(0) @db.Decimal(14, 2)
+  /// debit note line: the bill it returns against
+  againstId  String? @map("against_id") @db.Uuid
+
+  business Business         @relation(fields: [businessId], references: [id])
+  document PurchaseDocument @relation(fields: [documentId], references: [id])
+
+  @@index([businessId, documentId])
+  @@map("purchase_document_lines")
+}
+
+/// Money received (in) or paid (out); allocations say which documents it settles.
+model Payment {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId  String    @map("business_id") @db.Uuid
+  /// in | out
+  direction   String
+  number      String
+  date        DateTime  @db.Date
+  partyId     String?   @map("party_id") @db.Uuid
+  amount      Decimal   @db.Decimal(14, 2)
+  /// Cash | UPI | Bank transfer | Cheque | Card | Commission adjust …
+  mode        String
+  accountId   String?   @map("account_id") @db.Uuid
+  reference   String    @default("")
+  notes       String    @default("")
+  /// money taken on the invoice screen itself (part of that sale)
+  atSale      Boolean   @default(false) @map("at_sale")
+  /// the sale it was taken on (atSale), or the credit note it refunds
+  sourceId    String?   @map("source_id") @db.Uuid
+  /// split across modes: [{mode, amount, ref}]
+  splits      Json      @default("[]")
+  cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  cancelledBy String?   @map("cancelled_by") @db.Uuid
+  legacyId    String?   @map("legacy_id")
+  createdBy   String    @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business    Business            @relation(fields: [businessId], references: [id])
+  party       Party?              @relation(fields: [partyId], references: [id])
+  allocations PaymentAllocation[]
+
+  @@unique([businessId, direction, number])
+  @@index([businessId, partyId])
+  @@map("payments")
+}
+
+/// Which invoice / bill (or credit / debit note) a payment or note settles, and how much.
+model PaymentAllocation {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId         String   @map("business_id") @db.Uuid
+  /// document | opening (the party's opening balance)
+  kind               String   @default("document")
+  partyId            String?  @map("party_id") @db.Uuid
+  /// a payment, or a credit/debit note adjusted against documents
+  paymentId          String?  @map("payment_id") @db.Uuid
+  noteId             String?  @map("note_id") @db.Uuid
+  salesDocumentId    String?  @map("sales_document_id") @db.Uuid
+  purchaseDocumentId String?  @map("purchase_document_id") @db.Uuid
+  amount             Decimal  @db.Decimal(14, 2)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id])
+  payment  Payment? @relation(fields: [paymentId], references: [id])
+
+  @@index([businessId, salesDocumentId])
+  @@index([businessId, purchaseDocumentId])
+  @@map("payment_allocations")
+}
+
+/// Banking › entries typed by hand: money in / out of an account, or a transfer between accounts.
+model BankEntry {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId  String    @map("business_id") @db.Uuid
+  number      String
+  date        DateTime  @db.Date
+  /// in | out | transfer (bank to bank) | deposit (cash → bank) | withdraw (bank → cash)
+  kind        String
+  accountId   String    @map("account_id") @db.Uuid
+  toAccountId String?   @map("to_account_id") @db.Uuid
+  amount      Decimal   @db.Decimal(14, 2)
+  category    String    @default("")
+  note        String    @default("")
+  reference   String    @default("")
+  cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  cancelledBy String?   @map("cancelled_by") @db.Uuid
+  legacyId    String?   @map("legacy_id")
+  createdBy   String    @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@unique([businessId, number])
+  @@map("bank_entries")
+}
+
+/// Cheques received or issued; bouncing one puts the amount back on the party's account.
+model Cheque {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String    @map("business_id") @db.Uuid
+  /// received | issued
+  direction  String
+  chequeNo   String    @map("cheque_no")
+  bank       String    @default("")
+  chequeDate DateTime  @map("cheque_date") @db.Date
+  amount     Decimal   @db.Decimal(14, 2)
+  partyId    String?   @map("party_id") @db.Uuid
+  paymentId  String?   @map("payment_id") @db.Uuid
+  /// an expense paid by cheque
+  expenseId  String?   @map("expense_id") @db.Uuid
+  /// pending | cleared | bounced
+  status     String    @default("pending")
+  accountId  String?   @map("account_id") @db.Uuid
+  statusDate DateTime? @map("status_date") @db.Date
+  /// bank charges for a bounce
+  charges    Decimal   @default(0) @db.Decimal(14, 2)
+  note       String    @default("")
+  legacyId   String?   @map("legacy_id")
+  createdBy  String    @map("created_by") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@index([businessId, status])
+  @@map("cheques")
+}
+
+/// Banking › Reconciliation: a statement's closing balance and the entries ticked off against it.
+model Reconciliation {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId       String   @map("business_id") @db.Uuid
+  accountId        String   @map("account_id") @db.Uuid
+  statementDate    DateTime @map("statement_date") @db.Date
+  /// blank until the closing balance from the statement is typed in
+  statementBalance Decimal? @map("statement_balance") @db.Decimal(14, 2)
+  /// journal line ids ticked as on the statement
+  cleared          Json     @default("[]")
+  createdBy        String   @map("created_by") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@unique([businessId, accountId, statementDate])
+  @@map("reconciliations")
+}
+
+model ExpenseCategory {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String    @map("business_id") @db.Uuid
+  name       String
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
+  createdBy  String    @map("created_by") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@map("expense_categories")
+}
+
+model Expense {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId  String    @map("business_id") @db.Uuid
+  number      String
+  date        DateTime  @db.Date
+  /// who was paid (optional party)
+  partyId     String?   @map("party_id") @db.Uuid
+  payee       String    @default("")
+  mode        String    @default("Cash")
+  accountId   String?   @map("account_id") @db.Uuid
+  reference   String    @default("")
+  taxable     Decimal   @default(0) @db.Decimal(14, 2)
+  tax         Decimal   @default(0) @db.Decimal(14, 2)
+  tds         Decimal   @default(0) @db.Decimal(14, 2)
+  total       Decimal   @default(0) @db.Decimal(14, 2)
+  notes       String    @default("")
+  cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  cancelledBy String?   @map("cancelled_by") @db.Uuid
+  legacyId    String?   @map("legacy_id")
+  createdBy   String    @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business      @relation(fields: [businessId], references: [id])
+  lines    ExpenseLine[]
+
+  @@unique([businessId, number])
+  @@map("expenses")
+}
+
+model ExpenseLine {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId  String  @map("business_id") @db.Uuid
+  expenseId   String  @map("expense_id") @db.Uuid
+  position    Int
+  categoryId  String? @map("category_id") @db.Uuid
+  description String  @default("")
+  qty         Decimal @default(1) @db.Decimal(14, 3)
+  rate        Decimal @default(0) @db.Decimal(14, 2)
+  amount      Decimal @db.Decimal(14, 2)
+  gstRate     Decimal @default(0) @map("gst_rate") @db.Decimal(5, 2)
+  tax         Decimal @default(0) @db.Decimal(14, 2)
+
+  business Business @relation(fields: [businessId], references: [id])
+  expense  Expense  @relation(fields: [expenseId], references: [id])
+
+  @@map("expense_lines")
+}
+
+/// Commission paid out to an electrician (prototype erp-compay).
+model CommissionPayout {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId  String    @map("business_id") @db.Uuid
+  number      String
+  date        DateTime  @db.Date
+  referrerId  String    @map("referrer_id") @db.Uuid
+  amount      Decimal   @db.Decimal(14, 2)
+  mode        String    @default("Cash")
+  accountId   String?   @map("account_id") @db.Uuid
+  note        String    @default("")
+  cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  cancelledBy String?   @map("cancelled_by") @db.Uuid
+  legacyId    String?   @map("legacy_id")
+  createdBy   String    @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id])
+  referrer Referrer @relation(fields: [referrerId], references: [id])
+
+  @@unique([businessId, number])
+  @@map("commission_payouts")
+}
+
+/// Chart of accounts. System accounts have a key (sales, output_cgst, receivable, cash:<id> …).
+model LedgerAccount {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
+  key        String
+  name       String
+  /// asset | liability | income | expense | equity
+  type       String
+  createdBy  String   @map("created_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  business Business      @relation(fields: [businessId], references: [id])
+  lines    JournalLine[]
+
+  @@unique([businessId, key])
+  @@map("ledger_accounts")
+}
+
+/// Every document posts one balanced entry; a cancelled document's entry is marked cancelled.
+model JournalEntry {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId  String    @map("business_id") @db.Uuid
+  date        DateTime  @db.Date
+  /// sales_document | purchase_document | payment | bank_entry | expense | commission_payout | opening | cheque
+  sourceType  String    @map("source_type")
+  sourceId    String    @map("source_id") @db.Uuid
+  number      String    @default("")
+  narration   String    @default("")
+  cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  createdBy   String    @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  business Business      @relation(fields: [businessId], references: [id])
+  lines    JournalLine[]
+
+  @@index([businessId, sourceType, sourceId])
+  @@index([businessId, date])
+  @@map("journal_entries")
+}
+
+model JournalLine {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String  @map("business_id") @db.Uuid
+  entryId    String  @map("entry_id") @db.Uuid
+  accountId  String  @map("account_id") @db.Uuid
+  /// receivable / payable lines carry the party
+  partyId    String? @map("party_id") @db.Uuid
+  debit      Decimal @default(0) @db.Decimal(14, 2)
+  credit     Decimal @default(0) @db.Decimal(14, 2)
+  memo       String  @default("")
+
+  business Business      @relation(fields: [businessId], references: [id])
+  entry    JournalEntry  @relation(fields: [entryId], references: [id])
+  account  LedgerAccount @relation(fields: [accountId], references: [id])
+
+  @@index([businessId, accountId])
+  @@index([businessId, partyId])
+  @@map("journal_lines")
 }

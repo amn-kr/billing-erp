@@ -1,16 +1,17 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { money, todayIst, toDb, type PartyInput, DEFAULT_PARTY_GROUPS } from '@billing/shared';
+import { money, todayIst, toDb, type Money, type PartyInput, DEFAULT_PARTY_GROUPS } from '@billing/shared';
 import type { Prisma } from '@prisma/client';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
+import { LedgerService } from '../../common/ledger.service';
 import type { RequestContext } from '../../common/context';
 import { day, isoOf, namedId, uniqueMessage } from '../../common/lookups';
 
 const include = { group: true, addresses: true, contacts: true } satisfies Prisma.PartyInclude;
 type Row = Prisma.PartyGetPayload<{ include: typeof include }>;
 
-/** What the API sends for a party. Balance is the opening balance until sales and purchases arrive (Phase 3). */
-export function partyView(p: Row) {
+/** What the API sends for a party. Balance comes from the books (opening + live entries) when given. */
+export function partyView(p: Row, bal?: Money) {
   const billing = p.addresses.find((a) => a.kind === 'billing');
   const shipping = p.addresses.find((a) => a.kind === 'shipping');
   const ob = money(p.openingBalance.toString());
@@ -19,7 +20,7 @@ export function partyView(p: Row) {
     state: p.stateCode, creditLimit: p.creditLimit ? toDb(p.creditLimit.toString()) : null, creditDays: p.creditDays,
     openingBalance: toDb(ob), openingType: p.openingType, openingDate: isoOf(p.openingDate),
     /** + they owe us (receivable), − we owe them (payable) */
-    balance: toDb(p.openingType === 'pay' ? ob.neg() : ob),
+    balance: toDb(bal ?? (p.openingType === 'pay' ? ob.neg() : ob)),
     billing: billing ? { line: billing.line, city: billing.city, pin: billing.pin, state: billing.stateCode } : null,
     shipping: shipping?.line ?? '',
     contacts: p.contacts.map((c) => ({ label: c.label, value: c.value })),
@@ -32,6 +33,7 @@ export class PartiesService {
   constructor(
     private readonly db: DbService,
     private readonly audit: AuditService,
+    private readonly ledger: LedgerService,
   ) {}
 
   private scope(ctx: RequestContext) {
@@ -51,12 +53,13 @@ export class PartiesService {
         include,
         orderBy: [{ createdAt: 'asc' }, { name: 'asc' }],
       });
-      return rows.map(partyView);
+      const bal = await this.ledger.partyBalances(tx, rows.map((r) => r.id));
+      return rows.map((r) => partyView(r, bal.get(r.id)));
     });
   }
 
   get(ctx: RequestContext, id: string) {
-    return this.db.scoped(this.scope(ctx), async (tx) => partyView(await this.find(tx, id)));
+    return this.db.scoped(this.scope(ctx), async (tx) => partyView(await this.find(tx, id), (await this.ledger.partyBalances(tx, [id])).get(id)));
   }
 
   private async find(tx: Tx, id: string) {

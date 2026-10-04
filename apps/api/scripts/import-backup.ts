@@ -12,6 +12,8 @@ import path from 'node:path';
 import { AuditService } from '../src/common/audit.service';
 import { DbService } from '../src/common/db.service';
 import { ImportsService } from '../src/modules/imports/imports.service';
+import { LedgerService } from '../src/common/ledger.service';
+import { NumberingService } from '../src/common/numbering.service';
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf('--' + name);
@@ -31,7 +33,7 @@ async function main() {
   );
   if (owned.length !== 1) throw new Error(`${email} owns ${owned.length} shops; this tool needs exactly one.`);
   const shop = owned[0]!.business;
-  const svc = new ImportsService(db, new AuditService());
+  const svc = new ImportsService(db, new AuditService(), new LedgerService(), new NumberingService());
   const res = await svc.run(
     { userId: user.id, email, businessId: shop.id, ip: 'cli' },
     { fileName: path.basename(file), text: fs.readFileSync(file, 'utf8'), dryRun: flag('dry-run'), includeSample: flag('include-sample') },

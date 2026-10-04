@@ -10,3 +10,5 @@ export const dmy = (iso: string | null | undefined) => (iso ? formatDmy(iso) : '
 
 /** Prototype curFix(): with the currency symbol off (Settings), "₹" and "(₹)" are removed from text. */
 export const curFix = (t: string) => t.replace(/\s?\(₹\)/g, '').replace(/₹\s?/g, '');
+/** Prototype fmtD: 1 Oct 2026. */
+export const fmtD = (iso: string) => new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });

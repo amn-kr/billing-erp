@@ -7,6 +7,10 @@ import { DbService } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import type { RequestContext } from '../../common/context';
 import { namedId } from '../../common/lookups';
+import { CommissionService } from './commission.service';
+import { z as zz } from 'zod';
+
+const paySchema = zz.object({ referrerId: zz.string().uuid(), amount: zz.union([zz.string(), zz.number()]).transform((v) => String(v).replace(/[^\d.]/g, '')), mode: zz.enum(['Cash', 'UPI', 'Bank transfer', 'Adjust']), note: zz.string().trim().max(200).optional().default('') });
 
 /** Electricians (referrers) and commission per item category. */
 @Controller()
@@ -14,7 +18,20 @@ export class CommissionController {
   constructor(
     private readonly db: DbService,
     private readonly audit: AuditService,
+    private readonly commission: CommissionService,
   ) {}
+
+  @RequirePermission('sales.view')
+  @Get('commission')
+  summary(@Ctx() ctx: RequestContext) {
+    return this.commission.summary(ctx);
+  }
+
+  @RequirePermission('money.manage')
+  @Post('commission/payouts')
+  pay(@Ctx() ctx: RequestContext, @Body(new ZodPipe(paySchema)) body: zz.infer<typeof paySchema>) {
+    return this.commission.pay(ctx, body);
+  }
 
   private scope(ctx: RequestContext) {
     return { businessId: ctx.businessId, userId: ctx.userId, email: ctx.email };
@@ -30,7 +47,24 @@ export class CommissionController {
   @Post('referrers')
   add(@Ctx() ctx: RequestContext, @Body(new ZodPipe(referrerSchema)) body: z.infer<typeof referrerSchema>) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
-      const r = await tx.referrer.create({ data: { businessId: ctx.businessId!, createdBy: ctx.userId, name: body.name, phone: body.phone, city: body.city, partyId: body.partyId ?? null } });
+      // electricians are parties too (prototype elecParty): link the customer with the same mobile or
+      // name, or add one in the "Electricians" group with 15 days' credit
+      let partyId = body.partyId ?? null;
+      if (!partyId) {
+        const same = await tx.party.findFirst({
+          where: { archivedAt: null, kind: { not: 'supplier' }, OR: [...(body.phone ? [{ phone: body.phone }] : []), { name: { equals: body.name, mode: 'insensitive' as const } }] },
+          orderBy: { createdAt: 'asc' },
+        }) ?? await tx.party.findFirst({ where: { archivedAt: null, name: { equals: body.name, mode: 'insensitive' as const } } }); // names are unique, even across suppliers
+        if (same) partyId = same.id;
+        else {
+          const groupId = await namedId(tx, 'partyGroup', ctx.businessId!, ctx.userId, 'Electricians');
+          const p = await tx.party.create({ data: { businessId: ctx.businessId!, createdBy: ctx.userId, groupId, name: body.name, phone: body.phone, kind: 'customer', creditDays: 15, openingType: 'receive' } });
+          if (body.city) await tx.partyAddress.create({ data: { businessId: ctx.businessId!, partyId: p.id, createdBy: ctx.userId, kind: 'billing', city: body.city } });
+          await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'create', entity: 'party', entityId: p.id, after: p, ip: ctx.ip });
+          partyId = p.id;
+        }
+      }
+      const r = await tx.referrer.create({ data: { businessId: ctx.businessId!, createdBy: ctx.userId, name: body.name, phone: body.phone, city: body.city, partyId } });
       await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'create', entity: 'referrer', entityId: r.id, after: r, ip: ctx.ip });
       return r;
     });

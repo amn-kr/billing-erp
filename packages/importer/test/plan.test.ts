@@ -11,7 +11,7 @@ let browser: Browser;
 const snaps: Record<string, Snapshot> = {};
 beforeAll(async () => {
   browser = await chromium.launch();
-  for (const n of ['fresh-shop', 'fresh-kept-items', 'sample-shop']) snaps[n] = await extractSnapshot(parseBackup(fx(`${n}.backup.json`)), { browser });
+  for (const n of ['fresh-shop', 'fresh-kept-items', 'sample-shop', 'sales-shop', 'purchase-shop']) snaps[n] = await extractSnapshot(parseBackup(fx(`${n}.backup.json`)), { browser });
 });
 afterAll(async () => { await browser.close(); });
 
@@ -130,5 +130,63 @@ describe('godowns', () => {
     const s = snaps['sample-shop']!;
     expect(planImport(s).godowns.map((g) => g.name)).toEqual(['Main shop']);
     expect(planImport(s, { includeSample: true }).godowns.length).toBe(3);
+  });
+});
+
+describe('sales documents (made through the prototype’s editor and dialogs)', () => {
+  it('maps invoices, payments, returns, challans and item-wise quotations, oldest first, with printed totals kept', () => {
+    const p = planImport(snaps['sales-shop']!);
+    expect(p.counts).toMatchObject({ invoices: 6, receipts: 1, creditNotes: 1, challans: 2, quotations: 2 });
+    expect(p.sales.invoices.map((v) => [v.number, v.date, v.totals.total, v.cancelled])).toEqual([
+      ['INV-0101', '2026-09-10', '4348.00', false], ['INV-0102', '2026-09-18', '420.00', false], ['INV-0103', '2026-09-28', '839.00', false],
+      ['INV-0104', '2026-09-30', '348.00', true], ['INV-0105', '2026-10-01', '190.00', false], ['INV-0106', '2026-10-01', '570.00', false],
+    ].map(([n, d, t, c]) => [n, d, t, c]));
+    const i3 = p.sales.invoices[2]!;
+    expect(i3.totals).toMatchObject({ taxable: '644.39', cgst: '47.12', sgst: '47.12', round: '0.38', billDiscount: '38.88', transport: '100.00' });
+    expect(i3.lines[1]).toMatchObject({ qty: '5.000', price: '95.00', discPct: '10.00000000', gstRate: '12.00', amount: '427.50' });
+    const walkIn = p.sales.invoices[1]!;
+    expect(walkIn).toMatchObject({ mode: 'cash', partyLegacyId: null, cashName: 'Suresh', received: '420.00', receiptNo: 'PI-0621', pays: [{ mode: 'Cash', amount: '420.00', ref: '' }] });
+    expect(p.sales.invoices[4]).toMatchObject({ received: '190.00', extraPaid: '310.00', pays: [{ mode: 'Cash', amount: '500.00' }] });
+    expect(p.sales.invoices[5]).toMatchObject({ challanNo: 'DC-0001' });
+    expect(p.sales.receipts[0]).toMatchObject({ number: 'PI-0625', amount: '5000.00', mode: 'Cheque', ref: '004512', alloc: [{ to: 'opening', amount: '5000.00' }] });
+    expect(p.sales.creditNotes[0]).toMatchObject({ number: 'CN-0001', settle: 'adjust', total: '174.00', invoices: [{ no: 'INV-0101', amount: '174.00' }] });
+    expect(p.sales.creditNotes[0]!.lines[0]).toMatchObject({ invoiceNo: 'INV-0101', qty: '2.000', price: '87.00', gstRate: '12.00' });
+    expect(p.sales.challans.map((d) => [d.number, d.status, d.invoiceNo])).toEqual([['DC-0001', 'invoiced', 'INV-0106'], ['DC-0002', 'open', '']]);
+    expect(p.sales.quotations.map((q) => q.number)).toEqual(['Q-0101', 'Q-0102']); // oldest first
+    expect(p.sales.quotations[1]).toMatchObject({ number: 'Q-0102', validTill: '2026-10-16', status: 'open', totals: { total: '3283.00' } });
+    // the brand-wise quotation comes with its quantities, and the Quotation page grid with it
+    const bq = p.sales.quotations.find((q) => q.brand)!;
+    expect(bq).toMatchObject({ number: 'Q-0101', lines: [], extra: { type: 'brand', items: 11, pcs: 132, qty: { r5: 30, p4: 15 } } });
+    expect([p.sales.quoteGrid!.rows.length, p.sales.quoteGrid!.ser.length]).toEqual([22, 6]);
+    expect(p.warnings.join(' ')).not.toMatch(/brand-wise/);
+    expect(p.warnings.some((w) => /stock changes/.test(w))).toBe(false);
+  });
+});
+
+describe('purchases (made through the prototype’s purchase screens)', () => {
+  it('maps bills, orders, a debit note and payments made, in the order they happened', () => {
+    const p = planImport(snaps['purchase-shop']!);
+    expect(p.counts).toMatchObject({ purchaseBills: 2, purchaseOrders: 2, debitNotes: 1, paymentsMade: 2 });
+    expect(p.purchases.docs.map((d) => [d.kind, d.number, d.date, d.total, d.status])).toEqual([
+      ['bill', 'PB-0001', '2026-09-20', '24196.00', 'open'], ['order', 'ORD-0001', '2026-09-25', '3248.00', 'received'], ['order', 'ORD-0002', '2026-09-29', '7080.00', 'open'],
+      ['bill', 'PB-0002', '2026-09-30', '3248.00', 'open'], ['debit_note', 'DN-0001', '2026-10-01', '325.00', 'open'],
+    ]);
+    expect(p.purchases.docs[0]).toMatchObject({ supplierRef: 'KC/2209', dueDate: '2026-10-20', lines: [{ qty: '10.000', rate: '1500.00', gstRate: '18.00' }, { qty: '100.000', rate: '58.00', gstRate: '12.00' }] });
+    expect(p.purchases.docs[3]).toMatchObject({ fromOrderNo: 'ORD-0001' });
+    expect(p.purchases.docs[4]).toMatchObject({ againstNo: 'PB-0001', reason: 'Damaged goods' });
+    expect(p.purchases.payments).toEqual([
+      { number: 'PO-0001', date: '2026-09-20', partyLegacyId: expect.any(String), amount: '5000.00', mode: 'Bank transfer', ref: 'NEFT 4471', alloc: [{ billNo: 'PB-0001', amount: '5000.00' }] },
+      { number: 'PO-0002', date: '2026-10-01', partyLegacyId: expect.any(String), amount: '10000.00', mode: 'Cheque', ref: '004890', alloc: [{ billNo: 'PB-0001', amount: '10000.00' }] },
+    ]);
+  });
+
+  it('the old app’s demo purchase orders stay out unless the demo data is asked for', () => {
+    const s = snaps['sample-shop']!;
+    const demo = { kind: 'po', no: 'ORD-0105', date: '29/09/2026', party: s.parties.find((x) => x.sample)!.id, status: 'open', lines: [{ id: s.items.find((i) => i.sample)!.id, name: 'x', qty: 1, rate: 10, gst: 18 }] };
+    const withDemo = { ...s, documents: { ...s.documents, 'erp-pdocs': [demo] } };
+    const p = planImport(withDemo);
+    expect(p.purchases.docs).toHaveLength(0);
+    expect(p.warnings.some((w) => /demo purchase order/.test(w))).toBe(true);
+    expect(planImport(withDemo, { includeSample: true }).purchases.docs).toHaveLength(1);
   });
 });

@@ -6,25 +6,8 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
-import { compare } from './compare';
+import { sameShot } from './shots';
 import { APP, RAVI, WIDTHS, freshShop, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
-
-const MAX_RATIO = 0;
-const shot = (p: Page, sel: string) => p.locator(sel).screenshot({ animations: 'disabled', caret: 'hide' });
-/**
- * Screenshot the same element in both pages and compare. Under a full parallel run
- * the browser now and then smooths text a shade differently, or catches a toast
- * mid-fade; a real difference shows every time, so take a fresh pair up to twice more.
- */
-async function sameShot(name: string, proto: Page, app: Page, sel: string) {
-  let d = compare(name, await shot(proto, sel), await shot(app, sel));
-  for (let n = 0; n < 2 && !(d.sizeMatches && d.ratio <= MAX_RATIO); n++) {
-    await proto.waitForTimeout(400);
-    d = compare(name, await shot(proto, sel), await shot(app, sel));
-  }
-  expect.soft(d.sizeMatches, `${name}: size ${d.width}×${d.height} must match`).toBe(true);
-  expect.soft(d.ratio, `${name}: ${d.diffPixels} pixels differ (see test-results/visual/${name}-diff.png)`).toBeLessThanOrEqual(MAX_RATIO);
-}
 
 for (const width of WIDTHS) {
   test.describe(`${width}px`, () => {

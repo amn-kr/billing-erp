@@ -1,10 +1,23 @@
+import { money } from '@billing/shared';
 import { ConflictException, Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { extractSnapshot, ImportError, parseBackup, planImport, type ImportPlan, type PlanOptions } from '@billing/importer';
 import type { Prisma } from '@prisma/client';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
-import { shortName } from '../businesses/businesses.service';
+import { LedgerService } from '../../common/ledger.service';
+import { NumberingService } from '../../common/numbering.service';
+import { writeSales } from './sales-import';
+import { writePurchases } from './purchase-import';
+import { writeAccounts, writeChequeStates, writeEntries } from './banking-import';
+import { ChequesService } from '../banking/cheques.service';
+import { CommissionService } from '../commission/commission.service';
+import { writeExpenses } from './expense-import';
+import { ExpensesService } from '../expenses/expenses.service';
+import { BankingService } from '../banking/banking.service';
+import { PurchasesService } from '../purchases/purchases.service';
+import type { RequestContext } from '../../common/context';
+import { setCashOpening, shortName } from '../businesses/businesses.service';
 
 export interface ImportRequest extends PlanOptions {
   fileName: string;
@@ -39,6 +52,8 @@ export class ImportsService {
   constructor(
     private readonly db: DbService,
     private readonly audit: AuditService,
+    private readonly ledger: LedgerService,
+    private readonly numbers: NumberingService,
   ) {}
 
   async plan(req: Pick<ImportRequest, 'text' | 'includeSample'>): Promise<{ plan: ImportPlan; backupAt: string }> {
@@ -107,7 +122,7 @@ export class ImportsService {
       for (const k of ['reg', 'hsn', 'pos', 'rcm', 'cess', 'tcs', 'tds', 'tdsBill', 'tdsExp', 'payQr', 'waLink', 'acct', 'upiName']) if (o[k] !== undefined && o[k] !== null && typeof o[k] !== 'object') pick[k] = o[k];
       if (typeof o.curSym === 'boolean') pick.showCurrency = o.curSym;
       if (typeof o.showMrp === 'boolean') pick.mrp = o.showMrp;
-      if (b.cashOpen > 0) pick.cashOpen = String(b.cashOpen);
+      if (b.cashOpen > 0) { pick.cashOpen = String(b.cashOpen); await setCashOpening(tx, String(b.cashOpen)); }
       for (const k of ['tcsRate', 'tdsRate']) if (typeof o[k] === 'string' && ids.get(o[k] as string)) pick[k] = ids.get(o[k] as string);
       const cur = await tx.businessSettings.findUniqueOrThrow({ where: { businessId } });
       await tx.businessSettings.update({ where: { businessId }, data: { data: { ...(cur.data as object), ...pick } as Prisma.InputJsonValue } });
@@ -219,6 +234,33 @@ export class ImportsService {
         update: { kind: c.kind, value: c.value },
       });
     }
+
+    /* cash and bank accounts first: money in the documents below lands in them */
+    const pctx = { businessId, userId: actor.userId, email: '', ip: actor.ip } as RequestContext;
+    const acctIds = await writeAccounts(tx, pctx, plan.banking);
+
+    /* sales documents (invoices, payments, credit notes, challans, quotations) */
+    const referrerId = new Map((await tx.referrer.findMany({ where: { legacyId: { not: null } } })).map((r) => [r.legacyId!, r.id]));
+    await writeSales(tx, { businessId, userId: actor.userId, partyId, itemId, referrerId, ledger: this.ledger, numbers: this.numbers, warnings: plan.warnings }, plan.sales);
+
+    /* purchases (bills, orders, debit notes, payments made), through the same rules as new ones */
+    await writePurchases(tx, pctx, new PurchasesService(this.db, this.audit, this.numbers, this.ledger), { partyId, itemId, warnings: plan.warnings }, plan.purchases);
+
+    /* money moved by hand between cash and bank */
+    await writeEntries(tx, pctx, new BankingService(this.db, this.audit, this.numbers, this.ledger), plan.banking, acctIds);
+
+    /* expense categories and expenses */
+    await writeExpenses(tx, pctx, new ExpensesService(this.db, this.audit, this.numbers, this.ledger), plan.expenses, acctIds);
+
+    /* commission paid to electricians */
+    const cms = new CommissionService(this.db, this.audit, this.numbers, this.ledger);
+    for (const x of plan.payouts) {
+      const ref = referrerId.get(x.referrerLegacyId);
+      if (ref) await cms.importPayout(tx, pctx, { number: x.number, date: x.date, referrerId: ref, amount: money(x.amount), mode: x.mode, note: x.note });
+    }
+
+    /* cheques the old app marked deposited / cleared or bounced */
+    await writeChequeStates(tx, pctx, new ChequesService(this.db, this.audit, this.ledger), plan.banking, acctIds, plan.warnings);
 
     const run = await tx.importRun.create({
       data: { ...base, fileName: fileName.slice(0, 200), backupAt, status: 'done', counts: plan.counts, warnings: plan.warnings },

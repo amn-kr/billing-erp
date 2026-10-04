@@ -4,6 +4,7 @@
  * Phase 3; until then a party's only transaction is its opening balance.
  */
 import { useMemo, useState, type MouseEvent as RMouseEvent } from 'react';
+import { go } from '../../lib/go';
 import { useQuery } from '@tanstack/react-query';
 import { money } from '@billing/shared';
 import { api } from '../../lib/api';
@@ -69,7 +70,8 @@ export function PartiesPage() {
   const me = useMe().data;
   const { showToast } = useShell();
   const list = useQuery({ queryKey: ['parties'], queryFn: () => api<Party[]>('/parties') });
-  const [sel, setSel] = useState<string | null>(null);
+  // ?sel=<party id> opens on that party (the commission page's "Ledger" link)
+  const [sel, setSel] = useState<string | null>(() => new URLSearchParams(location.search).get('sel'));
   const [kind, setKind] = useState<Kind>('all');
   const [bal, setBal] = useState<Bal>('all');
   const [q, setQ] = useState('');
@@ -234,7 +236,7 @@ function PartyHead({ p, shop, onCopied }: { p: Party; shop: string; onCopied: (t
         {p.kind === 'customer' && (
           <>
             <button className="btn" id="ptStmtBtn" type="button" style={{ marginRight: 8 }} onClick={() => soon('Party statement')}><Icon name="doc" />Statement</button>
-            <button className="btn p sm" data-sellparty={p.id} onClick={() => soon('New invoice')}><Icon name="plus" />New invoice</button>
+            <button className="btn p sm" data-sellparty={p.id} onClick={() => go(`/sales/new?party=${p.id}`)}><Icon name="plus" />New invoice</button>
           </>
         )}
       </div>

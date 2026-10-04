@@ -135,3 +135,99 @@ describe('POST /api/imports', () => {
     expect(await asShop(b.businessId, (tx) => tx.item.count())).toBe(0);
   });
 });
+
+describe('importing sales documents', () => {
+  it('brings invoices, payments, a return, challans and a quotation, with the same dues and stock the old app showed', async () => {
+    const o = await owner(app);
+    const res = await http().post('/api/imports').set(auth(o)).send({ fileName: 'sales.json', backup: backup('sales-shop.backup.json') }).expect(200);
+    expect(res.body.counts).toMatchObject({ invoices: 6, receipts: 1, creditNotes: 1, challans: 2, quotations: 2 });
+    const parties = (await http().get('/api/parties').set(auth(o)).expect(200)).body as { name: string; balance: string }[];
+    // the prototype's own balanceOf() for the same backup
+    expect(Object.fromEntries(parties.map((p) => [p.name, p.balance]))).toEqual({ 'Mehta Electricals': '22174.00', 'Raju Electrician': '2599.00', 'Kanpur Cables Pvt Ltd': '-48000.00', 'Walk-in Ramesh': '0.00' });
+    const items = (await http().get('/api/items').set(auth(o)).expect(200)).body as { name: string; stock: string | null }[];
+    expect(Object.fromEntries(items.filter((i) => i.stock !== null).map((i) => [i.name, Number(i.stock)]))).toMatchObject({ 'MCB 32A double pole': -1, 'LED bulb 9W': 179, 'Copper wire 1.5 sq mm (90 m)': 23 });
+    const sales = (await http().get('/api/sales').set(auth(o)).expect(200)).body as { number: string; total: string; balance: string; cancelled: boolean }[];
+    expect(sales.map((s) => [s.number, s.total, s.balance, s.cancelled])).toEqual([
+      ['INV-0106', '570.00', '570.00', false], ['INV-0105', '190.00', '0.00', false], ['INV-0104', '348.00', '0.00', true],
+      ['INV-0103', '839.00', '529.00', false], ['INV-0102', '420.00', '0.00', false], ['INV-0101', '4348.00', '2174.00', false],
+    ]);
+    const rc = (await http().get('/api/receipts').set(auth(o)).expect(200)).body as { number: string; amount: string; unused: string; mode: string }[];
+    expect(rc.map((r) => [r.number, r.amount, r.unused, r.mode])).toEqual([
+      ['XP-INV-0105', '310.00', '0.00', 'Cash'], ['PI-0625', '5000.00', '0.00', 'Cheque'], ['PI-0624', '190.00', '0.00', 'Cash'], ['PI-0621', '420.00', '0.00', 'Cash'], ['PI-0620', '2000.00', '0.00', 'UPI'],
+    ]);
+    // numbers carry on after the imported ones
+    const next = async (kind: string) => (await http().get(`/api/sales/next-number?kind=${kind}&date=2026-10-01`).set(auth(o)).expect(200)).body.number;
+    expect([await next('invoice'), await next('receipt'), await next('credit_note'), await next('challan'), await next('quotation')]).toEqual(['INV-0107', 'PI-0626', 'CN-0002', 'DC-0003', 'Q-0103']);
+    // the brand-wise quotation and the Quotation page's grid come across too
+    const qs = (await http().get('/api/sales?kind=quotation').set(auth(o)).expect(200)).body as { number: string; qtype: string; items: number; qty: string; brandQuote: { qty: Record<string, number> } | null }[];
+    expect(qs.map((q) => [q.number, q.qtype, q.items, q.qty])).toEqual([['Q-0102', 'items', 2, '5.000'], ['Q-0101', 'brand', 11, '132.000']]);
+    expect(qs[1]!.brandQuote!.qty).toMatchObject({ r5: 30, p4: 15 });
+    const grid = (await http().get('/api/quote-grid').set(auth(o)).expect(200)).body;
+    expect([grid.rows.length, grid.ser.length]).toEqual([22, 6]);
+    expect((await http().get('/api/settings').set(auth(o)).expect(200)).body.data.quoteGrid.ser[2]).toMatchObject({ b: 'Legrand', r: 'Myrius' }); // stored, not the default
+    const dcs = (await http().get('/api/sales?kind=challan').set(auth(o)).expect(200)).body;
+    expect(dcs.map((d: { number: string; status: string; invoiceNo: string }) => [d.number, d.status, d.invoiceNo])).toEqual([['DC-0002', 'open', ''], ['DC-0001', 'invoiced', 'INV-0106']]);
+  });
+});
+
+describe('importing purchases', () => {
+  it('brings bills, orders, a debit note and payments made, with what you owe and stock as the old app showed', async () => {
+    const o = await owner(app);
+    const res = await http().post('/api/imports').set(auth(o)).send({ fileName: 'purchases.json', backup: backup('purchase-shop.backup.json') }).expect(200);
+    expect(res.body.counts).toMatchObject({ purchaseBills: 2, purchaseOrders: 2, debitNotes: 1, paymentsMade: 2 });
+    const parties = (await http().get('/api/parties').set(auth(o)).expect(200)).body as { name: string; balance: string }[];
+    // opening 48,000 to pay + bills 27,444 − returned 325 − paid 15,000
+    expect(parties.find((p) => p.name === 'Kanpur Cables Pvt Ltd')!.balance).toBe('-60119.00');
+    const items = (await http().get('/api/items').set(auth(o)).expect(200)).body as { name: string; stock: string | null }[];
+    expect(Object.fromEntries(items.filter((i) => i.stock !== null).map((i) => [i.name, Number(i.stock)]))).toMatchObject({ 'LED bulb 9W': 324, 'Copper wire 1.5 sq mm (90 m)': 33 });
+    const bills = (await http().get('/api/purchases?kind=bill').set(auth(o)).expect(200)).body as { number: string; total: string; balance: string; fromOrder: string }[];
+    expect(bills.map((b) => [b.number, b.total, b.balance, b.fromOrder])).toEqual([['PB-0002', '3248.00', '3248.00', 'ORD-0001'], ['PB-0001', '24196.00', '8871.00', '']]);
+    const orders = (await http().get('/api/purchases?kind=order').set(auth(o)).expect(200)).body as { number: string; status: string; bill: string }[];
+    expect(orders.map((x) => [x.number, x.status, x.bill])).toEqual([['ORD-0002', 'open', ''], ['ORD-0001', 'received', 'PB-0002']]);
+    const pays = (await http().get('/api/payments-made').set(auth(o)).expect(200)).body as { number: string; amount: string; mode: string; unused: string }[];
+    expect(pays.map((p) => [p.number, p.amount, p.mode, p.unused])).toEqual([['PO-0002', '10000.00', 'Cheque', '0.00'], ['PO-0001', '5000.00', 'Bank transfer', '0.00']]);
+    // numbers carry on after the imported ones
+    const next = async (kind: string) => (await http().get(`/api/purchases/next-number?kind=${kind}&date=2026-10-01`).set(auth(o)).expect(200)).body.number;
+    expect([await next('bill'), await next('order'), await next('debit_note'), await next('payment')]).toEqual(['PB-0003', 'ORD-0003', 'DN-0002', 'PO-0003']);
+    expect(res.body.warnings.join(' ')).not.toMatch(/total is/);
+  });
+});
+
+describe('banking import', () => {
+  it('brings cash and bank accounts and the money moved by hand; balances match the old app', async () => {
+    const o = await owner(app);
+    const res = await http().post('/api/imports').set(auth(o)).send({ fileName: 'bank.json', backup: backup('bank-shop.backup.json') }).expect(200);
+    expect(res.body.counts).toMatchObject({ bankAccounts: 2, bankEntries: 5, expenses: 4 });
+    const accs = (await http().get('/api/banking/accounts').set(auth(o)).expect(200)).body as { name: string; balance: string; isDefault: boolean; accountNo: string; ifsc: string; branch: string }[];
+    // the prototype's own balances for the same backup (expenses and a deposited cheque included): cash 1,080, HDFC 83,696, SBI 65,412
+    expect(accs.map((a) => [a.name, a.balance, a.isDefault])).toEqual([['Cash in hand', '1080.00', true], ['HDFC Bank', '83696.00', true], ['State Bank of India', '65412.00', false]]);
+    const chq = (await http().get('/api/banking/cheques').set(auth(o)).expect(200)).body as { number: string; status: string; statusDate: string | null }[];
+    expect(chq.map((c) => [c.number, c.status, c.statusDate])).toEqual([['PO-0002', 'pending', null], ['PI-0625', 'cleared', '2026-10-01']]);
+    const xs = (await http().get('/api/expenses').set(auth(o)).expect(200)).body as { number: string; category: string; total: string; gst: string }[];
+    expect(xs.map((x) => [x.number, x.category, x.total, x.gst])).toEqual([
+      ['EXP-0005', 'Generator diesel', '1850.00', '0.00'], ['BT-0005', 'Shop expenses', '650.00', '0.00'], ['BT-0003', 'Bank charges', '354.00', '0.00'], ['EXP-0003', 'Repairs', '2950.00', '450.00'], ['EXP-0004', 'Packing material', '2340.00', '0.00'], ['EXP-0002', 'Rent', '25000.00', '0.00'],
+    ]);
+    expect((await http().get('/api/expenses/next-number').set(auth(o)).expect(200)).body.number).toBe('EXP-0006');
+    expect(accs[1]).toMatchObject({ accountNo: '50200012347703', ifsc: 'HDFC0001234', branch: 'Hazratganj, Lucknow' });
+    const next = (await http().post('/api/banking/entries').set(auth(o)).send({ date: '2026-10-02', kind: 'in', accountId: (accs as unknown as { id: string }[])[0]!.id, amount: '1', category: 'Other' }).expect(201)).body;
+    expect(next.number).toBe('BT-0006');
+  });
+});
+
+describe('commission import', () => {
+  it('referred bills, a return and both kinds of payout: earnings and balances match the old app', async () => {
+    const o = await owner(app);
+    const res = await http().post('/api/imports').set(auth(o)).send({ fileName: 'commission.json', backup: backup('commission-shop.backup.json') }).expect(200);
+    expect(res.body.counts).toMatchObject({ commissionPayouts: 2 });
+    const C = (await http().get('/api/commission').set(auth(o)).expect(200)).body as { name: string; bills: number; business: string; comm: string; ret: string; earned: string; paid: string; due: string; invoices: { number: string; comm: string; ret: string; f: number; earned: string }[]; payouts: { number: string; mode: string; note: string }[] }[];
+    const s = C.find((x) => x.name === 'Sunil Electrician')!;
+    // the prototype's cmStats for the same backup
+    expect(s).toMatchObject({ bills: 2, business: '3047.00', comm: '202.04', ret: '32.71', earned: '153.96', paid: '150.00', due: '3.96' });
+    expect(s.invoices.map((b) => [b.number, b.comm, b.ret, b.earned])).toEqual([['INV-0108', '71.19', '0.00', '23.11'], ['INV-0107', '163.56', '32.71', '130.85']]);
+    expect(s.payouts.map((p) => [p.number, p.mode, p.note])).toEqual([['CP-0001', 'Cash', ''], ['CP-0002', 'Adjusted in his account', 'PI-0628 · INV-0109']]);
+    const accs = (await http().get('/api/banking/accounts').set(auth(o)).expect(200)).body as { name: string; balance: string }[];
+    expect(accs.map((a) => [a.name, a.balance])).toEqual([['Cash in hand', '1280.00'], ['HDFC Bank', '85819.00'], ['State Bank of India', '65412.00']]);
+    const sunil = ((await http().get('/api/parties').set(auth(o)).expect(200)).body as { name: string; balance: string }[]).find((p) => p.name === 'Sunil Electrician')!;
+    expect(sunil.balance).toBe('900.00');
+  });
+});

@@ -5,6 +5,7 @@
  * variants table).
  */
 import { Fragment, useMemo, useState, type MouseEvent as RMouseEvent } from 'react';
+import { go } from '../../lib/go';
 import { useQuery } from '@tanstack/react-query';
 import { money } from '@billing/shared';
 import { api } from '../../lib/api';
@@ -319,7 +320,7 @@ function ItemHead({ i, mrpOn, onBack, onAdjust }: { i: Item; mrpOn: boolean; onB
         </div>
         <div className="ptacts">
           {i.kind !== 'service' && <button className="btn sm" id="itAdj" onClick={onAdjust}><Icon name="swap" />Adjust stock</button>}
-          <button className="btn p sm" data-sellitem={i.id} onClick={() => soon('New invoice')}><Icon name="plus" />Sell</button>
+          <button className="btn p sm" data-sellitem={i.id} onClick={() => go(`/sales/new?item=${i.id}`)}><Icon name="plus" />Sell</button>
         </div>
       </div>
       <div className="itfig">
@@ -376,7 +377,7 @@ function GroupHead({ g, ms, mrpOn, cur, onPick }: { g: string; ms: Item[]; mrpOn
                     <td className="n"><b>{inr2f(x.sale)}</b>{mrpOn && n(x.mrp) > 0 && n(x.sale) > n(x.mrp) && <small className="neg">Above MRP</small>}</td>
                     <td className={`n ${m < 5 ? 'neg' : ''}`}>{m.toFixed(0)}%</td>
                     <td className={`n ${x.level === 'out' ? 'neg' : x.level === 'low' ? 'lowq' : ''}`}>{qfmt(x.stock)} {x.unit}</td>
-                    <td className="n"><button className="btn sm" data-sellitem={x.id} onClick={() => soon('New invoice')}>Sell</button></td>
+                    <td className="n"><button className="btn sm" data-sellitem={x.id} onClick={() => go(`/sales/new?item=${x.id}`)}>Sell</button></td>
                   </tr>
                 </Fragment>
               );
