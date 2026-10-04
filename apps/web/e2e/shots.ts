@@ -15,7 +15,12 @@ export const MAX_RATIO = 0;
  */
 async function repaint(p: Page): Promise<void> {
   await p.evaluate(async () => {
-    const frames = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    // two frames and a pause: under load Chrome can skip drawing a frame, and a change it never
+    // drew counts as no change, which would leave the old pixels in place
+    const frames = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 150))));
+    // end short animations (e.g. the 1.2 s flash on a new item row) so both pages are in their final state
+    for (const a of document.getAnimations()) if (Number.isFinite(a.effect?.getComputedTiming().endTime ?? Infinity)) a.finish();
+    await frames();
     const s = document.createElement('style');
     s.textContent = '*{-webkit-text-fill-color:transparent!important}';
     document.head.append(s);
