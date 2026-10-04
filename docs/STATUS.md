@@ -141,10 +141,13 @@
 - **Demo customers and items used for real count only the shop's own documents** (owner, 4 Oct 2026). The old app's built-in demo history for them (made-up sales, purchases and payments) is not brought across, so their balances and stock are opening figures plus the shop's own documents. Money received above an invoice's total settles the shop's own older bills (so the owner's INV-0414 shows paid, where the old app used that money on demo bills).
 - **HDFC Bank is the owner's real bank** (owner, 4 Oct 2026). The account the old app set up as the default bank is kept with its name; its balance is the shop's own UPI and bank money.
 
-## Phase 4 — Reports + Home (in progress)
+## Phase 4 — Reports + Home ✅ (gate passed on the owner's backup, 4 Oct 2026)
 Scope set by the owner: only the 9 reports that already work in the prototype, plus Home. GST reports, stock reports and the ~30 placeholder reports stay on hold.
 
-**Gate ("figures match the pilot"):** the owner decided on 4 Oct 2026 that their own shop's backup alone is the pilot, since no other shop uses the app yet.
+**Gate ("figures match the pilot"):** the owner decided on 4 Oct 2026 that their own shop's backup alone is the pilot, since no other shop uses the app yet. Result on that backup (checked locally, the backup is never committed):
+- All 6 of the shop's own parties: the statement closes on the party balance in the books (6/6), and 5/6 match the prototype's statement and sale / purchase figures exactly.
+- The 6th is listed twice in the old app under the same name (one copy holds the bills); the import merges exact duplicates (Phase 2), so the rebuild shows both together — the same closing balance the old app shows on the copy with the bills.
+- Expenses: the old app lists 16, all of them its built-in demo expenses and demo cash-book entries; the shop has none of its own, so the rebuild shows none (demo data stays out, owner decision).
 
 | Item | State |
 |---|---|
