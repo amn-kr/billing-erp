@@ -200,3 +200,40 @@ test('Quick sale (Alt+N): a walk-in cash sale is saved as an invoice, and its nu
   await expect(page.locator('#qsm')).toHaveCount(0);
   await expect(page.locator('#slRows tr[data-sno="INV-0107"]')).toContainText('Sunil');
 });
+
+test('brand-wise quotation: saved, converted with the chosen brand, then locked', async ({ browser, request }) => {
+  const page = await newPage(browser, 1366);
+  await signInAs(page, await freshShop(request, 'fresh-kept-items'));
+  await page.goto(APP + '/quotations');
+  await page.waitForSelector('#qBody [data-qq="r4"]');
+  await expect(page.locator('#qNo')).toHaveText('Q-0101');
+  await expect(page.locator('#qState')).toHaveText('Draft');
+  await page.fill('#qCust', 'Sunil');
+  await page.fill('#qBody [data-qq="r4"]', '10');
+  await page.fill('#qBody [data-qq="r2"]', '4');
+  await page.click('#qSave');
+  await expect(page.locator('#toast')).toHaveText('Q-0101 saved for Sunil');
+  await expect(page.locator('#qState')).toHaveText('Saved');
+  // convert: the brands with every item come first, cheapest first
+  await page.click('#qConv');
+  await expect(page.locator('#qcm')).toBeVisible();
+  const anchor = page.locator('#qcList label', { hasText: 'Anchor Roma' });
+  await anchor.locator('input').check();
+  await page.click('#qcGo');
+  await expect(page).toHaveURL(/\/sales\/new/);
+  await expect(page.locator('#siMid .qref')).toContainText('Q-0101');
+  await expect(page.locator('#siMid .qref em')).toHaveText('Anchor Roma White');
+  await expect(page.locator('#siRows tr[data-ln]')).toHaveCount(3); // two items and the empty row
+  await page.click('#siSave');
+  if (await page.locator('#siChgPop:not([hidden])').count()) await page.click('#siChgDone');
+  await expect(page.locator('#toast')).toContainText(/^INV-\d+ saved/);
+  const inv = (await page.locator('#toast').textContent())!.split(' ')[0]!;
+  // the quotation is converted and locked
+  await page.goto(APP + '/quotations');
+  await page.click('#qSaved');
+  await expect(page.locator('#qlRows tr', { hasText: 'Q-0101' })).toContainText(`Converted${inv} · Anchor Roma White`);
+  await page.locator('#qlRows [data-qopen="Q-0101"]').click();
+  await expect(page.locator('#qRo')).toContainText(`Converted to ${inv} (Anchor Roma White)`);
+  await expect(page.locator('#qSave')).toBeDisabled();
+  await expect(page.locator('#qState')).toHaveText(`Converted · ${inv}`);
+});

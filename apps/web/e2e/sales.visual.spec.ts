@@ -208,9 +208,10 @@ for (const width of WIDTHS) {
       await withTabs(proto, app);
       await both(proto, app, async (p) => { await p.click('#siTitle'); await p.click('#siImpQ'); }); // (the title click closes the party list)
       await app.waitForSelector('#iqm:not([hidden]) .iqr');
-      // brand-wise quotations come across with the Quotation page (STATUS.md), so Q-0101 is not offered yet
-      await proto.evaluate(() => document.querySelector('#iqList [data-iq="Q-0101"]')?.remove());
       await sameShot(`import-quote-${width}`, proto, app, '#iqm .mdl');
+      // a brand-wise quotation asks which brand to bill
+      await both(proto, app, (p) => p.click('#iqList [data-iq="Q-0101"]'));
+      await sameShot(`import-quote-brand-${width}`, proto, app, '#iqm .mdl');
       await both(proto, app, (p) => p.click('#iqList [data-iq="Q-0102"]'));
       await sameShot(`import-quote-picked-${width}`, proto, app, '#iqm .mdl');
       await both(proto, app, async (p) => { await p.click('#iqGo'); await p.mouse.move(0, 0); });

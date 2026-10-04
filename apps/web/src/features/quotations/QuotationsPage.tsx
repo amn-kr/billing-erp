@@ -161,7 +161,7 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
       if (q.ref && rule && rule.t !== 'n' && rule.v > 0) { l.bp = rule.t === 'p' ? r2(x.price / (1 + rule.v / 100)) : r2(x.price - rule.v); l.cmT = rule.t; l.cmV = rule.v; }
       return l;
     });
-    openTab(lines, '', q.cust, '', (s) => { s.ref = q.ref; s.qrefs = [{ no: q.no, date: dmy(date), cust: q.cust, brand, id: q.id ?? undefined }]; s.notes = `As per quotation ${q.no} (${brand}).`; });
+    openTab(lines, '', q.cust, '', (s) => { s.ref = q.ref; s.qrefs = [{ no: q.no, date, cust: q.cust, brand, id: q.id ?? undefined }]; s.notes = `As per quotation ${q.no} (${brand}).`; });
     toast(`${L.length} items from ${q.no} · ${brand}. Check and save the invoice.`);
   };
   const convertItems = async (id: string) => {
@@ -173,7 +173,7 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
     openTab(lines, v.party?.id ?? '', v.partyName, v.cashPhone, (s) => {
       s.bdisc = Number(v.billDiscount) || 0; s.chTr = Number(v.transport) || 0; s.chLab = Number(v.labour) || 0; s.chBank = Number(v.bankCharge) || 0;
       s.transport = x.transport ?? ''; s.vehicle = x.vehicle ?? ''; s.desc = x.description ?? ''; s.showDesc = !!x.description;
-      s.qrefs = [{ no: v.number, date: dmy(v.date), cust: v.partyName, brand: 'Item-wise', id: v.id }]; s.notes = `As per quotation ${v.number}.`;
+      s.qrefs = [{ no: v.number, date: v.date, cust: v.partyName, brand: 'Item-wise', id: v.id }]; s.notes = `As per quotation ${v.number}.`;
     });
     toast(`${v.lines.length} items from ${v.number}. Check and save the invoice.`);
   };

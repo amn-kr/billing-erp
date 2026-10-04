@@ -96,15 +96,16 @@
 | Invoice editor: party, rapid entry, items grid, discount & charges, payment, save / save & new / save & print, edit, copy, from challan, credit-limit question | done — 0 pixel difference at 1280/1366/1920 (new, filled, charges, payment, footer); flow test saves an invoice and opens it again |
 | Several open bills (tabs) in the invoice editor | done — tests for the owner's four rules (see below) |
 | Editor extras: tools pop-up (transport, terms, description, attachments, profit & loss), referral (add electrician, commission on this bill), previous rates, import from quotation, Quick sale (⚡ / Alt+N) | done — matching screenshots at 1280/1366/1920; flow tests for saving |
-| Quotations page (brand-wise and item-wise) | next |
-| Purchases, expenses, banking & cash, cheques, reconciliation, commission | after sales |
+| Quotations page: brand-wise grid (rows × brand ranges, rates from Price manager, totals and "Lowest"), saved list, convert to invoice with the chosen brand, add range / row / item, referral, WhatsApp / PDF / Excel; item-wise quotations in the editor; brand-wise quotations and the grid come across from old backups | done — matching screenshots at 1280/1366/1920; API, importer and flow tests (save → convert → locked) |
+| Purchases, expenses, banking & cash, cheques, reconciliation, commission | next |
 | CI reliability: screenshot tests wait until the page is still (fixes the failure on main after PR #2) | done here; confirmed by CI on the Phase 3 pull request |
 
 ### Differences from the prototype (on purpose)
 - **Invoices are never deleted.** "Delete" in the invoice menu is greyed out ("cancel instead"); cancelling keeps the record, returns stock and turns money received into an advance.
-- Brand-wise quotations in old backups come across with the Quotation page (the import report says so).
 - Escape closes the invoice preview and the small confirmation window, as in the prototype (the rebuild had missed this).
-- **Import from quotation keeps the quoted rates.** When the quotation's customer is filled in for you, the prototype re-prices every line from the price list, losing the rates its own message promises; the rebuild applies the price list only to lines that were already on the invoice. Brand-wise quotations are offered once the Quotation page is built.
+- **Quotations are cancelled, never deleted.** The "×" in Saved quotations asks "Cancel?"; the quotation leaves the list and stays in the books. The list shows the newest first (the prototype lists them in the order it stored them).
+- Opening Referral or a window on the Quotation page closes the share menu and the ranges list (the prototype left them open underneath).
+- **Import from quotation keeps the quoted rates.** When the quotation's customer is filled in for you, the prototype re-prices every line from the price list, losing the rates its own message promises; the rebuild applies the price list only to lines that were already on the invoice.
 - Adding an electrician links them to the customer with the same mobile or name, or adds them as a party in "Electricians" (15 days' credit), as the prototype does; party names stay unique.
 
 ### Owner decisions (Phase 3)
