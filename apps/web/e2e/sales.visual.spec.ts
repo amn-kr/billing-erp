@@ -241,6 +241,35 @@ for (const width of WIDTHS) {
       // (saving is checked in sales.flows: the shared sales shop must stay as the prototype's)
     });
 
+    test('Quotations page: brand-wise grid, quantities, saved list, ranges, share, referral, convert', async ({ browser }) => {
+      test.setTimeout(150_000);
+      const { proto, app } = await pages(browser, width, 'quo', '/quotations', '#qBody [data-qq="r1"]');
+      await both(proto, app, (p) => p.mouse.move(0, 0));
+      await sameShot(`quo-${width}`, proto, app, '#vQuo');
+      await both(proto, app, async (p) => { await p.fill('#qBody [data-qq="r5"]', '30'); await p.fill('#qBody [data-qq="p4"]', '15'); await p.fill('#qDisc', '5'); await p.click('#qNo'); await p.mouse.move(0, 0); });
+      // (how far the table scrolled while typing is incidental)
+      await both(proto, app, (p) => p.evaluate(() => { document.querySelector('#vQuo .qtw')!.scrollTop = 0; }));
+      await sameShot(`quo-filled-${width}`, proto, app, '#vQuo');
+      await both(proto, app, (p) => p.click('#qSerBtn'));
+      await sameShot(`quo-ranges-${width}`, proto, app, '#qSerPop');
+      await both(proto, app, (p) => p.click('#qAddSer'));
+      // (the prototype leaves the ranges list open behind the window; the rebuild closes it)
+      await proto.evaluate(() => { document.getElementById('qSerPop')!.hidden = true; });
+      await sameShot(`quo-add-range-${width}`, proto, app, '#qam .mdl');
+      await both(proto, app, (p) => p.click('#qaCancel'));
+      await both(proto, app, (p) => p.click('#qShare'));
+      await sameShot(`quo-share-${width}`, proto, app, '#qSharePop');
+      // (the prototype leaves the share menu open under Referral; the rebuild closes it)
+      await both(proto, app, async (p) => { await p.click('#qNo'); await p.click('#qRefBtn'); });
+      await sameShot(`quo-referral-${width}`, proto, app, '#qRefPop');
+      await both(proto, app, (p) => p.click('#qNo'));
+      // saved list: newest first in the rebuild (the prototype lists them in the order it stored them)
+      await both(proto, app, (p) => p.click('#qSaved'));
+      await proto.evaluate(() => { const b = document.getElementById('qlRows')!; [...b.children].reverse().forEach((r) => b.appendChild(r)); document.querySelectorAll('#qlRows [data-qdl]').forEach((x) => { x.setAttribute('title', 'Cancel quotation'); }); });
+      await sameShot(`quo-saved-${width}`, proto, app, '#qlm .mdl');
+      await both(proto, app, (p) => p.click('#qlClose'));
+    });
+
     test('Invoice editor referral: add electrician, commission loaded on the rates, commission on this bill', async ({ browser, request }) => {
       test.setTimeout(150_000);
       // adds an electrician (and party), so it works in a copy of the sales shop
