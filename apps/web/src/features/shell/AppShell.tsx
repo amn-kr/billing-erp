@@ -13,6 +13,7 @@ import { useStyles } from '../../lib/useStyles';
 import { curStart, curStop } from '../../lib/currency';
 import { useSettings } from '../../lib/settings';
 import { goToLogin } from '../../lib/nav';
+import { setGo } from '../../lib/go';
 import { APP_STYLES } from '../../styles';
 import { VIEW_LABEL, VIEW_PATH, type NavLink } from './nav';
 import { PAL, type PalId } from './palette';
@@ -118,6 +119,29 @@ export function AppShell() {
     };
   }, [closeAll, setPop, setPal]);
 
+  useEffect(() => setGo(navigate), [navigate]);
+  // entry points that now open real screens (the rest still say "coming next")
+  const act = useCallback(
+    (what: string) => {
+      if (what === 'New invoice') navigate('/sales/new');
+      else if (/^(Receive payment|Payments|New payment received)$/i.test(what)) navigate('/payments-received?party=');
+      else if (/^New delivery challan$/i.test(what)) navigate('/delivery-challans?new=1');
+      else soon(what);
+    },
+    [navigate],
+  );
+  // Alt shortcuts, like desktop billing software (prototype KS): Alt+S new invoice, Alt+R receive payment
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (!e.altKey || e.ctrlKey || e.metaKey) return;
+      if ([...document.querySelectorAll<HTMLElement>('.ov')].some((o) => !o.hidden)) return;
+      if (e.code === 'KeyS') { e.preventDefault(); act('New invoice'); }
+      else if (e.code === 'KeyR') { e.preventDefault(); act('Receive payment'); }
+    };
+    document.addEventListener('keydown', k);
+    return () => document.removeEventListener('keydown', k);
+  }, [act]);
+
   const onView = useCallback(
     (view: string, link?: NavLink) => {
       useShell.getState().setSideOpen(false);
@@ -143,7 +167,7 @@ export function AppShell() {
   return (
     <>
       <div className={mini ? 'app mini' : 'app'} id="app">
-        <Sidebar active={active} lowStock={lowStock} acct={!!sdata?.acct} onView={onView} onSoon={soon} />
+        <Sidebar active={active} lowStock={lowStock} acct={!!sdata?.acct} onView={onView} onSoon={act} />
         <div style={{ minWidth: 0 }}>
           <TopBar
             me={me.data}
@@ -157,7 +181,7 @@ export function AppShell() {
               showToast(`${PAL.find((p) => p.id === id)!.name} applied`);
             }}
             onView={onView}
-            onSoon={soon}
+            onSoon={act}
             onSwitch={async (businessId) => {
               try {
                 await apiWithToken('/businesses/switch', { businessId });

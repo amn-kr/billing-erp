@@ -93,10 +93,22 @@
 | Payments received + Receive payment | done — 0 pixel difference |
 | Credit notes + New credit note | done — 0 pixel difference |
 | Delivery challans + New challan + print view | done — 0 pixel difference |
-| Invoice editor (rapid entry, discount & charges, payment, referral, quotation import), quick sale, quotation page | next |
+| Invoice editor: party, rapid entry, items grid, discount & charges, payment, save / save & new / save & print, edit, copy, from challan, credit-limit question | done — 0 pixel difference at 1280/1366/1920 (new, filled, charges, payment, footer); flow test saves an invoice and opens it again |
+| Several open bills (tabs) in the invoice editor | done — tests for the owner's four rules (see below) |
+| Editor extras: tools pop-up, referral per bill, quotation import, previous rates, quick sale, Quotations page | next |
 | Purchases, expenses, banking & cash, cheques, reconciliation, commission | after sales |
 | CI reliability: screenshot tests wait until the page is still (fixes the failure on main after PR #2) | done here; confirmed by CI on the Phase 3 pull request |
 
 ### Differences from the prototype (on purpose)
 - **Invoices are never deleted.** "Delete" in the invoice menu is greyed out ("cancel instead"); cancelling keeps the record, returns stock and turns money received into an advance.
 - Brand-wise quotations in old backups come across with the Quotation page (the import report says so).
+- Escape closes the invoice preview and the small confirmation window, as in the prototype (the rebuild had missed this).
+
+### Owner decisions (Phase 3)
+- **A plain click on a sales invoice row opens its preview** (the right-click menu stays). In the prototype only the menu opened it.
+- **Several bills open at once, one tab each** (the prototype had removed this; its own test checks for "no bill tabs", which the port will turn round). The tabs use the prototype's leftover bill-tab styles; the screenshot test copies the strip into the prototype so the rest is still compared pixel for pixel. Rules, each with a test:
+  1. Closing the last tab just closes the editor — no new bill opens and no number is used.
+  2. Closing a tab never changes or overwrites another open bill (every change is tied to its own tab).
+  3. A sale number is used only when the bill is saved. Unsaved bills show the next number; when another bill is saved first, they move on to the following one. A number you type yourself is kept.
+  4. A tab with unsaved changes asks "Discard this bill?" before closing (the back arrow closes the bill on screen the same way).
+- Open bills stay while you visit other screens and come back with "New invoice"; they are kept in this browser window only (not on the server), and are cleared on sign-out or when switching shop. Saving a bill while others are open shows the saved invoice over the editor; saving the last one goes to the sales list as before.

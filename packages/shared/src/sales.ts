@@ -66,7 +66,7 @@ export const saleExtraSchema = z
     description: opt(2000), attachments: z.array(trim.max(200)).max(20).optional().default([]),
     quoteRefs: z.array(z.object({ no: trim.max(40), date: opt(10), cust: opt(160), brand: opt(80) })).max(20).optional().default([]),
     validTill: opt(10),
-    /** referral rules changed for this bill only, per item category */
+    /** referral rules changed for this bill only, per item category name */
     commByCategory: z.record(z.string(), commRuleSchema).optional().default({}),
   })
   .partial()

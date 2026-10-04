@@ -18,6 +18,15 @@ async function pages(browser: Parameters<typeof newPage>[0], width: number, view
   return { proto, app };
 }
 const both = async (a: Page, b: Page, fn: (p: Page) => Promise<unknown>) => { await fn(a); await fn(b); };
+/**
+ * Deliberate difference (owner's request): the rebuild's editor has bill tabs above the
+ * title, drawn with the prototype's own leftover bill-tab styles. Copy the strip into the
+ * prototype so everything else is still compared pixel for pixel.
+ */
+async function withTabs(proto: Page, app: Page) {
+  const html = await app.locator('#siTabs').evaluate((e) => e.outerHTML);
+  await proto.evaluate((h) => { document.getElementById('siTabs')?.remove(); document.querySelector('#vNewInv > .sitop')!.insertAdjacentHTML('afterbegin', h); window.dispatchEvent(new Event('resize')); }, html);
+}
 
 for (const width of WIDTHS) {
   test.describe(`${width}px`, () => {
@@ -98,6 +107,41 @@ for (const width of WIDTHS) {
       await app.waitForSelector('#dcRowsI [data-dcq]');
       await both(proto, app, (p) => p.locator('#dcTr').click());
       await sameShot(`challan-new-${width}`, proto, app, '#dcm .mdl');
+    });
+
+    test('Invoice editor: new sale, a credit sale with items, discount & charges, payment', async ({ browser }) => {
+      const { proto, app } = await pages(browser, width, 'sales', '/sales', '#slRows tr[data-sno]');
+      await proto.evaluate(() => (window as unknown as { openInvoice: () => void }).openInvoice());
+      await app.click('#vSales .pthd .btn.p');
+      await app.waitForSelector('#vNewInv #siRows tr[data-ln]');
+      await proto.waitForTimeout(300);
+      await withTabs(proto, app);
+      await sameShot(`editor-new-${width}`, proto, app, '#vNewInv');
+      // choose the party from the list, then add two items through rapid entry
+      await both(proto, app, async (p) => { await p.fill('#siParty', 'Mehta'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); });
+      for (const [item, qty] of [['LED bulb', '10'], ['Copper wire', '1']] as const) {
+        await both(proto, app, async (p) => { await p.locator('#qeItem').fill(item); await p.waitForTimeout(100); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); await p.locator('#qeQty').fill(qty); await p.locator('#qeQty').press('Control+Enter'); });
+      }
+      await both(proto, app, async (p) => { await p.locator('#siBill').click(); await p.mouse.move(0, 0); });
+      await proto.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
+      await app.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
+      await withTabs(proto, app);
+      await sameShot(`editor-filled-${width}`, proto, app, '#vNewInv');
+      // discount & charges pop-up
+      await both(proto, app, (p) => p.click('#siChgBtn'));
+      await both(proto, app, async (p) => { await p.fill('#siBdP', '5'); await p.locator('#siBdP').dispatchEvent('input'); await p.fill('#siChTr', '100'); await p.locator('#siChTr').dispatchEvent('input'); });
+      await withTabs(proto, app);
+      await sameShot(`editor-charges-${width}`, proto, app, '#siChgPop');
+      await both(proto, app, (p) => p.click('#siChgDone'));
+      // payment pop-up with a part payment
+      await both(proto, app, (p) => p.click('#siPayBtn'));
+      await both(proto, app, async (p) => { await p.locator('#siPayC [data-pk="amt"]').fill('1000'); await p.locator('#siPayC [data-pk="amt"]').dispatchEvent('input'); });
+      await withTabs(proto, app);
+      await sameShot(`editor-payment-${width}`, proto, app, '#siPayPop');
+      await both(proto, app, (p) => p.click('[data-paydone="si"]'));
+      await both(proto, app, (p) => p.mouse.move(0, 0));
+      await withTabs(proto, app);
+      await sameShot(`editor-footer-${width}`, proto, app, '#vNewInv .sift');
     });
   });
 }

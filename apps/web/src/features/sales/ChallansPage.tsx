@@ -5,7 +5,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../../lib/api';
 import { dmy } from '../../lib/format';
 import { today } from '../../lib/time';
@@ -37,6 +37,8 @@ export function ChallansPage() {
   const [open, setOpen] = useState(false);
   const [print, setPrint] = useState<string | null>(null);
   const [sure, setSure] = useState<string | null>(null);
+  const [params, setParams] = useSearchParams();
+  useEffect(() => { if (params.get('new')) { setOpen(true); setParams({}, { replace: true }); } }, [params, setParams]);
   useEffect(() => { if (!sure) return; const t = setTimeout(() => setSure(null), 2500); return () => clearTimeout(t); }, [sure]);
   if (!list.data) return <section id="vDcs"></section>;
   const A = list.data;

@@ -6,7 +6,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { money } from '@billing/shared';
 import { api, ApiError } from '../../lib/api';
 import { dmy, inr, inr2f } from '../../lib/format';
@@ -55,6 +55,15 @@ export function SalesPage() {
   const [preview, setPreview] = useState<{ id: string; challan?: boolean } | null>(null);
   const shown = useSale(preview?.id ?? null);
   const qRef = useRef<HTMLInputElement>(null);
+  // just saved in the editor: show the invoice (and print it for "Save & print"), as the prototype does
+  const location = useLocation();
+  useEffect(() => {
+    const st = location.state as { preview?: string; print?: boolean } | null;
+    if (!st?.preview) return;
+    setPreview({ id: st.preview });
+    navigate('.', { replace: true, state: null });
+    if (st.print) setTimeout(() => window.print(), 500);
+  }, [location.state, navigate]);
   const closePop = useCallback((refocus: boolean) => setPop((p) => { if (refocus) (p?.anchor.el as HTMLElement | undefined)?.focus(); return null; }), []);
 
   if (!list.data) return <section id="vSales"></section>;
@@ -176,14 +185,15 @@ export function SalesPage() {
             onKeyDown={(e) => {
               const tr = (e.target as HTMLElement).closest<HTMLElement>('tr[data-sno]'); if (!tr) return;
               const r = list.data!.find((x) => x.id === tr.dataset.sid); if (!r) return;
-              // like the prototype, a row opens its actions (right-click, the menu key or Shift+F10); a plain click does nothing
+              // the actions menu: right-click, the menu key or Shift+F10; Enter (or a click) opens the preview (owner decision, 4 Oct 2026)
               if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) { e.preventDefault(); const b = tr.getBoundingClientRect(); setMenu({ row: r, x: b.left + 120, y: b.bottom - 4, tr }); }
+              else if (e.key === 'Enter' && e.target === tr) { e.preventDefault(); openRow(r); }
             }}>
             {L.length ? L.map((s) => {
               const stt = statusOf(s);
               const c = s.cancelled;
               return (
-                <tr tabIndex={0} data-sno={s.number} data-sid={s.id} data-spid={s.party?.id ?? ''} className={[c ? 'slcan' : '', menu?.row.id === s.id ? 'ctxon' : ''].filter(Boolean).join(' ')} key={s.id}>
+                <tr tabIndex={0} data-sno={s.number} data-sid={s.id} data-spid={s.party?.id ?? ''} className={[c ? 'slcan' : '', menu?.row.id === s.id ? 'ctxon' : ''].filter(Boolean).join(' ')} key={s.id} onClick={() => openRow(s)}>
                   <td>{dmy(s.date)}</td><td className="mono">{s.number}{!c ? <> <span className="st b" style={{ fontSize: 10, padding: '1px 6px' }}>New</span></> : null}</td><td><b style={{ fontWeight: 600 }}>{s.partyName}</b></td>
                   <td className="n">{inr2f(s.total)}</td><td className="n">{inr2f(s.received)}</td><td className="n">{inr2f(s.balance)}</td><td>{!c && Number(s.balance) > 0 && s.dueDate ? dmy(s.dueDate) : ''}</td><td><span className={`stt ${stt.c}`}>{stt.t}</span></td></tr>
               );

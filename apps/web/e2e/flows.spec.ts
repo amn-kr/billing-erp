@@ -143,8 +143,6 @@ test('screens not rebuilt yet say so, like the prototype', async ({ browser }) =
   await page.click('.grp[data-g="Purchases"] a[data-view="pur"]');
   await expect(page.locator('#toast')).toHaveText('Purchase bills screen is coming next');
   await expect(page.locator('#toast')).toHaveClass(/on/);
-  await page.click('#heroActs button.p');
-  await expect(page.locator('#toast')).toHaveText('New invoice screen is coming next');
   await page.fill('#q', 'INV-0412');
   await page.press('#q', 'Enter');
   await expect(page.locator('#toast')).toHaveText('Search for “INV-0412” comes with the Sales screen');

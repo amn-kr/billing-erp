@@ -82,7 +82,7 @@ export class SalesService {
     if (!cash && !party) throw new BadRequestException({ message: 'That party was not found.', field: 'partyId' });
     const rows = input.lines.filter((l) => l.itemId || l.name.trim());
     if (!rows.length) throw new BadRequestException({ message: 'Add at least one item.', field: 'lines' });
-    const items = new Map((await tx.item.findMany({ where: { id: { in: rows.flatMap((l) => (l.itemId ? [l.itemId] : [])) } }, include: { unit: true } })).map((i) => [i.id, i]));
+    const items = new Map((await tx.item.findMany({ where: { id: { in: rows.flatMap((l) => (l.itemId ? [l.itemId] : [])) } }, include: { unit: true, category: true } })).map((i) => [i.id, i]));
     const qtyBad = rows.find((l) => !money(l.qty).gt(0));
     const unknown = rows.find((l) => !l.itemId || !items.has(l.itemId));
     const qtyMsg = (l: (typeof rows)[number]) => `Enter a quantity for “${l.name || items.get(l.itemId!)?.name || ''}”.`;
@@ -148,7 +148,7 @@ export class SalesService {
     await tx.salesDocumentLine.createMany({
       data: lines.map(({ l, it, gst }, k) => {
         const r = t.rows[k]!;
-        const rule: CommRule | null = !input.referrerId || l.basePrice === null ? null : (l.commOverride ?? byCat[it.categoryId ?? ''] ?? rules.get(it.categoryId ?? '') ?? { t: 'n', v: 0 });
+        const rule: CommRule | null = !input.referrerId || l.basePrice === null ? null : (l.commOverride ?? byCat[it.category?.name ?? ''] ?? rules.get(it.categoryId ?? '') ?? { t: 'n', v: 0 });
         const comm = input.referrerId ? lineCommission({ qty: l.qty, discPct: l.discPct, price: l.price, basePrice: l.basePrice, gstRate: gst }, inclGst) : money(0);
         return {
           businessId, documentId: doc.id, position: k, itemId: it.id, name: l.name || it.name, hsn: l.hsn || it.hsn, qty: money(l.qty).toFixed(3), unit: it.unit?.code ?? l.unit,
