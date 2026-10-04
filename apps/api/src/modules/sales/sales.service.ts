@@ -54,6 +54,30 @@ export class SalesService {
   }
 
   /** The number the editor shows for a new document. */
+  /**
+   * Prices this customer got before for an item (prototype phList): their invoices, newest first,
+   * not cancelled, leaving out the bill being edited. A walk-in customer is matched by name.
+   */
+  priceHistory(ctx: RequestContext, q: { itemId: string; partyId?: string; cashName?: string; exclude?: string }) {
+    const name = q.cashName?.trim();
+    if (!q.partyId && !name) return [];
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      const rows = await tx.salesDocumentLine.findMany({
+        where: {
+          itemId: q.itemId,
+          document: {
+            kind: 'invoice', cancelledAt: null, ...(q.exclude && { id: { not: q.exclude } }),
+            ...(q.partyId ? { partyId: q.partyId } : { partyId: null, cashName: { equals: name, mode: 'insensitive' as const } }),
+          },
+        },
+        include: { document: { select: { id: true, number: true, date: true, createdAt: true } } },
+        orderBy: [{ document: { date: 'desc' } }, { document: { createdAt: 'desc' } }],
+        take: 5,
+      });
+      return rows.map((l) => ({ date: isoOf(l.document.date), number: l.document.number, qty: l.qty.toString(), price: l.price.toFixed(2), discPct: l.discPct.toString() }));
+    });
+  }
+
   nextNumber(ctx: RequestContext, kind: string, date?: string) {
     const docType = { invoice: 'invoice', quotation: 'quotation', challan: 'challan', credit_note: 'credit_note', receipt: 'receipt' }[kind];
     if (!docType) throw new BadRequestException({ message: 'Unknown document type.' });

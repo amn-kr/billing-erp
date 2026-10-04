@@ -117,6 +117,24 @@ describe('sale invoice', () => {
     expect(hist).toEqual(['create', 'cancel']);
   });
 
+  it('previous rates: this customer’s earlier prices for the item, newest first, without cancelled bills', async () => {
+    const { o, fan, bulb, verma } = await shop();
+    const ph = (q: string) => http().get(`/api/sales/price-history?item=${fan.id}&${q}`).set(auth(o)).expect(200).then((r) => r.body);
+    await sale(o, { date: '2026-09-20', dueDate: '2026-09-20', partyId: verma.id, lines: [line(fan, '2', '1890')] }).expect(201);
+    const b = await sale(o, { date: '2026-09-25', dueDate: '2026-09-25', partyId: verma.id, lines: [line(fan, '1', '1850', { discPct: '5' }), line(bulb, '4', '95')] }).expect(201);
+    const c = await sale(o, { partyId: verma.id, lines: [line(fan, '1', '1800')] }).expect(201);
+    await http().post(`/api/sales/${c.body.id}/cancel`).set(auth(o)).send({}).expect(200);
+    await sale(o, { mode: 'cash', cashName: 'Ramesh', lines: [line(fan, '1', '1700')], payments: [{ mode: 'Cash', amount: '1700', ref: '' }] }).expect(201);
+    expect(await ph(`party=${verma.id}`)).toEqual([
+      { date: '2026-09-25', number: b.body.number, qty: '1', price: '1850.00', discPct: '5' },
+      { date: '2026-09-20', number: 'INV-0001', qty: '2', price: '1890.00', discPct: '0' },
+    ]);
+    // the bill being edited is left out; a walk-in customer is found by name
+    expect((await ph(`party=${verma.id}&exclude=${b.body.id}`)).map((h: { number: string }) => h.number)).toEqual(['INV-0001']);
+    expect((await ph('name=ramesh')).map((h: { price: string }) => h.price)).toEqual(['1700.00']);
+    expect(await ph('')).toEqual([]);
+  });
+
   it('billing staff can sell but not cancel', async () => {
     const { o, fan, verma } = await shop();
     const staff = await member(app, o, 'billing_staff');

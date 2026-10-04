@@ -8,6 +8,7 @@ import { Icon } from '../../../components/Icon';
 import { inr, inr2f } from '../../../lib/format';
 import { qfmt } from '../../items/ItemsPage';
 import { pct } from '../InvoicePreview';
+import { usePriceHistory } from './PriceHistory';
 import { blankLine, calc, finalRate, frSet, lineFor, r2, useTab, type Ctx, type EItem, type EParty, type Line, type SI } from './state';
 import type { EditorData } from './data';
 
@@ -95,6 +96,13 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
   const [qk, setQk] = useState(0);
   const [hi, setHi] = useState<number | null>(null);
   const tbody = useRef<HTMLTableSectionElement>(null);
+  // last prices this customer got, under the price when its quantity or price is clicked into
+  const ph = usePriceHistory(si, (i, h) => {
+    let ok = true;
+    up((s) => { ok = frSet(s.lines[i]!, r2(Number(h.price) * (1 - Number(h.discPct) / 100))); s.warnOk = false; s.dirty = true; });
+    if (!ok) toast(`Final rate can’t be more than the price-list rate ${inr2f(si?.lines[i]?.price ?? 0)}. Change the price in Price manager.`);
+    full(); focusRow(i, 'fr');
+  });
   if (!si) return null;
   const G = ctx.mode === 'gst';
   const gstCol = d.gstOn;
@@ -241,6 +249,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
           );
         })}
       </tbody>
+      {ph.pop}
       <tfoot id="siFoot">
         <tr><td></td><td><div className="dgft"><button type="button" className="btn sm" id="siAddRow" onClick={() => { up2((s) => { s.lines.push(blankLine()); }); full(); focusRow(si.lines.length, 'name'); }}><Icon name="plus" />Add row</button>
           {si.doc === 'sale' ? <button type="button" className="btn sm" id="siImpQ" title="Add items from a saved quotation" data-impq><Icon name="doc" />Import quotation</button> : null}<b>Total</b></div></td>

@@ -19,6 +19,13 @@ export class SalesController {
   ) {}
 
   @RequirePermission('sales.view')
+  @Get('sales/price-history')
+  priceHistory(@Ctx() ctx: RequestContext, @Query('item', ParseUUIDPipe) itemId: string, @Query('party') partyId?: string, @Query('name') cashName?: string, @Query('exclude') exclude?: string) {
+    const uuid = (v?: string) => (v && /^[0-9a-f-]{36}$/i.test(v) ? v : undefined);
+    return this.sales.priceHistory(ctx, { itemId, partyId: uuid(partyId), cashName, exclude: uuid(exclude) });
+  }
+
+  @RequirePermission('sales.view')
   @Get('sales/next-number')
   nextNumber(@Ctx() ctx: RequestContext, @Query('kind') kind = 'invoice', @Query('date') date?: string) {
     return this.sales.nextNumber(ctx, kind, date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : undefined);

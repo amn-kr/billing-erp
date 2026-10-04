@@ -183,6 +183,22 @@ for (const width of WIDTHS) {
       await sameShot(`editor-tools-${width}`, proto, app, '#vNewInv .sift');
     });
 
+    test('Invoice editor previous rates: last prices for this customer, and using one', async ({ browser }) => {
+      const { proto, app } = await pages(browser, width, 'sales', '/sales', '#slRows tr[data-sno]');
+      await proto.evaluate(() => (window as unknown as { openInvoice: () => void }).openInvoice());
+      await app.click('#vSales .pthd .btn.p');
+      await app.waitForSelector('#vNewInv #siRows tr[data-ln]');
+      await withTabs(proto, app);
+      await both(proto, app, async (p) => { await p.fill('#siParty', 'Mehta'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); });
+      await both(proto, app, async (p) => { await p.locator('#qeItem').fill('LED bulb'); await p.waitForTimeout(100); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); await p.locator('#qeQty').fill('5'); await p.locator('#qeQty').press('Control+Enter'); });
+      await both(proto, app, async (p) => { await p.click('#siRows tr[data-ln="0"] [data-f="qty"]'); await p.waitForSelector('#phPop:not([hidden])'); });
+      await sameShot(`prev-rates-${width}`, proto, app, '#phPop');
+      await both(proto, app, async (p) => { await p.click('#phPop tbody tr >> nth=0'); await p.mouse.move(0, 0); });
+      await proto.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
+      await app.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
+      await sameShot(`prev-rates-used-${width}`, proto, app, '#siRows tr[data-ln="0"]');
+    });
+
     test('Invoice editor referral: add electrician, commission loaded on the rates, commission on this bill', async ({ browser, request }) => {
       test.setTimeout(150_000);
       // adds an electrician (and party), so it works in a copy of the sales shop
