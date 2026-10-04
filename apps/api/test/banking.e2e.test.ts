@@ -67,7 +67,7 @@ describe('the money book', () => {
     await http().put(`/api/banking/accounts/${cash.id}`).set(auth(o)).send({ openingBalance: '45000' }).expect(200);
     expect((await move(o, { kind: 'transfer', fromId: h.id, toId: h.id, amount: '10' }).expect(400)).body.message).toBe('Choose two different accounts.');
     expect((await move(o, { kind: 'transfer', fromId: h.id, toId: s.id, amount: '0' }).expect(400)).body.message).toBe('Enter the amount.');
-    expect((await move(o, { kind: 'deposit', fromId: cash.id, toId: h.id, amount: '50000' }).expect(400)).body.message).toBe('Only 45000.00 cash in hand.');
+    expect((await move(o, { kind: 'deposit', fromId: cash.id, toId: h.id, amount: '50000' }).expect(400)).body.message).toBe('Only 45,000.00 cash in hand.');
     const t = (await move(o, { kind: 'transfer', fromId: h.id, toId: s.id, amount: '25000', reference: 'IMPS 66120', note: 'Moved to savings' }).expect(201)).body;
     expect(t.number).toBe('BT-0001');
     await move(o, { kind: 'deposit', fromId: cash.id, toId: h.id, amount: '40000', reference: 'Slip 2231' }).expect(201);

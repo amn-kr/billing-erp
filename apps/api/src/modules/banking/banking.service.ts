@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { money, todayIst, type BankEntryInput, type CashBankAccountInput, type Money } from '@billing/shared';
+import { formatInr2, money, todayIst, type BankEntryInput, type CashBankAccountInput, type Money } from '@billing/shared';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import { NumberingService } from '../../common/numbering.service';
@@ -151,6 +151,8 @@ export class BankingService {
     });
     const ids = (t: string) => [...new Set(lines.filter((l) => l.entry.sourceType === t).map((l) => l.entry.sourceId))];
     const pays = new Map((await tx.payment.findMany({ where: { id: { in: ids('payment') } }, include: { party: { select: { name: true } } } })).map((p) => [p.id, p]));
+    // a walk-in sale's money carries the name typed on the bill
+    const walkIn = new Map((await tx.salesDocument.findMany({ where: { id: { in: [...pays.values()].flatMap((p) => (!p.partyId && p.sourceId ? [p.sourceId] : [])) } }, select: { id: true, cashName: true } })).map((d) => [d.id, d.cashName]));
     const sdocs = new Map((await tx.salesDocument.findMany({ where: { id: { in: ids('sales_document') } }, include: { party: { select: { name: true } } } })).map((d) => [d.id, d]));
     const bes = await tx.bankEntry.findMany({ where: { id: { in: ids('bank_entry') } } });
     const be = new Map(bes.map((b) => [b.id, b]));
@@ -160,7 +162,7 @@ export class BankingService {
     const out = lines.map((l) => {
       const e = l.entry;
       const amt: Money = money(l.debit.toString()).minus(l.credit.toString());
-      const base = { key: l.id, at: e.createdAt.getTime(), date: isoOf(e.date)!, amt, doc: e.number, note: '', src: e.sourceType, sourceId: e.sourceId, mode: '', ref: '', party: '', kind: e.narration };
+      const base = { key: l.id, sk: e.number, date: isoOf(e.date)!, amt, doc: e.number, note: '', src: e.sourceType, sourceId: e.sourceId, mode: '', ref: '', party: '', kind: e.narration };
       if (e.sourceType === 'payment') {
         const p = pays.get(e.sourceId);
         if (p) {
@@ -169,16 +171,17 @@ export class BankingService {
           const k = used.get(p.id) ?? 0;
           const s = splits.length > 1 ? splits.filter((x) => x.mode !== 'Cheque')[k] : null;
           used.set(p.id, k + 1);
-          return { ...base, kind: p.direction === 'in' ? 'Payment received' : 'Payment made', party: p.party?.name ?? '', mode: s?.mode ?? p.mode, ref: s ? s.ref : p.reference };
+          return { ...base, sk: (p.direction === 'in' ? 'R:' : 'P:') + p.number, kind: p.direction === 'in' ? 'Payment received' : 'Payment made', party: p.party?.name ?? (p.sourceId ? walkIn.get(p.sourceId) ?? '' : ''), mode: s?.mode ?? p.mode, ref: s ? s.ref : p.reference };
         }
       }
       if (e.sourceType === 'sales_document') {
         const d = sdocs.get(e.sourceId);
-        return { ...base, kind: amt.isNegative() ? 'Refund on return' : 'Payment received', party: d?.party?.name ?? d?.cashName ?? '' };
+        return { ...base, sk: 'CN:' + e.number, kind: amt.isNegative() ? 'Refund on return' : 'Payment received', party: d?.party?.name ?? d?.cashName ?? '' };
       }
       if (e.sourceType === 'bank_entry') {
         const b = be.get(e.sourceId);
         if (b) {
+          base.sk = 'BT:' + b.number;
           const note = b.note, ref = b.reference;
           if (b.kind === 'in' || b.kind === 'out') return { ...base, kind: b.category || (b.kind === 'out' ? 'Money taken out' : 'Money added'), party: note, ref, note: '' };
           const into = amt.gt(0);
@@ -187,9 +190,9 @@ export class BankingService {
       }
       return base;
     });
-    // date, then money in before money out, then the order they were made (prototype acctLedger)
-    out.sort((x, y) => x.date.localeCompare(y.date) || Number(y.amt.gt(0)) - Number(x.amt.gt(0)) || x.at - y.at || x.key.localeCompare(y.key));
-    return out.map(({ at: _at, ...r }) => r);
+    // date, then money in before money out, then the document (prototype acctLedger sorts by "R:PI-…", "P:PO-…", "BT:BT-…")
+    out.sort((x, y) => x.date.localeCompare(y.date) || Number(y.amt.gt(0)) - Number(x.amt.gt(0)) || (x.sk < y.sk ? -1 : x.sk > y.sk ? 1 : 0) || x.key.localeCompare(y.key));
+    return out.map(({ sk: _sk, ...r }) => r);
   }
 
   /* ───────── entries typed by hand ───────── */
@@ -210,7 +213,7 @@ export class BankingService {
           throw new BadRequestException({ message: 'Choose two different accounts.' });
         if (f.kind === 'cash') {
           const bal = (await this.ledger.cashBankBalances(tx)).get(from) ?? money(0);
-          if (amt.gt(bal.plus(0.001))) throw new BadRequestException({ message: `Only ${bal.toFixed(2)} cash in hand.`, field: 'amount' });
+          if (amt.gt(bal.plus(0.001))) throw new BadRequestException({ message: `Only ${formatInr2(bal.toFixed(2))} cash in hand.`, field: 'amount' });
         }
       } else {
         acc = input.accountId ?? '';

@@ -53,14 +53,7 @@ export function PaymentsReceivedPage() {
   const toCollect = parties.data.filter((p) => p.kind !== 'supplier').reduce((a, p) => a.plus(Number(p.balance) > 0 ? p.balance : 0), money(0));
   const s = q.toLowerCase();
   const L = A.filter((x) => (mode === 'all' || x.mode.includes(mode)) && (!s || x.number.toLowerCase().includes(s) || x.partyName.toLowerCase().includes(s) || x.reference.toLowerCase().includes(s) || against(x).toLowerCase().includes(s)));
-  const view = (x: Receipt) => {
-    const msg = `Dear ${x.partyName}, we have received ${inr2f(x.amount)} by ${x.mode}${x.reference ? ' (ref ' + x.reference + ')' : ''} on ${dmy(x.date)}. Receipt ${x.number}. Thank you!`;
-    setModal({
-      title: `Receipt ${x.number}`, sub: `${x.partyName} · ${dmy(x.date)}`,
-      body: <><div className="rcv"><div><span>Amount</span><b>{inr2f(x.amount)}</b></div><div><span>Mode</span><b>{x.mode}</b></div><div><span>Reference</span><b className="mono">{x.reference || '—'}</b></div><div><span>Against</span><b>{against(x) || (Number(x.unused) > 0 ? 'Advance' : 'On account')}</b></div>{Number(x.unused) > 0 ? <div><span>Unused advance</span><b className="lowq">{inr2f(x.unused)}</b></div> : null}</div>
-        {x.party?.phone ? <a className="btn sm" style={{ marginTop: 14, textDecoration: 'none' }} target="_blank" rel="noopener" href={`https://wa.me/91${x.party.phone}?text=${encodeURIComponent(msg)}`}><Icon name="chat" />Send receipt on WhatsApp</a> : null}</>,
-    });
-  };
+  const view = (x: Receipt) => setModal(receiptModal(x));
   return (
     <section id="vPin">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Payments received</h1><span className="pttot">Money in from customers</span><div className="sp"></div><button className="btn p" id="rcNew" onClick={() => setRc({})}><RawIcon d={PLUS} />Receive payment <kbd className="kh" style={{ marginLeft: 6, background: 'transparent', color: 'inherit', borderColor: 'rgba(255,255,255,.4)' }}>Alt+R</kbd></button></div>
@@ -79,6 +72,16 @@ export function PaymentsReceivedPage() {
       <SlModal m={modal} onClose={() => setModal(null)} />
     </section>
   );
+}
+
+/** A receipt's details in the small window (prototype rcView), also opened from the cash and bank books. */
+export function receiptModal(x: Receipt): SlModalProps {
+  const msg = `Dear ${x.partyName}, we have received ${inr2f(x.amount)} by ${x.mode}${x.reference ? ' (ref ' + x.reference + ')' : ''} on ${dmy(x.date)}. Receipt ${x.number}. Thank you!`;
+  return {
+    title: `Receipt ${x.number}`, sub: `${x.partyName} · ${dmy(x.date)}`,
+    body: <><div className="rcv"><div><span>Amount</span><b>{inr2f(x.amount)}</b></div><div><span>Mode</span><b>{x.mode}</b></div><div><span>Reference</span><b className="mono">{x.reference || '—'}</b></div><div><span>Against</span><b>{against(x) || (Number(x.unused) > 0 ? 'Advance' : 'On account')}</b></div>{Number(x.unused) > 0 ? <div><span>Unused advance</span><b className="lowq">{inr2f(x.unused)}</b></div> : null}</div>
+      {x.party?.phone ? <a className="btn sm" style={{ marginTop: 14, textDecoration: 'none' }} target="_blank" rel="noopener" href={`https://wa.me/91${x.party.phone}?text=${encodeURIComponent(msg)}`}><Icon name="chat" />Send receipt on WhatsApp</a> : null}</>,
+  };
 }
 
 /** Receive payment (#rcm). `open.party` / `open.invoice` pre-fill it from a party or an invoice. */
