@@ -250,11 +250,13 @@ export class PurchasesService {
         orderBy: [{ date: 'desc' }, { number: 'desc' }],
       });
       const bal = kind === 'bill' ? await billBalances(tx, docs.map((d) => d.id)) : new Map<string, Money>();
+      // a debit note's credit not set against a bill (prototype: the note's own balance)
+      const noteUsed = kind === 'debit_note' ? await usedOut(tx, 'note', docs.map((d) => d.id)) : new Map<string, Money>();
       const refs = new Map((await tx.purchaseDocument.findMany({ where: { id: { in: docs.flatMap((d) => (d.sourceId ? [d.sourceId] : [])) } }, select: { id: true, number: true } })).map((x) => [x.id, x.number]));
       const billsFromOrders = kind === 'order' ? new Map((await tx.purchaseDocument.findMany({ where: { kind: 'bill', sourceId: { in: docs.map((d) => d.id) }, cancelledAt: null }, select: { sourceId: true, number: true } })).map((b) => [b.sourceId!, b.number])) : new Map<string, string>();
       return docs.map((d) => {
         const total = money(d.total.toString());
-        const b = kind === 'bill' ? (bal.get(d.id) ?? money(0)) : money(0);
+        const b = kind === 'bill' ? (bal.get(d.id) ?? money(0)) : kind === 'debit_note' && !d.cancelledAt ? total.minus(noteUsed.get(d.id) ?? 0) : money(0);
         return {
           id: d.id, kind: d.kind, number: d.number, supplierRef: d.supplierRef, date: isoOf(d.date), dueDate: isoOf(d.dueDate), party: d.party, partyName: d.party.name,
           total: total.toFixed(2), paid: kind === 'bill' && !d.cancelledAt ? total.minus(b).toFixed(2) : '0.00', balance: b.toFixed(2),

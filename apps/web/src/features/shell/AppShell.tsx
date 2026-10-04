@@ -128,17 +128,20 @@ export function AppShell() {
       if (what === 'New invoice') navigate(`/sales/new?n=${Date.now()}`);
       else if (/^(Receive payment|Payments|New payment received)$/i.test(what)) navigate('/payments-received?party=');
       else if (/^New delivery challan$/i.test(what)) navigate('/delivery-challans?new=1');
+      else if (/^New (purchase )?bill$/i.test(what)) navigate(`/purchases/new?kind=bill&n=${Date.now()}`);
+      else if (/^New payment made$/i.test(what)) navigate('/payments-made?new=1');
       else soon(what);
     },
     [navigate],
   );
-  // Alt shortcuts, like desktop billing software (prototype KS): Alt+S new invoice, Alt+R receive payment, Alt+N quick sale
+  // Alt shortcuts, like desktop billing software (prototype KS): Alt+S new invoice, Alt+R receive payment, Alt+P new purchase bill, Alt+N quick sale
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if (!e.altKey || e.ctrlKey || e.metaKey) return;
       if ([...document.querySelectorAll<HTMLElement>('.ov')].some((o) => !o.hidden)) return;
       if (e.code === 'KeyS') { e.preventDefault(); act('New invoice'); }
       else if (e.code === 'KeyR') { e.preventDefault(); act('Receive payment'); }
+      else if (e.code === 'KeyP') { e.preventDefault(); act('New purchase bill'); }
       else if (e.code === 'KeyN') { e.preventDefault(); useQuick.getState().show(); }
     };
     document.addEventListener('keydown', k);

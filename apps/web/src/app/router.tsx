@@ -13,6 +13,7 @@ import { CreditNotesPage } from '../features/sales/CreditNotesPage';
 import { ChallansPage } from '../features/sales/ChallansPage';
 import { SaleEditor } from '../features/sales/editor/SaleEditor';
 import { QuotationsPage } from '../features/quotations/QuotationsPage';
+import { DebitNotesPage, PaymentsMadePage, PurchaseBillsPage, PurchaseOrdersPage } from '../features/purchases/PurchaseLists';
 
 export const router = createBrowserRouter([
   {
@@ -32,6 +33,10 @@ export const router = createBrowserRouter([
       { path: 'payments-received', element: <PaymentsReceivedPage /> },
       { path: 'credit-notes', element: <CreditNotesPage /> },
       { path: 'delivery-challans', element: <ChallansPage /> },
+      { path: 'purchase-bills', element: <PurchaseBillsPage /> },
+      { path: 'purchase-orders', element: <PurchaseOrdersPage /> },
+      { path: 'payments-made', element: <PaymentsMadePage /> },
+      { path: 'debit-notes', element: <DebitNotesPage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

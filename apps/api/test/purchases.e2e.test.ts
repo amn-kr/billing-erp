@@ -92,8 +92,11 @@ describe('debit note', () => {
     expect(await stockOf(o, bulb.id)).toBe('110.000');
     expect(await balanceOf(o, kc.id)).toBe('-5310.00');
     expect((await http().get('/api/purchases?kind=bill').set(auth(o)).expect(200)).body[0]).toMatchObject({ balance: '5310.00', paid: '590.00' });
-    expect((await http().get('/api/purchases?kind=debit_note').set(auth(o)).expect(200)).body[0]).toMatchObject({ number: 'DN-0001', against: b.number, reason: 'Damaged goods', qty: '10.000' });
-    expect((await buy(o, { kind: 'debit_note', partyId: kc.id, lines: [line(bulb, '500', '50')] }).expect(400)).body.message).toBe('Only 110 PCS of “LED bulb 9W” in stock to return.');
+    expect((await http().get('/api/purchases?kind=debit_note').set(auth(o)).expect(200)).body[0]).toMatchObject({ number: 'DN-0001', against: b.number, reason: 'Damaged goods', qty: '10.000', balance: '0.00' });
+    // a return against no bill is kept as credit with the supplier
+    await buy(o, { kind: 'debit_note', partyId: kc.id, reason: 'Extra quantity', lines: [line(bulb, '1', '50')] }).expect(201);
+    expect((await http().get('/api/purchases?kind=debit_note').set(auth(o)).expect(200)).body[0]).toMatchObject({ number: 'DN-0002', balance: '59.00' });
+    expect((await buy(o, { kind: 'debit_note', partyId: kc.id, lines: [line(bulb, '500', '50')] }).expect(400)).body.message).toBe('Only 109 PCS of “LED bulb 9W” in stock to return.');
   });
 });
 

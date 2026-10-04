@@ -261,7 +261,7 @@ function SaleMenu({ menu, onClose: onCloseProp, onPick }: { menu: { row: SaleRow
   );
 }
 
-function RangeForm({ initial, today, onBack, onApply }: { initial: { from?: string; to?: string }; today: string; onBack: () => void; onApply: (r: { from?: string; to?: string }) => void }) {
+export function RangeForm({ initial, today, onBack, onApply }: { initial: { from?: string; to?: string }; today: string; onBack: () => void; onApply: (r: { from?: string; to?: string }) => void }) {
   const fyStart = (() => { const [y, m] = today.split('-').map(Number); return `${m! >= 4 ? y : y! - 1}-04-01`; })();
   // prototype default: from the first of last month to today
   const lastStart = (() => { const [y, m] = today.split('-').map(Number); return m === 1 ? `${y! - 1}-12-01` : `${y}-${String(m! - 1).padStart(2, '0')}-01`; })();
