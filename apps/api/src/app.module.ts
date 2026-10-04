@@ -32,6 +32,8 @@ import { SettingsController } from './modules/settings/settings.controller';
 import { CommissionController } from './modules/commission/commission.controller';
 import { SalesController } from './modules/sales/sales.controller';
 import { QuotesController } from './modules/sales/quotes.controller';
+import { PurchasesController } from './modules/purchases/purchases.controller';
+import { PurchasesService } from './modules/purchases/purchases.service';
 import { SalesService } from './modules/sales/sales.service';
 import { ReceiptsService } from './modules/sales/receipts.service';
 
@@ -45,7 +47,7 @@ import { ReceiptsService } from './modules/sales/receipts.service';
     }),
   ],
   controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HealthController, ImportsController,
-    PartiesController, ItemsController, StockController, PricingController, SettingsController, CommissionController, SalesController, QuotesController],
+    PartiesController, ItemsController, StockController, PricingController, SettingsController, CommissionController, SalesController, QuotesController, PurchasesController],
   providers: [
     DbService,
     AuditService,
@@ -62,6 +64,7 @@ import { ReceiptsService } from './modules/sales/receipts.service';
     PricingService,
     SalesService,
     ReceiptsService,
+    PurchasesService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
   ],
