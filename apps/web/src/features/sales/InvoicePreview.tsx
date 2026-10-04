@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { STATES, money } from '@billing/shared';
 import { api } from '../../lib/api';
 import { dmy, inr2f } from '../../lib/format';
+import { useEscape } from '../../lib/useEscape';
 import { useOpenFocus } from '../../lib/useOpenFocus';
 import { useSettings } from '../../lib/settings';
 import { Icon, RawIcon } from '../../components/Icon';
@@ -48,6 +49,7 @@ export function InvoicePreview({ doc, challan, onClose, onNew, onLink }: { doc: 
   const sdata = (useSettings().data?.data ?? {}) as { upi?: string; upiName?: string };
   const open = !!doc;
   useOpenFocus(open, ref);
+  useEscape(open, onClose);
   if (!doc) return <div className="ov c" id="ipv" hidden ref={ref}><div className="mdl ipvm" role="dialog" aria-modal="true" aria-labelledby="ipvTitle"></div></div>;
   const v = doc;
   const q = v.kind === 'quotation';

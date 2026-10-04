@@ -1,5 +1,6 @@
 /** The small window the prototype uses for confirmations, history and payment history (#slm, slModal). */
 import { useRef, type ReactNode } from 'react';
+import { useEscape } from '../../lib/useEscape';
 import { useOpenFocus } from '../../lib/useOpenFocus';
 
 export interface SlModalProps {
@@ -19,6 +20,7 @@ export interface SlModalProps {
 export function SlModal({ m, onClose }: { m: SlModalProps | null; onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   useOpenFocus(!!m, ref);
+  useEscape(!!m, onClose);
   // the prototype's slModal sets the width only for wide windows (and clears it otherwise)
   const width = m?.wide ? (m.wide === 1 ? 'min(860px,100%)' : m.wide) : undefined;
   return (
