@@ -199,4 +199,55 @@ export class ReportsService {
       return { party: p, rows };
     });
   }
+  /**
+   * Home (prototype homeLive / hmGst / bkDash): today's and yesterday's sales, this month's GST
+   * (output on bills less returns, input on purchases less returns and on expenses), top selling
+   * items this financial year, the six latest invoices and today's cash and bank movement.
+   */
+  home(ctx: RequestContext, date = todayIst()) {
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      const t = date;
+      const y = new Date(Date.UTC(+t.slice(0, 4), +t.slice(5, 7) - 1, +t.slice(8, 10) - 1)).toISOString().slice(0, 10);
+      const mS = t.slice(0, 8) + '01', mE = t.slice(0, 8) + '31';
+      const fy = +t.slice(5, 7) >= 4 ? +t.slice(0, 4) : +t.slice(0, 4) - 1;
+      const day = (d: string) => new Date(d + 'T00:00:00Z');
+      const [inv, cns, purch, exps, cb] = await Promise.all([
+        tx.salesDocument.findMany({ where: { kind: 'invoice', cancelledAt: null }, include: { lines: true, party: { include: { addresses: { where: { kind: 'billing' }, take: 1 } } } }, orderBy: [{ date: 'desc' }, { number: 'desc' }] }),
+        tx.salesDocument.findMany({ where: { kind: 'credit_note', cancelledAt: null, date: { gte: day(mS), lte: day(mE) } }, include: { lines: true } }),
+        tx.purchaseDocument.findMany({ where: { kind: { in: ['bill', 'debit_note'] }, cancelledAt: null, date: { gte: day(mS), lte: day(mE) } } }),
+        tx.expense.findMany({ where: { cancelledAt: null, date: { gte: day(mS), lte: day(mE) } } }),
+        tx.$queryRaw<{ amt: string | null }[]>`
+          SELECT sum(l.debit - l.credit)::text AS amt FROM journal_lines l JOIN journal_entries e ON e.id = l.entry_id JOIN ledger_accounts a ON a.id = l.account_id
+          WHERE e.cancelled_at IS NULL AND a.key LIKE 'cb:%' AND e.date = ${day(t)}`,
+      ]);
+      const on = (d: string) => inv.filter((v) => isoOf(v.date) === d);
+      const sum = <T,>(A: T[], f: (x: T) => Money) => n2(A.reduce((a, x) => a.plus(f(x)), money(0)));
+      const out = sum(inv.filter((v) => isoOf(v.date)! >= mS && isoOf(v.date)! <= mE), (v) => m(v.cgst).plus(m(v.sgst)).plus(m(v.igst)))
+        - sum(cns.flatMap((c) => c.lines), (l) => { const a = m(l.amount), g = Number(l.gstRate); return g ? a.minus(a.div(1 + g / 100)) : money(0); });
+      const inp = sum(purch, (d) => (d.kind === 'debit_note' ? m(d.tax).negated() : m(d.tax))) + sum(exps, (x) => m(x.tax));
+      const by = new Map<string, Money>();
+      for (const v of inv) {
+        const d = isoOf(v.date)!;
+        if (d < `${fy}-04-01` || d > `${fy + 1}-03-31`) continue;
+        for (const l of v.lines) if (l.itemId) by.set(l.name, (by.get(l.name) ?? money(0)).plus(m(l.qty).times(m(l.price))));
+      }
+      const recent = inv.slice(0, 6);
+      const bal = await invoiceBalances(tx, recent.map((v) => v.id));
+      const pay = await tx.payment.findMany({ where: { sourceId: { in: recent.map((v) => v.id) }, atSale: true, cancelledAt: null }, orderBy: { createdAt: 'asc' } });
+      // paid later: how it was paid (a receipt's mode, or "Commission adjust")
+      const later = await tx.paymentAllocation.findMany({ where: { salesDocumentId: { in: recent.map((v) => v.id) }, payment: { cancelledAt: null } }, include: { payment: { select: { mode: true } } }, orderBy: { createdAt: 'asc' } });
+      const modeOf = (id: string) => pay.find((p) => p.sourceId === id)?.mode ?? later.find((a) => a.salesDocumentId === id && a.payment)?.payment?.mode ?? '';
+      return {
+        today: sum(on(t), (v) => m(v.total)), todayBills: on(t).length, yesterday: sum(on(y), (v) => m(v.total)),
+        gst: { out: n2(m(String(out))), inp: n2(m(String(inp))) },
+        top: [...by.entries()].map(([k, v]) => [k, n2(v)] as [string, number]).filter((x) => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 5),
+        cashToday: n2(m(cb[0]?.amt ?? 0)),
+        recent: recent.map((v) => ({
+          id: v.id, number: v.number, date: isoOf(v.date)!, due: isoOf(v.dueDate) ?? '', total: Number(v.total), balance: n2(bal.get(v.id) ?? money(0)),
+          party: v.mode === 'cash' || !v.party ? v.cashName || 'Walk-in customer' : v.party.name, city: v.party?.addresses[0]?.city ?? '',
+          items: v.lines.filter((l) => l.itemId || l.name).length, payMode: modeOf(v.id),
+        })),
+      };
+    });
+  }
 }

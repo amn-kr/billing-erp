@@ -16,6 +16,15 @@ function period(from?: string, to?: string): [string, string] {
 export class ReportsController {
   constructor(private readonly reports: ReportsService) {}
 
+  /** Home tiles: everyone who can see sales sees Home, as in the prototype. */
+  @RequirePermission('sales.view')
+  @Get('home')
+  home(@Ctx() ctx: RequestContext, @Query('today') today?: string) {
+    // the screen's own date (the shop's day in India), so "today" matches what the person sees
+    if (today && !ISO.test(today)) throw new BadRequestException('Dates must be like 2026-04-01.');
+    return this.reports.home(ctx, today || undefined);
+  }
+
   @RequirePermission('reports.view')
   @Get('parties')
   parties(@Ctx() ctx: RequestContext) {

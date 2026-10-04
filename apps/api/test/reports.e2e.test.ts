@@ -41,6 +41,12 @@ describe('party reports', () => {
     const act = (await http().get('/api/reports/party-activity?from=2026-04-01&to=2027-03-31').set(auth(o)).expect(200)).body as { sale: number; sr: number; pur: number; pr: number; sn: number; pn: number }[];
     const T = (k: 'sale' | 'sr' | 'pur' | 'pr' | 'sn' | 'pn') => Math.round(act.reduce((a, x) => a + x[k], 0) * 100) / 100;
     expect([T('sn'), T('sale'), T('sr'), T('pn'), T('pur'), T('pr')]).toEqual([7, 9944, 598.6, 2, 27444, 325]);
+    // Home on 1 October 2026, as the prototype shows it (GST shows as −2 / −35 in whole rupees; cancelled INV-0104 is not a top seller)
+    const h = (await http().get('/api/reports/home?today=2026-10-01').set(auth(o)).expect(200)).body;
+    expect(h).toMatchObject({ today: 760, todayBills: 2, yesterday: 950, gst: { out: -1.97, inp: -34.8 }, cashToday: 2900 });
+    expect(h.top).toEqual([['Copper wire 1.5 sq mm (90 m)', 3478], ['MCB 32A double pole', 3467], ['LED bulb 9W', 3055], ['Fan installation', 350]]);
+    expect(h.recent.map((r: { number: string; payMode: string }) => `${r.number} ${r.payMode}`)).toEqual(['INV-0106 ', 'INV-0105 Cash', 'INV-0109 Commission adjust', 'INV-0108 Cash', 'INV-0103 Cash', 'INV-0107 UPI']);
+    expect((await http().get('/api/reports/home?today=1-10-2026').set(auth(o))).status).toBe(400);
     expect((await http().get('/api/reports/statement/not-a-uuid').set(auth(o))).status).toBe(400);
     expect((await http().get(`/api/reports/statement/${mehta.id}?from=1-4-2026`).set(auth(o))).status).toBe(400);
   });
