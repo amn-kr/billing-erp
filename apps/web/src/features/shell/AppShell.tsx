@@ -17,6 +17,7 @@ import { goToLogin } from '../../lib/nav';
 import { setGo } from '../../lib/go';
 import { APP_STYLES } from '../../styles';
 import { VIEW_LABEL, VIEW_PATH, type NavLink } from './nav';
+import { REPSEC, repOf } from '../reports/catalogue';
 import { PAL, type PalId } from './palette';
 import { Sidebar } from './Sidebar';
 import { SignOutDialog } from './SignOutDialog';
@@ -156,7 +157,8 @@ export function AppShell() {
     (view: string, link?: NavLink) => {
       useShell.getState().setSideOpen(false);
       const path = VIEW_PATH[view];
-      if (path) navigate(path);
+      if (view === 'rep' && link?.rsec) navigate(`/reports?r=${REPSEC[link.rsec] ?? 'sale'}&sec=1`);
+      else if (path) navigate(path);
       else soon(link?.rsec ? link.label : VIEW_LABEL[view] ?? view);
     },
     [navigate],
@@ -178,11 +180,13 @@ export function AppShell() {
   if (!me.data.business) return <GoLogin />;
 
   const active = Object.entries(VIEW_PATH).find(([, p]) => p === location.pathname)?.[0] ?? '';
+  // on Reports, the sidebar marks the section of the report on screen
+  const rsec = active === 'rep' ? repOf(new URLSearchParams(location.search).get('r') ?? '')?.sec ?? 'txn' : '';
 
   return (
     <>
       <div className={mini ? 'app mini' : 'app'} id="app">
-        <Sidebar active={active} lowStock={lowStock} acct={!!sdata?.acct} onView={onView} onSoon={act} />
+        <Sidebar active={active} rsec={rsec} lowStock={lowStock} acct={!!sdata?.acct} onView={onView} onSoon={act} />
         <div style={{ minWidth: 0 }}>
           <TopBar
             me={me.data}

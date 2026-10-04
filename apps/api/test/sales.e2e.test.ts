@@ -20,7 +20,8 @@ async function shop() {
   const o = await owner(app);
   const fan = (await http().post('/api/items').set(auth(o)).send({ name: 'Ceiling fan 1200mm', sale: '1890', purchase: '1560', gstRate: 18, openingQty: '25', openingRate: '1540' }).expect(201)).body;
   const bulb = (await http().post('/api/items').set(auth(o)).send({ name: 'LED bulb 9W', sale: '95', purchase: '62', gstRate: 18, openingQty: '200' }).expect(201)).body;
-  const verma = (await http().post('/api/parties').set(auth(o)).send({ name: 'Verma Traders', openingBalance: '1000' }).expect(201)).body;
+  // dated on the sale day, so the tests don't depend on the clock ("today" turns over at midnight in India)
+  const verma = (await http().post('/api/parties').set(auth(o)).send({ name: 'Verma Traders', openingBalance: '1000', openingDate: D }).expect(201)).body;
   return { o, fan, bulb, verma };
 }
 const line = (it: { id: string; name: string }, qty: string, price: string, extra: object = {}) => ({ itemId: it.id, name: it.name, qty, price, discPct: '0', gstRate: '18', ...extra });

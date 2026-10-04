@@ -5,7 +5,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { money, PAY_MODES, saleStatus } from '@billing/shared';
 import { api, ApiError } from '../../lib/api';
 import { dmy, inr, inr2f } from '../../lib/format';
@@ -33,6 +33,10 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 export function PaymentsReceivedPage() {
   useFitTables();
   const [params, setParams] = useSearchParams();
+  // from a party statement: open that document (prototype rcView / cnView)
+  const loc = useLocation(), nav = useNavigate();
+  const [want, setWant] = useState<string | null>((loc.state as { view?: string } | null)?.view ?? null);
+  useEffect(() => { if ((loc.state as { view?: string } | null)?.view) nav('.', { replace: true, state: null }); }, [loc.state, nav]);
   const list = useQuery({ queryKey: ['receipts'], queryFn: () => api<Receipt[]>('/receipts') });
   const parties = useQuery({ queryKey: ['parties'], queryFn: () => api<Party[]>('/parties') });
   const [q, setQ] = useState('');
@@ -54,6 +58,7 @@ export function PaymentsReceivedPage() {
   const s = q.toLowerCase();
   const L = A.filter((x) => (mode === 'all' || x.mode.includes(mode)) && (!s || x.number.toLowerCase().includes(s) || x.partyName.toLowerCase().includes(s) || x.reference.toLowerCase().includes(s) || against(x).toLowerCase().includes(s)));
   const view = (x: Receipt) => setModal(receiptModal(x));
+  if (want) { const x = list.data.find((y) => y.number === want); setWant(null); if (x) queueMicrotask(() => view(x)); }
   return (
     <section id="vPin">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Payments received</h1><span className="pttot">Money in from customers</span><div className="sp"></div><button className="btn p" id="rcNew" onClick={() => setRc({})}><RawIcon d={PLUS} />Receive payment <kbd className="kh" style={{ marginLeft: 6, background: 'transparent', color: 'inherit', borderColor: 'rgba(255,255,255,.4)' }}>Alt+R</kbd></button></div>

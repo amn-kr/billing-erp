@@ -19,6 +19,7 @@ import { ExpensesPage } from '../features/expenses/ExpensesPage';
 import { BankAccountsPage, CashPage } from '../features/banking/BankingPages';
 import { PurchaseEditor } from '../features/purchases/PurchaseEditor';
 import { DebitNotesPage, PaymentsMadePage, PurchaseBillsPage, PurchaseOrdersPage } from '../features/purchases/PurchaseLists';
+import { ReportsPage } from '../features/reports/ReportsPage';
 
 export const router = createBrowserRouter([
   {
@@ -49,6 +50,7 @@ export const router = createBrowserRouter([
       { path: 'cheques', element: <ChequesPage /> },
       { path: 'reconciliation', element: <ReconciliationPage /> },
       { path: 'commission', element: <CommissionPage /> },
+      { path: 'reports', element: <ReportsPage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

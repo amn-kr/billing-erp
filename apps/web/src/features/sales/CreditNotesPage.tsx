@@ -5,7 +5,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { CN_REASONS, money } from '@billing/shared';
 import { api, ApiError } from '../../lib/api';
 import { dmy, inr, inr2f } from '../../lib/format';
@@ -36,6 +36,10 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 export function CreditNotesPage() {
   useFitTables();
   const [params, setParams] = useSearchParams();
+  // from a party statement: open that document (prototype rcView / cnView)
+  const loc = useLocation(), nav = useNavigate();
+  const [want, setWant] = useState<string | null>((loc.state as { view?: string } | null)?.view ?? null);
+  useEffect(() => { if ((loc.state as { view?: string } | null)?.view) nav('.', { replace: true, state: null }); }, [loc.state, nav]);
   const list = useQuery({ queryKey: ['credit-notes'], queryFn: () => api<CreditNote[]>('/credit-notes') });
   const [q, setQ] = useState('');
   const [open, setOpen] = useState<{ invoice?: string } | null>(null);
@@ -58,6 +62,8 @@ export function CreditNotesPage() {
         <div className="slhs"><span>Reason: <b>{c.reason}</b></span><span>Total <b>{inr2f(c.total)}</b> · {c.settle === 'refund' ? 'Refunded by ' + c.refundMode : 'Adjusted in balance'}</span></div></>,
     });
   };
+  if (want) { const x = list.data.find((y) => y.number === want); setWant(null); if (x) queueMicrotask(() => view(x)); }
+
   return (
     <section id="vCns">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Credit notes</h1><span className="pttot">Goods returned by customers</span><div className="sp"></div><button className="btn p" id="cnNew" onClick={() => setOpen({})}><RawIcon d={PLUS} />New credit note</button></div>

@@ -21,6 +21,8 @@ function initialOpen(): string[] {
 
 interface Props {
   active: string;
+  /** the Reports section on screen */
+  rsec?: string;
   lowStock: number;
   /** Settings › General › Modules › Accounting */
   acct?: boolean;
@@ -35,7 +37,7 @@ interface Fly {
   pinned: boolean;
 }
 
-export function Sidebar({ active, lowStock, acct, onView, onSoon }: Props) {
+export function Sidebar({ active, rsec, lowStock, acct, onView, onSoon }: Props) {
   const [open, setOpen] = useState<string[]>(initialOpen);
   const { mini, sideOpen, toggleMini } = useShell();
   const [fly, setFly] = useState<Fly | null>(null);
@@ -147,7 +149,7 @@ export function Sidebar({ active, lowStock, acct, onView, onSoon }: Props) {
                 </button>
                 <div className="subs">
                   {e.kids.map((k) => (
-                    <a href="#" className={k.view && k.view === active && !k.rsec ? 'ni on' : 'ni'} data-view={k.view} data-rsec={k.rsec} data-soon={k.view ? undefined : k.soon} key={k.label} onClick={link(k)}>
+                    <a href="#" className={k.view && k.view === active && (!k.rsec || k.rsec === rsec) ? 'ni on' : 'ni'} aria-current={k.rsec && k.view === active && k.rsec === rsec ? 'page' : undefined} data-view={k.view} data-rsec={k.rsec} data-soon={k.view ? undefined : k.soon} key={k.label} onClick={link(k)}>
                       {k.bare ? k.label : <span className="lb">{k.label}</span>}
                     </a>
                   ))}

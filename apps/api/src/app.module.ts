@@ -31,6 +31,8 @@ import { PricingService } from './modules/pricing/pricing.service';
 import { SettingsController } from './modules/settings/settings.controller';
 import { CommissionController } from './modules/commission/commission.controller';
 import { CommissionService } from './modules/commission/commission.service';
+import { ReportsController } from './modules/reports/reports.controller';
+import { ReportsService } from './modules/reports/reports.service';
 import { SalesController } from './modules/sales/sales.controller';
 import { QuotesController } from './modules/sales/quotes.controller';
 import { PurchasesController } from './modules/purchases/purchases.controller';
@@ -53,7 +55,7 @@ import { ReceiptsService } from './modules/sales/receipts.service';
     }),
   ],
   controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HealthController, ImportsController,
-    PartiesController, ItemsController, StockController, PricingController, SettingsController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController],
+    PartiesController, ItemsController, StockController, PricingController, SettingsController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController],
   providers: [
     DbService,
     AuditService,
@@ -66,6 +68,7 @@ import { ReceiptsService } from './modules/sales/receipts.service';
     LedgerService,
     BankingService,
     CommissionService,
+    ReportsService,
     ChequesService,
     ExpensesService,
     PartiesService,

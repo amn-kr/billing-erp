@@ -32,6 +32,7 @@
 ## On hold (waiting for a later phase or an owner decision)
 | Item | Waiting for |
 |---|---|
+| **Phase 5 — SaaS + launch** (Razorpay, admin console, onboarding, security review, load test, beta, hosting). **On hold by the owner's decision (4 Oct 2026): do not start Phase 5 until the owner asks.** | owner: do not start yet |
 | **Hosting** (AWS Mumbai + Cloudflare Pages) — nothing is deployed. Web app and API must share a domain (e.g. app.yourshop.in / api.yourshop.in) so the sign-in cookie works. Costs money: owner approval first. | owner decision (Phase 5) |
 | **Email provider** (password reset by email, invite emails) | owner: before selling starts |
 | **Google sign-in** | owner: later |
@@ -80,7 +81,7 @@
 - **Sample entries:** not needed. The old app's demo entries stay out of the import (the default).
 - **New price list** asks for the price PIN and then opens (in the prototype it could no longer be reached). Prices lock again when it closes; the server checks the PIN too.
 
-## Phase 3 — Transactions (in progress)
+## Phase 3 — Transactions ✅ (gate passed: all flow tests pass against the API; merged in PR #3, 4 Oct 2026)
 | Item | State |
 |---|---|
 | Invoice and bill maths (GST incl./excl., discounts, charges, TCS, round off, amount in words) in exact decimals | done — checked against the prototype's own maths on 4,000 generated bills |
@@ -139,3 +140,26 @@
 - Open bills stay while you visit other screens and come back with "New invoice"; they are kept in this browser window only (not on the server), and are cleared on sign-out or when switching shop. Saving a bill while others are open shows the saved invoice over the editor; saving the last one goes to the sales list as before.
 - **Demo customers and items used for real count only the shop's own documents** (owner, 4 Oct 2026). The old app's built-in demo history for them (made-up sales, purchases and payments) is not brought across, so their balances and stock are opening figures plus the shop's own documents. Money received above an invoice's total settles the shop's own older bills (so the owner's INV-0414 shows paid, where the old app used that money on demo bills).
 - **HDFC Bank is the owner's real bank** (owner, 4 Oct 2026). The account the old app set up as the default bank is kept with its name; its balance is the shop's own UPI and bank money.
+
+## Phase 4 — Reports + Home ✅ (gate passed on the owner's backup, 4 Oct 2026)
+Scope set by the owner: only the 9 reports that already work in the prototype, plus Home. GST reports, stock reports and the ~30 placeholder reports stay on hold.
+
+**Gate ("figures match the pilot"):** the owner decided on 4 Oct 2026 that their own shop's backup alone is the pilot, since no other shop uses the app yet. Result on that backup (checked locally, the backup is never committed):
+- All 6 of the shop's own parties: the statement closes on the party balance in the books (6/6), and 5/6 match the prototype's statement and sale / purchase figures exactly.
+- The 6th is listed twice in the old app under the same name (one copy holds the bills); the import merges exact duplicates (Phase 2), so the rebuild shows both together — the same closing balance the old app shows on the copy with the bills.
+- Expenses: the old app lists 16, all of them its built-in demo expenses and demo cash-book entries; the shop has none of its own, so the rebuild shows none (demo data stays out, owner decision).
+
+| Item | State |
+|---|---|
+| Reports screen: the prototype's catalogue of 39 reports with search, sidebar sections, hide / show the list; reports not rebuilt show the prototype's "This report is being built" | done — 0 pixel difference at 1280/1366/1920 |
+| Party Statement (party, period, show items, opening / closing, overdue; print, PDF, Excel, WhatsApp) | done — 0 pixel difference; API test: every statement closes on the party balance in the books |
+| Party wise Profit & Loss, All parties, Party Report By Item, Sale Purchase By Party, Sale Purchase By Party Group | done — 0 pixel difference; figures match the prototype's for the same books |
+| Expense, Expense Category Report, Expense Item Report | done — 0 pixel difference |
+| Links: a statement row opens the invoice, receipt or credit note; a report row opens the party's statement, the expense or the book entry; Parties page "Statement" opens the report | done — flow tests |
+| Home: seven tiles, recent invoices, receivables by age, top selling items, quick actions, cash & bank, GST this month, low stock — all from the books | done — 0 pixel difference at 1280/1366/1920 (brand-new shop and a shop with books) |
+
+### Differences from the prototype (on purpose)
+- **Purchase bill lines in a party statement show their rate and amount.** With "Show items" ticked, the prototype shows "NaN" for purchase bill lines; the rebuild shows the real figures.
+- **A cancelled invoice is not a top seller.** The prototype's "Top selling items" on Home still counts the items of a cancelled invoice.
+- **Recent invoices on Home show how a bill was actually paid.** For a bill paid later, the prototype shows the payment choice left in the bill editor (e.g. "UPI" for a bill settled by a commission adjustment); the rebuild shows the real way it was paid ("Commission adjust", or "Cash" when it was settled by extra cash taken on another bill).
+
