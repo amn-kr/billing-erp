@@ -42,6 +42,11 @@
 | "Discard this …?" question for the Phase 3 documents (payment, credit note, challan, quick sale, bank/cheque entries) | Phase 3 |
 | **Restoring a backup made by the new app**, and daily cloud copies | Phase 5 (with hosting) |
 | **Security updates** for packages set up in Phase 1 (NestJS, React Router: about 23 advisories) | before launch (Phase 5) |
+| **Mobile screens** — not to be built until the owner asks | owner: do not build yet |
+| **Staff roles / limited staff access** (screens and rules for what each staff member may do). The server's existing role check from Phase 1 stays as it is; nothing more is added | owner: do not build yet |
+| **The ~30 placeholder reports** — only the 9 reports that already work in the prototype are rebuilt | owner: do not build yet |
+| **Sale orders and loans** | owner: do not build yet |
+| **Item/stock reports and GST reports (GSTR-1, GSTR-3B)** | owner: do not build yet |
 
 ## Phase 2 — Masters ✅ (gate passed: the owner's real backup imports cleanly)
 | Item | State |
