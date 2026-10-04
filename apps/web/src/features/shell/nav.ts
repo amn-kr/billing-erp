@@ -78,7 +78,7 @@ export const NAV: NavRow[] = [
 ];
 
 /** Prototype view id → route path in the rebuild. Only built screens are routed. */
-export const VIEW_PATH: Record<string, string> = { dash: '/', parties: '/parties', items: '/items', prices: '/prices', adjs: '/stock-adjustments', gds: '/godowns', set: '/settings', sales: '/sales', quo: '/quotations', pin: '/payments-received', cns: '/credit-notes', dcs: '/delivery-challans', pos: '/purchase-orders', pur: '/purchase-bills', pmade: '/payments-made', dns: '/debit-notes', bks: '/bank-accounts', cash: '/cash-in-hand' };
+export const VIEW_PATH: Record<string, string> = { dash: '/', parties: '/parties', items: '/items', prices: '/prices', adjs: '/stock-adjustments', gds: '/godowns', set: '/settings', sales: '/sales', quo: '/quotations', pin: '/payments-received', cns: '/credit-notes', dcs: '/delivery-challans', pos: '/purchase-orders', pur: '/purchase-bills', pmade: '/payments-made', dns: '/debit-notes', bks: '/bank-accounts', cash: '/cash-in-hand', exp: '/expenses' };
 
 /** Names used in the "… screen is coming next" toast for screens not rebuilt yet. */
 export const VIEW_LABEL: Record<string, string> = {

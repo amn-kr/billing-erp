@@ -53,7 +53,7 @@ function LedgerCard({ p, a, book, head, onEntry, per, setPer }: { p: 'bk' | 'ca'
 }
 
 /** Opens a book entry: the receipt, the payment, or a hand entry that can be cancelled (prototype bkView). */
-function useEntryView(accounts: Account[]) {
+export function useEntryView(accounts: Account[]) {
   const qc = useQueryClient();
   const { showToast } = useShell();
   const [modal, setModal] = useState<SlModalProps | null>(null);
