@@ -263,6 +263,15 @@ describe('settings and commission', () => {
     const r = await http().post('/api/referrers').set(auth(o)).send({ name: 'Raju Electrician', phone: '98390 11223', city: 'Lucknow' }).expect(201);
     expect(r.body.phone).toBe('9839011223');
     expect((await http().get('/api/referrers').set(auth(o)).expect(200)).body).toHaveLength(1);
+    // electricians are parties too: a new one is added to "Electricians" with 15 days' credit
+    const parties = (await http().get('/api/parties').set(auth(o)).expect(200)).body as { id: string; name: string; group: string; creditDays: number; billing: { city: string } | null }[];
+    const raju = parties.find((p) => p.id === r.body.partyId)!;
+    expect(raju).toMatchObject({ name: 'Raju Electrician', group: 'Electricians', creditDays: 15 });
+    expect(raju.billing?.city).toBe('Lucknow');
+    // one who is already a customer (same mobile) is linked, not added twice
+    const cust = await http().post('/api/parties').set(auth(o)).send({ name: 'Sonu Traders', kind: 'customer', phone: '9415000222' }).expect(201);
+    const sonu = await http().post('/api/referrers').set(auth(o)).send({ name: 'Sonu', phone: '9415000222' }).expect(201);
+    expect(sonu.body.partyId).toBe(cust.body.id);
     const rules = await http().get('/api/commission-rules').set(auth(o)).expect(200);
     expect(rules.body.find((x: { category: string }) => x.category === 'Fans')).toMatchObject({ kind: 'percent', value: '8' });
     await http().put('/api/commission-rules').set(auth(o)).send({ category: 'Fans', kind: 'fixed', value: 25 }).expect(200);

@@ -5,14 +5,15 @@
  */
 import { test, type Page } from '@playwright/test';
 import { sameShot } from './shots';
-import { APP, SALES, WIDTHS, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
+import { APP, SALES, WIDTHS, freshShop, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
 
-async function pages(browser: Parameters<typeof newPage>[0], width: number, view: string, path: string, ready: string) {
+/** `who`: a shop of its own for tests that add records (the shared sales shop must stay as the prototype's) */
+async function pages(browser: Parameters<typeof newPage>[0], width: number, view: string, path: string, ready: string, who = SALES) {
   const proto = await newPage(browser, width);
   const app = await newPage(browser, width);
   await prototypeWithBackup(proto, 'sales-shop');
   await openPrototypeView(proto, view);
-  await signInAs(app, SALES);
+  await signInAs(app, who);
   await app.goto(APP + path);
   await app.waitForSelector(ready);
   return { proto, app };
@@ -180,6 +181,37 @@ for (const width of WIDTHS) {
       await withTabs(proto, app);
       await sameShot(`editor-extras-${width}`, proto, app, '#vNewInv .dgb');
       await sameShot(`editor-tools-${width}`, proto, app, '#vNewInv .sift');
+    });
+
+    test('Invoice editor referral: add electrician, commission loaded on the rates, commission on this bill', async ({ browser, request }) => {
+      test.setTimeout(150_000);
+      // adds an electrician (and party), so it works in a copy of the sales shop
+      const { proto, app } = await pages(browser, width, 'sales', '/sales', '#slRows tr[data-sno]', await freshShop(request, 'sales-shop'));
+      await proto.evaluate(() => (window as unknown as { openInvoice: () => void }).openInvoice());
+      await app.click('#vSales .pthd .btn.p');
+      await app.waitForSelector('#vNewInv #siRows tr[data-ln]');
+      await withTabs(proto, app);
+      await both(proto, app, async (p) => { await p.fill('#siParty', 'Mehta'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); });
+      for (const [item, qty] of [['LED bulb', '10'], ['Copper wire', '1']] as const) {
+        await both(proto, app, async (p) => { await p.locator('#qeItem').fill(item); await p.waitForTimeout(100); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); await p.locator('#qeQty').fill(qty); await p.locator('#qeQty').press('Control+Enter'); });
+      }
+      await both(proto, app, async (p) => { await p.click('#siCmBtn'); await p.waitForTimeout(100); await p.selectOption('#siRef', '__new'); });
+      await sameShot(`referral-add-${width}`, proto, app, '#slm .mdl');
+      // the mobile must have 10 digits
+      await both(proto, app, async (p) => { await p.fill('#elN', 'Ramesh Kumar'); await p.fill('#elP', '94150'); await p.click('#slmOk'); });
+      await sameShot(`referral-add-error-${width}`, proto, app, '#slm .mdl');
+      await both(proto, app, async (p) => { await p.fill('#elP', '9415011111'); await p.fill('#elC', 'Lucknow'); await p.click('#slmOk'); });
+      await proto.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
+      await app.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
+      await sameShot(`referral-pop-${width}`, proto, app, '#siCmPop');
+      // commission on this bill, then a flat ₹20 per unit for the first category on this bill only
+      await both(proto, app, (p) => p.click('#siCmChip'));
+      await sameShot(`referral-bill-${width}`, proto, app, '#slm .mdl');
+      await both(proto, app, async (p) => { await p.selectOption('#slmBody [data-bcat] select >> nth=0', 'f'); await p.fill('#slmBody [data-bcat] input >> nth=0', '20'); await p.locator('#slmBody [data-bcat] input >> nth=0').press('Tab'); await p.click('#slmT'); });
+      // (clicked away first: the prototype redraws the window and drops focus, the rebuild keeps it moving with Tab)
+      await sameShot(`referral-bill-rule-${width}`, proto, app, '#slm .mdl');
+      await both(proto, app, async (p) => { await p.click('#slmOk'); await p.keyboard.press('Escape'); await p.mouse.move(0, 0); });
+      await sameShot(`referral-grid-${width}`, proto, app, '#vNewInv .dggrid');
     });
   });
 }

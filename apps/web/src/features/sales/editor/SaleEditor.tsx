@@ -24,6 +24,8 @@ import { useEditorData, type EditorData } from './data';
 import { ComboList, Grid, comboKey, focusRow, partyOpts, useCombo } from './Grid';
 import { useEditorLayout } from './layout';
 import { DGACC, DGIMG, ToolBody, type ToolKey } from './ToolsPop';
+import { cmBillModal, useElecModal } from './Referral';
+import { SlModal } from '../SlModal';
 import {
   DG_TERMS, SI_MODES, SI_TT, addDaysIso, blankLine, calc, cmApply, daysDiff, hasContent, lineComm, lineFor, newSI, partyState, paySum, priceListFor, r2, unitPrice, useSI, useTab, TabCtx, isDirty,
   type EItem, type EParty, type Line, type SI,
@@ -207,6 +209,10 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
   const [addParty, setAddParty] = useState<string | null>(null);
   const [addItem, setAddItem] = useState<{ q: string; then: (it: EItem) => void } | null>(null);
   const [busy, setBusy] = useState(false);
+  // referral windows: commission on this bill, add electrician
+  const [cmView, setCmView] = useState(false);
+  const setRef = (id: string) => { up2((x) => { x.ref = id; x.lines.forEach((l) => cmApply(ctx, x, l)); }); full(); };
+  const elec = useElecModal({ onSaved: (id) => { void qc.invalidateQueries({ queryKey: ['referrers'] }); void qc.invalidateQueries({ queryKey: ['parties'] }); setRef(id); toast('Referral set · rates updated'); } });
   useEditorLayout(ref);
   const s = si!;
   const G = ctx.mode === 'gst';
@@ -357,6 +363,7 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
   const xp = !quote && rec > t.total ? r2(rec - t.total) : 0;
 
   return (
+    <>
     <section id="vNewInv" ref={ref}>
       <div className="sitop"><Tabs ops={ops} /><button className="ib" type="button" id="siCancel" aria-label="Back to sales" title="Back to sales" onClick={back}><RawIcon d={BACK} /></button><h1 id="siTitle">{title}</h1><span className="dgtag" id="siKind">{kind}</span>
         <div className="dgsw" id="siMode" role="group" aria-label="Sale type"><span className={cash ? '' : 'on'}>{quote ? 'Party' : 'Credit'}</span><button type="button" className={`dgtg ${cash ? 'on' : ''}`} role="switch" aria-checked={cash} aria-label="Cash sale" data-simode={cash ? 'credit' : 'cash'}
@@ -462,9 +469,9 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
         <button className="btn" type="button" id="siSavePrint" title="Save & print" disabled={busy} onClick={() => void save(false, true)}><RawIcon d={PRINT} /><span className="sftx">{quote ? 'Save & print' : 'Save & print'}</span></button>
         <button className="btn p" type="button" id="siSave" disabled={busy} onClick={() => void save(false)}>{quote ? 'Save quotation ' : 'Save '}<kbd className="kh" style={{ background: 'transparent', color: 'inherit', borderColor: 'rgba(255,255,255,.4)' }}>Ctrl+S</kbd></button></div>
       <div className="dgpop cmpop" id="siCmPop" role="dialog" aria-label="Referral" hidden={pop !== 'cm'}><b style={{ fontSize: 14 }}>Referral</b>
-        <div id="siCmBody"><div className="cmref"><label className="ff on"><select className="fi" id="siRef" value={s.ref} onChange={(e) => { const v = e.target.value; if (v === '__new') return; up2((x) => { x.ref = v; x.lines.forEach((l) => cmApply(ctx, x, l)); }); full(); toast(v ? 'Referral set · rates updated' : 'Referral removed · rates updated'); }}>
+        <div id="siCmBody"><div className="cmref"><label className="ff on"><select className="fi" id="siRef" value={s.ref} onChange={(e) => { const v = e.target.value; if (v === '__new') { e.target.value = s.ref; elec.open(); return; } setRef(v); toast(v ? 'Referral set · rates updated' : 'Referral removed · rates updated'); }}>
           <option value="">No electrician</option>{d.refs.map((r) => <option value={r.id} key={r.id}>{r.name}{r.city ? ' · ' + r.city : ''}</option>)}<option value="__new">+ Add electrician…</option></select><span>Referred by</span></label>
-          {s.ref ? <button type="button" className="cmchip" id="siCmChip" title="Added to the rates · not printed on the invoice"><Icon name="pct" /><span>Commission</span><b id="siCmAmt">{inr2f(comm)}</b><em className="cmed">Edit ›</em></button> : null}</div></div>
+          {s.ref ? <button type="button" className="cmchip" id="siCmChip" title="Added to the rates · not printed on the invoice" onClick={() => setCmView(true)}><Icon name="pct" /><span>Commission</span><b id="siCmAmt">{inr2f(comm)}</b><em className="cmed">Edit ›</em></button> : null}</div></div>
         <div className="dgpf"><button type="button" className="btn p sm" id="siCmDone" onClick={() => { setPop(null); document.getElementById('siCmBtn')?.focus(); }}>Done</button></div></div>
 
       <AddPartyDialog open={addParty !== null} onClose={() => setAddParty(null)} onSaved={async (id) => {
@@ -480,6 +487,9 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
       }} />
       <SnapshotKeeper d={d} prefill={addParty ?? addItem?.q ?? null} kind={addParty !== null ? 'party' : addItem ? 'item' : null} />
     </section>
+      {/* outside the editor, like the prototype's #slm (the editor turns off sticky table headings) */}
+      <SlModal m={elec.modal ?? (cmView ? cmBillModal({ ctx, name: d.refs.find((r) => r.id === s.ref)?.name ?? '', up: up2, close: () => setCmView(false) }) : null)} onClose={() => { elec.close(); setCmView(false); }} />
+    </>
   );
 }
 
