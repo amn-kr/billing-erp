@@ -10,7 +10,7 @@ import { GSTIN_RE, money, MONEY_MAX, STATE_CODES, toDb } from '@billing/shared';
 import type { Snapshot, SnapshotItem, SnapshotParty } from './snapshot.ts';
 import { planSales, usedByDocuments, type PlanSales } from './sales.ts';
 import { isDemoPurchase, planPurchases, type PlanPurchases } from './purchases.ts';
-import { planBanking, type PlanBanking } from './banking.ts';
+import { movedNonCash, planBanking, type PlanBanking } from './banking.ts';
 import { planExpenses, type PlanExpenses } from './expenses.ts';
 import { planPayouts, type PlanPayout } from './commission.ts';
 
@@ -214,13 +214,16 @@ export function planImport(snap: Snapshot, opts: PlanOptions = {}): ImportPlan {
   const categories = new Set<string>(snap.categories);
   const brands = new Set<string>(snap.brands);
   const itemGroups = new Set<string>();
-  let stockLater = 0;
+  let stockLater = 0, demoStock = 0;
   /* stock the imported sales and returns move (live invoices out, credit notes back) */
   const salesMove = new Map<string, number>();
   for (const v of Array.isArray(snap.documents['erp-invoices']) ? (snap.documents['erp-invoices'] as Record<string, any>[]) : [])
     if (!v.cancelled) for (const l of v.lines ?? []) salesMove.set(String(l.id), (salesMove.get(String(l.id)) ?? 0) - Number(l.qty || 0));
   for (const c of Array.isArray(snap.documents['erp-cnotes']) ? (snap.documents['erp-cnotes'] as Record<string, any>[]) : [])
     for (const l of c.lines ?? []) salesMove.set(String(l.id), (salesMove.get(String(l.id)) ?? 0) + Number(l.qty || 0));
+  // purchase bills bring stock in, debit notes send it back (orders change nothing)
+  for (const d of Array.isArray(snap.documents['erp-pdocs']) ? (snap.documents['erp-pdocs'] as Record<string, any>[]) : [])
+    if (d.kind === 'bill' || d.kind === 'dn') for (const l of d.lines ?? []) salesMove.set(String(l.id), (salesMove.get(String(l.id)) ?? 0) + (d.kind === 'bill' ? 1 : -1) * Number(l.qty || 0));
   const items: PlanItem[] = srcItems.map((i) => {
     let code = i.code.trim();
     if (code && codes.has(code.toLowerCase())) {
@@ -241,7 +244,7 @@ export function planImport(snap: Snapshot, opts: PlanOptions = {}): ImportPlan {
     }
     const opening = i.service ? [] : i.opening.filter((o) => o.qty !== 0).map((o) => ({ qty: qty(o.qty), rate: toDb(o.price), date: ISO.test(o.date) ? o.date : snap.backup.at.slice(0, 10) }));
     const openingQty = opening.reduce((a, o) => a.plus(o.qty), money(0));
-    if (i.stock !== null && !money(i.stock).equals(openingQty.plus(salesMove.get(i.id) ?? 0))) stockLater++;
+    if (i.stock !== null && !money(i.stock).equals(openingQty.plus(salesMove.get(i.id) ?? 0))) { if (i.sample) demoStock++; else stockLater++; }
     return {
       legacyId: i.id, kind: i.service ? 'service' : 'goods', name: itemName(i.name), code, hsn: i.hsn.trim(), unit,
       category: i.category, brand: i.brand, group: i.group, series: i.series, gstRate: money(i.gst).toFixed(2),
@@ -250,7 +253,9 @@ export function planImport(snap: Snapshot, opts: PlanOptions = {}): ImportPlan {
     };
   });
   if (stockLater)
-    warnings.push(`${stockLater} items have stock changes from purchases or adjustments in the old app. Opening stock, sales and returns are imported now; purchases come with the purchases import.`);
+    warnings.push(`${stockLater} item${stockLater > 1 ? 's show' : ' shows'} a different stock in the old app than opening stock plus your sales, returns and purchases (for example a stock adjustment). Please check ${stockLater > 1 ? 'them' : 'it'} in Items.`);
+  if (demoStock)
+    warnings.push(`${demoStock} of the old app’s demo items you used ${demoStock > 1 ? 'show' : 'shows'} stock from its built-in demo history (sales and purchases that are not in your books). Here their stock is opening stock plus your own documents.`);
   const images = srcItems.filter((i) => i.hasImage).length;
   if (images) warnings.push(`${images} item photos were not imported yet. They will move with file storage.`);
 
@@ -278,7 +283,9 @@ export function planImport(snap: Snapshot, opts: PlanOptions = {}): ImportPlan {
   const godowns = srcGodowns.map((g) => ({ name: g.name, address: g.addr, manager: g.manager, phone: g.phone.replace(/\D/g, '').slice(-10), isDefault: g.isDefault }));
   if (!godowns.some((g) => g.isDefault) && godowns[0]) godowns[0].isDefault = true;
   const partyIds = new Set(srcParties.map((p) => p.id));
-  const seenRef = new Set<string>();
+  const seenRef = new Map<string, string>();
+  // a merged copy's bills and payouts follow the electrician that is kept
+  const refAlias = new Map<string, string>();
   const referrers = snap.referrers
     .map((r) => {
       const pid = merged.get(r.partyId) ?? r.partyId;
@@ -286,10 +293,12 @@ export function planImport(snap: Snapshot, opts: PlanOptions = {}): ImportPlan {
     })
     .filter((r) => {
       const k = `${r.name.trim().toLowerCase()}|${r.phone}`;
-      if (seenRef.has(k)) return false;
-      seenRef.add(k);
+      const kept = seenRef.get(k);
+      if (kept) { refAlias.set(r.legacyId, kept); return false; }
+      seenRef.set(k, r.legacyId);
       return true;
     });
+  const refOf = (id: string) => { const k = refAlias.get(id) ?? id; return referrers.some((r) => r.legacyId === k) ? k : null; };
   if (referrers.length < snap.referrers.length) warnings.push(`${snap.referrers.length - referrers.length} electricians were listed more than once and were merged.`);
 
   /* price history (Price manager › History), for the items being imported */
@@ -335,7 +344,7 @@ export function planImport(snap: Snapshot, opts: PlanOptions = {}): ImportPlan {
   const sales = planSales(snap.documents, {
     partyId: (id) => { const k = merged.get(id) ?? id; return planPartyIds.has(k) ? k : null; },
     itemId: (id) => (planItemIds.has(id) ? id : null),
-    referrerIds: new Set(referrers.map((r) => r.legacyId)),
+    referrerIds: new Set(referrers.map((r) => r.legacyId)), referrerOf: refOf,
     warnings,
   }, snap.backup.at.slice(0, 10));
   const purchases = planPurchases(snap.documents, {
@@ -343,9 +352,13 @@ export function planImport(snap: Snapshot, opts: PlanOptions = {}): ImportPlan {
     itemId: (id) => (planItemIds.has(id) ? id : null),
     referrerIds: new Set(), warnings, demoParty, keepDemo: keepSample,
   }, snap.backup.at.slice(0, 10));
-  const banking = planBanking(snap.documents, { fresh: snap.backup.fresh, keepDemo: keepSample, warnings }, snap.backup.at.slice(0, 10));
-  const payouts = planPayouts(snap.documents, new Set(referrers.map((r) => r.legacyId)), warnings, snap.backup.at.slice(0, 10));
   const expenses = planExpenses(snap.documents, { fresh: snap.backup.fresh, keepDemo: keepSample, warnings }, snap.backup.at.slice(0, 10));
+  const nonCash = movedNonCash([
+    ...sales.invoices.filter((v) => !v.cancelled).flatMap((v) => v.pays.map((p) => p.mode)), ...sales.receipts.map((r) => r.mode),
+    ...purchases.payments.map((p) => p.mode), ...expenses.expenses.map((x) => x.mode),
+  ]);
+  const banking = planBanking(snap.documents, { fresh: snap.backup.fresh, keepDemo: keepSample, warnings, nonCash }, snap.backup.at.slice(0, 10));
+  const payouts = planPayouts(snap.documents, refOf, warnings, snap.backup.at.slice(0, 10));
 
   const plan: ImportPlan = {
     business: snap.business,

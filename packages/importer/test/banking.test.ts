@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { planBanking } from '../src/banking.ts';
+import { movedNonCash, planBanking } from '../src/banking.ts';
 
 const demoAccts = [
   { id: 'cash', kind: 'cash', name: 'Cash in hand', open: 45000, od: '01/09/2026' },
@@ -34,5 +34,22 @@ describe('banking from an old backup', () => {
     const p = planBanking({ 'erp-accts': demoAccts, 'erp-btx': demoBtx }, { fresh: false, keepDemo: true, warnings: [] }, '2026-10-01');
     expect(p.accounts).toHaveLength(3);
     expect(p.entries.map((e) => e.number)).toEqual(['BT-0001', 'BT-0002', 'BT-0003', 'BT-0004']);
+  });
+});
+
+describe('the demo default bank that took real money', () => {
+  it('is kept, with a zero opening balance and a note, when the shop took UPI, card or bank money', () => {
+    const warnings: string[] = [];
+    const p = planBanking({ 'erp-accts': demoAccts, 'erp-btx': demoBtx }, { fresh: false, keepDemo: false, warnings, nonCash: movedNonCash(['Cash', 'UPI']) }, '2026-10-01');
+    expect(p.accounts.map((a) => [a.name, a.openingBalance, a.isDefault])).toEqual([['Cash in hand', '0.00', false], ['HDFC Bank', '0.00', true]]);
+    expect(p.entries).toEqual([]);
+    expect(warnings.join(' ')).toMatch(/HDFC Bank is one of the old app’s demo accounts, but it was your default bank/);
+    expect(warnings.join(' ')).toMatch(/demo banking data \(1 bank account and 4 entries\)/);
+  });
+
+  it('is still left out when all the money was cash', () => {
+    expect(movedNonCash(['Cash', 'Cash'])).toBe(false);
+    const p = planBanking({ 'erp-accts': demoAccts, 'erp-btx': demoBtx }, { fresh: false, keepDemo: false, warnings: [], nonCash: false }, '2026-10-01');
+    expect(p.accounts.map((a) => a.name)).toEqual(['Cash in hand']);
   });
 });

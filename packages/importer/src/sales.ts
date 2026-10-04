@@ -5,7 +5,7 @@
  * Totals stay exactly as the old app saved and printed them; the API posts
  * them to the books with the same rules as a new sale. Pure — unit-tested.
  */
-import { money, quoteGridSchema, toDb, type QuoteGrid } from '@billing/shared';
+import { lineCommission, money, quoteGridSchema, toDb, type QuoteGrid } from '@billing/shared';
 
 const qty = (v: unknown) => money(num(v)).toDecimalPlaces(3).toFixed(3);
 const amt = (v: unknown) => toDb(num(v));
@@ -61,6 +61,8 @@ export interface SalesContext {
   partyId: (legacy: string) => string | null;
   itemId: (legacy: string) => string | null;
   referrerIds: Set<string>;
+  /** the electrician kept for an id (merged copies point at the one kept) */
+  referrerOf?: (id: string) => string | null;
   warnings: string[];
 }
 
@@ -83,7 +85,7 @@ const MODES = new Set(['Cash', 'UPI', 'Bank transfer', 'Cheque', 'Card']);
 const tm = (v: unknown): 'gst' | 'bos' | 'none' => (v === 'bos' ? 'bos' : v === 'none' ? 'none' : 'gst');
 const commKind = (t: unknown): 'none' | 'p' | 'f' => (t === 'p' ? 'p' : t === 'f' ? 'f' : 'none');
 
-function saleLines(raw: Record<string, unknown>[], ctx: SalesContext, where: string): PlanSaleLine[] | null {
+function saleLines(raw: Record<string, unknown>[], ctx: SalesContext, where: string, inclGst = false): PlanSaleLine[] | null {
   const out: PlanSaleLine[] = [];
   for (const l of raw) {
     const id = ctx.itemId(str(l.id));
@@ -96,7 +98,11 @@ function saleLines(raw: Record<string, unknown>[], ctx: SalesContext, where: str
       discPct: money(num(l.disc)).toDecimalPlaces(8).toFixed(8), gstRate: money(num(l.gst)).toFixed(2),
       taxable: amt(l.tv), tax: amt(l.tx), amount: amt(l.amt),
       basePrice: l.bp !== undefined ? amt(l.bp) : null, commType: l.bp !== undefined ? commKind(l.cmT) : 'none', commValue: amt(l.cmV),
-      commAmount: amt(l.cm), commOverride: l.cmO && typeof l.cmO === 'object' ? { t: str((l.cmO as Record<string, unknown>).t), v: num((l.cmO as Record<string, unknown>).v) } : null,
+      /* older bills kept the base rate but not the amount: work it out as the old app did when saving */
+      commAmount: l.bp !== undefined && l.cm === undefined
+        ? toDb(lineCommission({ qty: num(l.qty), discPct: num(l.disc), price: num(l.price), basePrice: num(l.bp), gstRate: num(l.gst) }, inclGst))
+        : amt(l.cm),
+      commOverride: l.cmO && typeof l.cmO === 'object' ? { t: str((l.cmO as Record<string, unknown>).t), v: num((l.cmO as Record<string, unknown>).v) } : null,
     });
   }
   return out;
@@ -131,7 +137,7 @@ export function planSales(docs: Record<string, unknown>, ctx: SalesContext, fall
     if (!no || seenNo.has(no)) { W.push(`An invoice ${no ? 'numbered ' + no + ' appeared twice' : 'without a number'}; the extra copy was left out.`); continue; }
     const pid = partyOf(v.party, `Invoice ${no}`);
     if (pid === undefined) continue;
-    const lines = saleLines(arr(v.lines), ctx, `Invoice ${no}`);
+    const lines = saleLines(arr(v.lines), ctx, `Invoice ${no}`, v.incl !== false && tm(v.tm) === 'gst');
     if (!lines) continue;
     seenNo.add(no);
     const pays = arr(v.pays).filter((p) => num(p.amt) > 0).map((p) => ({ mode: MODES.has(str(p.mode)) ? str(p.mode) : 'Cash', amount: amt(p.amt), ref: str(p.ref) }));
@@ -143,7 +149,7 @@ export function planSales(docs: Record<string, unknown>, ctx: SalesContext, fall
       partyLegacyId: pid, cashName: pid ? '' : str(v.partyName) || 'Walk-in customer', cashPhone: pid ? '' : str(v.phone), billName: str(v.billName),
       placeOfSupply: str(v.pos), taxMode: tm(v.tm), pricesInclTax: v.incl !== false, lines, totals: totals(v),
       received: amt(num(v.received)), extraPaid: pid ? amt(v.extra) : '0.00', pays, receiptNo: str(v.pi),
-      notes: str(v.notes), extra: printed(v), referrerLegacyId: v.ref && ctx.referrerIds.has(str(v.ref)) ? str(v.ref) : null,
+      notes: str(v.notes), extra: printed(v), referrerLegacyId: v.ref ? (ctx.referrerOf ? ctx.referrerOf(str(v.ref)) : ctx.referrerIds.has(str(v.ref)) ? str(v.ref) : null) : null,
       cancelled: !!v.cancelled, quoteNos: arr(v.quotes).map((q) => str(q.no)), challanNo: str(v.challan),
     });
   }
@@ -217,7 +223,7 @@ export function planSales(docs: Record<string, unknown>, ctx: SalesContext, fall
         totals: { ...zero, total: (low?.total ?? 0).toFixed(2) }, notes: '',
         extra: { type: 'brand', cust, disc: Number(q.disc) || 0, sel: (Array.isArray(q.sel) ? (q.sel as unknown[]) : []).map(str), qty, items: Number(q.items) || Object.keys(qty).length, pcs: Number(q.pcs) || Object.values(qty).reduce<number>((a, b) => a + (b as number), 0), low },
         status: q.status === 'converted' ? 'converted' : 'open', invoiceNo: invNos.has(str(q.inv)) ? str(q.inv) : '',
-        referrerLegacyId: q.ref && ctx.referrerIds.has(str(q.ref)) ? str(q.ref) : null,
+        referrerLegacyId: q.ref ? (ctx.referrerOf ? ctx.referrerOf(str(q.ref)) : ctx.referrerIds.has(str(q.ref)) ? str(q.ref) : null) : null,
         brand: { priceListLegacyId: str(q.pl), invoiceBrand: str(q.brand) },
       });
       continue;
@@ -230,7 +236,7 @@ export function planSales(docs: Record<string, unknown>, ctx: SalesContext, fall
       number: no, date: date(q.date), validTill: isoOfDmy(q.valid), mode: pid ? 'credit' : 'cash', partyLegacyId: pid, cashName: pid ? '' : str(q.cust) || 'Walk-in customer',
       cashPhone: pid ? '' : str(q.phone), placeOfSupply: str(q.pos), taxMode: tm(q.tm), pricesInclTax: q.incl !== false, lines, totals: totals(q),
       notes: str(q.notes), extra: { ...printed(q), validTill: isoOfDmy(q.valid) }, status: q.status === 'converted' ? 'converted' : 'open', invoiceNo: invNos.has(str(q.inv)) ? str(q.inv) : '',
-      referrerLegacyId: q.ref && ctx.referrerIds.has(str(q.ref)) ? str(q.ref) : null,
+      referrerLegacyId: q.ref ? (ctx.referrerOf ? ctx.referrerOf(str(q.ref)) : ctx.referrerIds.has(str(q.ref)) ? str(q.ref) : null) : null,
     });
   }
   // brand-wise ones were kept in the old app in save order, item-wise ones newest first: oldest first here
@@ -238,5 +244,17 @@ export function planSales(docs: Record<string, unknown>, ctx: SalesContext, fall
   /* the Quotation page grid; the prototype's starting grid when the backup has none */
   const qg = quoteGridSchema.safeParse(docs['erp-quo'] ? { rows: (docs['erp-quo'] as Record<string, unknown>).rows, ser: (docs['erp-quo'] as Record<string, unknown>).ser } : null);
   if (docs['erp-quo'] && !qg.success) W.push('The Quotation page’s rows and brand ranges could not be read; the standard ones are used.');
+  // the old app could give two invoices the same receipt number (PI-…); numbers are unique here, so a repeat gets "/2", "/3"
+  const usedNo = new Set(receipts.map((r) => r.number));
+  for (const v of invoices) {
+    if (!v.receiptNo) continue;
+    if (!usedNo.has(v.receiptNo)) { usedNo.add(v.receiptNo); continue; }
+    let k = 2;
+    while (usedNo.has(`${v.receiptNo}/${k}`)) k++;
+    const nn = `${v.receiptNo}/${k}`;
+    ctx.warnings.push(`${v.number} and another bill both used receipt number ${v.receiptNo} in the old app. The one on ${v.number} is ${nn} here.`);
+    usedNo.add(nn);
+    v.receiptNo = nn;
+  }
   return { invoices, receipts, creditNotes, challans, quotations, quoteGrid: qg.success ? qg.data : null };
 }

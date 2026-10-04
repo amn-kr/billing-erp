@@ -7,13 +7,14 @@ const str = (v: unknown) => (v === null || v === undefined ? '' : String(v));
 
 export interface PlanPayout { number: string; date: string; referrerLegacyId: string; amount: string; mode: string; note: string }
 
-export function planPayouts(docs: Record<string, unknown>, referrerIds: Set<string>, warnings: string[], fallbackDate: string): PlanPayout[] {
+export function planPayouts(docs: Record<string, unknown>, referrerOf: (id: string) => string | null, warnings: string[], fallbackDate: string): PlanPayout[] {
   const out: PlanPayout[] = [];
   for (const x of arr(docs['erp-compay'])) {
     const no = str(x.no), amt = Number(x.amount) || 0;
     if (!no || !(amt > 0)) continue;
-    if (!referrerIds.has(str(x.elec))) { warnings.push(`Commission payment ${no} was left out: its electrician isn’t in the backup.`); continue; }
-    out.push({ number: no, date: isoOfDmy(x.date) || fallbackDate, referrerLegacyId: str(x.elec), amount: toDb(money(amt).toDecimalPlaces(2).toString()), mode: str(x.mode) || 'Cash', note: str(x.note).slice(0, 200) });
+    const ref = referrerOf(str(x.elec));
+    if (!ref) { warnings.push(`Commission payment ${no} was left out: its electrician isn’t in the backup.`); continue; }
+    out.push({ number: no, date: isoOfDmy(x.date) || fallbackDate, referrerLegacyId: ref, amount: toDb(money(amt).toDecimalPlaces(2).toString()), mode: str(x.mode) || 'Cash', note: str(x.note).slice(0, 200) });
   }
   return out;
 }

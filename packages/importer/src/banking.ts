@@ -3,7 +3,9 @@
  * backup (erp-accts, erp-btx). A shop that did not start fresh carries the old app's demo
  * accounts (HDFC Bank, State Bank of India, with demo balances) and four demo entries; those
  * are left out unless the demo data is asked for. A demo account that a real entry uses is
- * kept with a zero opening balance, and the person importing is told to check it.
+ * kept with a zero opening balance, and the person importing is told to check it. So is the
+ * demo default bank when the shop's own documents took or paid money other than in cash: the old
+ * app put that money there, and without it the money would land in cash.
  */
 import { money, toDb } from '@billing/shared';
 import { isoOfDmy } from './sales.ts';
@@ -22,7 +24,12 @@ const DEMO_ACCOUNTS: Record<string, number> = { cash: 45000, hdfc: 325000, sbi: 
 const DEMO_ENTRIES: Record<string, number> = { 'BT-0001': 25000, 'BT-0002': 354, 'BT-0003': 6500, 'BT-0004': 40000 };
 const KINDS = new Set(['transfer', 'deposit', 'withdraw', 'in', 'out']);
 
-export function planBanking(docs: Record<string, unknown>, o: { fresh: boolean; keepDemo: boolean; warnings: string[] }, fallbackDate: string): PlanBanking {
+/** Did the shop's own (planned) sales, receipts, payments or expenses move money other than in cash? */
+export function movedNonCash(modes: string[]): boolean {
+  return modes.some((m) => !!m && m !== 'Cash');
+}
+
+export function planBanking(docs: Record<string, unknown>, o: { fresh: boolean; keepDemo: boolean; warnings: string[]; nonCash?: boolean }, fallbackDate: string): PlanBanking {
   const W = o.warnings;
   const raw = arr(docs['erp-accts']);
   const demoMode = !o.fresh && !o.keepDemo;
@@ -44,8 +51,10 @@ export function planBanking(docs: Record<string, unknown>, o: { fresh: boolean; 
   for (const a of raw) {
     const id = str(a.id), kind = str(a.kind) === 'cash' ? 'cash' : 'bank';
     const demo = isDemoAcct(a);
-    if (demo && kind === 'bank' && !used.has(id)) { demoAccts++; continue; }
-    if (demo && kind === 'bank') W.push(`${str(a.name)} is one of the old app’s demo accounts, but an entry of yours uses it. It was kept with a zero opening balance — check it in Banking › Bank accounts.`);
+    const tookMoney = !!o.nonCash && !!a.def;
+    if (demo && kind === 'bank' && !used.has(id) && !tookMoney) { demoAccts++; continue; }
+    if (demo && kind === 'bank' && !used.has(id)) W.push(`${str(a.name)} is one of the old app’s demo accounts, but it was your default bank, so your UPI, card and bank payments went there. It was kept with a zero opening balance — check its name and balance in Banking › Bank accounts.`);
+    else if (demo && kind === 'bank') W.push(`${str(a.name)} is one of the old app’s demo accounts, but an entry of yours uses it. It was kept with a zero opening balance — check it in Banking › Bank accounts.`);
     accounts.push({
       legacyId: id, kind, name: kind === 'cash' ? 'Cash in hand' : str(a.name).slice(0, 80) || 'Bank account', sub: str(a.sub).slice(0, 60), accountNo: str(a.acno).replace(/\D/g, '').slice(0, 18),
       ifsc: str(a.ifsc).toUpperCase().slice(0, 11), branch: str(a.branch).slice(0, 120),
