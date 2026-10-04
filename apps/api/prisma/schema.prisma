@@ -936,6 +936,9 @@ model SalesDocument {
   status        String    @default("open")
   notes         String    @default("")
   reason        String    @default("")
+  /// printed details: poNo, poDate, challanNo, ewb, transport, vehicle, deliveryDate, description,
+  /// attachments, quoteRefs, validTill, refundMode, commission overrides per category …
+  extra         Json      @default("{}")
   /// electrician who brought the sale (commission)
   referrerId    String?   @map("referrer_id") @db.Uuid
   /// the quotation or challan this invoice came from
@@ -960,28 +963,32 @@ model SalesDocument {
 }
 
 model SalesDocumentLine {
-  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  businessId String  @map("business_id") @db.Uuid
-  documentId String  @map("document_id") @db.Uuid
-  position   Int
-  itemId     String? @map("item_id") @db.Uuid
-  name       String
-  hsn        String  @default("")
-  qty        Decimal @db.Decimal(14, 3)
-  unit       String  @default("")
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId   String   @map("business_id") @db.Uuid
+  documentId   String   @map("document_id") @db.Uuid
+  position     Int
+  itemId       String?  @map("item_id") @db.Uuid
+  name         String
+  hsn          String   @default("")
+  qty          Decimal  @db.Decimal(14, 3)
+  unit         String   @default("")
   /// price-list rate before the line discount
-  price      Decimal @db.Decimal(14, 2)
-  discPct    Decimal @default(0) @map("disc_pct") @db.Decimal(9, 6)
-  gstRate    Decimal @default(0) @map("gst_rate") @db.Decimal(5, 2)
-  taxable    Decimal @default(0) @db.Decimal(14, 2)
-  tax        Decimal @default(0) @db.Decimal(14, 2)
-  amount     Decimal @default(0) @db.Decimal(14, 2)
+  price        Decimal  @db.Decimal(14, 2)
+  discPct      Decimal  @default(0) @map("disc_pct") @db.Decimal(12, 8)
+  gstRate      Decimal  @default(0) @map("gst_rate") @db.Decimal(5, 2)
+  taxable      Decimal  @default(0) @db.Decimal(14, 2)
+  tax          Decimal  @default(0) @db.Decimal(14, 2)
+  amount       Decimal  @default(0) @db.Decimal(14, 2)
+  /// referral: the rate before the commission was loaded on it
+  basePrice    Decimal? @map("base_price") @db.Decimal(14, 2)
+  /// referral: a rule set for this line only ({t, v})
+  commOverride Json?    @map("comm_override")
   /// commission: p (percent) | f (fixed per unit) | none, and the amount worked out
-  commType   String  @default("none") @map("comm_type")
-  commValue  Decimal @default(0) @map("comm_value") @db.Decimal(14, 2)
-  commAmount Decimal @default(0) @map("comm_amount") @db.Decimal(14, 2)
+  commType     String   @default("none") @map("comm_type")
+  commValue    Decimal  @default(0) @map("comm_value") @db.Decimal(14, 2)
+  commAmount   Decimal  @default(0) @map("comm_amount") @db.Decimal(14, 2)
   /// credit note line: the invoice it returns against
-  againstId  String? @map("against_id") @db.Uuid
+  againstId    String?  @map("against_id") @db.Uuid
 
   business Business      @relation(fields: [businessId], references: [id])
   document SalesDocument @relation(fields: [documentId], references: [id])
@@ -1087,6 +1094,10 @@ model Payment {
   notes       String    @default("")
   /// money taken on the invoice screen itself (part of that sale)
   atSale      Boolean   @default(false) @map("at_sale")
+  /// the sale it was taken on (atSale), or the credit note it refunds
+  sourceId    String?   @map("source_id") @db.Uuid
+  /// split across modes: [{mode, amount, ref}]
+  splits      Json      @default("[]")
   cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(6)
   cancelledBy String?   @map("cancelled_by") @db.Uuid
   legacyId    String?   @map("legacy_id")
@@ -1107,6 +1118,9 @@ model Payment {
 model PaymentAllocation {
   id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   businessId         String   @map("business_id") @db.Uuid
+  /// document | opening (the party's opening balance)
+  kind               String   @default("document")
+  partyId            String?  @map("party_id") @db.Uuid
   /// a payment, or a credit/debit note adjusted against documents
   paymentId          String?  @map("payment_id") @db.Uuid
   noteId             String?  @map("note_id") @db.Uuid
