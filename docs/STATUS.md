@@ -38,7 +38,6 @@
 | Importing **invoices, purchases, payments and expenses** from old backups (the Restore window says so) | Phase 3 |
 | **Next invoice number** must not go below invoices already made | Phase 3 (no invoices exist yet) |
 | **Cash in hand** from the old backup (kept in settings) becomes the cash book's opening balance | Phase 3 |
-| Bell: **overdue purchase bills and sales invoices** | Phase 3 |
 | "Discard this …?" question for the Phase 3 documents (payment, credit note, challan, quick sale, bank/cheque entries) | Phase 3 |
 | **Restoring a backup made by the new app**, and daily cloud copies | Phase 5 (with hosting) |
 | **Security updates** for packages set up in Phase 1 (NestJS, React Router: about 23 advisories) | before launch (Phase 5) |
@@ -97,7 +96,13 @@
 | Several open bills (tabs) in the invoice editor | done — tests for the owner's four rules (see below) |
 | Editor extras: tools pop-up (transport, terms, description, attachments, profit & loss), referral (add electrician, commission on this bill), previous rates, import from quotation, Quick sale (⚡ / Alt+N) | done — matching screenshots at 1280/1366/1920; flow tests for saving |
 | Quotations page: brand-wise grid (rows × brand ranges, rates from Price manager, totals and "Lowest"), saved list, convert to invoice with the chosen brand, add range / row / item, referral, WhatsApp / PDF / Excel; item-wise quotations in the editor; brand-wise quotations and the grid come across from old backups | done — matching screenshots at 1280/1366/1920; API, importer and flow tests (save → convert → locked) |
-| Purchases, expenses, banking & cash, cheques, reconciliation, commission | next |
+| Purchases API: bills, orders, debit notes, payments made; stock, dues and books; last purchase rates per supplier | done, API tests |
+| Importer: purchase bills, orders, debit notes and payments made from old backups (the old app's demo orders are left out) | done — balances, stock and next numbers match the prototype's figures |
+| Purchase bills, Purchase orders, Payments made, Debit notes, document view, Record payment made | done — matching screenshots at 1280/1366/1920 |
+| Purchase editor (bill / order / debit note): supplier and item search, stock before → after, price changes, payment made with the bill, dues button, convert an order, return goods | done — matching screenshots at 1280/1366/1920; flow tests save each kind |
+| Bell: overdue purchase bills and sales invoices | done |
+| Banking API: cash and bank accounts, a book per account, transfers, deposits, withdrawals, money in / out, cash count | done, API tests; screens next |
+| Expenses, cheques, reconciliation, commission | next |
 | CI reliability: screenshot tests wait until the page is still (fixes the failure on main after PR #2) | done here; confirmed by CI on the Phase 3 pull request |
 
 ### Differences from the prototype (on purpose)
@@ -106,7 +111,10 @@
 - **Quotations are cancelled, never deleted.** The "×" in Saved quotations asks "Cancel?"; the quotation leaves the list and stays in the books. The list shows the newest first (the prototype lists them in the order it stored them).
 - Opening Referral or a window on the Quotation page closes the share menu and the ranges list (the prototype left them open underneath).
 - **Import from quotation keeps the quoted rates.** When the quotation's customer is filled in for you, the prototype re-prices every line from the price list, losing the rates its own message promises; the rebuild applies the price list only to lines that were already on the invoice.
+- **Prototype reload quirks are not copied.** When the old app reopens its saved data it replays a debit note before the bill it was made against (so the note stops reducing that bill) and counts some saved sales twice in an item's stock. The rebuild keeps the figures the old app showed right after saving; the screenshot tests put the prototype back in that state before comparing.
 - Adding an electrician links them to the customer with the same mobile or name, or adds them as a party in "Electricians" (15 days' credit), as the prototype does; party names stay unique.
+
+**Known occasional test flake:** the first Quotations screenshot at 1366 px came out a different size once in a full run and passed on re-run; watching it.
 
 ### Owner decisions (Phase 3)
 - **Screenshot comparison allows tiny text-edge differences.** Chrome sometimes shades the edges of the same letters differently between runs, or rounds a line of text that sits on a half pixel to the pixel above or below. A differing pixel is forgiven only when its colour is one already present within 2 pixels of that spot in the other picture (a letter edge), and at most 0.5% of the picture, never more than 1,500 pixels (a few short lines of text), may be forgiven. Sizes must match exactly; any colour change on a flat area, and anything bigger, still fails. Forgiven pixels show in blue in the diff pictures (real differences in red). Rule and checks: `apps/web/e2e/compare.ts`.

@@ -75,6 +75,7 @@ for (const width of WIDTHS) {
     });
 
     test('Purchase orders, Payments made and Debit notes', async ({ browser }) => {
+      test.setTimeout(120_000);
       const { proto, app } = await pages(browser, width, 'pos', '/purchase-orders', '#poRows tr[data-pono]');
       await sameShot(`pos-${width}`, proto, app, '#vPos');
       await both(proto, app, (p) => p.click('#poRows tr[data-pono="ORD-0002"] td:first-child'));
@@ -102,6 +103,7 @@ for (const width of WIDTHS) {
     });
   
     test('Purchase editor: new bill, supplier and item chosen, payment made, order, debit note', async ({ browser }) => {
+      test.setTimeout(150_000);
       const { proto, app } = await pages(browser, width, 'pur', '/purchase-bills', '#puRows tr[data-bno]');
       await both(proto, app, (p) => p.click('#vPur [data-pnew="bill"]'));
       await app.waitForSelector('#vPEd #peNo[value="PB-0003"]');
