@@ -228,6 +228,35 @@ async function moveMoney(page: Page, f: { kind: string; date: string; amount: st
   await page.click('#bmmSave');
   if (!(await page.locator('#bmm').isHidden())) throw new Error('entry not saved: ' + (await page.textContent('#bmmErr')));
 }
+async function expense(page: Page, f: { cat: string; date: string; payee?: string; ref?: string; mode: string; acct: string; note?: string; lines: [name: string, qty: string, rate: string, gst: string][] }) {
+  await later(page);
+  await ev(page, 'xpOpen()');
+  await page.selectOption('#xpCat', f.cat);
+  await page.fill('#xpDate', f.date);
+  await page.fill('#xpPayee', f.payee ?? '');
+  await page.fill('#xpRef', f.ref ?? '');
+  for (let i = 0; i < f.lines.length; i++) {
+    if (i) await page.click('#xpAddL');
+    const [name, qty, rate, gst] = f.lines[i]!;
+    const row = page.locator(`#xpLines tr[data-xl="${i}"]`);
+    await row.locator('[data-f="name"]').fill(name);
+    await row.locator('[data-f="qty"]').fill(qty);
+    await row.locator('[data-f="rate"]').fill(rate);
+    if (gst !== '0') await row.locator('[data-f="gst"]').selectOption(gst);
+  }
+  await page.selectOption('#xpMode', f.mode);
+  await page.selectOption('#xpAcct', await (ev(page, `ACCTS.find((a) => a.name === ${JSON.stringify(f.acct)}).id`) as Promise<string>));
+  await page.fill('#xpNote', f.note ?? '');
+  await page.click('#xpSave');
+  if (!(await page.locator('#xpm').isHidden())) throw new Error('expense not saved: ' + (await page.textContent('#xpErr')));
+}
+async function expenseCategory(page: Page, name: string) {
+  await ev(page, 'xcOpen()');
+  await page.fill('#xcNew', name);
+  await page.click('#xcAdd');
+  await page.click('#xcDone');
+}
+
 async function bankShop(page: Page) {
   await bankAccount(page, { name: 'HDFC Bank', type: 'Current account', no: '50200012347703', ifsc: 'HDFC0001234', branch: 'Hazratganj, Lucknow', open: '125000', od: '2026-09-01', def: true });
   await bankAccount(page, { name: 'State Bank of India', type: 'Savings account', no: '32190012190', ifsc: 'SBIN0000125', branch: 'Aminabad, Lucknow', open: '40000', od: '2026-09-01' });
@@ -236,6 +265,13 @@ async function bankShop(page: Page) {
   await moveMoney(page, { kind: 'out', date: '2026-09-30', amount: '354', acct: 'HDFC Bank', cat: 'Bank charges', note: 'SMS & service charges' });
   await moveMoney(page, { kind: 'in', date: '2026-09-30', amount: '412', acct: 'State Bank of India', cat: 'Interest received', note: 'Quarterly interest' });
   await moveMoney(page, { kind: 'out', date: '2026-10-01', amount: '650', acct: 'Cash in hand', cat: 'Shop expense', note: 'Tea & snacks' });
+}
+async function expenseShop(page: Page) {
+  await expense(page, { cat: 'Rent', date: '2026-09-01', payee: 'R.K. Properties', ref: 'IMPS 66010', mode: 'Bank transfer', acct: 'HDFC Bank', lines: [['Shop rent · September', '1', '25000', '0']] });
+  await expense(page, { cat: 'Repairs', date: '2026-09-26', payee: 'Cool Air Services', ref: 'UPI 9932', mode: 'UPI', acct: 'HDFC Bank', lines: [['Shop AC servicing', '1', '2950', '18']] });
+  await expense(page, { cat: 'Packing material', date: '2026-09-22', payee: 'Gupta Packers', ref: 'Bill 778', mode: 'Cash', acct: 'Cash in hand', lines: [['Carton boxes', '100', '18', '0'], ['Tape rolls', '12', '45', '0']] });
+  await expenseCategory(page, 'Generator diesel');
+  await expense(page, { cat: 'Generator diesel', date: '2026-10-01', payee: 'Indian Oil', mode: 'Cash', acct: 'Cash in hand', note: 'Power cut', lines: [['Diesel', '20', '92.5', '0']] });
 }
 
 // 1. the sample shop, untouched
@@ -266,6 +302,7 @@ async function bankShop(page: Page) {
   await purchaseShop(page);
   await save(page, 'purchase-shop.backup.json');
   await bankShop(page);
+  await expenseShop(page);
   await save(page, 'bank-shop.backup.json');
   await close();
 }

@@ -197,10 +197,15 @@ describe('banking import', () => {
   it('brings cash and bank accounts and the money moved by hand; balances match the old app', async () => {
     const o = await owner(app);
     const res = await http().post('/api/imports').set(auth(o)).send({ fileName: 'bank.json', backup: backup('bank-shop.backup.json') }).expect(200);
-    expect(res.body.counts).toMatchObject({ bankAccounts: 2, bankEntries: 5 });
+    expect(res.body.counts).toMatchObject({ bankAccounts: 2, bankEntries: 5, expenses: 4 });
     const accs = (await http().get('/api/banking/accounts').set(auth(o)).expect(200)).body as { name: string; balance: string; isDefault: boolean; accountNo: string; ifsc: string; branch: string }[];
-    // the prototype's own balances for the same backup: cash 5,270, HDFC 1,06,646, SBI 65,412
-    expect(accs.map((a) => [a.name, a.balance, a.isDefault])).toEqual([['Cash in hand', '5270.00', true], ['HDFC Bank', '106646.00', true], ['State Bank of India', '65412.00', false]]);
+    // the prototype's own balances for the same backup (expenses included): cash 1,080, HDFC 78,696, SBI 65,412
+    expect(accs.map((a) => [a.name, a.balance, a.isDefault])).toEqual([['Cash in hand', '1080.00', true], ['HDFC Bank', '78696.00', true], ['State Bank of India', '65412.00', false]]);
+    const xs = (await http().get('/api/expenses').set(auth(o)).expect(200)).body as { number: string; category: string; total: string; gst: string }[];
+    expect(xs.map((x) => [x.number, x.category, x.total, x.gst])).toEqual([
+      ['EXP-0005', 'Generator diesel', '1850.00', '0.00'], ['BT-0005', 'Shop expenses', '650.00', '0.00'], ['BT-0003', 'Bank charges', '354.00', '0.00'], ['EXP-0003', 'Repairs', '2950.00', '450.00'], ['EXP-0004', 'Packing material', '2340.00', '0.00'], ['EXP-0002', 'Rent', '25000.00', '0.00'],
+    ]);
+    expect((await http().get('/api/expenses/next-number').set(auth(o)).expect(200)).body.number).toBe('EXP-0006');
     expect(accs[1]).toMatchObject({ accountNo: '50200012347703', ifsc: 'HDFC0001234', branch: 'Hazratganj, Lucknow' });
     const next = (await http().post('/api/banking/entries').set(auth(o)).send({ date: '2026-10-02', kind: 'in', accountId: (accs as unknown as { id: string }[])[0]!.id, amount: '1', category: 'Other' }).expect(201)).body;
     expect(next.number).toBe('BT-0006');

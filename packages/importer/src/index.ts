@@ -4,3 +4,4 @@ export * from './plan.ts';
 export * from './sales.ts';
 export * from './purchases.ts';
 export * from './banking.ts';
+export * from './expenses.ts';

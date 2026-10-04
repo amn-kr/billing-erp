@@ -12,3 +12,4 @@ export * from './sales.js';
 export * from './quotes.js';
 export * from './purchases.js';
 export * from './banking.js';
+export * from './expenses.js';

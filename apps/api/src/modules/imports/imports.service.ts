@@ -9,6 +9,8 @@ import { NumberingService } from '../../common/numbering.service';
 import { writeSales } from './sales-import';
 import { writePurchases } from './purchase-import';
 import { writeAccounts, writeEntries } from './banking-import';
+import { writeExpenses } from './expense-import';
+import { ExpensesService } from '../expenses/expenses.service';
 import { BankingService } from '../banking/banking.service';
 import { PurchasesService } from '../purchases/purchases.service';
 import type { RequestContext } from '../../common/context';
@@ -243,6 +245,9 @@ export class ImportsService {
 
     /* money moved by hand between cash and bank */
     await writeEntries(tx, pctx, new BankingService(this.db, this.audit, this.numbers, this.ledger), plan.banking, acctIds);
+
+    /* expense categories and expenses */
+    await writeExpenses(tx, pctx, new ExpensesService(this.db, this.audit, this.numbers, this.ledger), plan.expenses, acctIds);
 
     const run = await tx.importRun.create({
       data: { ...base, fileName: fileName.slice(0, 200), backupAt, status: 'done', counts: plan.counts, warnings: plan.warnings },

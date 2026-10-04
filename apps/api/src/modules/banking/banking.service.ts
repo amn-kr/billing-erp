@@ -154,6 +154,8 @@ export class BankingService {
     // a walk-in sale's money carries the name typed on the bill
     const walkIn = new Map((await tx.salesDocument.findMany({ where: { id: { in: [...pays.values()].flatMap((p) => (!p.partyId && p.sourceId ? [p.sourceId] : [])) } }, select: { id: true, cashName: true } })).map((d) => [d.id, d.cashName]));
     const sdocs = new Map((await tx.salesDocument.findMany({ where: { id: { in: ids('sales_document') } }, include: { party: { select: { name: true } } } })).map((d) => [d.id, d]));
+    const exps = new Map((await tx.expense.findMany({ where: { id: { in: ids('expense') } }, include: { lines: { take: 1, orderBy: { position: 'asc' } } } })).map((x) => [x.id, x]));
+    const catName = new Map((await tx.expenseCategory.findMany({ select: { id: true, name: true } })).map((c) => [c.id, c.name]));
     const bes = await tx.bankEntry.findMany({ where: { id: { in: ids('bank_entry') } } });
     const be = new Map(bes.map((b) => [b.id, b]));
     const accIds = [...new Set(bes.flatMap((b) => [b.accountId, b.toAccountId ?? '']).filter(Boolean))];
@@ -177,6 +179,13 @@ export class BankingService {
       if (e.sourceType === 'sales_document') {
         const d = sdocs.get(e.sourceId);
         return { ...base, sk: 'CN:' + e.number, kind: amt.isNegative() ? 'Refund on return' : 'Payment received', party: d?.party?.name ?? d?.cashName ?? '' };
+      }
+      if (e.sourceType === 'expense') {
+        const x = exps.get(e.sourceId);
+        if (x) {
+          const cat = catName.get(x.lines[0]?.categoryId ?? '') ?? '';
+          return { ...base, sk: 'EX:' + x.number, kind: 'Expense · ' + cat, party: x.payee || cat, mode: x.mode, ref: x.reference, note: x.notes };
+        }
       }
       if (e.sourceType === 'bank_entry') {
         const b = be.get(e.sourceId);

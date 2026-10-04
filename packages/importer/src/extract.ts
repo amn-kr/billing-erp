@@ -70,7 +70,7 @@ function readBooks(): unknown {
     overrides: Object.fromEntries(Object.entries(PLO[p.id] || {}).map(([k, v]) => [k, n(v)])),
   }));
   const keys: Record<string, unknown> = {};
-  for (const k of ['erp-accts', 'erp-invoices', 'erp-pdocs', 'erp-precv', 'erp-cnotes', 'erp-exps', 'erp-quotes', 'erp-quo', 'erp-btx', 'erp-ppays', 'erp-dchal', 'erp-chq', 'erp-recon', 'erp-compay', 'erp-salehist', 'erp-salemod']) {
+  for (const k of ['erp-accts', 'erp-ecats', 'erp-invoices', 'erp-pdocs', 'erp-precv', 'erp-cnotes', 'erp-exps', 'erp-quotes', 'erp-quo', 'erp-btx', 'erp-ppays', 'erp-dchal', 'erp-chq', 'erp-recon', 'erp-compay', 'erp-salehist', 'erp-salemod']) {
     const v = localStorage.getItem(k);
     if (v != null) { try { keys[k] = JSON.parse(v); } catch { keys[k] = v; } }
   }

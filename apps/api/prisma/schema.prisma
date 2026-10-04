@@ -1177,6 +1177,8 @@ model Cheque {
   amount     Decimal   @db.Decimal(14, 2)
   partyId    String?   @map("party_id") @db.Uuid
   paymentId  String?   @map("payment_id") @db.Uuid
+  /// an expense paid by cheque
+  expenseId  String?   @map("expense_id") @db.Uuid
   /// pending | cleared | bounced
   status     String    @default("pending")
   accountId  String?   @map("account_id") @db.Uuid
@@ -1263,6 +1265,8 @@ model ExpenseLine {
   position    Int
   categoryId  String? @map("category_id") @db.Uuid
   description String  @default("")
+  qty         Decimal @default(1) @db.Decimal(14, 3)
+  rate        Decimal @default(0) @db.Decimal(14, 2)
   amount      Decimal @db.Decimal(14, 2)
   gstRate     Decimal @default(0) @map("gst_rate") @db.Decimal(5, 2)
   tax         Decimal @default(0) @db.Decimal(14, 2)
