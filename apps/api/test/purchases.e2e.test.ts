@@ -47,6 +47,14 @@ describe('purchase bill', () => {
     expect(doc.settlements).toEqual([{ kind: 'payment', number: 'PO-0001', date: D, mode: 'UPI', amount: '3000.00' }]);
   });
 
+  it('remembers the last rates from each supplier', async () => {
+    const { o, bulb, kc } = await shop();
+    await buy(o, { partyId: kc.id, date: '2026-09-20', lines: [line(bulb, '100', '58')] }).expect(201);
+    await buy(o, { partyId: kc.id, date: '2026-09-30', lines: [line(bulb, '50', '60', { discPct: '5' })] }).expect(201);
+    const h = (await http().get(`/api/purchases/price-history?item=${bulb.id}&party=${kc.id}`).set(auth(o)).expect(200)).body;
+    expect(h).toEqual([{ date: '2026-09-30', number: 'PB-0002', qty: '50', price: '60.00', discPct: '5' }, { date: '2026-09-20', number: 'PB-0001', qty: '100', price: '58.00', discPct: '0' }]);
+  });
+
   it('refuses a bill the way the old app did', async () => {
     const { o, bulb, kc } = await shop();
     expect((await buy(o, { partyId: kc.id, lines: [] }).expect(400)).body.message).toBe('Add at least one item.');

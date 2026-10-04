@@ -36,7 +36,7 @@ export function ComboList({ c, k, id, grid }: { c: Combo; k: string; id?: string
       if (!td) return;
       const r = td.getBoundingClientRect();
       const w = Math.min(Math.max(r.width, 460), innerWidth - 24);
-      const foot = document.querySelector('#vNewInv .sift') as HTMLElement | null;
+      const foot = l.closest('section')?.querySelector('.sift') as HTMLElement | null;
       const fh = foot ? foot.offsetHeight : 0;
       const below = innerHeight - fh - r.bottom - 8;
       const above = r.top - 70;

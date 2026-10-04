@@ -83,7 +83,7 @@ export function useEditorLayout(ref: RefObject<HTMLElement | null>) {
       }
       soon();
     });
-    sec.querySelectorAll('.dgh,.sitop,.dgw,#siHead,#siFoot,.sift').forEach((e) => ro.observe(e));
+    sec.querySelectorAll('.dgh,.sitop,.dgw,#siHead,#siFoot,#peHead,#peFoot,.sift').forEach((e) => ro.observe(e));
     addEventListener('scroll', soon, { passive: true });
     addEventListener('resize', soon);
     return () => { ro.disconnect(); removeEventListener('scroll', soon); removeEventListener('resize', soon); cancelAnimationFrame(raf); };

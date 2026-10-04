@@ -306,6 +306,19 @@ export class PurchasesService {
     });
   }
 
+  /** The last rates this supplier billed an item at, newest first (prototype phHist 'Purchase'). */
+  priceHistory(ctx: RequestContext, q: { itemId: string; partyId: string; exclude?: string }) {
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      const rows = await tx.purchaseDocumentLine.findMany({
+        where: { itemId: q.itemId, document: { kind: 'bill', partyId: q.partyId, cancelledAt: null, ...(q.exclude && { id: { not: q.exclude } }) } },
+        include: { document: { select: { number: true, date: true } } },
+        orderBy: [{ document: { date: 'desc' } }, { document: { createdAt: 'desc' } }],
+        take: 5,
+      });
+      return rows.map((l) => ({ date: isoOf(l.document.date), number: l.document.number, qty: l.qty.toString(), price: l.rate.toFixed(2), discPct: l.discPct.toString() }));
+    });
+  }
+
   /** A supplier's unpaid bills, oldest first (prototype payBills). */
   unpaid(ctx: RequestContext, partyId: string) {
     return this.db.scoped(this.scope(ctx), async (tx) => {

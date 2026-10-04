@@ -25,6 +25,8 @@ const both = async (a: Page, b: Page, fn: (p: Page) => Promise<unknown>) => { aw
  * debit note before the bill it was made against, so DN-0001 (₹325 against PB-0001) stops
  * reducing that bill and shows as unused credit. Right after saving, the old app showed it
  * set against PB-0001, which is what the rebuild keeps. Put the prototype back in that state.
+ * The same replay also enters some saved sales twice in an item's stock history (MCB 32A
+ * shows −2 in stock instead of −1), so repeated entries are dropped.
  */
 async function fixDebitNote(proto: Page) {
   await proto.evaluate(() => {
@@ -37,6 +39,10 @@ async function fixDebitNote(proto: Page) {
     const n = p.tx.find((t) => t.type === 'Debit note' && t.no === 'DN-0001')!;
     b.bal = Math.round((b.bal - n.bal) * 100) / 100;
     n.bal = 0;
+    for (const it of g<{ tx: { type: string; ref: string; qty: number }[] }[]>('IT')) {
+      const seen = new Set<string>();
+      it.tx = it.tx.filter((t) => { const k = `${t.type}|${t.ref}|${t.qty}`; if (seen.has(k)) return false; seen.add(k); return true; });
+    }
   });
 }
 
@@ -93,6 +99,40 @@ for (const width of WIDTHS) {
       await both(proto, app, (p) => p.click('#dnRows tr[data-dnno="DN-0001"] td:first-child'));
       await app.waitForSelector('#pvm:not([hidden]) .pvh');
       await sameShot(`dns-view-${width}`, proto, app, '#pvm .mdl');
+    });
+  
+    test('Purchase editor: new bill, supplier and item chosen, payment made, order, debit note', async ({ browser }) => {
+      const { proto, app } = await pages(browser, width, 'pur', '/purchase-bills', '#puRows tr[data-bno]');
+      await both(proto, app, (p) => p.click('#vPur [data-pnew="bill"]'));
+      await app.waitForSelector('#vPEd #peNo[value="PB-0003"]');
+      // the supplier list opens on the empty supplier box
+      await app.waitForSelector('#peParty_ .cbl:not([hidden]) .cbo');
+      await sameShot(`ped-new-${width}`, proto, app, '#vPEd');
+
+      const pick = async (p: Page, sel: string, text: string) => { await p.fill(sel, text); await p.waitForTimeout(150); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); await p.waitForTimeout(150); };
+      await both(proto, app, (p) => pick(p, '#peParty', 'Kanpur'));
+      await both(proto, app, (p) => pick(p, '#peRows tr[data-ln="0"] .pe-item', 'MCB'));
+      await both(proto, app, async (p) => { await p.fill('#peRows tr[data-ln="0"] [data-pf="qty"]', '12'); await p.locator('#peRef').click(); await p.keyboard.type('KC/2301'); });
+      await sameShot(`ped-filled-${width}`, proto, app, '#vPEd');
+
+      await both(proto, app, (p) => p.click('#pePayBtn'));
+      await both(proto, app, (p) => p.locator('#pePayPop [data-pk="amt"]').fill('2000'));
+      await sameShot(`ped-pay-${width}`, proto, app, '#pePayPop');
+      await both(proto, app, (p) => p.click('#pePayPop [data-paydone="pe"]'));
+      await both(proto, app, (p) => p.mouse.move(0, 0));
+      await sameShot(`ped-paid-${width}`, proto, app, '#vPEd .sift');
+
+      // a purchase order and a debit note (supplier and item chosen)
+      for (const [kind, view, path] of [['po', 'pos', '/purchases/new?kind=order'], ['dn', 'dns', '/purchases/new?kind=debit_note']] as const) {
+        await openPrototypeView(proto, view);
+        await proto.evaluate((k) => (0, eval)('openPDoc')(k), kind);
+        await app.goto(APP + path);
+        await app.waitForSelector('#vPEd #peNo:not([value=""])');
+        await both(proto, app, (p) => pick(p, '#peParty', 'Kanpur'));
+        await both(proto, app, (p) => pick(p, '#peRows tr[data-ln="0"] .pe-item', 'MCB'));
+        await both(proto, app, (p) => p.locator('#peRows tr[data-ln="0"] [data-pf="rate"]').click());
+        await sameShot(`ped-${kind}-${width}`, proto, app, '#vPEd');
+      }
     });
   });
 }

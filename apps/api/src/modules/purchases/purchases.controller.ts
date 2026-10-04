@@ -27,6 +27,12 @@ export class PurchasesController {
   }
 
   @RequirePermission('purchases.view')
+  @Get('purchases/price-history')
+  priceHistory(@Ctx() ctx: RequestContext, @Query('item', ParseUUIDPipe) itemId: string, @Query('party', ParseUUIDPipe) partyId: string, @Query('exclude') exclude?: string) {
+    return this.purchases.priceHistory(ctx, { itemId, partyId, exclude: exclude && /^[0-9a-f-]{36}$/i.test(exclude) ? exclude : undefined });
+  }
+
+  @RequirePermission('purchases.view')
   @Get('purchases/:id')
   get(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
     return this.purchases.get(ctx, id);

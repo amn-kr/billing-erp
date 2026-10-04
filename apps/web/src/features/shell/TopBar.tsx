@@ -1,7 +1,7 @@
 /** <header class="top"> — same markup as the prototype's top bar. */
 import { useQuick } from '../sales/QuickSale';
 import { Fragment, type MouseEvent as RMouseEvent, type ReactNode } from 'react';
-import { ROLE_LABELS, daysBetween, formatLongDate, type MeResponse } from '@billing/shared';
+import { ROLE_LABELS, daysBetween, formatInr2, formatLongDate, type MeResponse } from '@billing/shared';
 import { Icon, RawIcon } from '../../components/Icon';
 import { PAL, type PalId } from './palette';
 import { useShell, type PopId } from './store';
@@ -33,7 +33,10 @@ export interface BellItem {
 }
 
 /** Notifications: the plan notice, then GST due dates (more are added as screens are rebuilt). */
-export function bellItems(me: MeResponse, today: string, onView: (v: string) => void, lowItems = 0): BellItem[] {
+/** Overdue documents for the bell, newest first (prototype allBills / allSales order). */
+export interface Overdue { bills: { number: string; balance: string }[]; sales: { balance: string }[] }
+
+export function bellItems(me: MeResponse, today: string, onView: (v: string) => void, lowItems = 0, od: Overdue = { bills: [], sales: [] }): BellItem[] {
   const b = me.business!;
   const items: BellItem[] = [];
   if (b.plan === 'trial') {
@@ -60,7 +63,30 @@ export function bellItems(me: MeResponse, today: string, onView: (v: string) => 
       ),
     });
   }
-  // (overdue purchase bills and sales invoices come here with Phase 3)
+  if (od.bills.length) {
+    const n = od.bills.length, amt = od.bills.reduce((a, b) => a + Number(b.balance), 0);
+    items.push({
+      key: 'pur',
+      node: (
+        <button className="bni" data-view="pur" onClick={() => onView('pur')}>
+          <Icon name="alert" />
+          <span><b>{n} purchase bill{n > 1 ? 's' : ''} overdue</b><small>₹{formatInr2(amt.toFixed(2))} to pay · oldest {od.bills[n - 1]!.number}</small></span>
+        </button>
+      ),
+    });
+  }
+  if (od.sales.length) {
+    const n = od.sales.length, amt = od.sales.reduce((a, b) => a + Number(b.balance), 0);
+    items.push({
+      key: 'sales',
+      node: (
+        <button className="bni" data-view="sales" onClick={() => onView('sales')}>
+          <Icon name="receipt" />
+          <span><b>{n} sales invoice{n > 1 ? 's' : ''} overdue</b><small>₹{formatInr2(amt.toFixed(2))} to collect</small></span>
+        </button>
+      ),
+    });
+  }
   if (lowItems) {
     items.push({
       key: 'low',
@@ -93,6 +119,7 @@ interface Props {
   today: string;
   /** goods below their minimum or out of stock (bell) */
   lowItems?: number;
+  overdue?: Overdue;
   pal: PalId;
   online: boolean;
   onPal: (id: PalId) => void;
@@ -104,14 +131,14 @@ interface Props {
   onSearch: (q: string) => void;
 }
 
-export function TopBar({ me, today, lowItems = 0, pal, online, onPal, onView, onSoon, onSwitch, onAddBusiness, onSignOut, onSearch }: Props) {
+export function TopBar({ me, today, lowItems = 0, overdue, pal, online, onPal, onView, onSoon, onSwitch, onAddBusiness, onSignOut, onSearch }: Props) {
   const { pop, setPop, pal: palOpen, setPal, sideOpen, setSideOpen } = useShell();
   const b = me.business!;
   const toggle = (p: PopId) => (e: RMouseEvent) => {
     e.stopPropagation();
     setPop(pop === p ? null : p);
   };
-  const bell = bellItems(me, today, (v) => { setPop(null); onView(v); }, lowItems);
+  const bell = bellItems(me, today, (v) => { setPop(null); onView(v); }, lowItems, overdue);
   const n = bell.length;
   const left = Math.max(0, daysBetween(today, b.planEndsOn));
   const lic = b.plan === 'trial' ? `Free trial · ${left} days left` : b.plan === 'expired' ? 'Trial ended · choose a plan' : `Paid · till ${formatLongDate(b.planEndsOn)}`;

@@ -24,6 +24,8 @@ import { Toast } from './Toast';
 import { DiscardDialog } from '../../components/Discard';
 import { TopBar } from './TopBar';
 import type { Item } from '../items/ItemsPage';
+import { statusOf, type SaleRow } from '../sales/model';
+import { statusOfBill, type PurchaseRow } from '../purchases/model';
 import { readLocal, soon, useShell, write } from './store';
 
 const savedPal = (): PalId => {
@@ -160,6 +162,11 @@ export function AppShell() {
 
   // Items & stock counter, as the prototype's home refresh sets it: goods with a minimum, at or below it
   const items = useQuery({ queryKey: ['items'], queryFn: () => api<Item[]>('/items'), enabled: !!me.data?.business });
+  // overdue bills and invoices for the bell (staff without purchases simply get none)
+  const sales = useQuery({ queryKey: ['sales', 'invoice'], queryFn: () => api<SaleRow[]>('/sales?kind=invoice'), enabled: !!me.data?.business, retry: false });
+  const bills = useQuery({ queryKey: ['purchases', 'bill'], queryFn: () => api<PurchaseRow[]>('/purchases?kind=bill'), enabled: !!me.data?.business, retry: false });
+  const odBills = (bills.data ?? []).filter((b) => Number(b.balance) > 0 && statusOfBill(b).t.startsWith('Overdue'));
+  const odSales = (sales.data ?? []).filter((x) => Number(x.balance) > 0 && statusOf(x).t.startsWith('Overdue'));
   const lowStock = (items.data ?? []).filter((i) => i.kind === 'goods' && Number(i.minStock) > 0 && Number(i.stock ?? 0) <= Number(i.minStock)).length;
 
   if (!token) return <GoLogin />;
@@ -178,6 +185,7 @@ export function AppShell() {
           <TopBar
             me={me.data}
             today={todayFn()}
+            overdue={{ bills: odBills, sales: odSales }}
             lowItems={(items.data ?? []).filter((i) => i.kind === 'goods' && i.level !== 'ok').length}
             pal={pal}
             online={online}

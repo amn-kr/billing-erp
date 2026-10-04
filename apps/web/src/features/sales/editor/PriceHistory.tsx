@@ -46,11 +46,13 @@ export function usePriceHistory(si: SI | null, onPick: (i: number, h: PH) => voi
     document.addEventListener('focusout', fout);
     return () => { document.removeEventListener('focusin', fin); document.removeEventListener('focusout', fout); };
   }, [qc]);
-  const pop = st ? <PhDrop st={st} onPick={(h) => { const i = st.i; setSt(null); pick.current(i, h); }} /> : null;
+  const pop = st ? <PhDrop st={st} label="Sale prices" onPick={(h) => { const i = st.i; setSt(null); pick.current(i, h); }} /> : null;
   return { pop, hide: () => setSt(null) };
 }
 
-function PhDrop({ st, onPick }: { st: { H: PH[]; who: string; anchor: HTMLElement }; onPick: (h: PH) => void }) {
+/** `label`: "Sale prices" or "Purchase rates" (prototype phDrop). */
+export function PhDrop({ st, label, onPick }: { st: { H: PH[]; who: string; anchor: HTMLElement }; label: string; onPick: (h: PH) => void }) {
+  const pur = label.toLowerCase().includes('purchase');
   const ref = useRef<HTMLDivElement>(null);
   // under the price cell, or above it when there is no room below (prototype phDrop)
   useLayoutEffect(() => {
@@ -63,12 +65,12 @@ function PhDrop({ st, onPick }: { st: { H: PH[]; who: string; anchor: HTMLElemen
   });
   return createPortal(
     <div className="dgpop phpop phdd" id="phPop" role="dialog" aria-label="Previous rates" ref={ref} onMouseDown={(e) => e.preventDefault()}>
-      <div className="phh">Sale prices · last {st.H.length}<small>{st.who}</small></div>
-      <table className="pht"><thead><tr><th>Date</th><th className="n">Qty</th><th className="n">Price/unit</th><th className="n">Disc</th><th className="n">Final</th></tr></thead>
+      <div className="phh">{label} · last {st.H.length}<small>{st.who}</small></div>
+      <table className="pht"><thead><tr><th>Date</th><th className="n">Qty</th><th className="n">{pur ? 'Rate' : 'Price/unit'}</th><th className="n">Disc</th><th className="n">Final</th></tr></thead>
         <tbody>{st.H.map((h, k) => {
           const price = Number(h.price), disc = Number(h.discPct);
           return (
-            <tr data-phuse={k} key={k} title={`Use this price (${h.number})`} onClick={(e) => { e.stopPropagation(); onPick(h); }}>
+            <tr data-phuse={k} key={k} title={`Use this ${pur ? 'rate' : 'price'} (${h.number})`} onClick={(e) => { e.stopPropagation(); onPick(h); }}>
               <td>{h.date.split('-').reverse().join('-')}</td><td className="n">{qfmt(Number(h.qty))}</td><td className="n">{inr2f(price)}</td><td className="n">{disc ? r2(disc) + '%' : '—'}</td><td className="n"><b>{inr2f(r2(price * (1 - disc / 100)))}</b></td></tr>
           );
         })}</tbody></table>
