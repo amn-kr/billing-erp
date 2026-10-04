@@ -29,10 +29,19 @@
 - **Google sign-in:** not now, later. The button says it isn't set up.
 - **Free trial:** 14 days (`TRIAL_DAYS=14`, the default).
 
-## Still open
-- **Hosting** (AWS Mumbai + Cloudflare Pages) — not set up; nothing is deployed. The web app and
-  the API must sit on the same domain (e.g. app.yourshop.in and api.yourshop.in) so the
-  sign-in cookie works.
+## On hold (waiting for a later phase or an owner decision)
+| Item | Waiting for |
+|---|---|
+| **Hosting** (AWS Mumbai + Cloudflare Pages) — nothing is deployed. Web app and API must share a domain (e.g. app.yourshop.in / api.yourshop.in) so the sign-in cookie works. Costs money: owner approval first. | owner decision (Phase 5) |
+| **Email provider** (password reset by email, invite emails) | owner: before selling starts |
+| **Google sign-in** | owner: later |
+| Importing **invoices, purchases, payments and expenses** from old backups (the Restore window says so) | Phase 3 |
+| **Next invoice number** must not go below invoices already made | Phase 3 (no invoices exist yet) |
+| **Cash in hand** from the old backup (kept in settings) becomes the cash book's opening balance | Phase 3 |
+| Bell: **overdue purchase bills and sales invoices** | Phase 3 |
+| "Discard this …?" question for the Phase 3 documents (payment, credit note, challan, quick sale, bank/cheque entries) | Phase 3 |
+| **Restoring a backup made by the new app**, and daily cloud copies | Phase 5 (with hosting) |
+| **Security updates** for packages set up in Phase 1 (NestJS, React Router: about 23 advisories) | before launch (Phase 5) |
 
 ## Phase 2 — Masters ✅ (gate passed: the owner's real backup imports cleanly)
 | Item | State |
@@ -64,7 +73,5 @@
 - The bell's low-stock count and the General settings button work straight away (in the prototype the count refreshed only when opened, and General needed another tab opened first).
 
 ### Owner decisions (4 Oct 2026)
+- **Sample entries:** not needed. The old app's demo entries stay out of the import (the default).
 - **New price list** asks for the price PIN and then opens (in the prototype it could no longer be reached). Prices lock again when it closes; the server checks the PIN too.
-
-### Still open for the owner
-- The importer leaves out the old app's demo entries (14 sample parties and 288 sample items in your backup). If your shop used them for real, tick "Also bring in the old app's sample entries" in the Restore window.
