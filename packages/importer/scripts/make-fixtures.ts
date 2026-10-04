@@ -96,6 +96,74 @@ async function save(page: Page, name: string) {
   console.log(name, Object.keys(b.keys).length, 'keys');
 }
 
+/* ---------- sales, through the prototype's own editor and dialogs ---------- */
+const ev = (page: Page, js: string) => page.evaluate((code) => (0, eval)(code), js);
+
+interface SaleSpec { party?: string; cash?: string; date?: string; due?: string; lines: [item: string, qty: number, disc?: number][]; pays?: [mode: string, amt: number, ref?: string][]; bdiscP?: number; chTr?: number; quote?: boolean; challan?: string }
+async function sale(page: Page, s: SaleSpec) {
+  await later(page);
+  await ev(page, `(() => {
+    const s = ${JSON.stringify(s)};
+    const party = s.party ? allParties().find((p) => p.name === s.party) : null;
+    if (s.quote) openQuoteDoc(party ? { party: party.id } : {});
+    else if (s.challan) dcConvert(DCHAL.find((d) => d.no === s.challan).no);
+    else openInvoice(party ? { party: party.id } : {});
+    if (!party && !s.challan) { SI.mode = 'cash'; SI.cashName = s.cash || ''; }
+    if (s.date) { SI.date = s.date; SI.due = s.due || s.date; SI.dueTouched = true; }
+    if (!s.challan) SI.lines = s.lines.map(([n, q, d]) => { const L = lineFor(IT.find((i) => i.name === n)); L.qty = q; L.disc = d || 0; return L; });
+    if (s.bdiscP) SI.bdiscP = String(s.bdiscP);
+    if (s.chTr) SI.chTr = String(s.chTr);
+    renderSI();
+    if (s.pays) { SI.pays = s.pays.map(([mode, amt, ref]) => ({ mode, amt, ref: ref || '' })); SI.recvTouched = true; }
+    else if (!s.quote) { SI.recvTouched = true; SI.pays = [{ mode: SI.mode === 'cash' ? 'Cash' : 'UPI', amt: SI.mode === 'cash' ? calc().total : 0, ref: '' }]; }
+    renderSI();
+    SI.chgOk = true;
+    saveSI(false);
+    if (SI && SI.err) throw new Error('sale not saved: ' + SI.err);
+  })()`);
+  await page.evaluate(() => { const m = document.getElementById('ipv'); if (m && !m.hidden) (window as any).closeM('ipv'); });
+}
+
+async function salesShop(page: Page) {
+  await sale(page, { party: 'Mehta Electricals', date: '2026-09-10', due: '2026-09-25', lines: [['Copper wire 1.5 sq mm (90 m)', 2], ['LED bulb 9W', 10]], pays: [['UPI', 2000, 'UTR88213']] });
+  await sale(page, { cash: 'Suresh', date: '2026-09-18', lines: [['MCB 32A double pole', 1]] });
+  await sale(page, { party: 'Raju Electrician', date: '2026-09-28', due: '2026-10-13', lines: [['Fan installation', 1], ['LED bulb 9W', 5, 10]], bdiscP: 5, chTr: 100 });
+  await sale(page, { party: 'Mehta Electricals', date: '2026-09-30', due: '2026-10-30', lines: [['LED bulb 9W', 4]] });
+  await sale(page, { party: 'Raju Electrician', lines: [['LED bulb 9W', 2]], pays: [['Cash', 500]] }); // extra 310 settles old dues
+  // cancel the fourth invoice through the sales list
+  await later(page);
+  await ev(page, `slConfirm('cancel', 'INV-0104'); document.getElementById('slmOk').click();`);
+  // a payment from Mehta, settled oldest first
+  await later(page);
+  await ev(page, `(() => { const p = allParties().find((x) => x.name === 'Mehta Electricals'); rcOpen({ party: p.id }); })()`);
+  await page.fill('#rcAmt', '5000');
+  await page.dispatchEvent('#rcAmt', 'input');
+  await page.selectOption('#rcModeI', 'Cheque');
+  await page.fill('#rcRef', '004512');
+  await page.click('#rcSave');
+  // goods returned against the first invoice
+  await later(page);
+  await ev(page, `cnOpen({ inv: 'INV-0101' })`);
+  await page.fill('#cnRowsI tr[data-cnk="1"] [data-cnq]', '2');
+  await page.dispatchEvent('#cnRowsI tr[data-cnk="1"] [data-cnq]', 'input');
+  await page.click('#cnSave');
+  // two challans: one billed, one still open
+  for (const [who, item, q] of [['Raju Electrician', 'LED bulb 9W', '6'], ['Mehta Electricals', 'Copper wire 1.5 sq mm (90 m)', '3']] as const) {
+    await later(page);
+    await ev(page, `dcOpen()`);
+    await ev(page, `(() => { const s = document.getElementById('dcParty'); s.value = allParties().find((x) => x.name === ${JSON.stringify(who)}).id; s.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+    await page.fill('#dcAddI', item);
+    await page.dispatchEvent('#dcAddI', 'change');
+    await page.fill('#dcRowsI [data-dcq]', q);
+    await page.dispatchEvent('#dcRowsI [data-dcq]', 'input');
+    await page.fill('#dcTr', 'Self');
+    await page.click('#dcSave');
+  }
+  await sale(page, { challan: 'DC-0001', lines: [] });
+  // an item-wise quotation
+  await sale(page, { quote: true, party: 'Mehta Electricals', lines: [['MCB 32A double pole', 4], ['Copper wire 1.5 sq mm (90 m)', 1]] });
+}
+
 // 1. the sample shop, untouched
 {
   const { page, close } = await open();
@@ -119,6 +187,8 @@ async function save(page: Page, name: string) {
   await addItem(page, { name: 'MCB 32A double pole', hsn: '8536', unit: 'PCS', cat: 'Switches & MCBs', sale: '420', mrp: '560', purch: '310', gst: '18', oq: '0', min: '5' });
   await addItem(page, { name: 'Fan installation', hsn: '9987', unit: 'NOS', cat: 'Services', sale: '350', gst: '18' }, true);
   await save(page, 'fresh-shop.backup.json');
+  await salesShop(page);
+  await save(page, 'sales-shop.backup.json');
   await close();
 }
 

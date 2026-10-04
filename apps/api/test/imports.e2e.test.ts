@@ -135,3 +135,30 @@ describe('POST /api/imports', () => {
     expect(await asShop(b.businessId, (tx) => tx.item.count())).toBe(0);
   });
 });
+
+describe('importing sales documents', () => {
+  it('brings invoices, payments, a return, challans and a quotation, with the same dues and stock the old app showed', async () => {
+    const o = await owner(app);
+    const res = await http().post('/api/imports').set(auth(o)).send({ fileName: 'sales.json', backup: backup('sales-shop.backup.json') }).expect(200);
+    expect(res.body.counts).toMatchObject({ invoices: 6, receipts: 1, creditNotes: 1, challans: 2, quotations: 1 });
+    const parties = (await http().get('/api/parties').set(auth(o)).expect(200)).body as { name: string; balance: string }[];
+    // the prototype's own balanceOf() for the same backup
+    expect(Object.fromEntries(parties.map((p) => [p.name, p.balance]))).toEqual({ 'Mehta Electricals': '22174.00', 'Raju Electrician': '2599.00', 'Kanpur Cables Pvt Ltd': '-48000.00', 'Walk-in Ramesh': '0.00' });
+    const items = (await http().get('/api/items').set(auth(o)).expect(200)).body as { name: string; stock: string | null }[];
+    expect(Object.fromEntries(items.filter((i) => i.stock !== null).map((i) => [i.name, Number(i.stock)]))).toMatchObject({ 'MCB 32A double pole': -1, 'LED bulb 9W': 179, 'Copper wire 1.5 sq mm (90 m)': 23 });
+    const sales = (await http().get('/api/sales').set(auth(o)).expect(200)).body as { number: string; total: string; balance: string; cancelled: boolean }[];
+    expect(sales.map((s) => [s.number, s.total, s.balance, s.cancelled])).toEqual([
+      ['INV-0106', '570.00', '570.00', false], ['INV-0105', '190.00', '0.00', false], ['INV-0104', '348.00', '0.00', true],
+      ['INV-0103', '839.00', '529.00', false], ['INV-0102', '420.00', '0.00', false], ['INV-0101', '4348.00', '2174.00', false],
+    ]);
+    const rc = (await http().get('/api/receipts').set(auth(o)).expect(200)).body as { number: string; amount: string; unused: string; mode: string }[];
+    expect(rc.map((r) => [r.number, r.amount, r.unused, r.mode])).toEqual([
+      ['PI-0625', '5000.00', '0.00', 'Cheque'], ['PI-0624', '500.00', '0.00', 'Cash'], ['PI-0621', '420.00', '0.00', 'Cash'], ['PI-0620', '2000.00', '0.00', 'UPI'],
+    ]);
+    // numbers carry on after the imported ones
+    const next = async (kind: string) => (await http().get(`/api/sales/next-number?kind=${kind}&date=2026-10-01`).set(auth(o)).expect(200)).body.number;
+    expect([await next('invoice'), await next('receipt'), await next('credit_note'), await next('challan'), await next('quotation')]).toEqual(['INV-0107', 'PI-0626', 'CN-0002', 'DC-0003', 'Q-0103']);
+    const dcs = (await http().get('/api/sales?kind=challan').set(auth(o)).expect(200)).body;
+    expect(dcs.map((d: { number: string; status: string; invoiceNo: string }) => [d.number, d.status, d.invoiceNo])).toEqual([['DC-0002', 'open', ''], ['DC-0001', 'invoiced', 'INV-0106']]);
+  });
+});

@@ -66,8 +66,9 @@ export async function openDues(tx: Tx, partyId: string, o: { upTo?: string; exce
   const out: Due[] = [];
   const party = await tx.party.findUnique({ where: { id: partyId }, select: { openingDate: true, createdAt: true } });
   const ob = await openingDue(tx, partyId);
-  if (ob.gt(0)) {
-    const date = isoOf(party?.openingDate ?? party?.createdAt ?? null)!;
+  const obDate = isoOf(party?.openingDate ?? party?.createdAt ?? null)!;
+  if (ob.gt(0) && (!o.upTo || obDate <= o.upTo)) {
+    const date = obDate;
     out.push({ to: 'opening', kind: 'opening', number: 'Opening balance', date, dueDate: null, total: ob, balance: ob });
   }
   for (const d of docs) {

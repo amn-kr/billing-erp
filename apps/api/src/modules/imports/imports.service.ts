@@ -4,6 +4,9 @@ import { extractSnapshot, ImportError, parseBackup, planImport, type ImportPlan,
 import type { Prisma } from '@prisma/client';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
+import { LedgerService } from '../../common/ledger.service';
+import { NumberingService } from '../../common/numbering.service';
+import { writeSales } from './sales-import';
 import { setCashOpening, shortName } from '../businesses/businesses.service';
 
 export interface ImportRequest extends PlanOptions {
@@ -39,6 +42,8 @@ export class ImportsService {
   constructor(
     private readonly db: DbService,
     private readonly audit: AuditService,
+    private readonly ledger: LedgerService,
+    private readonly numbers: NumberingService,
   ) {}
 
   async plan(req: Pick<ImportRequest, 'text' | 'includeSample'>): Promise<{ plan: ImportPlan; backupAt: string }> {
@@ -219,6 +224,10 @@ export class ImportsService {
         update: { kind: c.kind, value: c.value },
       });
     }
+
+    /* sales documents (invoices, payments, credit notes, challans, quotations) */
+    const referrerId = new Map((await tx.referrer.findMany({ where: { legacyId: { not: null } } })).map((r) => [r.legacyId!, r.id]));
+    await writeSales(tx, { businessId, userId: actor.userId, partyId, itemId, referrerId, ledger: this.ledger, numbers: this.numbers, warnings: plan.warnings }, plan.sales);
 
     const run = await tx.importRun.create({
       data: { ...base, fileName: fileName.slice(0, 200), backupAt, status: 'done', counts: plan.counts, warnings: plan.warnings },

@@ -11,7 +11,7 @@ let browser: Browser;
 const snaps: Record<string, Snapshot> = {};
 beforeAll(async () => {
   browser = await chromium.launch();
-  for (const n of ['fresh-shop', 'fresh-kept-items', 'sample-shop']) snaps[n] = await extractSnapshot(parseBackup(fx(`${n}.backup.json`)), { browser });
+  for (const n of ['fresh-shop', 'fresh-kept-items', 'sample-shop', 'sales-shop']) snaps[n] = await extractSnapshot(parseBackup(fx(`${n}.backup.json`)), { browser });
 });
 afterAll(async () => { await browser.close(); });
 
@@ -130,5 +130,30 @@ describe('godowns', () => {
     const s = snaps['sample-shop']!;
     expect(planImport(s).godowns.map((g) => g.name)).toEqual(['Main shop']);
     expect(planImport(s, { includeSample: true }).godowns.length).toBe(3);
+  });
+});
+
+describe('sales documents (made through the prototype’s editor and dialogs)', () => {
+  it('maps invoices, payments, returns, challans and item-wise quotations, oldest first, with printed totals kept', () => {
+    const p = planImport(snaps['sales-shop']!);
+    expect(p.counts).toMatchObject({ invoices: 6, receipts: 1, creditNotes: 1, challans: 2, quotations: 1 });
+    expect(p.sales.invoices.map((v) => [v.number, v.date, v.totals.total, v.cancelled])).toEqual([
+      ['INV-0101', '2026-09-10', '4348.00', false], ['INV-0102', '2026-09-18', '420.00', false], ['INV-0103', '2026-09-28', '839.00', false],
+      ['INV-0104', '2026-09-30', '348.00', true], ['INV-0105', '2026-10-01', '190.00', false], ['INV-0106', '2026-10-01', '570.00', false],
+    ].map(([n, d, t, c]) => [n, d, t, c]));
+    const i3 = p.sales.invoices[2]!;
+    expect(i3.totals).toMatchObject({ taxable: '644.39', cgst: '47.12', sgst: '47.12', round: '0.38', billDiscount: '38.88', transport: '100.00' });
+    expect(i3.lines[1]).toMatchObject({ qty: '5.000', price: '95.00', discPct: '10.00000000', gstRate: '12.00', amount: '427.50' });
+    const walkIn = p.sales.invoices[1]!;
+    expect(walkIn).toMatchObject({ mode: 'cash', partyLegacyId: null, cashName: 'Suresh', received: '420.00', receiptNo: 'PI-0621', pays: [{ mode: 'Cash', amount: '420.00', ref: '' }] });
+    expect(p.sales.invoices[4]).toMatchObject({ received: '190.00', extraPaid: '310.00', pays: [{ mode: 'Cash', amount: '500.00' }] });
+    expect(p.sales.invoices[5]).toMatchObject({ challanNo: 'DC-0001' });
+    expect(p.sales.receipts[0]).toMatchObject({ number: 'PI-0625', amount: '5000.00', mode: 'Cheque', ref: '004512', alloc: [{ to: 'opening', amount: '5000.00' }] });
+    expect(p.sales.creditNotes[0]).toMatchObject({ number: 'CN-0001', settle: 'adjust', total: '174.00', invoices: [{ no: 'INV-0101', amount: '174.00' }] });
+    expect(p.sales.creditNotes[0]!.lines[0]).toMatchObject({ invoiceNo: 'INV-0101', qty: '2.000', price: '87.00', gstRate: '12.00' });
+    expect(p.sales.challans.map((d) => [d.number, d.status, d.invoiceNo])).toEqual([['DC-0001', 'invoiced', 'INV-0106'], ['DC-0002', 'open', '']]);
+    expect(p.sales.quotations[0]).toMatchObject({ number: 'Q-0102', validTill: '2026-10-16', status: 'open', totals: { total: '3283.00' } });
+    expect(p.warnings).toContain('1 brand-wise quotation was not imported yet; they come with the Quotation page.');
+    expect(p.warnings.some((w) => /stock changes/.test(w))).toBe(false);
   });
 });
