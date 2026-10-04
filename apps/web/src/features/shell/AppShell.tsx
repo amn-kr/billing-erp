@@ -123,7 +123,8 @@ export function AppShell() {
   // entry points that now open real screens (the rest still say "coming next")
   const act = useCallback(
     (what: string) => {
-      if (what === 'New invoice') navigate('/sales/new');
+      // a fresh address each time, so pressing it inside the editor opens another bill (or the empty one)
+      if (what === 'New invoice') navigate(`/sales/new?n=${Date.now()}`);
       else if (/^(Receive payment|Payments|New payment received)$/i.test(what)) navigate('/payments-received?party=');
       else if (/^New delivery challan$/i.test(what)) navigate('/delivery-challans?new=1');
       else soon(what);
