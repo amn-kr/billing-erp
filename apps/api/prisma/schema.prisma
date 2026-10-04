@@ -878,6 +878,7 @@ model CashBankAccount {
   sub            String    @default("")
   accountNo      String    @default("") @map("account_no")
   ifsc           String    @default("")
+  branch         String    @default("")
   upi            String    @default("")
   openingBalance Decimal   @default(0) @map("opening_balance") @db.Decimal(14, 2)
   openingDate    DateTime? @map("opening_date") @db.Date
@@ -1143,7 +1144,7 @@ model BankEntry {
   businessId  String    @map("business_id") @db.Uuid
   number      String
   date        DateTime  @db.Date
-  /// in | out | transfer
+  /// in | out | transfer (bank to bank) | deposit (cash → bank) | withdraw (bank → cash)
   kind        String
   accountId   String    @map("account_id") @db.Uuid
   toAccountId String?   @map("to_account_id") @db.Uuid

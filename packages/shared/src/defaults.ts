@@ -101,4 +101,10 @@ export const LEDGER_ACCOUNTS: ReadonlyArray<{ key: string; name: string; type: '
   { key: 'commission', name: 'Referral commission', type: 'expense' },
   { key: 'commission_payable', name: 'Commission payable', type: 'liability' },
   { key: 'opening', name: 'Opening balances', type: 'equity' },
+  { key: 'other_income', name: 'Interest & other income', type: 'income' },
+  { key: 'capital', name: 'Owner’s capital', type: 'equity' },
+  { key: 'drawings', name: 'Owner’s drawings', type: 'equity' },
+  { key: 'loans', name: 'Loans', type: 'liability' },
+  { key: 'bank_charges', name: 'Bank charges', type: 'expense' },
+  { key: 'cash_difference', name: 'Cash short / excess', type: 'expense' },
 ];
