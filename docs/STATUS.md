@@ -80,3 +80,23 @@
 ### Owner decisions (4 Oct 2026)
 - **Sample entries:** not needed. The old app's demo entries stay out of the import (the default).
 - **New price list** asks for the price PIN and then opens (in the prototype it could no longer be reached). Prices lock again when it closes; the server checks the PIN too.
+
+## Phase 3 — Transactions (in progress)
+| Item | State |
+|---|---|
+| Invoice and bill maths (GST incl./excl., discounts, charges, TCS, round off, amount in words) in exact decimals | done — checked against the prototype's own maths on 4,000 generated bills |
+| Database: sales and purchase documents, payments and settlements, cash and bank accounts, cheques, reconciliation, expenses, commission payouts, double-entry books | done, row-level security on all; the database refuses a journal entry that doesn't balance |
+| Books: every sale, payment and return posts a balanced entry; party, cash and bank balances come from the books | done |
+| Sales API: invoices (save, edit, cancel), payments received, credit notes, delivery challans, item-wise quotations; prototype checks and wording; numbers like the prototype (Q-0101, PI-, CN-, DC-, XP-) | done, API tests |
+| Importer: invoices, payments, returns, challans and item-wise quotations from old backups | done — dues, stock and balances match the prototype's own figures for the same backup |
+| Sales invoices screen (filters, actions menu, preview, cancel, history) | done — 0 pixel difference at 1280/1366/1920 |
+| Payments received + Receive payment | done — 0 pixel difference |
+| Credit notes + New credit note | done — 0 pixel difference |
+| Delivery challans + New challan + print view | done — 0 pixel difference |
+| Invoice editor (rapid entry, discount & charges, payment, referral, quotation import), quick sale, quotation page | next |
+| Purchases, expenses, banking & cash, cheques, reconciliation, commission | after sales |
+| CI reliability: screenshot tests wait until the page is still (fixes the failure on main after PR #2) | done here; confirmed by CI on the Phase 3 pull request |
+
+### Differences from the prototype (on purpose)
+- **Invoices are never deleted.** "Delete" in the invoice menu is greyed out ("cancel instead"); cancelling keeps the record, returns stock and turns money received into an advance.
+- Brand-wise quotations in old backups come across with the Quotation page (the import report says so).
