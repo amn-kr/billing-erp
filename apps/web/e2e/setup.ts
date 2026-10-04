@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { Browser, Page } from '@playwright/test';
+import type { APIRequestContext, Browser, Page } from '@playwright/test';
 // Same frozen clock, timezone and local fonts as the Phase 0 baseline.
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const common = createRequire(import.meta.url)('../../../tools/design-baseline/common.cjs') as {
@@ -63,4 +63,60 @@ export async function signIn(page: Page): Promise<void> {
   await page.waitForSelector('#app');
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(300);
+}
+
+export const RAVI = { email: 'ravi@gupta.example.com', password: 'demo-password-1' };
+
+/** The prototype showing one of the importer fixtures (restored like "Restore books"). */
+export async function prototypeWithBackup(page: Page, fixture = 'fresh-shop'): Promise<void> {
+  const fs = await import('node:fs');
+  const bk = JSON.parse(fs.readFileSync(path.join(ROOT, 'packages/importer/fixtures', `${fixture}.backup.json`), 'utf8'));
+  await page.goto(PROTOTYPE);
+  await page.evaluate((keys: Record<string, string | null>) => {
+    localStorage.clear();
+    for (const [k, v] of Object.entries(keys)) if (v != null) localStorage.setItem(k, v);
+  }, bk.keys);
+  await page.goto(PROTOTYPE);
+  await page.waitForTimeout(800);
+  await page.evaluate(() => {
+    (window as unknown as { SYNC: { setSt: (s: string) => void } }).SYNC.setSt('ok');
+    document.getElementById('toast')?.classList.remove('on');
+  });
+  await page.evaluate(() => document.fonts.ready);
+}
+
+export async function signInAs(page: Page, who: { email: string; password: string }): Promise<void> {
+  await page.goto(APP + '/login');
+  await page.waitForSelector('#vAuth:not([hidden])');
+  await page.fill('#aEmail', who.email);
+  await page.fill('#aPass', who.password);
+  await page.click('#aGo');
+  await page.waitForSelector('#app');
+  await page.evaluate(() => document.fonts.ready);
+}
+
+/** Open a prototype screen by its view id, or the same screen in the rebuild through the sidebar. */
+export async function openPrototypeView(page: Page, view: string) {
+  await page.evaluate((v) => (window as unknown as { go: (v: string) => void }).go(v), view);
+  await page.waitForTimeout(400);
+}
+
+let shops = 0;
+/** A brand-new shop for tests that change data, so the screenshot shop stays as imported. */
+export async function freshShop(request: APIRequestContext, fixture?: string, opts: { includeSample?: boolean } = {}): Promise<{ email: string; password: string }> {
+  const who = { email: `e2e.${Date.now().toString(36)}.${process.pid}.${++shops}@flows.example.com`, password: 'flows password 1' };
+  const reg = await request.post(APP + '/api/auth/register', { data: { ...who, name: fixture ? 'Ravi Gupta' : 'Pooja Verma' } }); // the fixtures' owner
+  if (!reg.ok()) throw new Error(`register failed: ${reg.status()} ${await reg.text()}`);
+  const biz = await request.post(APP + '/api/businesses', {
+    headers: { Authorization: `Bearer ${(await reg.json()).accessToken}` },
+    data: { name: 'Verma Traders', owner: 'Pooja Verma', state: '09', gstin: '09AAGFG2231M1ZQ' },
+  });
+  if (!biz.ok()) throw new Error(`creating the shop failed: ${biz.status()} ${await biz.text()}`);
+  if (fixture) {
+    const fs = await import('node:fs');
+    const text = fs.readFileSync(path.join(ROOT, 'packages/importer/fixtures', `${fixture}.backup.json`), 'utf8');
+    const r = await request.post(APP + '/api/imports', { headers: { Authorization: `Bearer ${(await biz.json()).accessToken}` }, data: { fileName: `${fixture}.backup.json`, backup: text, includeSample: !!opts.includeSample } });
+    if (!r.ok()) throw new Error(`import failed: ${r.status()} ${await r.text()}`);
+  }
+  return who;
 }

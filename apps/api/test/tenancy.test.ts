@@ -34,7 +34,7 @@ describe('row-level security (as the app database role)', () => {
     expect(await asShop(a.businessId, (tx) => tx.business.findUnique({ where: { id: b.businessId } }))).toBeNull();
     const rates = await asShop(a.businessId, (tx) => tx.taxRate.findMany());
     expect(rates.every((r) => r.businessId === a.businessId)).toBe(true);
-    expect(rates).toHaveLength(7);
+    expect(rates).toHaveLength(16);
     const audit = await asShop(a.businessId, (tx) => tx.auditLog.findMany());
     expect(audit.every((r) => r.businessId === a.businessId)).toBe(true);
   });
@@ -67,6 +67,36 @@ describe('row-level security (as the app database role)', () => {
     const members = await http().get('/api/members').set(auth(a)).expect(200);
     expect(members.body.members.map((m: { email: string }) => m.email)).toEqual([a.email]);
     expect(b.businessId).not.toBe(a.businessId);
+  });
+});
+
+describe('a new shop starts with the prototype’s lists', () => {
+  it('party groups, units, categories, price lists, a main godown and commission rules', async () => {
+    const a = await owner(app);
+    const counts = await asShop(a.businessId, async (tx) => ({
+      groups: await tx.partyGroup.count(), units: await tx.unit.count(), cats: await tx.category.count(),
+      lists: await tx.priceList.findMany({ orderBy: { name: 'asc' }, select: { name: true, isDefault: true, active: true } }),
+      godowns: await tx.godown.findMany({ select: { name: true, isDefault: true, manager: true } }),
+      commission: await tx.commissionRule.count(),
+    }));
+    expect(counts).toMatchObject({ groups: 6, units: 10, cats: 9, commission: 9 });
+    expect(counts.lists).toEqual([
+      { name: 'Bulk project (cost plus)', isDefault: false, active: false },
+      { name: 'Contractor rate', isDefault: false, active: false },
+      { name: 'Retail price', isDefault: true, active: true },
+      { name: 'Wholesale', isDefault: false, active: true },
+    ]);
+    expect(counts.godowns).toEqual([{ name: 'Main shop', isDefault: true, manager: 'Ravi Gupta' }]);
+  });
+  it('masters tables are private to each shop', async () => {
+    const a = await owner(app);
+    const b = await owner(app);
+    for (const t of ['partyGroup', 'unit', 'category', 'priceList', 'godown', 'commissionRule'] as const) {
+      const rows = await asShop(a.businessId, (tx) => (tx[t] as unknown as { findMany: () => Promise<{ businessId: string }[]> }).findMany());
+      expect(rows.length, t).toBeGreaterThan(0);
+      expect(rows.every((r) => r.businessId === a.businessId), t).toBe(true);
+    }
+    await expect(asShop(a.businessId, (tx) => tx.godown.create({ data: { businessId: b.businessId, name: 'X', createdBy: b.businessId } }))).rejects.toThrow(/row-level security/);
   });
 });
 

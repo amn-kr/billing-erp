@@ -31,14 +31,14 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Create database roles
         run: psql -h localhost -U postgres -f infra/db/init-ci.sql
+      - name: Install Playwright browser (screenshot tests and the importer use it)
+        run: pnpm --filter @billing/web exec playwright install --with-deps chromium
       - name: Typecheck
         run: pnpm typecheck
       - name: Unit and API tests
         run: pnpm test
       - name: Build
         run: pnpm build
-      - name: Install Playwright browser
-        run: pnpm --filter @billing/web exec playwright install --with-deps chromium
       - name: End-to-end and screenshot tests (rebuild vs prototype at 1280/1366/1920)
         run: pnpm --filter @billing/web e2e
       - name: Upload screenshot differences

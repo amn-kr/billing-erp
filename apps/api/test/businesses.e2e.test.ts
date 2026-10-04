@@ -80,3 +80,30 @@ describe('POST /api/businesses/switch', () => {
     expect(res.body.message).toBe('You are not a member of that shop.');
   });
 });
+
+describe('business details and start fresh', () => {
+  it('saves short name, email, owner, next invoice number; GSTIN must match the state and turns GST on', async () => {
+    const o = await owner(app);
+    await http().patch('/api/settings').set(auth(o)).send({ gstEnabled: false }).expect(200);
+    await http().patch('/api/businesses/current').set(auth(o)).send({ gstin: '27ABCPS4821K1Z6' }).expect(400);
+    await http().patch('/api/businesses/current').set(auth(o)).send({ name: 'Gupta Electricals & Hardware', short: 'Gupta Elec', email: 'shop@gupta.example.com', owner: 'Ravi K Gupta', inv: '415', gstin: '09ABCPS4821K1Z6', state: '09' }).expect(200);
+    const cur = (await http().get('/api/businesses/current').set(auth(o)).expect(200)).body;
+    expect(cur).toMatchObject({ shortName: 'Gupta Elec', email: 'shop@gupta.example.com', ownerName: 'Ravi K Gupta', invoiceNext: 415 });
+    expect((await http().get('/api/settings').set(auth(o)).expect(200)).body.gstEnabled).toBe(true);
+    await http().patch('/api/businesses/current').set(auth(o)).send({ email: 'not-an-email' }).expect(400);
+  });
+
+  it('start fresh makes new, empty books and keeps the old ones; the item list can come along without stock', async () => {
+    const o = await owner(app);
+    await http().post('/api/items').set(auth(o)).send({ name: 'LED bulb 9W', sale: '95', purchase: '62', openingQty: 40, openingRate: 62, openingDate: '2026-10-01' }).expect(201);
+    const res = await http().post('/api/businesses').set(auth(o)).send({ name: 'Gupta Traders', owner: 'Ravi Gupta', state: '09', keepItems: true, cash: '2500' }).expect(201);
+    const fresh = { token: res.body.accessToken };
+    const items = (await http().get('/api/items').set(auth(fresh)).expect(200)).body;
+    expect(items.map((i: { name: string; sale: string; stock: string | null }) => [i.name, i.sale, Number(i.stock)])).toEqual([['LED bulb 9W', '95.00', 0]]);
+    expect((await http().get('/api/settings').set(auth(fresh)).expect(200)).body.data.cashOpen).toBe('2500');
+    // the old books are untouched
+    expect((await http().get('/api/items').set(auth(o)).expect(200)).body[0].stock).toBe('40.000');
+    await http().post('/api/businesses').set(auth(o)).send({ name: 'X', owner: 'Y', state: '09', cash: 'lots' }).expect(400);
+  });
+});
+

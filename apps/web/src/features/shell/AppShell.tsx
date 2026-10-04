@@ -4,12 +4,14 @@
  */
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
-import { apiWithToken, signOut, ApiError } from '../../lib/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { api, apiWithToken, signOut, ApiError } from '../../lib/api';
 import { useMe } from '../../lib/me';
 import { useSession } from '../../lib/session';
 import { today as todayFn } from '../../lib/time';
 import { useStyles } from '../../lib/useStyles';
+import { curStart, curStop } from '../../lib/currency';
+import { useSettings } from '../../lib/settings';
 import { goToLogin } from '../../lib/nav';
 import { APP_STYLES } from '../../styles';
 import { VIEW_LABEL, VIEW_PATH, type NavLink } from './nav';
@@ -17,7 +19,9 @@ import { PAL, type PalId } from './palette';
 import { Sidebar } from './Sidebar';
 import { SignOutDialog } from './SignOutDialog';
 import { Toast } from './Toast';
+import { DiscardDialog } from '../../components/Discard';
 import { TopBar } from './TopBar';
+import type { Item } from '../items/ItemsPage';
 import { readLocal, soon, useShell, write } from './store';
 
 const savedPal = (): PalId => {
@@ -49,6 +53,7 @@ export function AppShell() {
   useStyles(APP_STYLES, 'app');
   const token = useSession((s) => s.accessToken);
   const me = useMe();
+  const settings = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
   const qc = useQueryClient();
@@ -65,9 +70,19 @@ export function AppShell() {
       html.dataset.gst = business.gstEnabled ? 'on' : 'off';
       html.dataset.sub = business.plan === 'expired' ? 'ended' : business.plan === 'paid' ? 'active' : 'trial';
     }
-    document.body.className = 'nocur nomrp';
     document.title = 'Billing ERP – Dashboard';
   }, [pal, business]);
+  // Settings › General: currency symbol and MRP switches (body classes + the prototype's ₹ remover)
+  const sdata = settings.data?.data as { showCurrency?: boolean; mrp?: boolean; acct?: boolean } | undefined;
+  const curOn = !!sdata?.showCurrency;
+  const mrpOn = !!sdata?.mrp;
+  useLayoutEffect(() => {
+    document.body.classList.toggle('nocur', !curOn);
+    document.body.classList.toggle('nomrp', !mrpOn);
+    if (curOn) curStop();
+    else curStart();
+  }, [curOn, mrpOn]);
+  useLayoutEffect(() => () => curStop(), []);
   useLayoutEffect(
     () => () => {
       const html = document.documentElement;
@@ -113,6 +128,10 @@ export function AppShell() {
     [navigate],
   );
 
+  // Items & stock counter, as the prototype's home refresh sets it: goods with a minimum, at or below it
+  const items = useQuery({ queryKey: ['items'], queryFn: () => api<Item[]>('/items'), enabled: !!me.data?.business });
+  const lowStock = (items.data ?? []).filter((i) => i.kind === 'goods' && Number(i.minStock) > 0 && Number(i.stock ?? 0) <= Number(i.minStock)).length;
+
   if (!token) return <GoLogin />;
   if (me.error instanceof ApiError && me.error.status === 403 && me.error.code === 'removed') return <GoLogin query="?removed=1" />;
   if (me.error instanceof ApiError && (me.error.status === 401 || me.error.status === 403)) return <GoLogin />;
@@ -124,11 +143,12 @@ export function AppShell() {
   return (
     <>
       <div className={mini ? 'app mini' : 'app'} id="app">
-        <Sidebar active={active} lowStock={0} onView={onView} onSoon={soon} />
+        <Sidebar active={active} lowStock={lowStock} acct={!!sdata?.acct} onView={onView} onSoon={soon} />
         <div style={{ minWidth: 0 }}>
           <TopBar
             me={me.data}
             today={todayFn()}
+            lowItems={(items.data ?? []).filter((i) => i.kind === 'goods' && i.level !== 'ok').length}
             pal={pal}
             online={online}
             onPal={(id) => {
@@ -167,6 +187,7 @@ export function AppShell() {
         }}
       />
       <Toast />
+      <DiscardDialog />
     </>
   );
 }

@@ -1,10 +1,32 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": [
+    "PLAYWRIGHT_BROWSERS_PATH"
+  ],
   "tasks": {
-    "build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
-    "typecheck": { "dependsOn": ["^build"] },
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
+    },
+    "typecheck": {
+      "dependsOn": [
+        "^build"
+      ]
+    },
     "lint": {},
-    "test": { "dependsOn": ["^build"], "cache": false },
-    "dev": { "cache": false, "persistent": true }
+    "test": {
+      "dependsOn": [
+        "^build"
+      ],
+      "cache": false
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
   }
 }

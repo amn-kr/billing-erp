@@ -16,6 +16,19 @@ import { MembersController } from './modules/members/members.controller';
 import { MembersService } from './modules/members/members.service';
 import { AuditController } from './modules/audit/audit.controller';
 import { HealthController } from './modules/health/health.controller';
+import { ImportsController } from './modules/imports/imports.controller';
+import { ImportsService } from './modules/imports/imports.service';
+import { NumberingService } from './common/numbering.service';
+import { PartiesController } from './modules/parties/parties.controller';
+import { PartiesService } from './modules/parties/parties.service';
+import { ItemsController } from './modules/items/items.controller';
+import { ItemsService } from './modules/items/items.service';
+import { StockController } from './modules/stock/stock.controller';
+import { StockService } from './modules/stock/stock.service';
+import { PricingController } from './modules/pricing/pricing.controller';
+import { PricingService } from './modules/pricing/pricing.service';
+import { SettingsController } from './modules/settings/settings.controller';
+import { CommissionController } from './modules/commission/commission.controller';
 
 @Module({
   imports: [
@@ -26,7 +39,8 @@ import { HealthController } from './modules/health/health.controller';
       skipIf: () => config().NODE_ENV === 'test' && process.env.TEST_THROTTLE !== '1',
     }),
   ],
-  controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HealthController],
+  controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HealthController, ImportsController,
+    PartiesController, ItemsController, StockController, PricingController, SettingsController, CommissionController],
   providers: [
     DbService,
     AuditService,
@@ -34,6 +48,12 @@ import { HealthController } from './modules/health/health.controller';
     AuthService,
     BusinessesService,
     MembersService,
+    ImportsService,
+    NumberingService,
+    PartiesService,
+    ItemsService,
+    StockService,
+    PricingService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
   ],

@@ -39,6 +39,12 @@ const grouped = (s: string): string => {
   return (neg ? '-' : '') + (rest ? rest + ',' + last3 : last3) + (frac !== undefined ? '.' + frac : '');
 };
 
+/** Quantity as the prototype's qfmt shows it: up to 2 decimals, no trailing zeros. 7.000 -> "7", 1250.5 -> "1,250.5". */
+export const formatQty = (v: MoneyInput): string => {
+  const r = round2(v);
+  return grouped(r.isInteger() ? r.toFixed(0) : r.toFixed(2).replace(/0$/, ''));
+};
+
 /** 1234567.5 -> "12,34,568" (prototype `inr` without the symbol). */
 export const formatInr0 = (v: MoneyInput): string => grouped(round0(v).toFixed(0));
 
