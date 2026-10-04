@@ -93,6 +93,19 @@ describe('the money book', () => {
     expect(cb.entries[0]).toMatchObject({ kind: 'Cash short on count', party: 'Cash count', amt: '-150.00', run: '1850.00' });
   });
 
+  it('reconciliation: starts on the last day of last month with nothing ticked; the ticks and balance are kept', async () => {
+    const o = await owner(app);
+    const h = (await http().post('/api/banking/accounts').set(auth(o)).send({ name: 'HDFC Bank', openingBalance: '1000' }).expect(201)).body;
+    const r0 = (await http().get(`/api/banking/accounts/${h.id}/reconciliation`).set(auth(o)).expect(200)).body;
+    expect(r0).toEqual({ asOf: '2026-09-30', statement: null, ticked: [] });
+    await move(o, { kind: 'in', accountId: h.id, amount: '412', category: 'Interest received', date: '2026-09-29' }).expect(201);
+    const line = (await book(o, h.id)).entries[0].key;
+    await http().put(`/api/banking/accounts/${h.id}/reconciliation`).set(auth(o)).send({ asOf: '2026-09-30', statement: '1412', ticked: [line] }).expect(200);
+    expect((await http().get(`/api/banking/accounts/${h.id}/reconciliation`).set(auth(o)).expect(200)).body).toEqual({ asOf: '2026-09-30', statement: '1412.00', ticked: [line] });
+    await http().put(`/api/banking/accounts/${h.id}/reconciliation`).set(auth(o)).send({ asOf: '2026-10-31', statement: '', ticked: [] }).expect(200);
+    expect((await http().get(`/api/banking/accounts/${h.id}/reconciliation`).set(auth(o)).expect(200)).body).toEqual({ asOf: '2026-10-31', statement: null, ticked: [] });
+  });
+
   it('billing staff can see balances but not move money', async () => {
     const o = await owner(app);
     const staff = await member(app, o, 'billing_staff');

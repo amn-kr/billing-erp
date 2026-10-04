@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { formatInr2, money, todayIst, type BankEntryInput, type CashBankAccountInput, type Money } from '@billing/shared';
+import { addDays, formatInr2, money, todayIst, type BankEntryInput, type CashBankAccountInput, type Money } from '@billing/shared';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import { NumberingService } from '../../common/numbering.service';
@@ -156,6 +156,9 @@ export class BankingService {
     const sdocs = new Map((await tx.salesDocument.findMany({ where: { id: { in: ids('sales_document') } }, include: { party: { select: { name: true } } } })).map((d) => [d.id, d]));
     const exps = new Map((await tx.expense.findMany({ where: { id: { in: ids('expense') } }, include: { lines: { take: 1, orderBy: { position: 'asc' } } } })).map((x) => [x.id, x]));
     const catName = new Map((await tx.expenseCategory.findMany({ select: { id: true, name: true } })).map((c) => [c.id, c.name]));
+    const chqs = new Map((await tx.cheque.findMany({ where: { id: { in: ids('cheque') } } })).map((c) => [c.id, c]));
+    const chqPay = new Map((await tx.payment.findMany({ where: { id: { in: [...chqs.values()].flatMap((c) => (c.paymentId ? [c.paymentId] : [])) } }, include: { party: { select: { name: true } } } })).map((p) => [p.id, p]));
+    const chqExp = new Map((await tx.expense.findMany({ where: { id: { in: [...chqs.values()].flatMap((c) => (c.expenseId ? [c.expenseId] : [])) } }, include: { lines: { take: 1, orderBy: { position: 'asc' } } } })).map((x) => [x.id, x]));
     const bes = await tx.bankEntry.findMany({ where: { id: { in: ids('bank_entry') } } });
     const be = new Map(bes.map((b) => [b.id, b]));
     const accIds = [...new Set(bes.flatMap((b) => [b.accountId, b.toAccountId ?? '']).filter(Boolean))];
@@ -180,6 +183,18 @@ export class BankingService {
         const d = sdocs.get(e.sourceId);
         return { ...base, sk: 'CN:' + e.number, kind: amt.isNegative() ? 'Refund on return' : 'Payment received', party: d?.party?.name ?? d?.cashName ?? '' };
       }
+      if (e.sourceType === 'cheque') {
+        const c = chqs.get(e.sourceId);
+        if (c) {
+          const p = c.paymentId ? chqPay.get(c.paymentId) : undefined;
+          const x = c.expenseId ? chqExp.get(c.expenseId) : undefined;
+          const doc = p?.number ?? x?.number ?? c.note;
+          const party = p?.party?.name ?? (x ? x.payee || catName.get(x.lines[0]?.categoryId ?? '') || '' : '');
+          const key = (c.direction === 'received' ? 'R:' : x ? 'X:' : 'P:') + doc;
+          if (l.memo === 'bounce charges') return { ...base, sk: key + ':chg', kind: 'Cheque bounce charges', party, doc, mode: '', ref: c.chequeNo };
+          return { ...base, sk: key, kind: c.direction === 'received' ? 'Cheque deposited' : 'Cheque cleared', party, doc, mode: 'Cheque', ref: c.chequeNo };
+        }
+      }
       if (e.sourceType === 'expense') {
         const x = exps.get(e.sourceId);
         if (x) {
@@ -202,6 +217,30 @@ export class BankingService {
     // date, then money in before money out, then the document (prototype acctLedger sorts by "R:PI-…", "P:PO-…", "BT:BT-…")
     out.sort((x, y) => x.date.localeCompare(y.date) || Number(y.amt.gt(0)) - Number(x.amt.gt(0)) || (x.sk < y.sk ? -1 : x.sk > y.sk ? 1 : 0) || x.key.localeCompare(y.key));
     return out.map(({ sk: _sk, ...r }) => r);
+  }
+
+  /* ───────── reconciliation (prototype RECON: statement date, balance, ticked entries) ───────── */
+
+  /** The last statement worked on for this account; a new one starts on the last day of last month, nothing ticked. */
+  reconciliation(ctx: RequestContext, accountId: string) {
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      const r = await tx.reconciliation.findFirst({ where: { accountId }, orderBy: { updatedAt: 'desc' } });
+      if (r) return { asOf: isoOf(r.statementDate)!, statement: r.statementBalance === null ? null : money(r.statementBalance.toString()).toFixed(2), ticked: (r.cleared as string[]) ?? [] };
+      const t = todayIst();
+      return { asOf: addDays(t.slice(0, 8) + '01', -1), statement: null, ticked: [] as string[] };
+    });
+  }
+
+  saveReconciliation(ctx: RequestContext, accountId: string, o: { asOf: string; statement: string | null; ticked: string[] }) {
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      const a = await tx.cashBankAccount.findFirst({ where: { id: accountId, kind: 'bank' } });
+      if (!a) throw new NotFoundException({ message: 'That account was not found.' });
+      const r = await tx.reconciliation.findFirst({ where: { accountId }, orderBy: { updatedAt: 'desc' } });
+      const data = { statementDate: day(o.asOf), statementBalance: o.statement === null ? null : money(o.statement).toFixed(2), cleared: o.ticked };
+      if (r) await tx.reconciliation.update({ where: { id: r.id }, data });
+      else await tx.reconciliation.create({ data: { ...data, businessId: ctx.businessId!, createdBy: ctx.userId, accountId } });
+      return { ok: true };
+    });
   }
 
   /* ───────── entries typed by hand ───────── */

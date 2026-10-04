@@ -14,7 +14,9 @@ const amt = (v: unknown) => toDb(money(Number(v) || 0).toDecimalPlaces(2).toStri
 
 export interface PlanAccount { legacyId: string; kind: 'cash' | 'bank'; name: string; sub: string; accountNo: string; ifsc: string; branch: string; openingBalance: string; openingDate: string | null; isDefault: boolean }
 export interface PlanBankEntry { number: string; date: string; kind: 'transfer' | 'deposit' | 'withdraw' | 'in' | 'out'; amount: string; fromLegacyId: string; toLegacyId: string; accountLegacyId: string; category: string; reference: string; note: string }
-export interface PlanBanking { accounts: PlanAccount[]; entries: PlanBankEntry[] }
+/** A cheque the old app marked deposited / cleared or bounced (erp-chq), found again by its payment or expense number. */
+export interface PlanChequeState { dir: 'in' | 'out' | 'expense'; number: string; status: 'cleared' | 'bounced'; date: string; accountLegacyId: string; charges: string; note: string }
+export interface PlanBanking { accounts: PlanAccount[]; entries: PlanBankEntry[]; cheques: PlanChequeState[] }
 
 const DEMO_ACCOUNTS: Record<string, number> = { cash: 45000, hdfc: 325000, sbi: 118000 };
 const DEMO_ENTRIES: Record<string, number> = { 'BT-0001': 25000, 'BT-0002': 354, 'BT-0003': 6500, 'BT-0004': 40000 };
@@ -60,5 +62,16 @@ export function planBanking(docs: Record<string, unknown>, o: { fresh: boolean; 
   });
   const num = (s: string) => Number(s.replace(/\D/g, '')) || 0;
   kept.sort((a, b) => a.date.localeCompare(b.date) || num(a.number) - num(b.number));
-  return { accounts, entries: kept };
+  // cheque states: keys like "R:PI-0625", "P:PO-0002", "X:EXP-0004" (split receipts add "#1")
+  const raw2 = docs['erp-chq'];
+  const cheques: PlanChequeState[] = [];
+  if (raw2 && typeof raw2 === 'object' && !Array.isArray(raw2)) {
+    for (const [k, v] of Object.entries(raw2 as Record<string, Record<string, unknown>>)) {
+      const m = /^([RPX]):(.+?)(#\d+)?$/.exec(k);
+      const st = str(v?.st);
+      if (!m || (st !== 'cleared' && st !== 'bounced')) continue;
+      cheques.push({ dir: m[1] === 'R' ? 'in' : m[1] === 'P' ? 'out' : 'expense', number: m[2]!, status: st, date: isoOfDmy(v.date) || fallbackDate, accountLegacyId: str(v.acct), charges: amt(v.chg), note: str(v.note).slice(0, 200) });
+    }
+  }
+  return { accounts, entries: kept, cheques };
 }

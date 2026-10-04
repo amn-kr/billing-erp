@@ -271,6 +271,13 @@ async function expenseShop(page: Page) {
   await expense(page, { cat: 'Repairs', date: '2026-09-26', payee: 'Cool Air Services', ref: 'UPI 9932', mode: 'UPI', acct: 'HDFC Bank', lines: [['Shop AC servicing', '1', '2950', '18']] });
   await expense(page, { cat: 'Packing material', date: '2026-09-22', payee: 'Gupta Packers', ref: 'Bill 778', mode: 'Cash', acct: 'Cash in hand', lines: [['Carton boxes', '100', '18', '0'], ['Tape rolls', '12', '45', '0']] });
   await expenseCategory(page, 'Generator diesel');
+  // Mehta's cheque deposited in HDFC, through the Cheques page
+  await later(page);
+  await ev(page, "go('chq')");
+  await page.click('#cqRows [data-cqok="R:PI-0625"]');
+  await page.selectOption('#bcmAcct', await (ev(page, `ACCTS.find((a) => a.name === 'HDFC Bank').id`) as Promise<string>));
+  await page.click('#bcmSave');
+  await ev(page, "go('dash')");
   await expense(page, { cat: 'Generator diesel', date: '2026-10-01', payee: 'Indian Oil', mode: 'Cash', acct: 'Cash in hand', note: 'Power cut', lines: [['Diesel', '20', '92.5', '0']] });
 }
 

@@ -199,8 +199,10 @@ describe('banking import', () => {
     const res = await http().post('/api/imports').set(auth(o)).send({ fileName: 'bank.json', backup: backup('bank-shop.backup.json') }).expect(200);
     expect(res.body.counts).toMatchObject({ bankAccounts: 2, bankEntries: 5, expenses: 4 });
     const accs = (await http().get('/api/banking/accounts').set(auth(o)).expect(200)).body as { name: string; balance: string; isDefault: boolean; accountNo: string; ifsc: string; branch: string }[];
-    // the prototype's own balances for the same backup (expenses included): cash 1,080, HDFC 78,696, SBI 65,412
-    expect(accs.map((a) => [a.name, a.balance, a.isDefault])).toEqual([['Cash in hand', '1080.00', true], ['HDFC Bank', '78696.00', true], ['State Bank of India', '65412.00', false]]);
+    // the prototype's own balances for the same backup (expenses and a deposited cheque included): cash 1,080, HDFC 83,696, SBI 65,412
+    expect(accs.map((a) => [a.name, a.balance, a.isDefault])).toEqual([['Cash in hand', '1080.00', true], ['HDFC Bank', '83696.00', true], ['State Bank of India', '65412.00', false]]);
+    const chq = (await http().get('/api/banking/cheques').set(auth(o)).expect(200)).body as { number: string; status: string; statusDate: string | null }[];
+    expect(chq.map((c) => [c.number, c.status, c.statusDate])).toEqual([['PO-0002', 'pending', null], ['PI-0625', 'cleared', '2026-10-01']]);
     const xs = (await http().get('/api/expenses').set(auth(o)).expect(200)).body as { number: string; category: string; total: string; gst: string }[];
     expect(xs.map((x) => [x.number, x.category, x.total, x.gst])).toEqual([
       ['EXP-0005', 'Generator diesel', '1850.00', '0.00'], ['BT-0005', 'Shop expenses', '650.00', '0.00'], ['BT-0003', 'Bank charges', '354.00', '0.00'], ['EXP-0003', 'Repairs', '2950.00', '450.00'], ['EXP-0004', 'Packing material', '2340.00', '0.00'], ['EXP-0002', 'Rent', '25000.00', '0.00'],

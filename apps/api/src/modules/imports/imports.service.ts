@@ -8,7 +8,8 @@ import { LedgerService } from '../../common/ledger.service';
 import { NumberingService } from '../../common/numbering.service';
 import { writeSales } from './sales-import';
 import { writePurchases } from './purchase-import';
-import { writeAccounts, writeEntries } from './banking-import';
+import { writeAccounts, writeChequeStates, writeEntries } from './banking-import';
+import { ChequesService } from '../banking/cheques.service';
 import { writeExpenses } from './expense-import';
 import { ExpensesService } from '../expenses/expenses.service';
 import { BankingService } from '../banking/banking.service';
@@ -248,6 +249,9 @@ export class ImportsService {
 
     /* expense categories and expenses */
     await writeExpenses(tx, pctx, new ExpensesService(this.db, this.audit, this.numbers, this.ledger), plan.expenses, acctIds);
+
+    /* cheques the old app marked deposited / cleared or bounced */
+    await writeChequeStates(tx, pctx, new ChequesService(this.db, this.audit, this.ledger), plan.banking, acctIds, plan.warnings);
 
     const run = await tx.importRun.create({
       data: { ...base, fileName: fileName.slice(0, 200), backupAt, status: 'done', counts: plan.counts, warnings: plan.warnings },

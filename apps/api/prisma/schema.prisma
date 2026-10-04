@@ -1183,6 +1183,8 @@ model Cheque {
   status     String    @default("pending")
   accountId  String?   @map("account_id") @db.Uuid
   statusDate DateTime? @map("status_date") @db.Date
+  /// bank charges for a bounce
+  charges    Decimal   @default(0) @db.Decimal(14, 2)
   note       String    @default("")
   legacyId   String?   @map("legacy_id")
   createdBy  String    @map("created_by") @db.Uuid
@@ -1201,7 +1203,8 @@ model Reconciliation {
   businessId       String   @map("business_id") @db.Uuid
   accountId        String   @map("account_id") @db.Uuid
   statementDate    DateTime @map("statement_date") @db.Date
-  statementBalance Decimal  @map("statement_balance") @db.Decimal(14, 2)
+  /// blank until the closing balance from the statement is typed in
+  statementBalance Decimal? @map("statement_balance") @db.Decimal(14, 2)
   /// journal line ids ticked as on the statement
   cleared          Json     @default("[]")
   createdBy        String   @map("created_by") @db.Uuid
