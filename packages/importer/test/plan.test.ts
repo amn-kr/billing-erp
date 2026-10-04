@@ -136,7 +136,7 @@ describe('godowns', () => {
 describe('sales documents (made through the prototype’s editor and dialogs)', () => {
   it('maps invoices, payments, returns, challans and item-wise quotations, oldest first, with printed totals kept', () => {
     const p = planImport(snaps['sales-shop']!);
-    expect(p.counts).toMatchObject({ invoices: 6, receipts: 1, creditNotes: 1, challans: 2, quotations: 1 });
+    expect(p.counts).toMatchObject({ invoices: 6, receipts: 1, creditNotes: 1, challans: 2, quotations: 2 });
     expect(p.sales.invoices.map((v) => [v.number, v.date, v.totals.total, v.cancelled])).toEqual([
       ['INV-0101', '2026-09-10', '4348.00', false], ['INV-0102', '2026-09-18', '420.00', false], ['INV-0103', '2026-09-28', '839.00', false],
       ['INV-0104', '2026-09-30', '348.00', true], ['INV-0105', '2026-10-01', '190.00', false], ['INV-0106', '2026-10-01', '570.00', false],
@@ -152,8 +152,13 @@ describe('sales documents (made through the prototype’s editor and dialogs)', 
     expect(p.sales.creditNotes[0]).toMatchObject({ number: 'CN-0001', settle: 'adjust', total: '174.00', invoices: [{ no: 'INV-0101', amount: '174.00' }] });
     expect(p.sales.creditNotes[0]!.lines[0]).toMatchObject({ invoiceNo: 'INV-0101', qty: '2.000', price: '87.00', gstRate: '12.00' });
     expect(p.sales.challans.map((d) => [d.number, d.status, d.invoiceNo])).toEqual([['DC-0001', 'invoiced', 'INV-0106'], ['DC-0002', 'open', '']]);
-    expect(p.sales.quotations[0]).toMatchObject({ number: 'Q-0102', validTill: '2026-10-16', status: 'open', totals: { total: '3283.00' } });
-    expect(p.warnings).toContain('1 brand-wise quotation was not imported yet; they come with the Quotation page.');
+    expect(p.sales.quotations.map((q) => q.number)).toEqual(['Q-0101', 'Q-0102']); // oldest first
+    expect(p.sales.quotations[1]).toMatchObject({ number: 'Q-0102', validTill: '2026-10-16', status: 'open', totals: { total: '3283.00' } });
+    // the brand-wise quotation comes with its quantities, and the Quotation page grid with it
+    const bq = p.sales.quotations.find((q) => q.brand)!;
+    expect(bq).toMatchObject({ number: 'Q-0101', lines: [], extra: { type: 'brand', items: 11, pcs: 132, qty: { r5: 30, p4: 15 } } });
+    expect([p.sales.quoteGrid!.rows.length, p.sales.quoteGrid!.ser.length]).toEqual([22, 6]);
+    expect(p.warnings.join(' ')).not.toMatch(/brand-wise/);
     expect(p.warnings.some((w) => /stock changes/.test(w))).toBe(false);
   });
 });

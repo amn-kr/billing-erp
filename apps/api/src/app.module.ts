@@ -31,6 +31,7 @@ import { PricingService } from './modules/pricing/pricing.service';
 import { SettingsController } from './modules/settings/settings.controller';
 import { CommissionController } from './modules/commission/commission.controller';
 import { SalesController } from './modules/sales/sales.controller';
+import { QuotesController } from './modules/sales/quotes.controller';
 import { SalesService } from './modules/sales/sales.service';
 import { ReceiptsService } from './modules/sales/receipts.service';
 
@@ -44,7 +45,7 @@ import { ReceiptsService } from './modules/sales/receipts.service';
     }),
   ],
   controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HealthController, ImportsController,
-    PartiesController, ItemsController, StockController, PricingController, SettingsController, CommissionController, SalesController],
+    PartiesController, ItemsController, StockController, PricingController, SettingsController, CommissionController, SalesController, QuotesController],
   providers: [
     DbService,
     AuditService,

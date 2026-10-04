@@ -201,7 +201,9 @@ export class SalesService {
       if (input.fromQuotationIds.length)
         for (const qid of input.fromQuotationIds) {
           const q = await tx.salesDocument.findFirst({ where: { id: qid, kind: 'quotation' } });
-          if (q) await tx.salesDocument.update({ where: { id: q.id }, data: { status: 'converted', extra: { ...(q.extra as object), invoiceNo: number, invoiceId: doc.id } } });
+          // the brand chosen for a brand-wise quotation travels with the invoice's quotation references
+          const brand = (input.extra.quoteRefs as { no?: string; brand?: string }[] | undefined)?.find((r) => r.no === q?.number)?.brand ?? '';
+          if (q) await tx.salesDocument.update({ where: { id: q.id }, data: { status: 'converted', extra: { ...(q.extra as object), invoiceNo: number, invoiceId: doc.id, ...(brand && { invoiceBrand: brand }) } } });
         }
       if (input.fromChallanId) {
         const c = await tx.salesDocument.findFirst({ where: { id: input.fromChallanId, kind: 'challan' } });
@@ -297,9 +299,13 @@ export class SalesService {
           party: d.party ? { id: d.party.id, name: d.party.name, city: d.party.addresses[0]?.city ?? '', gstin: d.party.gstin } : null,
           partyName: d.party?.name ?? d.cashName, phone: d.cashPhone,
           total: total.toFixed(2), received: d.cancelledAt ? '0.00' : total.minus(b).toFixed(2), balance: d.cancelledAt ? '0.00' : b.toFixed(2),
-          cancelled: !!d.cancelledAt, status: d.status, items: d.lines.length, qty: q3(d.lines.reduce((a, l) => a.plus(money(l.qty.toString())), money(0))),
+          cancelled: !!d.cancelledAt, status: d.status,
+          // a brand-wise quotation has no lines: its counts were kept when it was saved
+          items: x.type === 'brand' ? Number(x.items ?? 0) : d.lines.length,
+          qty: x.type === 'brand' ? q3(String(x.pcs ?? 0)) : q3(d.lines.reduce((a, l) => a.plus(money(l.qty.toString())), money(0))),
           lineNames: d.lines.slice(0, 3).map((l) => l.name), transport: (x.transport as string) ?? '', vehicle: (x.vehicle as string) ?? '', note: d.notes,
           invoiceNo: (x.invoiceNo as string) ?? '', legacy: !!d.legacyId, referrerId: d.referrerId,
+          ...(kind === 'quotation' && { qtype: x.type === 'brand' ? 'brand' : 'items', invoiceBrand: (x.invoiceBrand as string) ?? '', brandQuote: x.type === 'brand' ? { cust: x.cust ?? '', priceListId: x.priceListId ?? null, disc: x.disc ?? 0, sel: x.sel ?? [], qty: x.qty ?? {}, low: x.low ?? null } : null }),
         };
       });
     });

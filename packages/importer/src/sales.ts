@@ -5,7 +5,7 @@
  * Totals stay exactly as the old app saved and printed them; the API posts
  * them to the books with the same rules as a new sale. Pure — unit-tested.
  */
-import { money, toDb } from '@billing/shared';
+import { money, quoteGridSchema, toDb, type QuoteGrid } from '@billing/shared';
 
 const qty = (v: unknown) => money(num(v)).toDecimalPlaces(3).toFixed(3);
 const amt = (v: unknown) => toDb(num(v));
@@ -47,8 +47,14 @@ export interface PlanQuotation {
   number: string; date: string; validTill: string; mode: 'credit' | 'cash'; partyLegacyId: string | null; cashName: string; cashPhone: string;
   placeOfSupply: string; taxMode: 'gst' | 'bos' | 'none'; pricesInclTax: boolean; lines: PlanSaleLine[]; totals: PlanSaleTotals;
   notes: string; extra: Record<string, unknown>; status: 'open' | 'converted'; invoiceNo: string; referrerLegacyId: string | null;
+  /** brand-wise (Quotation page grid): no lines; quantities per grid row, ranges, discount and rate list in `extra` */
+  brand?: { priceListLegacyId: string; invoiceBrand: string };
 }
-export interface PlanSales { invoices: PlanInvoice[]; receipts: PlanReceipt[]; creditNotes: PlanCreditNote[]; challans: PlanChallan[]; quotations: PlanQuotation[] }
+export interface PlanSales {
+  invoices: PlanInvoice[]; receipts: PlanReceipt[]; creditNotes: PlanCreditNote[]; challans: PlanChallan[]; quotations: PlanQuotation[];
+  /** the Quotation page's rows and brand ranges (erp-quo) */
+  quoteGrid: QuoteGrid | null;
+}
 
 export interface SalesContext {
   /** party / item legacy ids that exist in the plan (after merging copies) */
@@ -194,12 +200,26 @@ export function planSales(docs: Record<string, unknown>, ctx: SalesContext, fall
     });
   }
 
-  /* item-wise quotations (brand-wise ones belong to the Quotation page grid) */
+  /* quotations: item-wise like invoices, brand-wise as quantities against the Quotation page grid */
   const quotations: PlanQuotation[] = [];
-  let brandWise = 0;
+  const zero: PlanSaleTotals = { taxable: '0.00', cgst: '0.00', sgst: '0.00', igst: '0.00', tcs: '0.00', round: '0.00', total: '0.00', billDiscount: '0.00', transport: '0.00', labour: '0.00', bankCharge: '0.00' };
   for (const q of arr(docs['erp-quotes']).slice().reverse()) {
     const no = str(q.no);
-    if (q.type !== 'items') { brandWise++; continue; }
+    if (q.type !== 'items') {
+      const qty = Object.fromEntries(Object.entries((q.qty ?? {}) as Record<string, unknown>).map(([k, v]) => [k, Number(v)]).filter(([, v]) => (v as number) > 0));
+      if (!no || !Object.keys(qty).length) { W.push(`Quotation ${no || '(no number)'} has no quantities, so it was left out.`); continue; }
+      const low = q.low && typeof q.low === 'object' ? { name: str((q.low as Record<string, unknown>).name), total: Number((q.low as Record<string, unknown>).total) || 0 } : null;
+      const cust = str(q.cust);
+      quotations.push({
+        number: no, date: date(q.date), validTill: '', mode: 'cash', partyLegacyId: null, cashName: cust, cashPhone: '', placeOfSupply: '', taxMode: 'none', pricesInclTax: true, lines: [],
+        totals: { ...zero, total: (low?.total ?? 0).toFixed(2) }, notes: '',
+        extra: { type: 'brand', cust, disc: Number(q.disc) || 0, sel: (Array.isArray(q.sel) ? (q.sel as unknown[]) : []).map(str), qty, items: Number(q.items) || Object.keys(qty).length, pcs: Number(q.pcs) || Object.values(qty).reduce<number>((a, b) => a + (b as number), 0), low },
+        status: q.status === 'converted' ? 'converted' : 'open', invoiceNo: invNos.has(str(q.inv)) ? str(q.inv) : '',
+        referrerLegacyId: q.ref && ctx.referrerIds.has(str(q.ref)) ? str(q.ref) : null,
+        brand: { priceListLegacyId: str(q.pl), invoiceBrand: str(q.brand) },
+      });
+      continue;
+    }
     const pid = partyOf(q.party, `Quotation ${no}`);
     if (pid === undefined) continue;
     const lines = saleLines(arr(q.lines), ctx, `Quotation ${no}`);
@@ -211,6 +231,10 @@ export function planSales(docs: Record<string, unknown>, ctx: SalesContext, fall
       referrerLegacyId: q.ref && ctx.referrerIds.has(str(q.ref)) ? str(q.ref) : null,
     });
   }
-  if (brandWise) W.push(`${brandWise} brand-wise quotation${brandWise > 1 ? 's were' : ' was'} not imported yet; they come with the Quotation page.`);
-  return { invoices, receipts, creditNotes, challans, quotations };
+  // brand-wise ones were kept in the old app in save order, item-wise ones newest first: oldest first here
+  quotations.sort((a, b) => a.date.localeCompare(b.date) || a.number.localeCompare(b.number, 'en', { numeric: true }));
+  /* the Quotation page grid; the prototype's starting grid when the backup has none */
+  const qg = quoteGridSchema.safeParse(docs['erp-quo'] ? { rows: (docs['erp-quo'] as Record<string, unknown>).rows, ser: (docs['erp-quo'] as Record<string, unknown>).ser } : null);
+  if (docs['erp-quo'] && !qg.success) W.push('The Quotation page’s rows and brand ranges could not be read; the standard ones are used.');
+  return { invoices, receipts, creditNotes, challans, quotations, quoteGrid: qg.success ? qg.data : null };
 }

@@ -9,3 +9,4 @@ export * from './masters.js';
 export * from './pricing.js';
 export * from './invoice.js';
 export * from './sales.js';
+export * from './quotes.js';

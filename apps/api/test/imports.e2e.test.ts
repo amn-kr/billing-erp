@@ -140,7 +140,7 @@ describe('importing sales documents', () => {
   it('brings invoices, payments, a return, challans and a quotation, with the same dues and stock the old app showed', async () => {
     const o = await owner(app);
     const res = await http().post('/api/imports').set(auth(o)).send({ fileName: 'sales.json', backup: backup('sales-shop.backup.json') }).expect(200);
-    expect(res.body.counts).toMatchObject({ invoices: 6, receipts: 1, creditNotes: 1, challans: 2, quotations: 1 });
+    expect(res.body.counts).toMatchObject({ invoices: 6, receipts: 1, creditNotes: 1, challans: 2, quotations: 2 });
     const parties = (await http().get('/api/parties').set(auth(o)).expect(200)).body as { name: string; balance: string }[];
     // the prototype's own balanceOf() for the same backup
     expect(Object.fromEntries(parties.map((p) => [p.name, p.balance]))).toEqual({ 'Mehta Electricals': '22174.00', 'Raju Electrician': '2599.00', 'Kanpur Cables Pvt Ltd': '-48000.00', 'Walk-in Ramesh': '0.00' });
@@ -158,6 +158,13 @@ describe('importing sales documents', () => {
     // numbers carry on after the imported ones
     const next = async (kind: string) => (await http().get(`/api/sales/next-number?kind=${kind}&date=2026-10-01`).set(auth(o)).expect(200)).body.number;
     expect([await next('invoice'), await next('receipt'), await next('credit_note'), await next('challan'), await next('quotation')]).toEqual(['INV-0107', 'PI-0626', 'CN-0002', 'DC-0003', 'Q-0103']);
+    // the brand-wise quotation and the Quotation page's grid come across too
+    const qs = (await http().get('/api/sales?kind=quotation').set(auth(o)).expect(200)).body as { number: string; qtype: string; items: number; qty: string; brandQuote: { qty: Record<string, number> } | null }[];
+    expect(qs.map((q) => [q.number, q.qtype, q.items, q.qty])).toEqual([['Q-0102', 'items', 2, '5.000'], ['Q-0101', 'brand', 11, '132.000']]);
+    expect(qs[1]!.brandQuote!.qty).toMatchObject({ r5: 30, p4: 15 });
+    const grid = (await http().get('/api/quote-grid').set(auth(o)).expect(200)).body;
+    expect([grid.rows.length, grid.ser.length]).toEqual([22, 6]);
+    expect((await http().get('/api/settings').set(auth(o)).expect(200)).body.data.quoteGrid.ser[2]).toMatchObject({ b: 'Legrand', r: 'Myrius' }); // stored, not the default
     const dcs = (await http().get('/api/sales?kind=challan').set(auth(o)).expect(200)).body;
     expect(dcs.map((d: { number: string; status: string; invoiceNo: string }) => [d.number, d.status, d.invoiceNo])).toEqual([['DC-0002', 'open', ''], ['DC-0001', 'invoiced', 'INV-0106']]);
   });

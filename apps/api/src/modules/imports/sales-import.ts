@@ -225,8 +225,23 @@ export async function writeSales(tx: Tx, c: SalesImportCtx, s: PlanSales) {
     await claim('challan', d.date, d.number);
   }
 
-  /* 6. item-wise quotations */
+  /* 6. quotations (item-wise and brand-wise, in the order they were made) */
   for (const q of s.quotations) {
+    if (q.brand) {
+      const pl = q.brand.priceListLegacyId ? await tx.priceList.findFirst({ where: { legacyId: q.brand.priceListLegacyId } }) : null;
+      const cust = String(q.extra.cust ?? '');
+      const party = cust ? await tx.party.findFirst({ where: { archivedAt: null, name: { equals: cust, mode: 'insensitive' } } }) : null;
+      await tx.salesDocument.create({
+        data: {
+          ...base, ...stamp(), kind: 'quotation', number: q.number, legacyId: q.number, date: day(q.date), mode: party ? 'credit' : 'cash', partyId: party?.id ?? null, cashName: party ? '' : cust,
+          taxMode: 'none', total: q.totals.total, status: q.status,
+          extra: { ...q.extra, priceListId: pl?.id ?? null, ...(q.invoiceNo && { invoiceNo: q.invoiceNo, invoiceId: invId.get(q.invoiceNo), ...(q.brand.invoiceBrand && { invoiceBrand: q.brand.invoiceBrand }) }) } as Prisma.InputJsonValue,
+          referrerId: q.referrerLegacyId ? (c.referrerId.get(q.referrerLegacyId) ?? null) : null,
+        },
+      });
+      await claim('quotation', q.date, q.number);
+      continue;
+    }
     const t = q.totals;
     const doc = await tx.salesDocument.create({
       data: {
@@ -241,5 +256,11 @@ export async function writeSales(tx: Tx, c: SalesImportCtx, s: PlanSales) {
     });
     await tx.salesDocumentLine.createMany({ data: lineRows(doc.id, q.lines) });
     await claim('quotation', q.date, q.number);
+  }
+
+  /* 7. the Quotation page's rows and brand ranges */
+  if (s.quoteGrid) {
+    const st = await tx.businessSettings.findUniqueOrThrow({ where: { businessId: c.businessId } });
+    await tx.businessSettings.update({ where: { businessId: c.businessId }, data: { data: { ...(st.data as object), quoteGrid: s.quoteGrid } as unknown as Prisma.InputJsonValue } });
   }
 }

@@ -9,6 +9,9 @@ export interface SaleRow {
   party: { id: string; name: string; city: string; gstin: string } | null; partyName: string; phone: string;
   total: string; received: string; balance: string; cancelled: boolean; status: string; items: number; qty: string;
   lineNames: string[]; transport: string; vehicle: string; note: string; invoiceNo: string; legacy: boolean; referrerId: string | null;
+  /** quotations only */
+  qtype?: 'items' | 'brand'; invoiceBrand?: string;
+  brandQuote?: { cust: string; priceListId: string | null; disc: number; sel: string[]; qty: Record<string, number>; low: { name: string; total: number } | null } | null;
 }
 
 export interface SaleLine {

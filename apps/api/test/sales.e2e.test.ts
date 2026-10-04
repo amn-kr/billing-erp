@@ -210,4 +210,32 @@ describe('challans and quotations', () => {
     const L = (await http().get('/api/sales?kind=quotation').set(auth(o)).expect(200)).body;
     expect(L[0]).toMatchObject({ number: 'Q-0101', status: 'converted', invoiceNo: 'INV-0001' });
   });
+
+  it('a brand-wise quotation keeps quantities per row and ranges; converting records the brand and locks it', async () => {
+    const { o, fan, verma } = await shop();
+    // the prototype's grid until the shop changes it
+    const g = (await http().get('/api/quote-grid').set(auth(o)).expect(200)).body;
+    expect(g.rows).toHaveLength(22);
+    expect(g.ser.map((x: { b: string; r: string }) => `${x.b} ${x.r}`)).toContain('Legrand Myrius');
+    await http().put('/api/quote-grid').set(auth(o)).send({ rows: g.rows, ser: [...g.ser, { id: 's7', b: 'Polycab', r: 'Levana', f: 'White' }] }).expect(200);
+    expect((await http().get('/api/quote-grid').set(auth(o)).expect(200)).body.ser).toHaveLength(7);
+    // nothing to save without quantities
+    const body = { date: D, cust: 'Verma Traders', disc: 5, sel: ['s1', 's3'], qty: { r5: 30, p4: 15 }, items: 2, pcs: 45, low: { name: 'Havells Coral White', total: 5230.5 } };
+    expect((await http().post('/api/quotations/brand').set(auth(o)).send({ ...body, qty: {} }).expect(400)).body.message).toBe('Enter at least one quantity first');
+    const q = (await http().post('/api/quotations/brand').set(auth(o)).send(body).expect(201)).body;
+    expect(q.number).toBe('Q-0101');
+    await http().put(`/api/quotations/brand/${q.id}`).set(auth(o)).send({ ...body, qty: { r5: 40, p4: 15 }, pcs: 55 }).expect(200);
+    let L = (await http().get('/api/sales?kind=quotation').set(auth(o)).expect(200)).body;
+    expect(L[0]).toMatchObject({ number: 'Q-0101', qtype: 'brand', status: 'open', items: 2, qty: '55.000', total: '5230.50', partyName: 'Verma Traders', brandQuote: { disc: 5, sel: ['s1', 's3'], qty: { r5: 40, p4: 15 } } });
+    // the invoice made from it names the brand; the quotation is then converted and locked
+    await sale(o, { partyId: verma.id, lines: [line(fan, '1', '1890')], fromQuotationIds: [q.id], extra: { quoteRefs: [{ no: 'Q-0101', date: '01/10/2026', cust: 'Verma Traders', brand: 'Havells Coral White' }] } }).expect(201);
+    L = (await http().get('/api/sales?kind=quotation').set(auth(o)).expect(200)).body;
+    expect(L[0]).toMatchObject({ status: 'converted', invoiceNo: 'INV-0001', invoiceBrand: 'Havells Coral White' });
+    expect((await http().put(`/api/quotations/brand/${q.id}`).set(auth(o)).send(body).expect(400)).body.message).toBe('This quotation is locked and can’t be edited.');
+    // quotations are cancelled, never deleted
+    const q2 = (await http().post('/api/quotations/brand').set(auth(o)).send(body).expect(201)).body;
+    expect(q2.number).toBe('Q-0102');
+    await http().post(`/api/sales/${q2.id}/cancel`).set(auth(o)).send({}).expect(200);
+    expect((await http().get('/api/sales?kind=quotation').set(auth(o)).expect(200)).body.find((x: { number: string }) => x.number === 'Q-0102').cancelled).toBe(true);
+  });
 });

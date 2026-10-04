@@ -26,7 +26,7 @@ export function ImportQuote({ open, onClose, d, s, up, toast }: { open: boolean;
   useEscape(open, onClose);
   useEffect(() => { if (open) setSel(null); }, [open]);
   const pn = (s.party ? s.party.name : s.cashName.trim()).toLowerCase();
-  const L = (list.data ?? []).filter((q) => q.status !== 'converted' && !q.cancelled && q.items > 0)
+  const L = (list.data ?? []).filter((q) => q.status !== 'converted' && !q.cancelled && q.items > 0 && q.qtype !== 'brand')
     .sort((a, b) => Number(b.partyName.toLowerCase() === pn) - Number(a.partyName.toLowerCase() === pn) || b.date.localeCompare(a.date));
   const q = L.find((x) => x.id === sel);
   const add = async () => {
