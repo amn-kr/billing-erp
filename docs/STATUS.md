@@ -32,21 +32,35 @@
 ## On hold (waiting for a later phase or an owner decision)
 | Item | Waiting for |
 |---|---|
-| **Phase 5 — SaaS + launch** (Razorpay, admin console, onboarding, security review, load test, beta, hosting). **On hold by the owner's decision (4 Oct 2026): do not start Phase 5 until the owner asks.** | owner: do not start yet |
-| **Hosting** (AWS Mumbai + Cloudflare Pages) — nothing is deployed. Web app and API must share a domain (e.g. app.yourshop.in / api.yourshop.in) so the sign-in cookie works. Costs money: owner approval first. | owner decision (Phase 5) |
+| **Phase 5 — SaaS + launch**: Razorpay payments, admin console, shop sign-up / onboarding, security review, load test, beta. **On hold by the owner's decision (4 Oct 2026): do not start until the owner asks.** Hosting was done separately by the owner ("Phase 5-lite", below). | owner: do not start yet |
+| **Paid hosting** (AWS Mumbai + Cloudflare Pages, as planned in ARCHITECTURE.md). For now the app runs on free plans set up by the owner — see *Live app* below and `docs/DEPLOY.md`. Moving to paid hosting costs money: owner approval first. | owner decision |
 | **Email provider** (password reset by email, invite emails) | owner: before selling starts |
 | **Google sign-in** | owner: later |
 | Importing **invoices, purchases, payments and expenses** from old backups (the Restore window says so) | Phase 3 |
 | **Next invoice number** must not go below invoices already made | Phase 3 (no invoices exist yet) |
 | **Cash in hand** from the old backup (kept in settings) becomes the cash book's opening balance | Phase 3 |
 | "Discard this …?" question for the Phase 3 documents (payment, credit note, challan, quick sale, bank/cheque entries) | Phase 3 |
-| **Restoring a backup made by the new app**, and daily cloud copies | Phase 5 (with hosting) |
-| **Security updates** for packages set up in Phase 1 (NestJS, React Router: about 23 advisories) | before launch (Phase 5) |
+| **Restoring a backup made by the new app from inside the app** (Settings › Restore). Daily database backups with a restore test now run in GitHub Actions — see *Live app* | later |
+| **Security updates** for packages set up in Phase 1 (NestJS, React Router: about 23 advisories). Dependabot is on (owner, 5 Oct 2026); its pull requests are merged one by one when every check passes | ongoing |
 | **Mobile screens** — not to be built until the owner asks | owner: do not build yet |
 | **Staff roles / limited staff access** (screens and rules for what each staff member may do). The server's existing role check from Phase 1 stays as it is; nothing more is added | owner: do not build yet |
 | **The ~30 placeholder reports** — only the 9 reports that already work in the prototype are rebuilt | owner: do not build yet |
 | **Sale orders and loans** | owner: do not build yet |
 | **Item/stock reports and GST reports (GSTR-1, GSTR-3B)** | owner: do not build yet |
+
+## Live app — "Phase 5-lite", free plans (set up by the owner by hand, 5 Oct 2026)
+The app is live and the owner has created an account and signed in. Details (no secrets): `docs/DEPLOY.md`.
+
+| Item | State |
+|---|---|
+| Database: Neon (free), project `billing-erp`, AWS Singapore, Postgres 16, database `neondb`; migrations as `neondb_owner`, the API as `erp_app` (no RLS bypass, direct connection) | done by the owner |
+| Server: Render Web Service (free) `billing-erp-api`, Singapore, https://billing-erp-api.onrender.com, health check `/api/health` | done by the owner |
+| Screens: Render Static Site (free) `billing-erp`, https://billing-erp-ynqf.onrender.com; `/api/*` is passed to the server, so web and API share one address and the sign-in cookie works | done by the owner |
+| GitHub: Dependency graph, Dependabot alerts, security updates and grouped security updates | on (owner) |
+| **Auto-deploy:** every change to `main` goes live, and the server's build runs the database migrations — merge carefully | ⚠️ standing rule |
+| Row-level security on the live database (one shop cannot see another's data) | check written and tested locally (`infra/db/backup/rls-live-check.sql`); it runs against the live database every night once the owner adds the backup secrets — it cannot be run from Claude's machine, whose network does not reach Render or Neon |
+| Daily backups (encrypted, kept 30 days in GitHub) with a restore test and a shop-by-shop isolation check on the restored copy | workflow ready (`.github/workflows/db-backup.yml`), tested locally; starts once the owner adds three secrets (see `docs/DEPLOY.md`) |
+| Free-plan limits (server sleeps after 15 minutes, 0.5 GB database, short Neon restore window, …) | listed in `docs/DEPLOY.md` |
 
 ## Phase 2 — Masters ✅ (gate passed: the owner's real backup imports cleanly)
 | Item | State |

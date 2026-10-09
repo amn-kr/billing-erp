@@ -1,0 +1,81 @@
+name: Daily database backup
+
+# Every night at 03:00 India time, and on demand (Actions › Daily database backup › Run workflow):
+#  1. checks row-level security on the live database as the API's role (read-only);
+#  2. backs up the whole Neon database, encrypted with a passphrase, and keeps it here for 30 days;
+#  3. restores that backup into an empty throwaway database and checks it (tables, row-level
+#     security, and that no shop can see another shop's rows). The live database is never written to.
+# Secrets (Settings › Secrets and variables › Actions): NEON_BACKUP_URL, NEON_APP_URL, BACKUP_PASSPHRASE.
+# See docs/DEPLOY.md.
+
+on:
+  schedule:
+    - cron: '30 21 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      NEON_BACKUP_URL: ${{ secrets.NEON_BACKUP_URL }}
+      NEON_APP_URL: ${{ secrets.NEON_APP_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Secrets are set
+        run: |
+          missing=""
+          for s in NEON_BACKUP_URL NEON_APP_URL BACKUP_PASSPHRASE; do [ -n "${!s}" ] || missing="$missing $s"; done
+          if [ -n "$missing" ]; then echo "::error::Add these repository secrets first (see docs/DEPLOY.md):$missing"; exit 1; fi
+
+      - name: Postgres 16 tools (same version as Neon)
+        run: |
+          if ! pg_dump --version | grep -q ' 1[6-9]\.'; then
+            sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+            sudo apt-get install -y postgresql-client-16
+            echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
+          fi
+          pg_dump --version
+
+      - name: Row-level security on the live database (read-only, as erp_app)
+        run: psql "$NEON_APP_URL" -qtAX -v ON_ERROR_STOP=1 -f infra/db/backup/rls-live-check.sql
+
+      - name: Back up the live database (encrypted)
+        id: backup
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.NEON_BACKUP_URL }}
+        run: bash infra/db/backup/backup.sh backup-out
+
+      - name: Keep the backup for 30 days
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_number }}
+          path: backup-out/*.gpg
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Restore test into an empty throwaway database
+        env:
+          PGPASSWORD: postgres
+          RESTORE_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/restore_test
+        run: |
+          psql -h localhost -U postgres -qc 'CREATE DATABASE restore_test'
+          bash infra/db/backup/restore-check.sh "${{ steps.backup.outputs.file }}"
