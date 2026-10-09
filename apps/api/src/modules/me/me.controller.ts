@@ -1,6 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
-import { daysBetween, todayIst, type MeBusiness, type MeResponse, type RoleKey } from '@billing/shared';
+import { daysBetween, type MeBusiness, type MeResponse, type RoleKey } from '@billing/shared';
 import { Ctx } from '../../common/decorators';
+import { planToday } from '../../config';
 import { DbService } from '../../common/db.service';
 import type { RequestContext } from '../../common/context';
 
@@ -27,7 +28,7 @@ export class MeController {
       let business: MeBusiness | null = null;
       if (ctx.businessId) {
         const b = await tx.business.findUniqueOrThrow({ where: { id: ctx.businessId }, include: { settings: true } });
-        const today = todayIst();
+        const today = planToday();
         const ends = iso(b.planStatus === 'paid' && b.paidUntil ? b.paidUntil : b.trialEndsOn);
         const plan: MeBusiness['plan'] = daysBetween(today, ends) < 0 ? 'expired' : b.planStatus === 'paid' ? 'paid' : 'trial';
         business = {

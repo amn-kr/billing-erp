@@ -1,3 +1,4 @@
+import { todayIst } from '@billing/shared';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -21,6 +22,8 @@ const schema = z.object({
     .optional()
     .transform((v) => v === 'true'),
   DEMO_EMAIL: z.string().default('demo@billing-erp.example.com'),
+  /** Browser tests only (ignored unless NODE_ENV=test): the date the plan's days left are counted from, matching the tests' frozen clock. */
+  TEST_TODAY: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
 export type Config = z.infer<typeof schema>;
@@ -35,6 +38,12 @@ export function config(): Config {
     cached = r.data;
   }
   return cached;
+}
+
+/** Today in India; under NODE_ENV=test, TEST_TODAY when set. */
+export function planToday(): string {
+  const c = config();
+  return c.NODE_ENV === 'test' && c.TEST_TODAY ? c.TEST_TODAY : todayIst();
 }
 
 /** Tests change env between files. */
