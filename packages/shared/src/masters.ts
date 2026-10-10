@@ -46,12 +46,19 @@ export const partySchema = z
 export type PartyInput = z.infer<typeof partySchema>;
 export const partyUpdateSchema = partySchema.partial();
 
+/** Own item codes ("Assign code"): the shop's prefix + a 3 to 5 digit number, e.g. JE001. */
+export const ITEM_PREFIX_DEFAULT = 'JE';
+export const ITEM_PREFIX = /^[A-Z]{0,6}$/;
+
 export const itemSchema = z.object({
   name: trim.min(1, 'Enter the item name.').max(200),
   kind: z.enum(['goods', 'service']).default('goods'),
   code: opt(60),
   hsn: opt(8).refine((v) => !v || /^\d{4,8}$/.test(v), 'HSN/SAC is 4 to 8 digits.'),
   unit: opt(20).transform((v) => v.toUpperCase()),
+  /** optional second unit: 1 unit = unitRate secondaryUnit, e.g. 1 COIL = 90 MTR */
+  secondaryUnit: opt(20).transform((v) => v.toUpperCase()),
+  unitRate: amount(),
   category: opt(80),
   brand: opt(80),
   group: opt(160),
@@ -167,4 +174,4 @@ export const commissionRuleSchema = z.object({
 });
 
 export const nameSchema = z.object({ name: trim.min(1, 'Enter a name.').max(80) });
-export const unitSchema = z.object({ code: trim.min(1, 'Enter a unit.').max(20).transform((v) => v.toUpperCase()) });
+export const unitSchema = z.object({ code: trim.min(1, 'Enter a unit.').max(20).transform((v) => v.toUpperCase()), name: opt(40) });

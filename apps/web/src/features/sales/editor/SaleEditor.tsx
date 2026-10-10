@@ -486,7 +486,7 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
         const np = L.find((x) => x.id === id);
         if (np) { pickParty({ id: np.id, name: np.name, phone: np.phone, gstin: np.gstin, city: np.billing?.city ?? '', state: np.state, group: np.group, days: np.creditDays ?? 0, limit: Number(np.creditLimit ?? 0), supplier: np.kind === 'supplier', balance: Number(np.balance) }); full(); }
       }} />
-      <AddItemDialog open={!!addItem} service={false} onClose={() => setAddItem(null)} onSaved={async (id) => {
+      <AddItemDialog open={!!addItem} onClose={() => setAddItem(null)} onSaved={async (id) => {
         const then = addItem?.then; setAddItem(null);
         await qc.refetchQueries({ queryKey: ['items'] }); await qc.refetchQueries({ queryKey: ['prices'] });
         setTimeout(() => { const it = useEditorDataSnapshot.IT?.find((x) => x.id === id); if (it && then) then(it); }, 50);
