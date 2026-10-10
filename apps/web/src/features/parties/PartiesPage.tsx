@@ -6,7 +6,7 @@
 import { useMemo, useState, type MouseEvent as RMouseEvent } from 'react';
 import { go } from '../../lib/go';
 import { useQuery } from '@tanstack/react-query';
-import { money } from '@billing/shared';
+import { money, todayIst } from '@billing/shared';
 import { api } from '../../lib/api';
 import { dmy, inr, inr2f } from '../../lib/format';
 import { useCur } from '../../lib/settings';
@@ -58,11 +58,26 @@ interface Tx {
   st: { t: string; c: string };
 }
 
-/** A party's transactions. Phase 2 has only the opening balance (prototype tx type "Opening balance"). */
-function partyTx(p: Party): Tx[] {
-  const ob = money(p.openingBalance);
-  if (ob.isZero()) return [];
-  return [{ i: 0, type: 'Opening balance', no: '—', date: dmy(p.openingDate), total: p.openingBalance, bal: p.openingBalance, due: '', st: { t: 'Unpaid', c: 'a' } }];
+/** One row of GET /reports/party-tx/:id (ISO dates; bal = still unpaid, or unused for payments and notes). */
+interface PartyTxRow { type: string; no: string; date: string; total: string; bal: string; due: string }
+
+/** prototype txStatus */
+function txStatus(t: PartyTxRow, today: string, cur: (s: string) => string): Tx['st'] {
+  const bal = money(t.bal);
+  if (t.type === 'Payment-In' || t.type === 'Payment-Out') return bal.gt(0) ? { t: `Unused ${cur(inr(Number(t.bal)))}`, c: 'a' } : { t: 'Used', c: 'g' };
+  if (t.type === 'Opening balance') return bal.gt(0) ? { t: 'Unpaid', c: 'a' } : { t: 'Settled', c: 'g' };
+  if (bal.lte(0)) return { t: 'Paid', c: 'g' };
+  const od = t.due ? Math.round((Date.parse(today) - Date.parse(t.due)) / 86_400_000) : 0;
+  if (t.due && od > 0) return { t: `Overdue ${od} day${od > 1 ? 's' : ''}`, c: od > 14 ? 'r' : 'a' };
+  if (t.due && od === 0) return { t: 'Due today', c: 'a' };
+  if (bal.lt(t.total)) return { t: 'Partly paid', c: 'b' };
+  return { t: t.due ? `Due in ${-od} days` : 'Unpaid', c: 'b' };
+}
+
+/** A party's transactions (prototype p.tx): sales, purchases, payments in / out, credit and debit notes, cheque bounces and the opening balance. */
+function partyTx(rows: PartyTxRow[], cur: (s: string) => string): Tx[] {
+  const today = todayIst();
+  return rows.map((t, i) => ({ i, type: t.type, no: t.no, date: dmy(t.date), total: t.total, bal: t.bal, due: t.due ? dmy(t.due) : '', st: txStatus(t, today, cur) }));
 }
 
 export function PartiesPage() {
@@ -247,7 +262,9 @@ function PartyHead({ p, shop, onCopied }: { p: Party; shop: string; onCopied: (t
 
 function TxTable(props: { p: Party; tq: string; tType: string; tStat: string; sort: 'date' | 'total' | 'bal'; setTType: (v: string) => void; setTStat: (v: string) => void; setSort: (v: 'date' | 'total' | 'bal') => void }) {
   const { p, tq, tType, tStat, sort } = props;
-  const all = partyTx(p);
+  const cur = useCur();
+  const rows = useQuery({ queryKey: ['party-tx', p.id], queryFn: () => api<PartyTxRow[]>(`/reports/party-tx/${p.id}`) });
+  const all = partyTx(rows.data ?? [], cur);
   const q = tq.toLowerCase();
   const tx = all
     .filter((t) => (tType === 'all' || t.type === tType) && (tStat === 'all' || (tStat === 'open' ? money(t.bal).gt(0) : tStat === 'over' ? t.st.t.startsWith('Overdue') : money(t.bal).isZero())) && (!q || t.no.toLowerCase().includes(q) || t.type.toLowerCase().includes(q) || t.total.includes(q)))
