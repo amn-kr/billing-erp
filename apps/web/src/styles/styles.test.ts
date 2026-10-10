@@ -1,3 +1,5 @@
+/// <reference types="node" />
+// The web app only sees browser types; this test reads files from disk, so it asks for Node's.
 /**
  * CLAUDE.md: "Copy its CSS unchanged". These checks fail if anyone edits the
  * copied stylesheets, or if the prototype changes and the copies are stale.

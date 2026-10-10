@@ -218,7 +218,7 @@ export class ReportsService {
         tx.expense.findMany({ where: { cancelledAt: null, date: { gte: day(mS), lte: day(mE) } } }),
         tx.$queryRaw<{ amt: string | null }[]>`
           SELECT sum(l.debit - l.credit)::text AS amt FROM journal_lines l JOIN journal_entries e ON e.id = l.entry_id JOIN ledger_accounts a ON a.id = l.account_id
-          WHERE e.cancelled_at IS NULL AND a.key LIKE 'cb:%' AND e.date = ${day(t)}`,
+          WHERE e.cancelled_at IS NULL AND a.key LIKE 'cb:%' AND e.date = ${t}::date`,
       ]);
       const on = (d: string) => inv.filter((v) => isoOf(v.date) === d);
       const sum = <T,>(A: T[], f: (x: T) => Money) => n2(A.reduce((a, x) => a.plus(f(x)), money(0)));
