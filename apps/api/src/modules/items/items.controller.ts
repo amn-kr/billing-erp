@@ -16,6 +16,12 @@ export class ItemsController {
     return this.items.list(ctx, { search: q, kind, category, brand, level, archived: archived === 'true' });
   }
 
+  @RequirePermission('masters.manage')
+  @Get('items/next-code')
+  nextCode(@Ctx() ctx: RequestContext) {
+    return this.items.nextCode(ctx);
+  }
+
   @RequirePermission('masters.view')
   @Get('items/:id')
   get(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
@@ -69,6 +75,6 @@ export class ItemsController {
   @RequirePermission('masters.manage')
   @Post('catalogue/units')
   addUnit(@Ctx() ctx: RequestContext, @Body(new ZodPipe(unitSchema)) body: z.infer<typeof unitSchema>) {
-    return this.items.addUnit(ctx, body.code);
+    return this.items.addUnit(ctx, body.code, body.name);
   }
 }

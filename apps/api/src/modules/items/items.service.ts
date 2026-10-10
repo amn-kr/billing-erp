@@ -1,12 +1,12 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { money, todayIst, toDb, type ItemInput } from '@billing/shared';
+import { ITEM_PREFIX, ITEM_PREFIX_DEFAULT, money, todayIst, toDb, type ItemInput } from '@billing/shared';
 import type { Prisma } from '@prisma/client';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import type { RequestContext } from '../../common/context';
 import { day, isoOf, namedId, unitIdFor, uniqueMessage } from '../../common/lookups';
 
-const include = { unit: true, category: true, brand: true, itemGroup: true } satisfies Prisma.ItemInclude;
+const include = { unit: true, secondaryUnit: true, category: true, brand: true, itemGroup: true } satisfies Prisma.ItemInclude;
 type Row = Prisma.ItemGetPayload<{ include: typeof include }>;
 const q3 = (v: Prisma.Decimal | string | number) => money(v.toString()).toDecimalPlaces(3).toFixed(3);
 
@@ -15,6 +15,7 @@ export function itemView(i: Row, stock: Prisma.Decimal | string | null) {
   const min = money(i.minStock.toString());
   return {
     id: i.id, kind: i.kind, name: i.name, code: i.code, hsn: i.hsn, unit: i.unit?.code ?? '', category: i.category?.name ?? '',
+    secondaryUnit: i.secondaryUnit?.code ?? '', unitRate: i.unitRate ? q3(i.unitRate) : null,
     brand: i.brand?.name ?? '', group: i.itemGroup?.name ?? '', series: i.series, gstRate: money(i.gstRate.toString()).toFixed(2),
     sale: toDb(i.salePrice.toString()), purchase: toDb(i.purchasePrice.toString()), mrp: toDb(i.mrp.toString()), listPrice: toDb(i.listPrice.toString()),
     wholesale: toDb(i.wholesalePrice.toString()), wholesaleMinQty: q3(i.wholesaleMinQty), minStock: q3(i.minStock), location: i.location,
@@ -97,6 +98,7 @@ export class ItemsService {
     const b = ctx.businessId!, u = ctx.userId;
     return {
       ...(input.unit !== undefined && { unitId: await unitIdFor(tx, b, u, input.unit || 'PCS') }),
+      ...(input.secondaryUnit !== undefined && { secondaryUnitId: await unitIdFor(tx, b, u, input.secondaryUnit) }),
       ...(input.category !== undefined && { categoryId: await namedId(tx, 'category', b, u, input.category) }),
       ...(input.brand !== undefined && { brandId: await namedId(tx, 'brand', b, u, input.brand) }),
       ...(input.group !== undefined && { itemGroupId: await namedId(tx, 'itemGroup', b, u, input.group) }),
@@ -121,16 +123,50 @@ export class ItemsService {
       ...(input.wholesaleMinQty !== undefined && { wholesaleMinQty: q(input.wholesaleMinQty) }),
       ...(input.minStock !== undefined && { minStock: q(input.minStock) }),
       ...(input.location !== undefined && { location: input.location }),
+      // the rate belongs to the secondary unit: no secondary unit, no rate
+      ...(input.secondaryUnit !== undefined && { unitRate: input.secondaryUnit && input.unitRate ? q(input.unitRate) : null }),
     };
   }
 
   /** Clear messages before the database's own unique indexes (which stay as the guard against two saves at once). */
   private async clash(tx: Tx, input: Partial<ItemInput>, exceptId?: string) {
     const not = exceptId ? { id: { not: exceptId } } : {};
+    if (input.secondaryUnit) {
+      if (input.unit !== undefined && input.secondaryUnit === (input.unit || 'PCS')) throw new BadRequestException({ message: 'The secondary unit must be different from the base unit.', field: 'unit' });
+      if (!(input.unitRate && money(input.unitRate).gt(0))) throw new BadRequestException({ message: 'Enter how many secondary units make 1 base unit.', field: 'unit' });
+    }
     if (input.code && (await tx.item.findFirst({ where: { archivedAt: null, code: { equals: input.code, mode: 'insensitive' }, ...not } })))
       throw new ConflictException({ message: 'This item code is already used.', field: 'code' });
+    // A variant's series is new within its parent item and brand (ignoring capital letters).
+    if (input.group && input.brand) {
+      const series = (input.series ?? '').trim();
+      const same = { equals: series, mode: 'insensitive' as const };
+      if (await tx.item.findFirst({ where: { archivedAt: null, itemGroup: { name: { equals: input.group, mode: 'insensitive' } }, brand: { name: { equals: input.brand, mode: 'insensitive' } }, series: same, ...not } }))
+        throw new ConflictException({ message: `${input.brand}${series ? ' ' + series : ''} is already in this item. Enter a different series.`, field: 'series' });
+    }
     if (input.name && (await tx.item.findFirst({ where: { archivedAt: null, name: { equals: input.name, mode: 'insensitive' }, ...not } })))
       throw new ConflictException({ message: 'An item with this name already exists.', field: 'name' });
+  }
+
+  /**
+   * The next own code: the shop's prefix (Settings › Items, default JE) + the lowest free number, 3 to 5 digits
+   * (JE001 … JE99999). Codes of all items count, archived ones too, so a code is never reused.
+   */
+  nextCode(ctx: RequestContext) {
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      const s = await tx.businessSettings.findUnique({ where: { businessId: ctx.businessId! }, select: { data: true } });
+      const p = (s?.data as Record<string, unknown> | null)?.itemPrefix;
+      const prefix = typeof p === 'string' && ITEM_PREFIX.test(p) ? p : ITEM_PREFIX_DEFAULT;
+      const re = new RegExp(`^${prefix}(\\d{3,5})$`, 'i');
+      const rows = await tx.item.findMany({ where: { code: { startsWith: prefix, mode: 'insensitive' } }, select: { code: true } });
+      const used = new Set(rows.flatMap((r) => { const m = re.exec(r.code); return m ? [Number(m[1])] : []; }));
+      const taken = new Set(rows.map((r) => r.code.toLowerCase()));
+      for (let n = 1; n <= 99999; n++) {
+        const code = prefix + String(n).padStart(3, '0');
+        if (!used.has(n) && !taken.has(code.toLowerCase())) return { code };
+      }
+      throw new ConflictException({ message: `All item codes from ${prefix}001 to ${prefix}99999 are used.`, field: 'code' });
+    });
   }
 
   private conflict(e: unknown): never {
@@ -211,8 +247,15 @@ export class ItemsService {
         tx.brand.findMany({ where: { archivedAt: null }, include: { _count: { select: { items: live } } }, orderBy: { name: 'asc' } }),
         tx.itemGroup.findMany({ where: { archivedAt: null }, include: { _count: { select: { items: live } } }, orderBy: { name: 'asc' } }),
       ]);
+      // conversion rates already used on items, offered again in the Select unit window
+      const conv = await tx.item.findMany({ where: { archivedAt: null, secondaryUnitId: { not: null }, unitRate: { not: null } }, select: { unit: { select: { code: true } }, secondaryUnit: { select: { code: true } }, unitRate: true } });
+      const rates = [...new Map(conv.filter((c) => c.unit && c.secondaryUnit).map((c) => {
+        const r = { unit: c.unit!.code, secondaryUnit: c.secondaryUnit!.code, rate: q3(c.unitRate!) };
+        return [`${r.unit}|${r.secondaryUnit}|${r.rate}`, r] as const;
+      })).values()];
       return {
-        units: units.map((u) => ({ id: u.id, code: u.code, items: u._count.items })),
+        units: units.map((u) => ({ id: u.id, code: u.code, name: u.name, items: u._count.items })),
+        rates,
         categories: categories.map((c) => ({ id: c.id, name: c.name, items: c._count.items })),
         brands: brands.map((b) => ({ id: b.id, name: b.name, items: b._count.items })),
         groups: groups.map((g) => ({ id: g.id, name: g.name, items: g._count.items })),
@@ -228,11 +271,11 @@ export class ItemsService {
     });
   }
 
-  addUnit(ctx: RequestContext, code: string) {
+  addUnit(ctx: RequestContext, code: string, name = '') {
     return this.db.scoped(this.scope(ctx), async (tx) => {
-      const id = await unitIdFor(tx, ctx.businessId!, ctx.userId, code);
-      await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'create', entity: 'unit', entityId: id, after: { code }, ip: ctx.ip });
-      return { id, code };
+      const id = await unitIdFor(tx, ctx.businessId!, ctx.userId, code, name);
+      await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'create', entity: 'unit', entityId: id, after: { code, name }, ip: ctx.ip });
+      return { id, code, name };
     });
   }
 }

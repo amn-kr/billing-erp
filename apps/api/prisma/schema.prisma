@@ -490,13 +490,16 @@ model Unit {
   businessId String    @map("business_id") @db.Uuid
   /// PCS, BOX, KG, MTR, COIL, …
   code       String
+  /// full name, e.g. "Coil" (empty for units made before names existed)
+  name       String    @default("")
   archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
   createdBy  String    @map("created_by") @db.Uuid
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  business Business @relation(fields: [businessId], references: [id])
-  items    Item[]
+  business       Business @relation(fields: [businessId], references: [id])
+  items          Item[]   @relation("ItemUnit")
+  secondaryItems Item[]   @relation("ItemSecondaryUnit")
 
   @@unique([businessId, code])
   @@map("units")
@@ -578,6 +581,9 @@ model Item {
   code            String    @default("")
   hsn             String    @default("")
   unitId          String?   @map("unit_id") @db.Uuid
+  secondaryUnitId String?   @map("secondary_unit_id") @db.Uuid
+  /// 1 base unit = unitRate secondary units, e.g. 1 COIL = 90 MTR
+  unitRate        Decimal?  @map("unit_rate") @db.Decimal(14, 3)
   categoryId      String?   @map("category_id") @db.Uuid
   brandId         String?   @map("brand_id") @db.Uuid
   itemGroupId     String?   @map("item_group_id") @db.Uuid
@@ -601,7 +607,8 @@ model Item {
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   business    Business          @relation(fields: [businessId], references: [id])
-  unit        Unit?             @relation(fields: [unitId], references: [id])
+  unit          Unit?           @relation("ItemUnit", fields: [unitId], references: [id])
+  secondaryUnit Unit?           @relation("ItemSecondaryUnit", fields: [secondaryUnitId], references: [id])
   category    Category?         @relation(fields: [categoryId], references: [id])
   brand       Brand?            @relation(fields: [brandId], references: [id])
   itemGroup   ItemGroup?        @relation(fields: [itemGroupId], references: [id])

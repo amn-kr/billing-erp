@@ -11,7 +11,8 @@ import type { IconName } from '../../components/icon-paths';
 import { soon, useShell } from '../shell/store';
 import type { PriceList } from '../prices/model';
 import { GeneralTab } from './GeneralTab';
-import { Sw, useS, useSetTab } from './model';
+import { ITEM_PREFIX } from '@billing/shared';
+import { Sw, useS, useSaveS, useSetTab } from './model';
 import { TaxCards, TaxList, TaxPreview } from './TaxTab';
 
 const SUB: [IconName, string, string?][] = [['crown', 'Subscription', 'sub'], ['gear', 'General'], ['receipt', 'Transactions'], ['doc', 'Print & invoice'], ['pct', 'Taxes & GST'], ['chat', 'Messages'], ['users', 'Parties'], ['box', 'Items'], ['bell', 'Reminders'], ['book', 'Accounting'], ['swap', 'Multi-currency']];
@@ -86,6 +87,28 @@ function PriceListSwitches() {
         <div className="tgl plset" key={p.id}><div className="tx"><b>{p.name}{p.isDefault && <> <span className="st g">Always on</span></>}</b><small>{ruleTxt(p)}{Number(p.roundTo) ? ` · rounded to ₹${Number(p.roundTo)}` : ''}{p.groups.length ? ` · used for ${p.groups.join(', ')}` : ''}</small></div>
           {p.isDefault ? <label className="tgs" title="The default list can’t be turned off"><input type="checkbox" checked disabled aria-label={`${p.name} (always on)`} readOnly /><i></i></label> : <Sw id={`plA_${p.id}`} on={p.active} label={p.name} onChange={(v) => void toggle(p, v)} />}</div>
       ))}
+      <ItemCodePrefix />
+    </>
+  );
+}
+
+/** Settings › Items: the prefix of codes made by "Assign code" in Add item (JE → JE001, JE002, …). */
+function ItemCodePrefix() {
+  const { S } = useS();
+  const save = useSaveS();
+  const { showToast } = useShell();
+  const [v, setV] = useState(S.itemPrefix);
+  const ok = ITEM_PREFIX.test(v);
+  const commit = () => {
+    if (!ok || v === S.itemPrefix) return;
+    void save({ data: { itemPrefix: v } });
+    showToast(v ? `New item codes will start with ${v}, e.g. ${v}001` : 'New item codes will be numbers only, e.g. 001');
+  };
+  return (
+    <>
+      <h3 style={{ margin: '22px 0 4px', fontSize: 16 }}>Item codes</h3><p className="mu" style={{ margin: '0 0 14px', fontSize: 13 }}>“Assign code” in Add item gives the next free code: this prefix and a 3 to 5 digit number, e.g. {v || ''}001. Changing it affects only new codes; items you already have keep theirs.</p>
+      <div className="two plset"><label className="fl" htmlFor="sItemPrefix">Item code prefix<input className="fi mono" id="sItemPrefix" value={v} placeholder="e.g. JE" maxLength={6} autoComplete="off" onChange={(e) => setV(e.target.value.toUpperCase().replace(/\s/g, ''))} onBlur={commit} onKeyDown={(e) => e.key === 'Enter' && commit()} /></label><span></span></div>
+      <p className="xperr" id="sItemPrefixErr" hidden={ok}>Use up to 6 letters (A to Z), e.g. JE.</p>
     </>
   );
 }

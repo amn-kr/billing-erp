@@ -288,7 +288,7 @@ export function ItemsPage() {
           </div>
         </div>
       </div>
-      <AddItemDialog open={adding} service={kind === 's'} onClose={() => setAdding(false)} onSaved={(id, svc) => { setAdding(false); setKind(svc ? 's' : 'p'); setSel(id); }} />
+      <AddItemDialog open={adding} onClose={() => setAdding(false)} onSaved={(id, svc, group) => { setAdding(false); setKind(svc ? 's' : 'p'); setSel(group ? 'g:' + group : id); }} />
       <AdjustStockDialog item={adjusting} onClose={() => setAdjusting(null)} />
     </section>
   );
