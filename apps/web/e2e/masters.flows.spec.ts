@@ -39,8 +39,33 @@ test('add items (with opening stock, service, brands/sizes) and adjust stock', a
   await signInAs(page, await freshShop(request));
   await page.goto(APP + '/items');
   await page.click('#vItems .pthd .btn.p');
+  // opens on Product and Single; a single item has no series field
+  await expect(page.locator('#aiTypeSw .on')).toHaveText('Product');
+  await expect(page.locator('#aiVarSw .on')).toHaveText('Single');
+  await expect(page.locator('#aiSeries')).toHaveCount(0);
   await page.fill('#aiName', 'LED bulb 9W');
-  await page.selectOption('#aiUnit', 'PCS');
+  // unit: the Select unit window
+  await page.click('#aiUnit');
+  await expect(page.locator('#aiUnits')).toBeVisible();
+  await page.selectOption('#aiUBase', 'PCS');
+  await page.click('#aiUSave');
+  await expect(page.locator('#aiUnits')).toBeHidden();
+  await expect(page.locator('#aiUnit')).toHaveText('PCS');
+  // Assign code: the shop's prefix (JE) and the first free number
+  await page.click('#aiGen');
+  await expect(page.locator('#aiCode')).toHaveValue('JE001');
+  // a new category and a new brand from their popups; each is selected after Create
+  await page.selectOption('#aiCat', '__new');
+  await expect(page.locator('#aiAdd_cat')).toBeVisible();
+  await expect(page.locator('#aiAdd_catN')).toHaveAttribute('placeholder', 'e.g., Grocery');
+  await page.fill('#aiAdd_catN', 'Lighting');
+  await page.click('#aiAdd_catGo');
+  await expect(page.locator('#aiAdd_cat')).toBeHidden();
+  await expect(page.locator('#aiCat')).toHaveValue('Lighting');
+  await page.selectOption('#aiBrandSel', '__new');
+  await page.fill('#aiAdd_brandN', 'Philips');
+  await page.click('#aiAdd_brandGo');
+  await expect(page.locator('#aiBrandSel')).toHaveValue('Philips');
   await page.fill('#aiSale', '95');
   await page.fill('#aiPurch', '62');
   await expect(page.locator('#aiMargin')).toHaveText('Margin per unit: 33.00 (53%)');
@@ -76,32 +101,66 @@ test('add items (with opening stock, service, brands/sizes) and adjust stock', a
   await page.click('#dcfYes');
   await expect(page.locator('#adj')).toBeHidden();
 
-  // an item in several brands
+  // an item in several brands / sizes: one variant per save under a parent item
   await page.click('#vItems .pthd .btn.p');
-  await page.fill('#aiName', 'Modular switch 6A');
   await page.click('#aiVar');
-  await page.locator('#aiNewBrandName').waitFor({ state: 'hidden' });
-  await page.selectOption('#ai [data-vr="0"][data-k="brand"]', '__new');
-  await page.fill('#aiNewBrandName', 'Havells');
-  await page.click('#aiNewBrandAdd');
-  await page.selectOption('#ai [data-vr="0"][data-k="brand"]', 'Havells');
-  await page.fill('#ai [data-vr="0"][data-k="series"]', 'Coral');
-  await page.fill('#ai [data-vr="0"][data-k="sale"]', '44');
-  await page.selectOption('#ai [data-vr="1"][data-k="brand"]', '__new');
-  await page.fill('#aiNewBrandName', 'Legrand');
-  await page.click('#aiNewBrandAdd');
-  await page.selectOption('#ai [data-vr="1"][data-k="brand"]', 'Legrand');
-  await page.fill('#ai [data-vr="1"][data-k="series"]', 'Myrius');
-  await page.fill('#ai [data-vr="1"][data-k="sale"]', '58');
+  await expect(page.locator('#aiVarSw .on')).toHaveText('Variant');
+  // a new parent item from its popup
+  await page.selectOption('#aiName', '__new');
+  await expect(page.locator('#aiAdd_group')).toBeVisible();
+  await page.fill('#aiAdd_groupN', 'Copper wire 1.5 sq mm');
+  await page.click('#aiAdd_groupGo');
+  await expect(page.locator('#aiName')).toHaveValue('Copper wire 1.5 sq mm');
+  await page.selectOption('#aiBrandSel', '__new');
+  await page.fill('#aiAdd_brandN', 'Havells');
+  await page.click('#aiAdd_brandGo');
+  await expect(page.locator('#aiBrandSel')).toHaveValue('Havells');
+  await page.fill('#aiSeries', 'FR Red');
+  // Select unit: base unit named from the unit popup, a secondary unit and its rate
+  await page.click('#aiUnit');
+  await page.selectOption('#aiUBase', '__new');
+  await expect(page.locator('#aiAdd_unit')).toBeVisible();
+  await page.fill('#aiAdd_unitN', 'Coil');
+  await page.fill('#aiAdd_unitS', 'COIL');
+  await page.click('#aiAdd_unitGo');
+  await expect(page.locator('#aiAdd_unit')).toBeHidden();
+  await expect(page.locator('#aiUBase')).toHaveValue('COIL');
+  await page.selectOption('#aiUSec', 'MTR');
+  await page.fill('#aiURate', '90');
+  await page.click('#aiUSave');
+  await expect(page.locator('#aiUnit')).toHaveText('COIL · 1 COIL = 90 MTR');
+  await page.fill('#aiSale', '1650');
+  await page.click('#aiSaveNew');
+  await expect(page.locator('#toast')).toHaveText('Copper wire 1.5 sq mm · Havells FR Red added');
+  // Save & new keeps the parent item and brand
+  await expect(page.locator('#aiName')).toHaveValue('Copper wire 1.5 sq mm');
+  await expect(page.locator('#aiBrandSel')).toHaveValue('Havells');
+  await expect(page.locator('#aiSeries')).toHaveValue('');
+  // a series already in this parent and brand is refused, whatever the capitals
+  await page.fill('#aiSeries', 'fr red');
+  await page.fill('#aiSale', '1650');
   await page.click('#aiSave');
-  await expect(page.locator('#toast')).toHaveText('Modular switch 6A added with 2 brands / sizes');
-  await expect(page.locator('#itHead h2')).toHaveText('Modular switch 6A');
+  await expect(page.locator('#ai .aperr')).toHaveText('Havells fr red is already in this item. Enter a different series.');
+  await page.fill('#aiSeries', 'FR Black');
+  await page.click('#aiSave');
+  await expect(page.locator('#toast')).toHaveText('Copper wire 1.5 sq mm · Havells FR Black added');
+  await expect(page.locator('#itHead h2')).toHaveText('Copper wire 1.5 sq mm');
   await expect(page.locator('#itHead .vtab tbody tr')).toHaveCount(2);
-  await expect(page.locator('#itList .grh .brc')).toHaveText('2 brands');
+  // the rate used is offered again in the Select unit window
+  await page.click('#vItems .pthd .btn.p');
+  await page.click('#aiUnit');
+  await page.selectOption('#aiUBase', 'COIL');
+  await page.selectOption('#aiUSec', 'MTR');
+  await expect(page.locator('#aiUnits .cb2').nth(1)).toHaveText('1 COIL = 90 MTR');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#aiUnits')).toBeHidden();
+  await page.click('#aiClose');
 
   // a service
   await page.click('#vItems .pthd .btn.p');
   await page.click('#aiSvc');
+  // a service has no Single / Variant choice
+  await expect(page.locator('#aiVarSw')).toHaveCount(0);
   await page.fill('#aiName', 'Fan installation');
   await page.fill('#aiSale', '350');
   await page.click('#aiSave');
