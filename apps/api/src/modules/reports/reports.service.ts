@@ -5,7 +5,8 @@ import { LedgerService } from '../../common/ledger.service';
 import type { RequestContext } from '../../common/context';
 import { isoOf } from '../../common/lookups';
 import { CommissionService } from '../commission/commission.service';
-import { invoiceBalances } from '../sales/dues';
+import { billBalances, usedOut } from '../purchases/dues';
+import { invoiceBalances, unusedAmounts } from '../sales/dues';
 
 const m = (v: { toString(): string } | null | undefined) => money(v ? v.toString() : 0);
 const n2 = (v: Money) => Number(round2(v).toFixed(2));
@@ -65,7 +66,7 @@ export class ReportsService {
       parties, P, it,
       invoices: inv.map((v) => ({ ...doc(v, v.lines.map((l) => line(l, l.price))), cancelled: !!v.cancelledAt, due: v.mode === 'credit' && v.dueDate ? isoOf(v.dueDate)! : '', referred: !!v.referrerId })),
       creditNotes: cns.map((c) => ({ ...doc(c, c.lines.map((l) => line(l, l.price))), refund: c.status === 'refund', refundMode: String((c.extra as Record<string, unknown>)?.refundMode ?? ''), reason: c.reason, against: [...new Set(c.lines.flatMap((l) => (l.againstId && invNo.get(l.againstId) ? [invNo.get(l.againstId)!] : [])))] })),
-      pays: pays.map((p) => ({ no: p.number, date: isoOf(p.date)!, partyId: p.partyId, amount: Number(p.amount), dir: p.direction, mode: p.mode, ref: p.reference })),
+      pays: pays.map((p) => ({ id: p.id, no: p.number, date: isoOf(p.date)!, partyId: p.partyId, amount: Number(p.amount), dir: p.direction, mode: p.mode, ref: p.reference })),
       bills: purch.filter((d) => d.kind === 'bill').map((d) => ({ ...doc(d, d.lines.map((l) => line(l, l.rate))), due: d.dueDate ? isoOf(d.dueDate)! : '' })),
       debitNotes: purch.filter((d) => d.kind === 'debit_note').map((d) => doc(d, [])),
       cheques: cheques.map((c) => ({ no: 'CB-' + (c.chequeNo.replace(/\D/g, '') || c.chequeNo), date: isoOf(c.statusDate ?? c.chequeDate)!, partyId: c.partyId, amount: Number(c.amount), out: c.direction === 'issued' })),
@@ -101,6 +102,55 @@ export class ReportsService {
     for (const d of L.debitNotes.filter((x) => x.partyId === pid)) push({ date: d.date, no: d.no, type: 'Debit note', kind: 'Debit note', info: 'Goods returned to supplier', dr: d.total, cr: 0 });
     for (const c of L.cheques.filter((x) => x.partyId === pid)) push({ date: c.date, no: c.no, type: 'Cheque bounce', kind: 'Cheque bounce', info: 'Cheque returned unpaid', dr: sup ? 0 : c.amount, cr: sup ? c.amount : 0 });
     return E.sort((a, b) => a.date.localeCompare(b.date) || a.o - b.o || a.no.localeCompare(b.no));
+  }
+
+  /**
+   * A party's transactions for the Parties page (prototype p.tx): every sale, purchase, payment in / out,
+   * credit note, debit note, cheque bounce and the opening balance, newest first, each with its total,
+   * what is still open on it (unpaid, or unused for payments and notes) and its due date.
+   * Sales-side rows need sales.view and purchase-side rows purchases.view.
+   */
+  partyTx(ctx: RequestContext, pid: string) {
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      const L = await this.load(tx, pid);
+      const p = L.parties[0];
+      if (!p) throw new NotFoundException('Party not found');
+      const sales = ctx.permissions.includes('sales.view'), purch = ctx.permissions.includes('purchases.view');
+      const open = (total: Money, used: Money | undefined) => { const b = total.minus(used ?? 0); return b.isNegative() ? money(0) : b; };
+      const R: { type: string; no: string; date: string; total: string; bal: string; due: string }[] = [];
+      const push = (type: string, no: string, date: string, total: Money | number, bal: Money, due = '') => R.push({ type, no, date, total: money(total).toFixed(2), bal: bal.toFixed(2), due });
+
+      const ob = money(p.openingBalance.toString());
+      if (!ob.isZero()) {
+        const [r] = await tx.$queryRaw<{ used: string | null }[]>`
+          SELECT sum(a.amount)::text AS used FROM payment_allocations a
+          LEFT JOIN payments x ON x.id = a.payment_id LEFT JOIN sales_documents n ON n.id = a.note_id LEFT JOIN purchase_documents d ON d.id = a.note_id
+          WHERE a.kind = 'opening' AND a.party_id = ${pid}::uuid AND x.cancelled_at IS NULL AND n.cancelled_at IS NULL AND d.cancelled_at IS NULL`;
+        push('Opening balance', '—', isoOf(p.openingDate) ?? '', ob, open(ob, money(r?.used ?? 0)));
+      }
+      if (sales) {
+        const inv = L.invoices.filter((v) => !v.cancelled);
+        const ib = await invoiceBalances(tx, inv.map((v) => v.id));
+        for (const v of inv) push('Sale', v.no, v.date, v.total, ib.get(v.id) ?? money(0), v.due);
+        const pin = L.pays.filter((x) => x.dir === 'in');
+        const pu = await unusedAmounts(tx, 'payment', pin.map((x) => x.id));
+        for (const x of pin) push('Payment-In', x.no, x.date, x.amount, open(money(x.amount), pu.get(x.id)));
+        const cu = await unusedAmounts(tx, 'note', L.creditNotes.map((c) => c.id));
+        for (const c of L.creditNotes) push('Credit note', c.no, c.date, c.total, c.refund ? money(0) : open(money(c.total), cu.get(c.id)));
+      }
+      if (purch) {
+        const bb = await billBalances(tx, L.bills.map((b) => b.id));
+        for (const b of L.bills) push('Purchase', b.no, b.date, b.total, bb.get(b.id) ?? money(0), b.due);
+        const pout = L.pays.filter((x) => x.dir !== 'in');
+        const ou = await usedOut(tx, 'payment', pout.map((x) => x.id));
+        for (const x of pout) push('Payment-Out', x.no, x.date, x.amount, open(money(x.amount), ou.get(x.id)));
+        const du = await usedOut(tx, 'note', L.debitNotes.map((d) => d.id));
+        for (const d of L.debitNotes) push('Debit note', d.no, d.date, d.total, open(money(d.total), du.get(d.id)));
+      }
+      // a bounced cheque is owed again from its bounce date (prototype: bal = amount, due = date)
+      for (const c of L.cheques) if (c.out ? purch : sales) push('Cheque bounce', c.no, c.date, c.amount, money(c.amount), c.date);
+      return R.sort((a, b) => b.date.localeCompare(a.date) || b.no.localeCompare(a.no));
+    });
   }
 
   /** Party Statement: opening, every entry in the period with a running balance, closing. */
@@ -218,7 +268,7 @@ export class ReportsService {
         tx.expense.findMany({ where: { cancelledAt: null, date: { gte: day(mS), lte: day(mE) } } }),
         tx.$queryRaw<{ amt: string | null }[]>`
           SELECT sum(l.debit - l.credit)::text AS amt FROM journal_lines l JOIN journal_entries e ON e.id = l.entry_id JOIN ledger_accounts a ON a.id = l.account_id
-          WHERE e.cancelled_at IS NULL AND a.key LIKE 'cb:%' AND e.date = ${day(t)}`,
+          WHERE e.cancelled_at IS NULL AND a.key LIKE 'cb:%' AND e.date = ${t}::date`,
       ]);
       const on = (d: string) => inv.filter((v) => isoOf(v.date) === d);
       const sum = <T,>(A: T[], f: (x: T) => Money) => n2(A.reduce((a, x) => a.plus(f(x)), money(0)));

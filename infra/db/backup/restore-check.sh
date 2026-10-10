@@ -15,8 +15,22 @@ case "$RESTORE_DATABASE_URL" in *neon.tech*) echo "::error::Refusing to restore 
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 gpg --batch --quiet --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" --decrypt --output "$tmp/db.dump" "$src"
 
-# the API's role must exist for the restored grants and the isolation check
-$PG psql "$RESTORE_DATABASE_URL" -qtAX -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'erp_app') THEN CREATE ROLE erp_app NOLOGIN; END IF; END \$\$;"
+# Every role the backup's grants name must exist, or the restore stops: erp_app (the API's role, which the
+# isolation check runs as) and Neon's own roles (neon_superuser, cloud_admin, neondb_owner). They are read
+# from the backup's grant entries and created as plain NOLOGIN roles with no special powers, so the
+# grants restore exactly as on Neon and erp_app gets nothing it doesn't have there.
+$PG pg_restore --list "$tmp/db.dump" | grep -E '^[0-9]+;.* (ACL|DEFAULT ACL) ' > "$tmp/acl.list" || true
+$PG pg_restore --no-owner --use-list="$tmp/acl.list" --file="$tmp/acl.sql" "$tmp/db.dump"
+roles="$( { echo erp_app; grep -v '^--' "$tmp/acl.sql" | grep -oE '\b(FOR ROLE|TO|FROM|BY) "?[A-Za-z_][A-Za-z0-9_$]*"?' | awk '{print $NF}' | tr -d '"'; } | grep -vix public | sort -u)"
+for r in $roles; do
+  $PG psql "$RESTORE_DATABASE_URL" -qtAX -v ON_ERROR_STOP=1 -v r="$r" <<'SQL'
+SELECT format('CREATE ROLE %I NOLOGIN NOSUPERUSER NOBYPASSRLS', :'r') WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'r')
+\gexec
+SQL
+done
+echo "Roles for the restored grants: $(echo $roles | tr ' ' ',')"
+# erp_app must stay an ordinary role, or the isolation check below would prove nothing
+$PG psql "$RESTORE_DATABASE_URL" -qtAX -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'erp_app' AND (rolsuper OR rolbypassrls)) THEN RAISE EXCEPTION 'erp_app can bypass row-level security in the throwaway database.'; END IF; END \$\$;"
 $PG pg_restore --dbname="$RESTORE_DATABASE_URL" --no-owner --exit-on-error < "$tmp/db.dump"
 
 $PG psql "$RESTORE_DATABASE_URL" -qtAX -v ON_ERROR_STOP=1 <<'SQL'

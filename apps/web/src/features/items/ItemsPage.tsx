@@ -42,7 +42,7 @@ export interface Item {
   legacyId?: string | null;
 }
 
-interface Movement { id: string; date: string; kind: string; qty: string; rate: string; note: string; ref: string; createdAt: string }
+interface Movement { id: string; date: string; kind: string; qty: string; rate: string; note: string; ref: string; sourceType: string; party: string; status: string; createdAt: string }
 interface ItemDetail extends Item { movements: Movement[] }
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
@@ -60,19 +60,20 @@ const isNew = (i: Item) => Math.abs(Date.now() - Date.parse(i.createdAt)) < 7 * 
 const vlabel = (i: Item) => `${i.brand || ''}${i.series ? ' ' + i.series : ''}`.trim() || i.name;
 const lvlClass = (l: Item['level']) => (l === 'out' ? 'neg' : l === 'low' ? 'lowq' : 'zero');
 
-/** Prototype item transaction rows, from the stock ledger. */
+/** Prototype item transaction rows, from the stock ledger: invoice / bill number, party and status come from the API. */
 function txRows(i: ItemDetail) {
-  const label: Record<string, string> = { opening: 'Opening stock', adjustment: 'Adjustment', transfer: 'Transfer', cancel: 'Cancelled' };
+  const label: Record<string, string> = { opening: 'Opening stock', adjustment: 'Adjustment', transfer: 'Transfer', sale: 'Sale', purchase: 'Purchase', return: 'Sale return', purchase_return: 'Purchase return' };
+  const cancelled: Record<string, string> = { sales_document: 'Sale cancelled', purchase_document: 'Purchase cancelled' };
   return i.movements.map((m) => ({
     id: m.id,
-    type: label[m.kind] ?? m.kind,
+    type: m.kind === 'cancel' ? cancelled[m.sourceType] ?? 'Cancelled' : label[m.kind] ?? m.kind,
     ref: m.kind === 'opening' ? '—' : m.ref || '—',
-    party: m.kind === 'adjustment' ? m.note : '',
+    party: m.kind === 'adjustment' ? m.note : m.party,
     date: dmy(m.date),
     iso: m.date,
     qty: n(m.qty),
     price: m.rate,
-    st: m.kind === 'adjustment' ? (n(m.qty) >= 0 ? 'Added' : 'Reduced') : '',
+    st: m.kind === 'adjustment' ? (n(m.qty) >= 0 ? 'Added' : 'Reduced') : m.status,
   }));
 }
 const SC: Record<string, string> = { Paid: 'g', Unpaid: 'a', 'Partly paid': 'b', Overdue: 'r', 'Due today': 'a', Reduced: 'r', Added: 'g' };

@@ -5,6 +5,7 @@ import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import type { RequestContext } from '../../common/context';
 import { day, isoOf, namedId, unitIdFor, uniqueMessage } from '../../common/lookups';
+import { invoiceBalances } from '../sales/dues';
 
 const include = { unit: true, secondaryUnit: true, category: true, brand: true, itemGroup: true } satisfies Prisma.ItemInclude;
 type Row = Prisma.ItemGetPayload<{ include: typeof include }>;
@@ -85,11 +86,32 @@ export class ItemsService {
       const trfIds = movements.filter((m) => m.sourceType === 'stock_transfer' && m.sourceId).map((m) => m.sourceId!);
       const adjs = new Map((await tx.stockAdjustment.findMany({ where: { id: { in: adjIds } } })).map((a) => [a.id, a]));
       const trfs = new Map((await tx.stockTransfer.findMany({ where: { id: { in: trfIds } } })).map((t) => [t.id, t]));
-      const refOf = (m: (typeof movements)[number]) => (m.sourceId ? adjs.get(m.sourceId)?.number ?? trfs.get(m.sourceId)?.number ?? '' : '');
+      // invoices, credit notes and bills behind sale / return / purchase rows: their number, party and (invoices) paid status
+      const ids = (t: string) => [...new Set(movements.filter((m) => m.sourceType === t && m.sourceId).map((m) => m.sourceId!))];
+      const sdocs = new Map((await tx.salesDocument.findMany({ where: { id: { in: ids('sales_document') } }, select: { id: true, number: true, kind: true, total: true, cancelledAt: true, cashName: true, billName: true, party: { select: { name: true } } } })).map((d) => [d.id, d]));
+      const pdocs = new Map((await tx.purchaseDocument.findMany({ where: { id: { in: ids('purchase_document') } }, select: { id: true, number: true, party: { select: { name: true } } } })).map((d) => [d.id, d]));
+      const bal = await invoiceBalances(tx, [...sdocs.values()].filter((d) => d.kind === 'invoice').map((d) => d.id));
+      const refOf = (m: (typeof movements)[number]) => (m.sourceId ? adjs.get(m.sourceId)?.number ?? trfs.get(m.sourceId)?.number ?? sdocs.get(m.sourceId)?.number ?? pdocs.get(m.sourceId)?.number ?? '' : '');
+      const partyOf = (m: (typeof movements)[number]) => {
+        if (!m.sourceId) return '';
+        const s = sdocs.get(m.sourceId);
+        if (s) return s.party?.name ?? (s.billName || s.cashName || 'Walk-in customer');
+        return pdocs.get(m.sourceId)?.party.name ?? '';
+      };
+      /** prototype item tx "st": an invoice's paid state, Returned, Cancelled; blank otherwise */
+      const statusOf = (m: (typeof movements)[number]) => {
+        const s = m.sourceId ? sdocs.get(m.sourceId) : undefined;
+        if (m.kind === 'cancel' && (s || (m.sourceId && pdocs.has(m.sourceId)))) return 'Cancelled';
+        if (m.kind === 'return') return 'Returned';
+        if (m.kind !== 'sale' || !s) return '';
+        if (s.cancelledAt) return 'Cancelled';
+        const b = bal.get(s.id) ?? money(0);
+        return b.lte(0) ? 'Paid' : b.lt(money(s.total.toString())) ? 'Partly paid' : 'Unpaid';
+      };
       return {
         ...item,
         godowns: godowns.map((g) => ({ id: g.id, name: g.name, stock: q3(byGodown.find((b) => b.godownId === g.id)?._sum.qty ?? '0') })),
-        movements: movements.map((m) => ({ id: m.id, date: isoOf(m.date), kind: m.kind, qty: q3(m.qty), rate: toDb(m.rate.toString()), godown: m.godown.name, note: m.note, sourceType: m.sourceType, sourceId: m.sourceId, ref: refOf(m), createdAt: m.createdAt })),
+        movements: movements.map((m) => ({ id: m.id, date: isoOf(m.date), kind: m.kind, qty: q3(m.qty), rate: toDb(m.rate.toString()), godown: m.godown.name, note: m.note, sourceType: m.sourceType, sourceId: m.sourceId, ref: refOf(m), party: partyOf(m), status: statusOf(m), createdAt: m.createdAt })),
       };
     });
   }
