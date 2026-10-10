@@ -43,6 +43,13 @@ export class ReportsController {
     return this.reports.activity(ctx, ...period(from, to));
   }
 
+  /** The Parties page's transaction list for one party (rows filtered by the person's sales / purchases access). */
+  @RequirePermission('masters.view')
+  @Get('party-tx/:id')
+  partyTx(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
+    return this.reports.partyTx(ctx, id);
+  }
+
   @RequirePermission('reports.view')
   @Get('statement/:id')
   statement(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Query('from') from?: string, @Query('to') to?: string) {
