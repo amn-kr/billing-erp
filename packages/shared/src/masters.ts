@@ -175,3 +175,21 @@ export const commissionRuleSchema = z.object({
 
 export const nameSchema = z.object({ name: trim.min(1, 'Enter a name.').max(80) });
 export const unitSchema = z.object({ code: trim.min(1, 'Enter a unit.').max(20).transform((v) => v.toUpperCase()), name: opt(40) });
+
+/** Brands & Series (Items › Brands & Series). Nothing is deleted: "active: false" makes a brand or series inactive. */
+export const brandSchema = z.object({ name: trim.min(1, 'Enter the brand name.').max(80), notes: opt(200) });
+export const brandUpdateSchema = z.object({ name: trim.min(1, 'Enter the brand name.').max(80).optional(), notes: trim.max(200).optional(), active: z.boolean().optional() });
+export const seriesSchema = z.object({ brandId: z.string({ required_error: 'Choose a brand.' }).uuid({ message: 'Choose a brand.' }), name: trim.min(1, 'Enter the series name.').max(80), size: opt(80), notes: opt(200) });
+/** A series is found by its id, or (not saved here yet, only typed on items) by its brand and name. */
+export const seriesUpdateSchema = z.object({
+  brandId: z.string().uuid().optional(),
+  name: trim.min(1, 'Enter the series name.').max(80).optional(),
+  size: trim.max(80).optional(),
+  notes: trim.max(200).optional(),
+  active: z.boolean().optional(),
+});
+export const seriesFromItemsSchema = seriesUpdateSchema.extend({ from: z.object({ brandId: z.string().uuid(), name: trim.min(1).max(80) }) });
+export type BrandInput = z.infer<typeof brandSchema>;
+export type BrandUpdate = z.infer<typeof brandUpdateSchema>;
+export type SeriesInput = z.infer<typeof seriesSchema>;
+export type SeriesUpdate = z.infer<typeof seriesUpdateSchema>;
