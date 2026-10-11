@@ -15,6 +15,7 @@ import { today } from '../../../lib/time';
 import { Icon, RawIcon } from '../../../components/Icon';
 import { useDcf } from '../../../components/Discard';
 import { useShell } from '../../shell/store';
+import { EntryClose, useFullscreen } from '../../shell/EntryFrame';
 import { AddPartyDialog } from '../../parties/AddPartyDialog';
 import { AddItemDialog } from '../../items/AddItemDialog';
 import type { Party } from '../../parties/PartiesPage';
@@ -47,6 +48,7 @@ const nextNo = (doc: SI['doc'], date: string) => ({
 const blank = (x: SI) => !hasContent(x) && !x.editOf && x.autoNo && !x.fromChallanId;
 
 export function SaleEditor() {
+  useFullscreen();
   const d = useEditorData();
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -108,13 +110,13 @@ export function SaleEditor() {
   if (!d || !tab) return <section id="vNewInv"></section>;
   const ops: TabOps = {
     newTab: () => void newTab(tab.si.doc),
-    close: (id) => {
+    close: (id, ask = true) => {
       const t = useSI.getState().tabs.find((x) => x.id === id);
       if (!t) return;
       const list = t.si.doc === 'quote' ? '/quotations' : '/sales';
       // the last bill closes the editor; no new bill is started and no number is used
       const go = () => { if (!useSI.getState().close(id)) navigate(list); };
-      if (isDirty(t.si)) useDcf.getState().ask(t.si.doc === 'quote' ? 'quotation' : 'bill', go);
+      if (ask && isDirty(t.si)) useDcf.getState().ask(t.si.doc === 'quote' ? 'quotation' : 'bill', go);
       else go();
     },
     saved: async (id, r, how) => {
@@ -135,7 +137,8 @@ export function SaleEditor() {
 }
 interface TabOps {
   newTab: () => void;
-  close: (id: string) => void;
+  /** ask = false leaves without the discard question (the full-screen × was double-clicked) */
+  close: (id: string, ask?: boolean) => void;
   saved: (id: string, r: { id: string }, how: 'again' | 'print' | 'save') => Promise<void>;
 }
 
@@ -376,7 +379,8 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
           onClick={() => { up2((x) => { x.mode = cash ? 'credit' : 'cash'; x.recvTouched = quote; if (x.mode === 'cash') { x.party = null; x.pos = ctx.state; } x.pays = []; }); full(); }}><i></i></button><span className={cash ? 'on' : ''}>{quote ? 'Walk-in' : 'Cash'}</span></div>
         <div className="sp"></div>
         <div className="tnd" id="siND" key={`nd${rk}`}><label className="tndf"><span>{quote ? 'Quotation no.' : 'Invoice no.'}</span><input className="fi mono" id="siNo" defaultValue={s.no} autoComplete="off" aria-label={quote ? 'Quotation no.' : 'Invoice no.'} onInput={(e) => up2((x) => { x.no = (e.target as HTMLInputElement).value.trim(); x.autoNo = false; })} /></label>
-          <label className="tndf"><span>Date</span><input className="fi" type="date" id="siDate" defaultValue={s.date} aria-label="Date" onChange={(e) => { up2((x) => { x.date = e.target.value; if (!x.dueTouched && x.party) x.due = addDaysIso(x.date, x.party.days || 0); }); full(); }} /></label></div></div>
+          <label className="tndf"><span>Date</span><input className="fi" type="date" id="siDate" defaultValue={s.date} aria-label="Date" onChange={(e) => { up2((x) => { x.date = e.target.value; if (!x.dueTouched && x.party) x.due = addDaysIso(x.date, x.party.days || 0); }); full(); }} /></label></div>
+        <EntryClose onBack={back} onLeave={() => ops.close(tabId, false)} dirty={isDirty(s)} label={quote ? 'Cancel quotation entry' : 'Cancel bill entry'} /></div>
 
       <div className="card dgh">
         <div className="dgc" id="siParty_" key={`pt${rk}`}>
