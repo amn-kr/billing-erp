@@ -6,7 +6,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
-import { approvedShot, hideHeader, sameShot } from './shots';
+import { approvedShot, hideHeader, sameShot, shot } from './shots';
 import { APP, RAVI, WIDTHS, freshShop, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
 
 for (const width of WIDTHS) {
@@ -518,12 +518,12 @@ for (const width of WIDTHS) {
       // owner's change: General has the Colour combination and Shortcuts moved from the top bar, so it is compared
       // with its approved picture; from here on the top bar is hidden (it has its own check), also behind the Start fresh window
       await hideHeader(proto, app);
+      // the prototype's page is still photographed (and the picture dropped), as when this was compared with it:
+      // taking the picture scrolls the page and redraws its text, and the next checks expect both pages in that state
+      await shot(proto, '#vSet');
       await approvedShot(`set-gen-${width}`, app, '#vSet');
       await both((p) => p.fill('#bzName', ''));
       await both((p) => p.click('#bzSaveBtn'));
-      // General is longer in the rebuild now (owner's new blocks), so after the full-page picture the two pages sit at
-      // different scroll spots and text lands on different half pixels; start both from the top
-      await both((p) => p.evaluate(() => { scrollTo(0, 0); document.querySelector('main')?.scrollTo(0, 0); }));
       await settle();
       await sameShot(`set-bz-error-${width}`, proto, app, '#bzCard');
       await both((p) => p.fill('#bzName', 'Gupta Electricals & Hardware'));
