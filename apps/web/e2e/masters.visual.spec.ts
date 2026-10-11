@@ -521,6 +521,9 @@ for (const width of WIDTHS) {
       await approvedShot(`set-gen-${width}`, app, '#vSet');
       await both((p) => p.fill('#bzName', ''));
       await both((p) => p.click('#bzSaveBtn'));
+      // General is longer in the rebuild now (owner's new blocks), so after the full-page picture the two pages sit at
+      // different scroll spots and text lands on different half pixels; start both from the top
+      await both((p) => p.evaluate(() => { scrollTo(0, 0); document.querySelector('main')?.scrollTo(0, 0); }));
       await settle();
       await sameShot(`set-bz-error-${width}`, proto, app, '#bzCard');
       await both((p) => p.fill('#bzName', 'Gupta Electricals & Hardware'));
