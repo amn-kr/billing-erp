@@ -157,7 +157,8 @@ export function AppShell() {
   if (!me.data) return null;
   if (!me.data.business) return <GoLogin />;
 
-  const active = Object.entries(VIEW_PATH).find(([, p]) => p === location.pathname)?.[0] ?? '';
+  // a screen inside a page (Items › Brands & Series) keeps that page lit in the sidebar
+  const active = (Object.entries(VIEW_PATH).find(([, p]) => p === location.pathname) ?? Object.entries(VIEW_PATH).find(([, p]) => p !== '/' && location.pathname.startsWith(p + '/')))?.[0] ?? '';
   // on Reports, the sidebar marks the section of the report on screen
   const rsec = active === 'rep' ? repOf(new URLSearchParams(location.search).get('r') ?? '')?.sec ?? 'txn' : '';
 
