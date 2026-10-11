@@ -1,0 +1,21 @@
+/* Full-screen entry window (owner-approved change, not in the prototype): while Sale, Quotation,
+   Purchase bill / order or Debit note is open, the sidebar and top bar make way and the editor
+   uses the whole screen. The prototype's sticky offsets assume the 68px top bar, so they start at 0. */
+.app.efull{grid-template-columns:minmax(0,1fr)}
+.app.efull>.side,.app.efull header.top{display:none}
+.app.efull .sift{left:0}
+@media (min-width:1001px) and (min-height:640px){
+ .app.efull #vNewInv>.sitop,.app.efull #vPEd>.sitop{top:0}
+ .app.efull #vNewInv .dgh,.app.efull #vPEd .dgh{top:var(--sitH,62px)}
+ .app.efull #vNewInv .dgw,.app.efull #vPEd .dgw{max-height:max(240px,calc(100vh - var(--sitH,62px) - var(--dghH,180px) - 96px))}}
+@media (min-width:1480px) and (min-height:640px){
+ .app.efull #vNewInv .dgt thead,.app.efull #vPEd .dgt thead{top:calc(var(--sitH,62px) + var(--dghH,0px))}}
+/* close (×) in the top-right corner, on a row of its own above the title row: the bill-tabs row on
+   Sale / Quotation, and an empty row of the same height on Purchase (which has no tabs). The title
+   row's Date box then ends on the same right edge as × and the item table.
+   (Low-specificity relative: the prototype's sticky title line wins where it applies.) */
+.efull .sitop{position:relative}
+.app.efull #vNewInv .sitabs{padding-right:52px}
+.app.efull #vPEd>.sitop::before{content:'';order:-1;flex:0 0 100%;height:40px;margin-bottom:-2px}
+.sitop>#efClose{position:absolute;top:0;right:0}
+@media (min-width:1001px) and (min-height:640px){.sitop>#efClose{top:10px;right:6px}}
