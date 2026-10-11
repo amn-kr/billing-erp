@@ -58,7 +58,10 @@ for (const width of WIDTHS) {
       await app.waitForSelector('#itList .ptr');
       await app.waitForSelector('#itHead h2');
       await app.waitForTimeout(400);
-      await sameShot(`items-${width}`, proto, app, '#vItems');
+      // owner's change: the top bar has the Brands & Series button, so it is compared with its approved
+      // picture; the rest of the screen is still compared with the prototype
+      await approvedShot(`items-bar-${width}`, app, '#vItems .pthd');
+      await sameShot(`items-${width}`, proto, app, '#vItems .ptg');
       // sidebar, including the low-stock counter on Items & stock
       await sameShot(`items-side-${width}`, proto, app, '#side');
 
