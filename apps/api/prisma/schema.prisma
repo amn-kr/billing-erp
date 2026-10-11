@@ -93,6 +93,7 @@ model Business {
   units                 Unit[]
   categories            Category[]
   brands                Brand[]
+  brandSeries           BrandSeries[]
   itemGroups            ItemGroup[]
   hsnCodes              HsnCode[]
   items                 Item[]
@@ -526,16 +527,39 @@ model Brand {
   id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   businessId String    @map("business_id") @db.Uuid
   name       String
+  notes      String    @default("")
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
+  createdBy  String    @map("created_by") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business      @relation(fields: [businessId], references: [id])
+  items    Item[]
+  series   BrandSeries[]
+
+  @@unique([businessId, name])
+  @@map("brands")
+}
+
+/// A brand's series (e.g. Havells "Coral"), added on Brands & Series. Items keep their series as text
+/// (items.series); a series here matches items of the same brand by name, ignoring capital letters.
+model BrandSeries {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String    @map("business_id") @db.Uuid
+  brandId    String    @map("brand_id") @db.Uuid
+  name       String
+  size       String    @default("")
+  notes      String    @default("")
   archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
   createdBy  String    @map("created_by") @db.Uuid
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   business Business @relation(fields: [businessId], references: [id])
-  items    Item[]
+  brand    Brand    @relation(fields: [brandId], references: [id])
 
-  @@unique([businessId, name])
-  @@map("brands")
+  @@index([businessId, brandId])
+  @@map("brand_series")
 }
 
 /// An item family whose variants differ by brand and size, e.g. "Copper wire (90 m)".

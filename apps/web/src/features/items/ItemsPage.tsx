@@ -188,6 +188,7 @@ export function ItemsPage() {
           ) : <span>{IT.filter((i) => i.kind === 'service').length} services</span>}
         </div>
         <div className="sp"></div>
+        {kind === 'p' && <button className="btn" id="itBrands" onClick={() => go('/items/brands')}>Brands &amp; Series</button>}
         <button className="btn p" data-soon="New item" onClick={() => setAdding(true)}><Icon name="plus" />Add item</button>
         <div className="rel">
           <button className="ib" id="itMoreBtn" aria-label="More options" onClick={toggle('more')}><RawIcon d={DOTS} /></button>
@@ -358,7 +359,6 @@ function GroupHead({ g, ms, mrpOn, cur, onPick }: { g: string; ms: Item[]; mrpOn
         </div>
         <div className="ptacts">
           <button className="btn sm" data-gprices={g} onClick={() => soon('Price manager')}><Icon name="edit" />Update prices</button>
-          <button className="btn p sm" data-addvar={g} onClick={() => soon('Add brand / size')}><Icon name="plus" />Add brand / size</button>
         </div>
       </div>
       <div className="tw" style={{ margin: '14px -4px 0', overflowX: 'auto' }}>

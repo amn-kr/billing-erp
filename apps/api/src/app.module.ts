@@ -24,6 +24,8 @@ import { PartiesController } from './modules/parties/parties.controller';
 import { PartiesService } from './modules/parties/parties.service';
 import { ItemsController } from './modules/items/items.controller';
 import { ItemsService } from './modules/items/items.service';
+import { BrandsController } from './modules/items/brands.controller';
+import { BrandsService } from './modules/items/brands.service';
 import { StockController } from './modules/stock/stock.controller';
 import { StockService } from './modules/stock/stock.service';
 import { PricingController } from './modules/pricing/pricing.controller';
@@ -55,7 +57,7 @@ import { ReceiptsService } from './modules/sales/receipts.service';
     }),
   ],
   controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HealthController, ImportsController,
-    PartiesController, ItemsController, StockController, PricingController, SettingsController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController],
+    PartiesController, ItemsController, BrandsController, StockController, PricingController, SettingsController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController],
   providers: [
     DbService,
     AuditService,
@@ -73,6 +75,7 @@ import { ReceiptsService } from './modules/sales/receipts.service';
     ExpensesService,
     PartiesService,
     ItemsService,
+    BrandsService,
     StockService,
     PricingService,
     SalesService,
