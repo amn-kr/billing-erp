@@ -205,7 +205,8 @@ test('Quick sale (Alt+N): a walk-in cash sale is saved as an invoice, and its nu
 
 test('brand-wise quotation: no sample brands; the shop’s own brands and series, saved, converted, then locked', async ({ browser, request }) => {
   const page = await newPage(browser, 1366);
-  const who = await freshShop(request, 'fresh-kept-items');
+  // a new, empty shop (the fresh-kept-items fixture has a whole catalogue with brands and series typed on items)
+  const who = await freshShop(request);
   await signInAs(page, who);
   // no brands or series yet: no sample grid, a way to Brands & Series instead
   await page.goto(APP + '/quotations');
