@@ -15,6 +15,7 @@ import { today } from '../../lib/time';
 import { Icon, RawIcon } from '../../components/Icon';
 import { useDcf } from '../../components/Discard';
 import { useShell } from '../shell/store';
+import { EntryClose, useFullscreen } from '../shell/EntryFrame';
 import { AddPartyDialog } from '../parties/AddPartyDialog';
 import { AddItemDialog } from '../items/AddItemDialog';
 import { qfmt } from '../items/ItemsPage';
@@ -58,6 +59,7 @@ function newPE(kind: PKind, no: string): PE {
 }
 
 export function PurchaseEditor() {
+  useFullscreen();
   const d = useEditorData();
   const [params] = useSearchParams();
   const qc = useQueryClient();
@@ -224,10 +226,11 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
   const saveRef = useRef(save);
   saveRef.current = save;
   /* back: asks first when something was entered (prototype peDirty + askDiscard) */
+  const entered = (x: PE) => !!x.party || x.lines.some((l) => l.id || l.name.trim());
   const back = () => {
     const x = cur.current;
     const go = () => navigate(LIST[x.kind]);
-    if (x.party || x.lines.some((l) => l.id || l.name.trim())) useDcf.getState().ask(x.kind === 'order' ? 'purchase order' : x.kind === 'debit_note' ? 'debit note' : 'purchase bill', go);
+    if (entered(x)) useDcf.getState().ask(x.kind === 'order' ? 'purchase order' : x.kind === 'debit_note' ? 'debit note' : 'purchase bill', go);
     else go();
   };
   useEffect(() => {
@@ -284,7 +287,8 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
     <section id="vPEd" ref={ref}>
       <div className="sitop"><button className="ib" type="button" id="peBack" aria-label="Back" title="Back" onClick={back}><RawIcon d={BACK} /></button><h1 id="peTitle">{PE_T[k]}</h1><span className={`st ${k === 'bill' ? 'g' : k === 'debit_note' ? 'r' : ''}`} id="peKindTag">{k === 'bill' ? 'Stock in' : k === 'debit_note' ? 'Stock out' : 'No stock change'}</span><div className="sp"></div>
         <div className="tnd" id="peND"><label className="tndf"><span>{NO_LBL[k]}</span><input className="fi mono" id="peNo" value={s.no} autoComplete="off" aria-label={NO_LBL[k]} onChange={(e) => up((x) => { x.no = e.target.value.trim(); x.autoNo = false; })} /></label>
-          <label className="tndf"><span>Date</span><input className="fi" type="date" id="peDate" value={s.date} aria-label="Date" onChange={(e) => up((x) => { x.date = e.target.value; if (x.party) x.due = addDaysIso(x.date, x.party.days || 0); })} /></label></div></div>
+          <label className="tndf"><span>Date</span><input className="fi" type="date" id="peDate" value={s.date} aria-label="Date" onChange={(e) => up((x) => { x.date = e.target.value; if (x.party) x.due = addDaysIso(x.date, x.party.days || 0); })} /></label></div>
+        <EntryClose onBack={back} onLeave={() => navigate(LIST[cur.current.kind])} dirty={entered(s)} label={`Cancel ${PE_T[k].toLowerCase()} entry`} /></div>
 
       <div className="card dgh">
         <div className="dgc" id="peParty_"><div className="ff"><div className="combo"><input className="fi" id="peParty" value={ptxt} placeholder=" " autoComplete="off" role="combobox" aria-expanded={c.cb?.key === 'party'} aria-label="Supplier"
