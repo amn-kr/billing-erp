@@ -2,9 +2,12 @@
  * Phase 3 sales screens vs the prototype, both showing the same books
  * (packages/importer/fixtures/sales-shop.backup.json: invoices, a payment, a
  * return, challans and a quotation made through the prototype's own screens).
+ *
+ * The entry windows are full screen (owner's change: no sidebar or top bar), so pictures of the
+ * editor and of the pop-ups over it are compared with owner-approved pictures (e2e/approved/).
  */
 import { expect, test, type Page } from '@playwright/test';
-import { sameShot } from './shots';
+import { approvedShot, sameShot } from './shots';
 import { APP, SALES, WIDTHS, freshShop, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
 
 /** `who`: a shop of its own for tests that add records (the shared sales shop must stay as the prototype's) */
@@ -118,7 +121,7 @@ for (const width of WIDTHS) {
       await app.waitForSelector('#vNewInv #siRows tr[data-ln]');
       await proto.waitForTimeout(300);
       await withTabs(proto, app);
-      await sameShot(`editor-new-${width}`, proto, app, '#vNewInv');
+      await approvedShot(`editor-new-${width}`, app, '#vNewInv');
       // choose the party from the list, then add two items through rapid entry
       await both(proto, app, async (p) => { await p.fill('#siParty', 'Mehta'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); });
       for (const [item, qty] of [['LED bulb', '10'], ['Copper wire', '1']] as const) {
@@ -128,22 +131,22 @@ for (const width of WIDTHS) {
       await proto.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
       await app.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
       await withTabs(proto, app);
-      await sameShot(`editor-filled-${width}`, proto, app, '#vNewInv');
+      await approvedShot(`editor-filled-${width}`, app, '#vNewInv');
       // discount & charges pop-up
       await both(proto, app, (p) => p.click('#siChgBtn'));
       await both(proto, app, async (p) => { await p.fill('#siBdP', '5'); await p.locator('#siBdP').dispatchEvent('input'); await p.fill('#siChTr', '100'); await p.locator('#siChTr').dispatchEvent('input'); });
       await withTabs(proto, app);
-      await sameShot(`editor-charges-${width}`, proto, app, '#siChgPop');
+      await approvedShot(`editor-charges-${width}`, app, '#siChgPop');
       await both(proto, app, (p) => p.click('#siChgDone'));
       // payment pop-up with a part payment
       await both(proto, app, (p) => p.click('#siPayBtn'));
       await both(proto, app, async (p) => { await p.locator('#siPayC [data-pk="amt"]').fill('1000'); await p.locator('#siPayC [data-pk="amt"]').dispatchEvent('input'); });
       await withTabs(proto, app);
-      await sameShot(`editor-payment-${width}`, proto, app, '#siPayPop');
+      await approvedShot(`editor-payment-${width}`, app, '#siPayPop');
       await both(proto, app, (p) => p.click('[data-paydone="si"]'));
       await both(proto, app, (p) => p.mouse.move(0, 0));
       await withTabs(proto, app);
-      await sameShot(`editor-footer-${width}`, proto, app, '#vNewInv .sift');
+      await approvedShot(`editor-footer-${width}`, app, '#vNewInv .sift');
     });
 
     test('Invoice editor extras: transport, terms, description, attachments, profit & loss', async ({ browser }) => {
@@ -162,25 +165,25 @@ for (const width of WIDTHS) {
       // transport details, typed in
       await tool('tr');
       await both(proto, app, async (p) => { await p.click('#siTrans'); await p.keyboard.type('Sharma Roadways'); await p.click('#siVeh'); await p.keyboard.type('UP32 AB 1234'); });
-      await sameShot(`editor-transport-${width}`, proto, app, '#siPop');
+      await approvedShot(`editor-transport-${width}`, app, '#siPop');
       await tool('te');
-      await sameShot(`editor-terms-${width}`, proto, app, '#siPop');
+      await approvedShot(`editor-terms-${width}`, app, '#siPop');
       await tool('de');
       await both(proto, app, async (p) => { await p.click('#siDesc'); await p.keyboard.type('Site: Gomti Nagar'); });
       // attach a photo with the paper-clip (a file picker until something is attached)
       await both(proto, app, (p) => p.locator('#siTools input[data-dgfile="si"]').setInputFiles({ name: 'site-photo.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('x') }));
       await proto.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
       await app.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
-      await sameShot(`editor-description-${width}`, proto, app, '#siPop');
+      await approvedShot(`editor-description-${width}`, app, '#siPop');
       await tool('at');
-      await sameShot(`editor-attachments-${width}`, proto, app, '#siPop');
+      await approvedShot(`editor-attachments-${width}`, app, '#siPop');
       await tool('pl');
-      await sameShot(`editor-profit-${width}`, proto, app, '#siPop');
+      await approvedShot(`editor-profit-${width}`, app, '#siPop');
       // the chips under the items and the tool buttons show what was added
       await both(proto, app, async (p) => { await p.click('#siPop [data-dgdone]'); await p.mouse.move(0, 0); });
       await withTabs(proto, app);
-      await sameShot(`editor-extras-${width}`, proto, app, '#vNewInv .dgb');
-      await sameShot(`editor-tools-${width}`, proto, app, '#vNewInv .sift');
+      await approvedShot(`editor-extras-${width}`, app, '#vNewInv .dgb');
+      await approvedShot(`editor-tools-${width}`, app, '#vNewInv .sift');
     });
 
     test('Invoice editor previous rates: last prices for this customer, and using one', async ({ browser }) => {
@@ -192,11 +195,11 @@ for (const width of WIDTHS) {
       await both(proto, app, async (p) => { await p.fill('#siParty', 'Mehta'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); });
       await both(proto, app, async (p) => { await p.locator('#qeItem').fill('LED bulb'); await p.waitForTimeout(100); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); await p.locator('#qeQty').fill('5'); await p.locator('#qeQty').press('Control+Enter'); });
       await both(proto, app, async (p) => { await p.click('#siRows tr[data-ln="0"] [data-f="qty"]'); await p.waitForSelector('#phPop:not([hidden])'); });
-      await sameShot(`prev-rates-${width}`, proto, app, '#phPop');
+      await approvedShot(`prev-rates-${width}`, app, '#phPop');
       await both(proto, app, async (p) => { await p.click('#phPop tbody tr >> nth=0'); await p.mouse.move(0, 0); });
       await proto.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
       await app.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
-      await sameShot(`prev-rates-used-${width}`, proto, app, '#siRows tr[data-ln="0"]');
+      await approvedShot(`prev-rates-used-${width}`, app, '#siRows tr[data-ln="0"]');
     });
 
     test('Invoice editor: import from quotation, the "From quotation" chip and removing it', async ({ browser }) => {
@@ -208,20 +211,20 @@ for (const width of WIDTHS) {
       await withTabs(proto, app);
       await both(proto, app, async (p) => { await p.click('#siTitle'); await p.click('#siImpQ'); }); // (the title click closes the party list)
       await app.waitForSelector('#iqm:not([hidden]) .iqr');
-      await sameShot(`import-quote-${width}`, proto, app, '#iqm .mdl');
+      await approvedShot(`import-quote-${width}`, app, '#iqm .mdl');
       // a brand-wise quotation asks which brand to bill
       await both(proto, app, (p) => p.click('#iqList [data-iq="Q-0101"]'));
-      await sameShot(`import-quote-brand-${width}`, proto, app, '#iqm .mdl');
+      await approvedShot(`import-quote-brand-${width}`, app, '#iqm .mdl');
       await both(proto, app, (p) => p.click('#iqList [data-iq="Q-0102"]'));
-      await sameShot(`import-quote-picked-${width}`, proto, app, '#iqm .mdl');
+      await approvedShot(`import-quote-picked-${width}`, app, '#iqm .mdl');
       await both(proto, app, async (p) => { await p.click('#iqGo'); await p.mouse.move(0, 0); });
       await proto.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
       await app.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
-      await sameShot(`import-quote-chip-${width}`, proto, app, '#siMid');
+      await approvedShot(`import-quote-chip-${width}`, app, '#siMid');
       // the quoted rate is kept (the prototype re-prices the lines from the price list here)
       await expect(app.locator('#siRows tr[data-ln="1"] [data-f="price"]')).toHaveValue('1739');
       await both(proto, app, (p) => p.click('#siMid [data-qrx="Q-0102"]'));
-      await sameShot(`import-quote-remove-${width}`, proto, app, '#slm .mdl');
+      await approvedShot(`import-quote-remove-${width}`, app, '#slm .mdl');
       await both(proto, app, (p) => p.click('#slmOk'));
       await expect(app.locator('#siRows tr[data-ln]')).toHaveCount(1);
     });
@@ -291,15 +294,15 @@ for (const width of WIDTHS) {
       await both(proto, app, async (p) => { await p.fill('#elP', '9415011111'); await p.fill('#elC', 'Lucknow'); await p.click('#slmOk'); });
       await proto.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
       await app.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
-      await sameShot(`referral-pop-${width}`, proto, app, '#siCmPop');
+      await approvedShot(`referral-pop-${width}`, app, '#siCmPop');
       // commission on this bill, then a flat ₹20 per unit for the first category on this bill only
       await both(proto, app, (p) => p.click('#siCmChip'));
-      await sameShot(`referral-bill-${width}`, proto, app, '#slm .mdl');
+      await approvedShot(`referral-bill-${width}`, app, '#slm .mdl');
       await both(proto, app, async (p) => { await p.selectOption('#slmBody [data-bcat] select >> nth=0', 'f'); await p.fill('#slmBody [data-bcat] input >> nth=0', '20'); await p.locator('#slmBody [data-bcat] input >> nth=0').press('Tab'); await p.click('#slmT'); });
       // (clicked away first: the prototype redraws the window and drops focus, the rebuild keeps it moving with Tab)
-      await sameShot(`referral-bill-rule-${width}`, proto, app, '#slm .mdl');
+      await approvedShot(`referral-bill-rule-${width}`, app, '#slm .mdl');
       await both(proto, app, async (p) => { await p.click('#slmOk'); await p.keyboard.press('Escape'); await p.mouse.move(0, 0); });
-      await sameShot(`referral-grid-${width}`, proto, app, '#vNewInv .dggrid');
+      await approvedShot(`referral-grid-${width}`, app, '#vNewInv .dggrid');
     });
   });
 }

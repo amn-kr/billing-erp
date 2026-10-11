@@ -2,9 +2,12 @@
  * Phase 3 purchase screens vs the prototype, both showing the same books
  * (packages/importer/fixtures/purchase-shop.backup.json: two bills, two orders,
  * two payments made and a debit note, made through the prototype's own screens).
+ *
+ * The entry windows are full screen (owner's change: no sidebar or top bar), so pictures of the
+ * editor and of the pop-ups over it are compared with owner-approved pictures (e2e/approved/).
  */
 import { test, type Page } from '@playwright/test';
-import { sameShot } from './shots';
+import { approvedShot, sameShot } from './shots';
 import { APP, PURCHASES, WIDTHS, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
 
 async function pages(browser: Parameters<typeof newPage>[0], width: number, view: string, path: string, ready: string) {
@@ -109,20 +112,20 @@ for (const width of WIDTHS) {
       await app.waitForSelector('#vPEd #peNo[value="PB-0003"]');
       // the supplier list opens on the empty supplier box
       await app.waitForSelector('#peParty_ .cbl:not([hidden]) .cbo');
-      await sameShot(`ped-new-${width}`, proto, app, '#vPEd');
+      await approvedShot(`ped-new-${width}`, app, '#vPEd');
 
       const pick = async (p: Page, sel: string, text: string) => { await p.fill(sel, text); await p.waitForTimeout(150); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); await p.waitForTimeout(150); };
       await both(proto, app, (p) => pick(p, '#peParty', 'Kanpur'));
       await both(proto, app, (p) => pick(p, '#peRows tr[data-ln="0"] .pe-item', 'MCB'));
       await both(proto, app, async (p) => { await p.fill('#peRows tr[data-ln="0"] [data-pf="qty"]', '12'); await p.locator('#peRef').click(); await p.keyboard.type('KC/2301'); });
-      await sameShot(`ped-filled-${width}`, proto, app, '#vPEd');
+      await approvedShot(`ped-filled-${width}`, app, '#vPEd');
 
       await both(proto, app, (p) => p.click('#pePayBtn'));
       await both(proto, app, (p) => p.locator('#pePayPop [data-pk="amt"]').fill('2000'));
       await sameShot(`ped-pay-${width}`, proto, app, '#pePayPop');
       await both(proto, app, (p) => p.click('#pePayPop [data-paydone="pe"]'));
       await both(proto, app, (p) => p.mouse.move(0, 0));
-      await sameShot(`ped-paid-${width}`, proto, app, '#vPEd .sift');
+      await approvedShot(`ped-paid-${width}`, app, '#vPEd .sift');
 
       // a purchase order and a debit note (supplier and item chosen)
       for (const [kind, view, path] of [['po', 'pos', '/purchases/new?kind=order'], ['dn', 'dns', '/purchases/new?kind=debit_note']] as const) {
@@ -133,7 +136,7 @@ for (const width of WIDTHS) {
         await both(proto, app, (p) => pick(p, '#peParty', 'Kanpur'));
         await both(proto, app, (p) => pick(p, '#peRows tr[data-ln="0"] .pe-item', 'MCB'));
         await both(proto, app, (p) => p.locator('#peRows tr[data-ln="0"] [data-pf="rate"]').click());
-        await sameShot(`ped-${kind}-${width}`, proto, app, '#vPEd');
+        await approvedShot(`ped-${kind}-${width}`, app, '#vPEd');
       }
     });
   });
