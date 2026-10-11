@@ -231,7 +231,9 @@ for (const width of WIDTHS) {
 
     test('Quick sale window: empty, with a customer and items, credit', async ({ browser }) => {
       const { proto, app } = await pages(browser, width, 'sales', '/sales', '#slRows tr[data-sno]');
-      await both(proto, app, (p) => p.click('#qsBtn'));
+      // the rebuild has no top-bar Quick sale button any more (owner moved it to Settings); Alt+N opens the same window
+      await proto.click('#qsBtn');
+      await app.keyboard.press('Alt+n');
       await app.waitForSelector('#qsm .qsr');
       await both(proto, app, (p) => p.waitForTimeout(100));
       await sameShot(`quick-${width}`, proto, app, '#qsm .mdl');

@@ -1,14 +1,10 @@
-/** <header class="top"> — same markup as the prototype's top bar. */
-import { useQuick } from '../sales/QuickSale';
+/** <header class="top"> — the prototype's top bar, without Quick sale, colours and sync (moved to Settings › General). */
 import { Fragment, type MouseEvent as RMouseEvent, type ReactNode } from 'react';
 import { ROLE_LABELS, daysBetween, formatInr2, formatLongDate, type MeResponse } from '@billing/shared';
 import { Icon, RawIcon } from '../../components/Icon';
-import { PAL, type PalId } from './palette';
 import { useShell, type PopId } from './store';
 
-const CLOUD = '<path d="M7 18a4.5 4.5 0 01-.6-8.96A6 6 0 0118 8.5a4.75 4.75 0 01-.5 9.5z"/>';
 const KEYS = '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>';
-const BOLT = '<path d="M13 3L5 13h6l-1 8 8-10h-6z"/>';
 const PROFILE = '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>';
 const LICENSE = '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="12" r="2.5"/><path d="M14 10h4M14 14h3"/>';
 const LOCK = '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>';
@@ -120,9 +116,7 @@ interface Props {
   /** goods below their minimum or out of stock (bell) */
   lowItems?: number;
   overdue?: Overdue;
-  pal: PalId;
   online: boolean;
-  onPal: (id: PalId) => void;
   onView: (v: string) => void;
   onSoon: (what: string) => void;
   onSwitch: (businessId: string) => void;
@@ -131,8 +125,8 @@ interface Props {
   onSearch: (q: string) => void;
 }
 
-export function TopBar({ me, today, lowItems = 0, overdue, pal, online, onPal, onView, onSoon, onSwitch, onAddBusiness, onSignOut, onSearch }: Props) {
-  const { pop, setPop, pal: palOpen, setPal, sideOpen, setSideOpen } = useShell();
+export function TopBar({ me, today, lowItems = 0, overdue, online, onView, onSoon, onSwitch, onAddBusiness, onSignOut, onSearch }: Props) {
+  const { pop, setPop, sideOpen, setSideOpen } = useShell();
   const b = me.business!;
   const toggle = (p: PopId) => (e: RMouseEvent) => {
     e.stopPropagation();
@@ -144,7 +138,6 @@ export function TopBar({ me, today, lowItems = 0, overdue, pal, online, onPal, o
   const lic = b.plan === 'trial' ? `Free trial · ${left} days left` : b.plan === 'expired' ? 'Trial ended · choose a plan' : `Paid · till ${formatLongDate(b.planEndsOn)}`;
   const others = me.memberships.filter((m) => m.businessId !== b.id);
   const ownerName = me.user.name || b.name;
-  const st = online ? 'ok' : 'off';
 
   return (
     <header className="top">
@@ -154,7 +147,8 @@ export function TopBar({ me, today, lowItems = 0, overdue, pal, online, onPal, o
         <input id="q" placeholder="Search invoice, party, item…" autoComplete="off" onKeyDown={(e) => { const v = e.currentTarget.value.trim(); if (e.key === 'Enter' && v) onSearch(v); }} />
       </label>
       <div className="sp"></div>
-      <button className="ib qsb" id="qsBtn" title="Quick sale (Alt+N)" aria-label="Quick sale" onClick={() => useQuick.getState().show()}><RawIcon d={BOLT} /></button>
+      {/* owner's change: Quick sale (Alt+N), colour combination and sync moved to Settings › General; only an Offline label shows here, and only while offline */}
+      {online ? null : <span className="st r" id="offChip" role="status" title={SYNC_LABEL.off}>Offline</span>}
       <div className="rel" hidden style={{ display: 'none' }}>
         <button className="ib plus" id="qcBtn" aria-label="Create new" aria-haspopup="true" aria-expanded={pop === 'qcPop'} onClick={toggle('qcPop')}><Icon name="plus" /></button>
         <div className="pop qc" id="qcPop" hidden={pop !== 'qcPop'}>
@@ -165,19 +159,6 @@ export function TopBar({ me, today, lowItems = 0, overdue, pal, online, onPal, o
         </div>
       </div>
       <button className="ib" id="ksBtn" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)" onClick={() => onSoon('Keyboard shortcuts')}><RawIcon d={KEYS} /></button>
-      <div className="palw">
-        <button className="ib" id="palBtn" aria-label="Change colours" aria-haspopup="true" aria-expanded={palOpen} onClick={() => setPal(!palOpen)}><Icon name="palette" /></button>
-        <div className="pal" id="pal" hidden={!palOpen} role="radiogroup" aria-label="Colour combination">
-          <h4>Colour combination</h4>
-          {PAL.map((p) => (
-            <button className="po" role="radio" data-p={p.id} aria-checked={pal === p.id} key={p.id} onClick={() => onPal(p.id)}>
-              <span className="sw"><i style={{ background: p.ac }}></i><i style={{ background: p.ac3 }}></i><i style={{ background: p.bg, borderColor: p.bd }}></i></span>
-              <span><b>{p.name}{'rec' in p && p.rec && <span className="rec g">Recommended</span>}</b><small>{p.why}</small></span>
-            </button>
-          ))}
-        </div>
-      </div>
-      <button className="ib" id="syncBtn" type="button" data-st={st} title={SYNC_LABEL[st]} aria-label={SYNC_LABEL[st]}><RawIcon d={CLOUD} /></button>
       <div className="rel">
         <button className="ib" id="bellBtn" aria-label={`Notifications (${n})`} aria-haspopup="true" aria-expanded={pop === 'bellPop'} onClick={toggle('bellPop')}>
           <Icon name="bell" /><span className="dot" hidden></span><span className="bcnt" id="bellCnt" hidden={!n}>{n > 9 ? '9+' : n}</span>

@@ -5,7 +5,7 @@
  */
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { compare } from './compare';
-import { shot } from './shots';
+import { approvedShot, shot } from './shots';
 import { APP, PROTOTYPE_LOGIN, WIDTHS, newPage, prototypeFresh, signIn } from './setup';
 
 /** Allowed share of differing pixels. Both pages render on the same machine, so the target is an exact match. */
@@ -54,7 +54,8 @@ for (const width of WIDTHS) {
       await prototypeFresh(proto);
       await signIn(app);
       await same(`sidebar-${width}`, await shot(proto, '#side'), await shot(app, '#side'));
-      await same(`topbar-${width}`, await shot(proto, 'header.top'), await shot(app, 'header.top'));
+      // owner's change: Quick sale, colours and sync moved to Settings › General, so the top bar has its own approved picture
+      await approvedShot(`topbar-${width}`, app, 'header.top');
       await same(`hero-${width}`, await shot(proto, '#vDash .hero'), await shot(app, '#vDash .hero'));
     });
 
@@ -64,7 +65,8 @@ for (const width of WIDTHS) {
       await signIn(app);
       // menus have rounded corners: hide the page content behind them (it differs: Home is rebuilt in Phase 4)
       for (const p of [proto, app]) await p.addStyleTag({ content: 'main.page > section { visibility: hidden !important }' });
-      for (const [btn, pop] of [['#avBtn', '#avPop'], ['#orgBtn', '#orgPop'], ['#bellBtn', '#bellPop'], ['#palBtn', '#pal']] as const) {
+      // (the colour menu moved to Settings › General; it is in the set-gen picture)
+      for (const [btn, pop] of [['#avBtn', '#avPop'], ['#orgBtn', '#orgPop'], ['#bellBtn', '#bellPop']] as const) {
         await proto.click(btn);
         await app.click(btn);
         await proto.mouse.move(0, 0);

@@ -3,7 +3,7 @@
  * a supplier, invoices, returns, purchases, payments, expenses, a cheque and electrician commission).
  */
 import { test, type Page } from '@playwright/test';
-import { sameShot } from './shots';
+import { hideHeader, sameShot } from './shots';
 import { APP, COMMISSION, WIDTHS, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
 
 const both = async (a: Page, b: Page, fn: (p: Page) => Promise<unknown>) => { await fn(a); await fn(b); };
@@ -49,6 +49,8 @@ for (const width of WIDTHS) {
       const { proto, app } = await pages(browser, width);
       await fixPurchaseLines(proto);
       await open(proto, app, 'pstmt', '#rpMain .pscard');
+      // the statement is taller than the window, so its pictures would include the top bar (changed by the owner; checked on its own)
+      await hideHeader(proto, app);
       await sameShot(`rep-pstmt-${width}`, proto, app, '#rpMain');
       await both(proto, app, (p) => p.check('#psDet'));
       await app.waitForSelector('#rpMain tr.psit');

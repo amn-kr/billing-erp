@@ -14,8 +14,15 @@ import { today } from '../../lib/time';
 import { useOpenFocus } from '../../lib/useOpenFocus';
 import { Icon, RawIcon } from '../../components/Icon';
 import { useDiscardGuard } from '../../components/Discard';
-import { useShell } from '../shell/store';
+import { useOnline, useShell } from '../shell/store';
+import { PAL } from '../shell/palette';
+import { SYNC_LABEL } from '../shell/TopBar';
+import { useQuick } from '../sales/QuickSale';
 import { Sw, useS, useSaveS } from './model';
+
+const BOLT = '<path d="M13 3L5 13h6l-1 8 8-10h-6z"/>';
+/** the Alt keys the app frame handles (AppShell), shown under Settings › General › Shortcuts */
+const KEYS: [key: string, what: string][] = [['Alt+S', 'New sale invoice'], ['Alt+R', 'Receive payment'], ['Alt+P', 'New purchase bill'], ['Alt+E', 'New expense']];
 
 interface Biz { name: string; shortName: string; ownerName: string; phone: string; email: string; address: string; city: string; pin: string; stateCode: string; gstin: string; invoiceNext: number }
 const CLOUD = '<path d="M7 18a4.5 4.5 0 01-.6-8.96A6 6 0 0118 8.5a4.75 4.75 0 01-.5 9.5z"/>';
@@ -46,7 +53,8 @@ export function GeneralTab() {
   const { S } = useS();
   const save = useSaveS();
   const qc = useQueryClient();
-  const { showToast } = useShell();
+  const { showToast, palId, choosePal } = useShell();
+  const online = useOnline();
   const biz = useQuery({ queryKey: ['business-current'], queryFn: () => api<Biz>('/businesses/current') });
   const [bz, setBz] = useState<BzForm | null>(null);
   const [bzErr, setBzErr] = useState('');
@@ -129,6 +137,20 @@ export function GeneralTab() {
       <h3 style={{ margin: '0 0 4px', fontSize: 16 }}>Display</h3><p className="mu" style={{ margin: '0 0 14px', fontSize: 13 }}>How amounts look across the app, on invoices and in print.</p>
       <div className="tgl" data-keepcur><div className="ti" style={T('var(--ac)')}><b style={{ fontSize: 17 }}>₹</b></div><div className="tx"><b>Show currency symbol</b><small>Show ₹ before amounts, e.g. ₹1,250.00. Turned off, amounts show as plain numbers: 1,250.00.</small></div><Sw id="sCur" on={S.showCurrency} label="Show currency symbol" onChange={(v) => { void save({ data: { showCurrency: v } }); showToast(v ? 'Currency symbol shown' : 'Currency symbol hidden'); }} /></div>
       <div className="tgl" style={{ marginTop: 14 }}><div className="ti" style={T('var(--amber,#d97706)')}><b style={{ fontSize: 12 }}>MRP</b></div><div className="tx"><b>Show MRP</b><small>Show the MRP (maximum retail price) column and fields in Items, Price manager, Price Setup, add-item forms and rate lists. Turned off, MRP is hidden everywhere; saved MRPs are kept.</small></div><Sw id="sMrp" on={S.mrp} label="Show MRP" onChange={(v) => { void save({ data: { mrp: v } }); showToast(v ? 'MRP shown' : 'MRP hidden everywhere'); }} /></div>
+      {/* moved here from the top bar's palette button (owner's change); remembered on this device */}
+      <div className="tgl" style={{ marginTop: 14 }}><div className="ti" style={T('var(--ac)')}><Icon name="palette" /></div><div className="tx"><b>Colour combination</b><small>Colours of the whole app on this device. Invoices and print are not affected.</small>
+        <div className="two" id="setPal" role="radiogroup" aria-label="Colour combination" style={{ marginTop: 10 }}>
+          {PAL.map((p) => (
+            <button className="po" type="button" role="radio" data-p={p.id} aria-checked={palId === p.id} key={p.id} onClick={() => choosePal(p.id)}>
+              <span className="sw"><i style={{ background: p.ac }}></i><i style={{ background: p.ac3 }}></i><i style={{ background: p.bg, borderColor: p.bd }}></i></span>
+              <span><b>{p.name}{'rec' in p && p.rec && <span className="rec g">Recommended</span>}</b><small>{p.why}</small></span>
+            </button>
+          ))}
+        </div></div></div>
+      {/* moved here from the top bar's lightning button (owner's change); the keys work anywhere in the app */}
+      <h3 style={{ margin: '22px 0 4px', fontSize: 16 }}>Shortcuts</h3><p className="mu" style={{ margin: '0 0 12px', fontSize: 13 }}>Keys that work on any screen.</p>
+      <div className="synccard" id="qsCard"><span className="ti" style={{ width: 36, height: 36, display: 'grid', placeItems: 'center', borderRadius: 10, ...T('var(--ac)') }}><RawIcon d={BOLT} /></span><div className="sx"><b>Quick sale <kbd className="kh">Alt+N</kbd></b><span>A walk-in cash sale in a small window, without leaving the screen you are on.</span></div><button className="btn" type="button" id="qsOpen" onClick={() => useQuick.getState().show()}>Open quick sale</button></div>
+      <div className="synccard" id="keysCard"><div className="sx">{KEYS.map(([k, w]) => <span key={k} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '2px 0' }}><kbd className="kh" style={{ minWidth: 48, marginLeft: 0 }}>{k}</kbd>{w}</span>)}</div></div>
       <h3 style={{ margin: '22px 0 4px', fontSize: 16 }}>Payment links</h3><p className="mu" style={{ margin: '0 0 14px', fontSize: 13 }}>Customers pay straight into this UPI ID from the link or the QR on their invoice.</p>
       <div className="two plset"><label className="fl" htmlFor="sUpi">Your UPI ID<input className="fi mono" id="sUpi" value={upi} placeholder="yourshop@okhdfcbank" autoComplete="off" onChange={(e) => setUpi(e.target.value)} onBlur={() => upi !== S.upi && savePay('upi')} /></label><label className="fl" htmlFor="sUpiN">Name shown to the customer<input className="fi" id="sUpiN" value={upiN} autoComplete="off" onChange={(e) => setUpiN(e.target.value)} onBlur={() => upiN !== S.upiName && savePay('name')} /></label></div>
       <p className="xperr" id="sUpiErr" hidden={!upi || upiOk(upi)}>Enter a UPI ID like yourshop@okhdfcbank.</p>
@@ -143,7 +165,7 @@ export function GeneralTab() {
       <div id="bzFresh"><h3 style={{ margin: '26px 0 4px', fontSize: 16 }}>Start fresh</h3><p className="mu" style={{ margin: '0 0 12px', fontSize: 13 }}>Begin a new, empty set of books. These books are kept and stay available from the shop menu.</p>
         <div className="synccard" style={{ borderColor: 'color-mix(in srgb,var(--red,#dc2626) 35%,transparent)' }}><div className="sx"><b>Start new books from zero</b><span>Parties, items, invoices, purchases, payments, expenses and bank entries start empty in the new books. Nothing here is deleted.</span></div><button className="btn dz" type="button" id="bzFreshBtn" onClick={() => setFresh(true)}>Start fresh…</button></div></div>
       <h3 style={{ margin: '22px 0 4px', fontSize: 16 }}>Cloud sync</h3><p className="mu" style={{ margin: '0 0 12px', fontSize: 13 }}>One shared set of books for your shop. Open it on any laptop or phone, at any location, and you and your staff see the same invoices, parties and stock. Only people you share the app with as Contributor or Editor can see or change the data.</p>
-      <div className="synccard"><span className="ti" style={{ width: 36, height: 36, display: 'grid', placeItems: 'center', borderRadius: 10, ...T('#16a34a') }}><RawIcon d={CLOUD} /></span><div className="sx"><b>Status</b><span id="syncSt">Synced — the same books on every device and for all your staff</span></div><button className="btn" type="button" id="syncNow" onClick={() => { void qc.invalidateQueries(); showToast('Synced'); }}>Sync now</button></div><div id="syncWho"></div>
+      <div className="synccard"><span className="ti" style={{ width: 36, height: 36, display: 'grid', placeItems: 'center', borderRadius: 10, ...T(online ? '#16a34a' : 'var(--red)') }}><RawIcon d={CLOUD} /></span><div className="sx"><b>Status</b><span id="syncSt" data-st={online ? 'ok' : 'off'}>{SYNC_LABEL[online ? 'ok' : 'off']}</span></div><button className="btn" type="button" id="syncNow" onClick={() => { if (!online) return showToast(SYNC_LABEL.off); void qc.invalidateQueries(); showToast('Synced'); }}>Sync now</button></div><div id="syncWho"></div>
       <input type="file" id="bkpFile" accept=".json,application/json" hidden ref={fileRef} onChange={(e) => { const x = e.target.files?.[0]; e.target.value = ''; pickFile(x); }} />
       <StartFresh open={fresh} biz={biz.data} cash={S.cashOpen} onClose={() => setFresh(false)} />
       <RestoreBackup src={restore} onClose={() => setRestore(null)} download={download} />

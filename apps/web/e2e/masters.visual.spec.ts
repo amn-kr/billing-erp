@@ -6,7 +6,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
-import { approvedShot, sameShot } from './shots';
+import { approvedShot, hideHeader, sameShot, shot } from './shots';
 import { APP, RAVI, WIDTHS, freshShop, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
 
 for (const width of WIDTHS) {
@@ -320,6 +320,8 @@ for (const width of WIDTHS) {
       // let the "PIN saved" message go first (it sits over the dialog)
       await both((p) => p.waitForFunction(() => !document.getElementById('toast')?.classList.contains('on'), null, { timeout: 10_000 }));
       await settle();
+      // the window's rounded corners would show the top bar behind it (changed by the owner; checked on its own)
+      await hideHeader(proto, app);
       // the first brand is picked; no rule saved yet
       await sameShot(`prules-${width}`, proto, app, '#psm .mdl');
       await both((p) => p.selectOption('#psBody [data-prf="sale"] [data-k="m"]', 'lp'));
@@ -434,6 +436,8 @@ for (const width of WIDTHS) {
       await app.waitForTimeout(300);
       const both = async (fn: (p: Page) => Promise<unknown>) => { for (const p of [proto, app]) await fn(p); };
       const settle = async () => { await both((p) => p.mouse.move(0, 0)); await both((p) => p.waitForFunction(() => !document.getElementById('toast')?.classList.contains('on'), null, { timeout: 10_000 })); await app.waitForTimeout(300); };
+      // the page is taller than the window, so its pictures would include the top bar (changed by the owner; checked on its own)
+      await hideHeader(proto, app);
       await sameShot(`set-tax-${width}`, proto, app, '#vSet');
       // TCS and TDS on: their default rates and the preview lines appear
       await both((p) => p.click('#cTcs .tgs'));
@@ -511,7 +515,13 @@ for (const width of WIDTHS) {
       await app.waitForSelector('#bzCard #bzName');
       await align(['#bzFresh', '#bkpUseTxt', '#bkpUseBar']);
       await settle();
-      await sameShot(`set-gen-${width}`, proto, app, '#vSet');
+      // owner's change: General has the Colour combination and Shortcuts moved from the top bar, so it is compared
+      // with its approved picture; from here on the top bar is hidden (it has its own check), also behind the Start fresh window
+      await hideHeader(proto, app);
+      // the prototype's page is still photographed (and the picture dropped), as when this was compared with it:
+      // taking the picture scrolls the page and redraws its text, and the next checks expect both pages in that state
+      await shot(proto, '#vSet');
+      await approvedShot(`set-gen-${width}`, app, '#vSet');
       await both((p) => p.fill('#bzName', ''));
       await both((p) => p.click('#bzSaveBtn'));
       await settle();
@@ -520,7 +530,8 @@ for (const width of WIDTHS) {
       await both((p) => p.fill('#sUpi', 'gupta@'));
       await both((p) => p.locator('#sUpi').blur());
       await settle();
-      await sameShot(`set-upi-error-${width}`, proto, app, '#cGen .plset');
+      // (the UPI row sits lower now, on a half pixel, so it is compared with its approved picture)
+      await approvedShot(`set-upi-error-${width}`, app, '#cGen .plset');
       await both((p) => p.fill('#sUpi', 'gupta@okhdfcbank'));
       await both((p) => p.locator('#sUpi').blur());
       await expect(app.locator('#toast')).toHaveText(await proto.locator('#toast').innerText());

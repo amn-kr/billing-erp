@@ -3,7 +3,7 @@
  * Same DOM as the prototype; screens render inside <main> through the router.
  */
 import { QuickSale, useQuick } from '../sales/QuickSale';
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, apiWithToken, signOut, ApiError } from '../../lib/api';
@@ -18,7 +18,6 @@ import { setGo } from '../../lib/go';
 import { APP_STYLES } from '../../styles';
 import { VIEW_LABEL, VIEW_PATH, type NavLink } from './nav';
 import { REPSEC, repOf } from '../reports/catalogue';
-import { PAL, type PalId } from './palette';
 import { Sidebar } from './Sidebar';
 import { SignOutDialog } from './SignOutDialog';
 import { Toast } from './Toast';
@@ -27,27 +26,7 @@ import { TopBar } from './TopBar';
 import type { Item } from '../items/ItemsPage';
 import { statusOf, type SaleRow } from '../sales/model';
 import { statusOfBill, type PurchaseRow } from '../purchases/model';
-import { readLocal, soon, useShell, write } from './store';
-
-const savedPal = (): PalId => {
-  const s = readLocal('erp-pal');
-  return (PAL.some((p) => p.id === s) ? s : 'ledger') as PalId;
-};
-
-function useOnline() {
-  const [online, setOnline] = useState(() => navigator.onLine);
-  useEffect(() => {
-    const up = () => setOnline(true);
-    const down = () => setOnline(false);
-    window.addEventListener('online', up);
-    window.addEventListener('offline', down);
-    return () => {
-      window.removeEventListener('online', up);
-      window.removeEventListener('offline', down);
-    };
-  }, []);
-  return online;
-}
+import { soon, useOnline, useShell } from './store';
 
 function GoLogin({ query = '' }: { query?: string }) {
   useEffect(() => goToLogin(query), [query]);
@@ -62,8 +41,8 @@ export function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
   const qc = useQueryClient();
-  const { mini, dialog, setDialog, closeAll, setPop, setPal, showToast } = useShell();
-  const [pal, setPalId] = useState<PalId>(savedPal);
+  const { mini, dialog, setDialog, closeAll, setPop, showToast } = useShell();
+  const pal = useShell((s) => s.palId);
   const online = useOnline();
   const business = me.data?.business ?? null;
 
@@ -99,12 +78,11 @@ export function AppShell() {
     [],
   );
 
-  /* prototype: clicks outside a .pop close it; outside .palw closes the palette; outside the drawer closes it */
+  /* prototype: clicks outside a .pop close it; outside the drawer closes it */
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       const t = e.target as HTMLElement;
       if (!t.closest('.pop')) setPop(null);
-      if (!t.closest('.palw')) setPal(false);
       const side = document.getElementById('side');
       if (side?.classList.contains('open') && !side.contains(t) && t.id !== 'menuBtn') useShell.getState().setSideOpen(false);
     };
@@ -121,7 +99,7 @@ export function AppShell() {
       document.removeEventListener('click', onClick);
       document.removeEventListener('keydown', onKey);
     };
-  }, [closeAll, setPop, setPal]);
+  }, [closeAll, setPop]);
 
   useEffect(() => setGo(navigate), [navigate]);
   // entry points that now open real screens (the rest still say "coming next")
@@ -193,13 +171,7 @@ export function AppShell() {
             today={todayFn()}
             overdue={{ bills: odBills, sales: odSales }}
             lowItems={(items.data ?? []).filter((i) => i.kind === 'goods' && i.level !== 'ok').length}
-            pal={pal}
             online={online}
-            onPal={(id) => {
-              setPalId(id);
-              write('erp-pal', id);
-              showToast(`${PAL.find((p) => p.id === id)!.name} applied`);
-            }}
             onView={onView}
             onSoon={act}
             onSwitch={async (businessId) => {
