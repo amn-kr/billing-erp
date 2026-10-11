@@ -11,11 +11,13 @@ export async function namedId(tx: Tx, model: 'partyGroup' | 'category' | 'brand'
   return (await m.create({ data: { businessId, name: n, createdBy: userId } })).id;
 }
 
-export async function unitIdFor(tx: Tx, businessId: string, userId: string, code: string | undefined): Promise<string | null> {
+export async function unitIdFor(tx: Tx, businessId: string, userId: string, code: string | undefined, name = ''): Promise<string | null> {
   const c = (code ?? '').trim().toUpperCase();
   if (!c) return null;
+  const n = name.trim();
   const hit = await tx.unit.findFirst({ where: { code: c } });
-  return hit ? hit.id : (await tx.unit.create({ data: { businessId, code: c, createdBy: userId } })).id;
+  if (hit && n && !hit.name) await tx.unit.update({ where: { id: hit.id }, data: { name: n } });
+  return hit ? hit.id : (await tx.unit.create({ data: { businessId, code: c, name: n, createdBy: userId } })).id;
 }
 
 export const day = (iso: string) => new Date(iso + 'T00:00:00Z');

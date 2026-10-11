@@ -400,7 +400,7 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
         const np = L.find((x) => x.id === id);
         if (np) pickParty({ id: np.id, name: np.name, phone: np.phone, gstin: np.gstin, city: np.billing?.city ?? '', state: np.state, group: np.group, days: np.creditDays ?? 0, limit: Number(np.creditLimit ?? 0), supplier: np.kind === 'supplier', balance: Number(np.balance) });
       }} />
-      <AddItemDialog open={!!addItem} service={false} onClose={() => setAddItem(null)} onSaved={async (id) => {
+      <AddItemDialog open={!!addItem} onClose={() => setAddItem(null)} onSaved={async (id) => {
         const at = addItem?.i ?? 0; setAddItem(null);
         await qc.refetchQueries({ queryKey: ['items'] });
         setTimeout(() => { const it = latestItems.IT?.find((x) => x.id === id); if (it) pickItem(at, it); }, 50);

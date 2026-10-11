@@ -1,12 +1,13 @@
 /** Settings data in the prototype's terms (its S object), with its defaults. */
 import { useQueryClient } from '@tanstack/react-query';
 import { create } from 'zustand';
+import { ITEM_PREFIX_DEFAULT } from '@billing/shared';
 import { api } from '../../lib/api';
 import { useSettings, type ShopSettings } from '../../lib/settings';
 
 export type Tax = ShopSettings['taxes'][number] & { used: number };
 /** prototype DEF: what a shop starts with */
-const DEF = { reg: 'regular', hsn: true, pos: true, rcm: false, cess: false, tcs: false, tds: false, tdsBill: true, tdsExp: true, upi: '', upiName: '', payQr: false, waLink: false, acct: false, showCurrency: false, mrp: false };
+const DEF = { reg: 'regular', hsn: true, pos: true, rcm: false, cess: false, tcs: false, tds: false, tdsBill: true, tdsExp: true, upi: '', upiName: '', payQr: false, waLink: false, acct: false, showCurrency: false, mrp: false, itemPrefix: ITEM_PREFIX_DEFAULT };
 export type S = typeof DEF & { tcsRate?: string; tdsRate?: string; cashOpen?: string };
 
 export function useS() {

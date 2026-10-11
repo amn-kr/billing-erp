@@ -6,7 +6,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
-import { sameShot } from './shots';
+import { approvedShot, sameShot } from './shots';
 import { APP, RAVI, WIDTHS, freshShop, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
 
 for (const width of WIDTHS) {
@@ -90,38 +90,54 @@ for (const width of WIDTHS) {
       for (const p of [proto, app]) await p.click('#dcfYes');
       await app.waitForSelector('#adj', { state: 'hidden' });
 
-      // Add item: product (both tabs), service, several brands/sizes, error
-      await proto.evaluate(() => (window as unknown as { openItem: () => void }).openItem());
+      // Add item: the owner approved a new look (Single / Variant switch, Select unit window, add-new popups),
+      // so these are compared with approved pictures (e2e/approved/) instead of the prototype.
+      // Product (both tabs), error, variant, Select unit, the four popups, service.
+      const look = async () => { await app.mouse.move(0, 0); await app.waitForTimeout(200); };
       await app.click('#vItems .pthd .btn.p');
-      await app.waitForSelector('#ai:not([hidden]) #aiUnit option', { state: 'attached' });
+      await app.waitForSelector('#ai:not([hidden]) #aiName');
+      await app.waitForSelector('#aiCat option:nth-child(3)', { state: 'attached' });
       for (const tab of ['price', 'stock']) {
-        await proto.click(`#ai [data-aitab="${tab}"]`);
         await app.click(`#ai [data-aitab="${tab}"]`);
-        await proto.mouse.move(0, 0);
-        await app.mouse.move(0, 0);
-        await sameShot(`additem-${tab}-${width}`, proto, app, '#ai .mdl');
+        await look();
+        await approvedShot(`additem-${tab}-${width}`, app, '#ai .mdl');
       }
-      await proto.click('#ai [data-aitab="price"]');
       await app.click('#ai [data-aitab="price"]');
-      await proto.click('#aiSave');
       await app.click('#aiSave');
-      await proto.locator('#aiName').blur();
       await app.locator('#aiName').blur();
-      await sameShot(`additem-error-${width}`, proto, app, '#ai .mdl');
-      for (const p of [proto, app]) await p.evaluate(() => { const c = document.getElementById('aiVar') as HTMLInputElement; c.click(); });
-      await proto.mouse.move(0, 0);
-      await app.mouse.move(0, 0);
-      await sameShot(`additem-variants-${width}`, proto, app, '#ai .mdl');
-      // (unticking "different brands or sizes" crashes the prototype's script, so reopen the form instead)
-      await proto.evaluate(() => { const w = window as unknown as { closeM: (id: string) => void; openItem: () => void }; w.closeM('ai'); w.openItem(); });
+      await look();
+      await approvedShot(`additem-error-${width}`, app, '#ai .mdl');
+      await app.click('#aiVar');
+      await look();
+      await approvedShot(`additem-variants-${width}`, app, '#ai .mdl');
+      // Select unit with a secondary unit chosen
+      await app.click('#aiUnit');
+      await app.selectOption('#aiUBase', 'COIL');
+      await app.selectOption('#aiUSec', 'MTR');
+      await app.fill('#aiURate', '90');
+      await app.locator('#aiURate').blur();
+      await look();
+      await approvedShot(`additem-units-${width}`, app, '#aiUnits .mdl');
+      // add-new popups (Escape closes only the popup on top)
+      await app.selectOption('#aiUBase', '__new');
+      await look();
+      await approvedShot(`addpop-unit-${width}`, app, '#aiAdd_unit .mdl');
+      await app.keyboard.press('Escape');
+      await app.keyboard.press('Escape');
+      await app.waitForSelector('#aiUnits', { state: 'hidden' });
+      for (const [kind, sel] of [['group', '#aiName'], ['brand', '#aiBrandSel'], ['cat', '#aiCat']] as const) {
+        await app.selectOption(sel, '__new');
+        await look();
+        await approvedShot(`addpop-${kind}-${width}`, app, `#aiAdd_${kind} .mdl`);
+        await app.keyboard.press('Escape');
+        await app.waitForSelector(`#aiAdd_${kind}`, { state: 'hidden' });
+      }
       await app.click('#aiClose');
       await app.click('#vItems .pthd .btn.p');
-      for (const p of [proto, app]) await p.click('#aiTypeSw .tgs');
-      await proto.locator('#aiName').blur();
+      await app.click('#aiTypeSw .tgs');
       await app.locator('#aiName').blur();
-      await proto.mouse.move(0, 0);
-      await app.mouse.move(0, 0);
-      await sameShot(`additem-service-${width}`, proto, app, '#ai .mdl');
+      await look();
+      await approvedShot(`additem-service-${width}`, app, '#ai .mdl');
     });
 
     test('Godowns screen, Add godown and Transfer stock', async ({ browser, request }) => {
@@ -481,11 +497,15 @@ for (const width of WIDTHS) {
       await both((p) => p.click('#subnav [data-settab="items"]'));
       await app.waitForSelector('#cPlSet .tgl');
       await settle();
-      await sameShot(`set-items-${width}`, proto, app, '#vSet');
+      // the heading and the side menu are as in the prototype; the Items card has the owner-approved
+      // "Item codes" section under the price lists, so it is compared with its approved picture
+      await sameShot(`set-items-head-${width}`, proto, app, '#vSet .hero');
+      await sameShot(`set-items-nav-${width}`, proto, app, '#subnav');
+      await approvedShot(`set-items-${width}`, app, '#cPlSet');
       await both((p) => p.click('#cPlSet .tgl:nth-of-type(3) .tgs'));
       await expect(app.locator('#toast')).toHaveText(await proto.locator('#toast').innerText());
       await settle();
-      await sameShot(`set-items-on-${width}`, proto, app, '#cPlSet');
+      await approvedShot(`set-items-on-${width}`, app, '#cPlSet');
       // General
       await both((p) => p.click('#subnav [data-settab="gen"]'));
       await app.waitForSelector('#bzCard #bzName');

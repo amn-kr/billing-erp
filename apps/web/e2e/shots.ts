@@ -1,4 +1,7 @@
 /** Side-by-side screenshots of the prototype and the rebuild, compared pixel for pixel. */
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect, type Page } from '@playwright/test';
 import { compare } from './compare';
 import { settle } from './setup';
@@ -34,6 +37,35 @@ export async function shot(p: Page, sel: string): Promise<Buffer> {
   await settle(p);
   await repaint(p);
   return p.locator(sel).screenshot({ animations: 'disabled', caret: 'hide' });
+}
+
+/** Owner-approved pictures of looks the prototype doesn't have (e.g. the Add item window's Single / Variant switch). */
+export const APPROVED = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'approved');
+
+/**
+ * Compare an element of the rebuild with its owner-approved picture (e2e/approved/<name>.png), with the
+ * same rules as sameShot. Used only where the owner approved a look change from the prototype. A
+ * missing picture fails the test and leaves the candidate in test-results/visual/<name>-actual.png;
+ * it is never saved here — a person copies it into e2e/approved/ after the owner says OK.
+ * The pictures are taken on CI's Linux machine, so they are compared there.
+ */
+export async function approvedShot(name: string, app: Page, sel: string): Promise<void> {
+  const file = path.join(APPROVED, `${name}.png`);
+  if (!fs.existsSync(file)) {
+    const out = path.resolve(APPROVED, '../../test-results/visual');
+    fs.mkdirSync(out, { recursive: true });
+    fs.writeFileSync(path.join(out, `${name}-actual.png`), await shot(app, sel));
+    expect.soft(false, `${name}: no approved picture yet (candidate: test-results/visual/${name}-actual.png)`).toBe(true);
+    return;
+  }
+  const want = fs.readFileSync(file);
+  let d = compare(name, want, await shot(app, sel));
+  for (let n = 0; n < 2 && !(d.sizeMatches && d.ratio <= MAX_RATIO); n++) {
+    await app.waitForTimeout(700);
+    d = compare(name, want, await shot(app, sel));
+  }
+  expect.soft(d.sizeMatches, `${name}: size ${d.width}×${d.height} must match the approved picture`).toBe(true);
+  expect.soft(d.ratio, `${name}: ${d.diffPixels} pixels differ from the approved picture (see test-results/visual/${name}-diff.png)`).toBeLessThanOrEqual(MAX_RATIO);
 }
 
 /**
