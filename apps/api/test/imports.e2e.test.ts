@@ -162,7 +162,11 @@ describe('importing sales documents', () => {
     const qs = (await http().get('/api/sales?kind=quotation').set(auth(o)).expect(200)).body as { number: string; qtype: string; items: number; qty: string; brandQuote: { qty: Record<string, number> } | null }[];
     expect(qs.map((q) => [q.number, q.qtype, q.items, q.qty])).toEqual([['Q-0102', 'items', 2, '5.000'], ['Q-0101', 'brand', 11, '132.000']]);
     expect(qs[1]!.brandQuote!.qty).toMatchObject({ r5: 30, p4: 15 });
-    const grid = (await http().get('/api/quote-grid').set(auth(o)).expect(200)).body;
+    // the old app's grid is kept; its ranges show once their brands are on Brands & Series (owner's decision)
+    let grid = (await http().get('/api/quote-grid').set(auth(o)).expect(200)).body;
+    expect([grid.rows.length, grid.ser.length]).toEqual([22, 0]);
+    for (const name of ['Havells', 'Legrand', 'Anchor', 'GM', 'Goldmedal']) await http().post('/api/brands').set(auth(o)).send({ name }).expect(201);
+    grid = (await http().get('/api/quote-grid').set(auth(o)).expect(200)).body;
     expect([grid.rows.length, grid.ser.length]).toEqual([22, 6]);
     expect((await http().get('/api/settings').set(auth(o)).expect(200)).body.data.quoteGrid.ser[2]).toMatchObject({ b: 'Legrand', r: 'Myrius' }); // stored, not the default
     const dcs = (await http().get('/api/sales?kind=challan').set(auth(o)).expect(200)).body;

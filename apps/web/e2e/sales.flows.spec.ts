@@ -1,6 +1,7 @@
 /** Phase 3 sales flows against the real API, in a shop of their own (the sales fixture imported). */
 import { expect, test } from '@playwright/test';
 import { APP, freshShop, newPage, signInAs } from './setup';
+import { quoteBrands } from './quotes.data';
 
 test('a credit sale made in the invoice editor is saved, previewed, and opens again from its row', async ({ browser, request }) => {
   const page = await newPage(browser, 1366);
@@ -202,16 +203,29 @@ test('Quick sale (Alt+N): a walk-in cash sale is saved as an invoice, and its nu
   await expect(page.locator('#slRows tr[data-sno="INV-0107"]')).toContainText('Sunil');
 });
 
-test('brand-wise quotation: saved, converted with the chosen brand, then locked', async ({ browser, request }) => {
+test('brand-wise quotation: no sample brands; the shop’s own brands and series, saved, converted, then locked', async ({ browser, request }) => {
   const page = await newPage(browser, 1366);
-  await signInAs(page, await freshShop(request, 'fresh-kept-items'));
+  // a new, empty shop (the fresh-kept-items fixture has a whole catalogue with brands and series typed on items)
+  const who = await freshShop(request);
+  await signInAs(page, who);
+  // no brands or series yet: no sample grid, a way to Brands & Series instead
   await page.goto(APP + '/quotations');
-  await page.waitForSelector('#qBody [data-qq="r4"]');
+  await expect(page.locator('#qEmpty')).toContainText('No brands or series yet. Add them in Brands & Series first.');
+  await expect(page.locator('#qBody')).toHaveCount(0);
+  await page.click('#qOpenBrands');
+  await expect(page).toHaveURL(APP + '/items/brands?tab=series');
+  // the shop's own brands, series and items: Anchor Roma and Havells Coral columns, its parent items as rows
+  await quoteBrands(request, who);
+  await page.goto(APP + '/quotations');
+  await page.waitForSelector('#qBody [data-qq]');
+  await expect(page.locator('#qHead .qch')).toHaveText(['AnchorRoma', 'HavellsCoral']);
+  await expect(page.locator('#qBody .qsk b')).toHaveText(['Modular socket 6A', 'Modular switch 6A']);
   await expect(page.locator('#qNo')).toHaveText('Q-0101');
   await expect(page.locator('#qState')).toHaveText('Draft');
   await page.fill('#qCust', 'Sunil');
-  await page.fill('#qBody [data-qq="r4"]', '10');
-  await page.fill('#qBody [data-qq="r2"]', '4');
+  await page.getByLabel('Quantity of Modular socket 6A').fill('10');
+  await page.getByLabel('Quantity of Modular switch 6A').fill('4');
+  await expect(page.locator('#qFoot .qgt td.n')).toHaveText(['792.00Lowest', '1,098.00']);
   await page.click('#qSave');
   await expect(page.locator('#toast')).toHaveText('Q-0101 saved for Sunil');
   await expect(page.locator('#qState')).toHaveText('Saved');
@@ -223,7 +237,7 @@ test('brand-wise quotation: saved, converted with the chosen brand, then locked'
   await page.click('#qcGo');
   await expect(page).toHaveURL(/\/sales\/new/);
   await expect(page.locator('#siMid .qref')).toContainText('Q-0101');
-  await expect(page.locator('#siMid .qref em')).toHaveText('Anchor Roma White');
+  await expect(page.locator('#siMid .qref em')).toHaveText('Anchor Roma');
   await expect(page.locator('#siRows tr[data-ln]')).toHaveCount(3); // two items and the empty row
   await page.click('#siSave');
   if (await page.locator('#siChgPop:not([hidden])').count()) await page.click('#siChgDone');
@@ -232,9 +246,9 @@ test('brand-wise quotation: saved, converted with the chosen brand, then locked'
   // the quotation is converted and locked
   await page.goto(APP + '/quotations');
   await page.click('#qSaved');
-  await expect(page.locator('#qlRows tr', { hasText: 'Q-0101' })).toContainText(`Converted${inv} · Anchor Roma White`);
+  await expect(page.locator('#qlRows tr', { hasText: 'Q-0101' })).toContainText(`Converted${inv} · Anchor Roma`);
   await page.locator('#qlRows [data-qopen="Q-0101"]').click();
-  await expect(page.locator('#qRo')).toContainText(`Converted to ${inv} (Anchor Roma White)`);
+  await expect(page.locator('#qRo')).toContainText(`Converted to ${inv} (Anchor Roma)`);
   await expect(page.locator('#qSave')).toBeDisabled();
   await expect(page.locator('#qState')).toHaveText(`Converted · ${inv}`);
 });

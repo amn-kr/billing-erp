@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { money, type BrandInput, type BrandUpdate, type SeriesInput, type SeriesUpdate } from '@billing/shared';
 import { DbService, type Tx } from '../../common/db.service';
@@ -9,6 +10,19 @@ import { stockByItem } from './items.service';
 const vname = (g: string, b: string, s: string) => `${g} · ${b}${s ? ' ' + s : ''}`;
 const key = (brandId: string, name: string) => `${brandId}|${name.trim().toLowerCase()}`;
 const q3 = (v: { toString(): string }) => money(v.toString()).toDecimalPlaces(3).toFixed(3);
+
+/**
+ * A stable id for a series typed only on items (from its brand and name), so a saved quotation keeps its
+ * column; the brand_series row made the first time the series is changed gets the same id. A name used
+ * again after a rename gets the next free id.
+ */
+export function itemSeriesId(brandId: string, name: string, taken: Set<string>): string {
+  for (let n = 0; ; n++) {
+    const h = createHash('sha1').update(`${brandId}|${name.trim().toLowerCase()}${n ? '#' + n : ''}`).digest('hex');
+    const id = `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-${((parseInt(h[16]!, 16) & 3) | 8).toString(16)}${h.slice(17, 20)}-${h.slice(20, 32)}`;
+    if (!taken.has(id)) return id;
+  }
+}
 
 interface Stat { items: number; stock: ReturnType<typeof money>; value: ReturnType<typeof money>; updated: Date }
 
@@ -57,15 +71,17 @@ export class BrandsService {
   private async seriesList(tx: Tx) {
     const [brands, rows, { bySeries }] = await Promise.all([tx.brand.findMany(), tx.brandSeries.findMany({ orderBy: { createdAt: 'asc' } }), this.stats(tx)]);
     const brandName = new Map(brands.map((b) => [b.id, b.name]));
+    const brandActive = new Set(brands.filter((b) => !b.archivedAt).map((b) => b.id));
+    const rowIds = new Set(rows.map((r) => r.id));
     const out = rows.map((r) => {
       const s = bySeries.get(key(r.brandId, r.name));
-      return { id: r.id as string | null, brandId: r.brandId, brand: brandName.get(r.brandId) ?? '', name: r.name, size: r.size, notes: r.notes, items: s?.items ?? 0, stock: q3(s?.stock ?? 0), value: (s?.value ?? money(0)).toFixed(2), active: !r.archivedAt, updatedAt: new Date(Math.max(r.updatedAt.getTime(), s?.updated.getTime() ?? 0)) };
+      return { id: r.id as string | null, key: r.id, brandActive: brandActive.has(r.brandId), brandId: r.brandId, brand: brandName.get(r.brandId) ?? '', name: r.name, size: r.size, notes: r.notes, items: s?.items ?? 0, stock: q3(s?.stock ?? 0), value: (s?.value ?? money(0)).toFixed(2), active: !r.archivedAt, updatedAt: new Date(Math.max(r.updatedAt.getTime(), s?.updated.getTime() ?? 0)) };
     });
     const saved = new Set(rows.map((r) => key(r.brandId, r.name)));
     for (const [k, s] of bySeries) {
       if (saved.has(k)) continue;
       // typed on items only: shown like the others, saved here the first time it is changed
-      out.push({ id: null, brandId: s.brandId, brand: brandName.get(s.brandId) ?? '', name: s.name, size: '', notes: '', items: s.items, stock: q3(s.stock), value: s.value.toFixed(2), active: true, updatedAt: s.updated });
+      out.push({ id: null, key: itemSeriesId(s.brandId, s.name, rowIds), brandActive: brandActive.has(s.brandId), brandId: s.brandId, brand: brandName.get(s.brandId) ?? '', name: s.name, size: '', notes: '', items: s.items, stock: q3(s.stock), value: s.value.toFixed(2), active: true, updatedAt: s.updated });
     }
     return out.sort((a, b) => a.brand.localeCompare(b.brand) || a.name.localeCompare(b.name));
   }
@@ -84,6 +100,11 @@ export class BrandsService {
 
   series(ctx: RequestContext) {
     return this.db.scoped(this.scope(ctx), (tx) => this.seriesList(tx));
+  }
+
+  /** Every series with its stable id (key) and whether it and its brand are active, for the Quotation columns. */
+  seriesForQuotes(tx: Tx) {
+    return this.seriesList(tx);
   }
 
   private async brandClash(tx: Tx, name: string, exceptId?: string) {
@@ -170,7 +191,8 @@ export class BrandsService {
         row = await tx.brandSeries.findFirst({ where: { brandId: ref.brandId, name: { equals: ref.name.trim(), mode: 'insensitive' } } });
         if (!row) {
           if (!(await tx.item.findFirst({ where: { archivedAt: null, brandId: ref.brandId, series: { equals: ref.name.trim(), mode: 'insensitive' } } }))) throw new NotFoundException({ message: 'That series was not found.' });
-          row = await tx.brandSeries.create({ data: { businessId: ctx.businessId!, createdBy: ctx.userId, brandId: ref.brandId, name: ref.name.trim() } });
+          const taken = new Set((await tx.brandSeries.findMany({ select: { id: true } })).map((x) => x.id));
+          row = await tx.brandSeries.create({ data: { id: itemSeriesId(ref.brandId, ref.name, taken), businessId: ctx.businessId!, createdBy: ctx.userId, brandId: ref.brandId, name: ref.name.trim() } });
           await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'create', entity: 'brand_series', entityId: row.id, after: { brand: fromBrand.name, name: row.name, from: 'items' }, ip: ctx.ip });
         }
       }

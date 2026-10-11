@@ -271,7 +271,8 @@ for (const width of WIDTHS) {
       await both(proto, app, (p) => p.click('#qAddSer'));
       // (the prototype leaves the ranges list open behind the window; the rebuild closes it)
       await proto.evaluate(() => { document.getElementById('qSerPop')!.hidden = true; });
-      await sameShot(`quo-add-range-${width}`, proto, app, '#qam .mdl');
+      // owner's change: the window offers the shop's brands from Items › Brands & Series (the prototype lists its items' brands)
+      await approvedShot(`quo-add-range-${width}`, app, '#qam .mdl');
       await both(proto, app, (p) => p.click('#qaCancel'));
       await both(proto, app, (p) => p.click('#qShare'));
       await sameShot(`quo-share-${width}`, proto, app, '#qSharePop');
