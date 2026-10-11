@@ -3,7 +3,7 @@
  * (commission-shop.backup.json: sales, returns, purchases, payments, expenses, a cheque, low stock).
  */
 import { test, type Page } from '@playwright/test';
-import { sameShot } from './shots';
+import { hideHeader, sameShot } from './shots';
 import { APP, COMMISSION, WIDTHS, newPage, openPrototypeView, prototypeFresh, prototypeWithBackup, signIn, signInAs } from './setup';
 
 /**
@@ -48,6 +48,8 @@ for (const width of WIDTHS) {
       await openPrototypeView(proto, 'dash');
       await signInAs(app, COMMISSION);
       await app.waitForSelector('#vDash #stats .stat');
+      // the page is taller than the window, so its picture would include the top bar (changed by the owner; checked on its own)
+      await hideHeader(proto, app);
       await sameShot(`home-${width}`, proto, app, '#vDash');
     });
 
@@ -58,6 +60,8 @@ for (const width of WIDTHS) {
       await openPrototypeView(proto, 'dash');
       await signIn(app);
       await app.waitForSelector('#vDash #stats .stat');
+      // the page is taller than the window, so its picture would include the top bar (changed by the owner; checked on its own)
+      await hideHeader(proto, app);
       await sameShot(`home-fresh-${width}`, proto, app, '#vDash');
     });
   });

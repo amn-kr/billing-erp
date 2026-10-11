@@ -187,7 +187,8 @@ test('Quick sale (Alt+N): a walk-in cash sale is saved as an invoice, and its nu
   await expect(page.locator('#qsNo')).toHaveText('INV-0107');
   // closing without saving uses nothing up
   await page.click('#qsClose');
-  await page.click('#qsBtn');
+  // (the top bar's Quick sale button moved to Settings › General › Shortcuts; Alt+N opens it anywhere)
+  await page.keyboard.press('Alt+n');
   await expect(page.locator('#qsNo')).toHaveText('INV-0107');
   await page.fill('#qsParty', 'Sunil');
   await page.locator('#qsRows .qs-item').first().fill('LED');

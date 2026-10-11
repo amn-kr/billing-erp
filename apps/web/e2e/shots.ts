@@ -39,6 +39,15 @@ export async function shot(p: Page, sel: string): Promise<Buffer> {
   return p.locator(sel).screenshot({ animations: 'disabled', caret: 'hide' });
 }
 
+/**
+ * Hide the top bar in the given pages (keeping its space). The owner moved three header buttons to
+ * Settings, so the header no longer matches the prototype; it has its own check (topbar). Pictures of
+ * pages taller than the window, and windows with rounded corners, would otherwise show it too.
+ */
+export async function hideHeader(...pages: Page[]): Promise<void> {
+  for (const p of pages) await p.addStyleTag({ content: 'header.top{visibility:hidden!important}' });
+}
+
 /** Owner-approved pictures of looks the prototype doesn't have (e.g. the Add item window's Single / Variant switch). */
 export const APPROVED = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'approved');
 

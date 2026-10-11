@@ -123,17 +123,21 @@ test('sidebar groups, collapse and colours are remembered', async ({ browser }) 
   await page.click('#miniBtn');
   await expect(page.locator('#app')).toHaveClass(/mini/);
   await expect(page.locator('#miniBtn')).toHaveAttribute('aria-label', 'Expand menu');
-  await page.click('#palBtn');
-  await page.click('.po[data-p="navy"]');
+  await page.reload();
+  await page.waitForSelector('#app');
+  await expect(page.locator('#app')).toHaveClass(/mini/);
+  // collapsed: hovering a group shows its flyout
+  await page.click('#miniBtn');
+  await expect(page.locator('.grp[data-g="Items & stock"]')).toHaveClass(/open/);
+  // colours: chosen in Settings › General (owner moved them there from the top bar) and kept after a reload
+  await page.goto(APP + '/settings');
+  await page.click('#subnav [data-settab="gen"]');
+  await page.click('#setPal .po[data-p="navy"]');
   await expect(page.locator('#toast')).toHaveText('Navy & gold applied');
   await expect(page.locator('html')).toHaveAttribute('data-pal', 'navy');
   await page.reload();
   await page.waitForSelector('#app');
-  await expect(page.locator('#app')).toHaveClass(/mini/);
   await expect(page.locator('html')).toHaveAttribute('data-pal', 'navy');
-  // collapsed: hovering a group shows its flyout
-  await page.click('#miniBtn');
-  await expect(page.locator('.grp[data-g="Items & stock"]')).toHaveClass(/open/);
 });
 
 test('screens not rebuilt yet say so, like the prototype', async ({ browser }) => {
