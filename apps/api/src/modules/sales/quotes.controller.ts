@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Post, Put } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { DEFAULT_QUOTE_GRID, brandQuoteSchema, money, quoteGridSchema, toDb } from '@billing/shared';
+import { brandQuoteSchema, money, qSeries, quoteGridSchema, quoteRowSchema, toDb } from '@billing/shared';
 import type { z } from 'zod';
 import { Ctx, RequirePermission } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
@@ -10,6 +10,7 @@ import { NumberingService } from '../../common/numbering.service';
 import type { RequestContext } from '../../common/context';
 import { day } from '../../common/lookups';
 import { booksOf } from './sales.service';
+import { BrandsService } from '../items/brands.service';
 
 type Grid = z.infer<typeof quoteGridSchema>;
 type BrandQuote = z.infer<typeof brandQuoteSchema>;
@@ -25,18 +26,60 @@ export class QuotesController {
     private readonly db: DbService,
     private readonly audit: AuditService,
     private readonly numbers: NumberingService,
+    private readonly brands: BrandsService,
   ) {}
 
   private scope(ctx: RequestContext) {
     return { businessId: ctx.businessId, userId: ctx.userId, email: ctx.email };
   }
 
+  /**
+   * The grid, from the shop's own data only (no sample brands or items):
+   * - columns: the active series of active brands on Items › Brands & Series (series typed on items too),
+   *   each with a stable id so a saved quotation keeps its columns;
+   * - rows: the shop's parent items (item groups with live items), whose variants give the rates.
+   * A grid saved earlier (made in the old app, imported, or rows added here) is kept as it is in the
+   * settings, nothing is deleted: its rows come first, so saved quotations keep their quantities. Its
+   * saved ranges show only when their brand is an active brand on Brands & Series and their series is
+   * not inactive (owner's decision: no sample brands); the shop's own columns follow.
+   */
   @RequirePermission('sales.view')
   @Get('quote-grid')
   grid(@Ctx() ctx: RequestContext) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const s = await tx.businessSettings.findUnique({ where: { businessId: ctx.businessId! } });
-      return ((s?.data ?? {}) as { quoteGrid?: Grid }).quoteGrid ?? DEFAULT_QUOTE_GRID;
+      const saved = ((s?.data ?? {}) as { quoteGrid?: Grid }).quoteGrid ?? { rows: [], ser: [] };
+      const low = (t: string) => t.trim().toLowerCase();
+      const series = await this.brands.seriesForQuotes(tx);
+      const off = new Set(series.filter((x) => !x.active || !x.brandActive).map((x) => `${low(x.brand)}|${low(x.name)}`));
+      const onBrands = new Set((await tx.brand.findMany({ where: { archivedAt: null } })).map((b) => low(b.name)));
+      const ser = saved.ser.filter((r) => onBrands.has(low(r.b)) && !off.has(`${low(r.b)}|${low(qSeries(r))}`));
+      const have = new Set(ser.map((r) => `${low(r.b)}|${low(qSeries(r))}`));
+      for (const x of series) if (x.active && x.brandActive && !have.has(`${low(x.brand)}|${low(x.name)}`)) ser.push({ id: x.key, b: x.brand, r: x.name, f: '' });
+      const groups = await tx.itemGroup.findMany({ where: { archivedAt: null, items: { some: { archivedAt: null } } }, orderBy: { name: 'asc' } });
+      const rowsHave = new Set(saved.rows.map((r) => low(r.grp || r.n)));
+      const rows = [...saved.rows, ...groups.filter((g) => !rowsHave.has(low(g.name))).map((g) => ({ id: g.id, n: g.name, c: (/plate/i.test(g.name) ? 'plate' : 'acc') as 'acc' | 'plate' }))];
+      return { rows, ser };
+    });
+  }
+
+  /** "+ Add item row": a row kept in the shop's saved grid (columns come from Brands & Series). */
+  @RequirePermission('sales.create')
+  @Post('quote-grid/rows')
+  addRow(@Ctx() ctx: RequestContext, @Body(new ZodPipe(quoteRowSchema)) body: z.infer<typeof quoteRowSchema>) {
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      const s = await tx.businessSettings.findUniqueOrThrow({ where: { businessId: ctx.businessId! } });
+      const data = (s.data ?? {}) as Record<string, unknown>;
+      const before = (data.quoteGrid as Grid | undefined) ?? null;
+      const grid = before ?? { rows: [], ser: [] };
+      if (grid.rows.some((r) => r.n.toLowerCase() === body.n.toLowerCase())) throw new BadRequestException({ message: 'This item is already in the list.' });
+      const row = { id: 'x' + Date.now(), n: body.n, c: body.c };
+      const list = [...grid.rows], last = row.c === 'plate' ? list.length : list.findIndex((x) => x.c === 'plate');
+      list.splice(last < 0 ? list.length : last, 0, row);
+      const after = { ...grid, rows: list };
+      await tx.businessSettings.update({ where: { businessId: ctx.businessId! }, data: { data: { ...data, quoteGrid: after } as Prisma.InputJsonValue } });
+      await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'update', entity: 'quote_grid', entityId: ctx.businessId!, before, after, ip: ctx.ip });
+      return row;
     });
   }
 
