@@ -211,12 +211,20 @@ for (const width of WIDTHS) {
       await withTabs(proto, app);
       await both(proto, app, async (p) => { await p.click('#siTitle'); await p.click('#siImpQ'); }); // (the title click closes the party list)
       await app.waitForSelector('#iqm:not([hidden]) .iqr');
+      // the windows' rounded corners show a little of the editor behind them, and what it shows there can change
+      // from run to run (a 5-pixel flake on main); hide the editor while these windows are photographed
+      const behind = (hide: boolean) => app.evaluate((h) => {
+        document.getElementById('e2eNoEditor')?.remove();
+        if (h) { const s = document.createElement('style'); s.id = 'e2eNoEditor'; s.textContent = '#vNewInv{visibility:hidden!important}'; document.head.append(s); }
+      }, hide);
+      await behind(true);
       await approvedShot(`import-quote-${width}`, app, '#iqm .mdl');
       // a brand-wise quotation asks which brand to bill
       await both(proto, app, (p) => p.click('#iqList [data-iq="Q-0101"]'));
       await approvedShot(`import-quote-brand-${width}`, app, '#iqm .mdl');
       await both(proto, app, (p) => p.click('#iqList [data-iq="Q-0102"]'));
       await approvedShot(`import-quote-picked-${width}`, app, '#iqm .mdl');
+      await behind(false);
       await both(proto, app, async (p) => { await p.click('#iqGo'); await p.mouse.move(0, 0); });
       await proto.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
       await app.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
@@ -224,7 +232,9 @@ for (const width of WIDTHS) {
       // the quoted rate is kept (the prototype re-prices the lines from the price list here)
       await expect(app.locator('#siRows tr[data-ln="1"] [data-f="price"]')).toHaveValue('1739');
       await both(proto, app, (p) => p.click('#siMid [data-qrx="Q-0102"]'));
+      await behind(true);
       await approvedShot(`import-quote-remove-${width}`, app, '#slm .mdl');
+      await behind(false);
       await both(proto, app, (p) => p.click('#slmOk'));
       await expect(app.locator('#siRows tr[data-ln]')).toHaveCount(1);
     });
