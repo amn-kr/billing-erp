@@ -15,7 +15,9 @@ export interface QList { id: string; name: string; isDefault: boolean }
 export interface QCtx { IT: EItem[]; pl: QList; ref: string; rules: Record<string, CommRule> }
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
-export const qItem = (c: QCtx, row: QuoteRow, s: QuoteSeries) => c.IT.find((i) => i.grp === qGrp(row) && i.brand === s.b && (i.series || '') === qSeries(s));
+const low = (t: string) => t.trim().toLowerCase();
+/** the item for a cell: same parent item, brand and series (brand and series ignoring capital letters, as on Brands & Series) */
+export const qItem = (c: QCtx, row: QuoteRow, s: QuoteSeries) => c.IT.find((i) => i.grp === qGrp(row) && low(i.brand) === low(s.b) && low(i.series || '') === low(qSeries(s)));
 /** commission loaded on a rate (prototype cmLoadPrice, rule by item category) */
 export function cmLoad(c: QCtx, it: EItem, v: number) {
   if (!c.ref) return v;

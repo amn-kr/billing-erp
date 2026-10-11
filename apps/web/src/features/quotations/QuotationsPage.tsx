@@ -14,6 +14,7 @@ import { dmy, inr2f } from '../../lib/format';
 import { useSettings } from '../../lib/settings';
 import { today } from '../../lib/time';
 import { useShell } from '../shell/store';
+import type { Brand } from '../items/BrandsPage';
 import { qfmt } from '../items/ItemsPage';
 import { usePm, type PriceList } from '../prices/model';
 import { PinDialog } from '../prices/PinDialog';
@@ -69,6 +70,7 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
   const foot = useRef<HTMLTableSectionElement>(null);
   /* what was last saved, so leaving with changes keeps them in Saved */
   const savedAs = useRef<string>('');
+  const ownBrands = useQuery({ queryKey: ['brands'], queryFn: () => api<Brand[]>('/brands') });
   const ro = q.status === 'converted';
   const active = lists.filter((l) => l.active);
   const def = lists.find((l) => l.isDefault)!;
@@ -199,22 +201,29 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
   };
 
   /* ---------- the grid: ranges, rows, items ---------- */
-  const putGrid = async (ng: QuoteGrid) => { await api('/quote-grid', { method: 'PUT', body: ng }); qc.setQueryData(['quote-grid'], ng); };
-  const onSer = async (b: string, r: string, f: string, nb: boolean) => {
-    if (g.ser.some((s) => s.b.toLowerCase() === b.toLowerCase() && s.r.toLowerCase() === r.toLowerCase() && (s.f || '').toLowerCase() === f.toLowerCase())) return 'This range is already in the quotation.';
-    if (nb) await api('/catalogue/brands', { method: 'POST', body: { name: b } }).catch(() => undefined);
-    const s = { id: 's' + Date.now(), b, r, f };
-    await putGrid({ ...g, ser: [...g.ser, s] });
-    up({ sel: [...q.sel, s.id] });
+  const refreshGrid = async () => { await Promise.all(['brands', 'brand-series'].map((k) => qc.invalidateQueries({ queryKey: [k] }))); return qc.fetchQuery({ queryKey: ['quote-grid'], queryFn: () => api<QuoteGrid>('/quote-grid'), staleTime: 0 }); };
+  // a new range is a series in Items › Brands & Series (the brand is added there too when new); the columns come from there
+  const onSer = async (b: string, r: string, f: string) => {
+    const name = qSeries({ id: '', b, r, f });
+    const low = (t: string) => t.trim().toLowerCase();
+    if (g.ser.some((s) => low(s.b) === low(b) && low(qSeries(s)) === low(name))) return 'This range is already in the quotation.';
+    try {
+      const all = await qc.fetchQuery({ queryKey: ['brands'], queryFn: () => api<Brand[]>('/brands'), staleTime: 0 });
+      const br = all.find((x) => low(x.name) === low(b)) ?? await api<{ id: string; name: string }>('/brands', { body: { name: b } });
+      if ('active' in br && !br.active) return `${br.name} is inactive. Make it active in Brands & Series first.`;
+      await api('/brand-series', { body: { brandId: br.id, name } });
+    } catch (e) { return e instanceof ApiError ? e.message : 'Could not add the range.'; }
+    const ng = await refreshGrid();
+    const s = ng.ser.find((x) => low(x.b) === low(b) && low(qSeries(x)) === low(name));
+    if (s) up({ sel: [...q.sel, s.id] });
     setAdd(null);
     requestAnimationFrame(() => { const t = tw.current; if (t) { t.scrollLeft = t.scrollWidth; t.scrollTop = 0; } });
-    toast(`${qSerName(s)} added. Use “+ Add item” to add its prices.`);
+    toast(`${s ? qSerName(s) : `${b} ${name}`} added. Use “+ Add item” to add its prices.`);
   };
   const onRow = async (n: string, sec: 'acc' | 'plate') => {
     if (g.rows.some((r) => r.n.toLowerCase() === n.toLowerCase())) return 'This item is already in the list.';
-    const r = { id: 'x' + Date.now(), n, c: sec }, list = [...g.rows], last = sec === 'plate' ? list.length : list.findIndex((x) => x.c === 'plate');
-    list.splice(last < 0 ? list.length : last, 0, r);
-    await putGrid({ ...g, rows: list });
+    try { await api('/quote-grid/rows', { body: { n, c: sec } }); } catch (e) { return e instanceof ApiError ? e.message : 'Could not add the row.'; }
+    await refreshGrid();
     setAdd(null);
     toast(`${n} added`);
   };
@@ -276,7 +285,8 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
     const n = all[all.indexOf(e.currentTarget) + (e.key === 'ArrowUp' ? -1 : 1)];
     if (n) { n.focus(); n.select(); }
   };
-  const brands = [...new Set(d.IT.map((i) => i.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  // the Add range window offers the shop's active brands from Items › Brands & Series
+  const brands = (ownBrands.data ?? []).filter((b) => b.active).map((b) => b.name);
   const sv = rows.find((x) => x.id === q.id);
   const sec = (label: string) => <tr className="qsec"><td className="qsk" dangerouslySetInnerHTML={{ __html: label }}></td><td className="qsk2"></td>{cols.map((s) => <td key={s.id}></td>)}</tr>;
   const row = (r: (typeof g.rows)[number]) => {
@@ -317,6 +327,11 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
             <button role="menuitem" id="qXls" onClick={() => share('xls')}><RawIcon d={P.down} /><span>Download Excel<small>Same table as a spreadsheet</small></span></button></div></div>
         <button className="btn" id="qSaved" onClick={() => setSavedOpen(true)}><RawIcon d={P.saved} />Saved <span className="cnt" id="qSavedN" style={rows.length ? undefined : { display: 'none' }}>{rows.length}</span></button>
         <button className="btn p" id="qConv" disabled={ro} onClick={() => void openConvert()}><RawIcon d={P.conv} />Convert to invoice</button></div>
+      {/* no columns: lead to Brands & Series; a saved quotation opened from Saved still shows its quantities */}
+      {!g.ser.length && !has ? (
+        <div className="card ptxc"><div className="ptempty" id="qEmpty">No brands or series yet. Add them in Brands &amp; Series first.<br />
+          <button className="btn p" id="qOpenBrands" style={{ marginTop: 12 }} onClick={() => navigate('/items/brands?tab=series')}>Open Brands &amp; Series</button></div></div>
+      ) : (
       <div className="card ptxc">
         <div className="ptfil qfil">
           <label className="qlab" htmlFor="qCust"><span>Customer</span><input className="fi" id="qCust" placeholder="Customer name" autoComplete="off" list="qCustL" value={q.cust} disabled={ro} onChange={(e) => up({ cust: e.target.value })} />
@@ -339,7 +354,8 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
         <p className="mu qhint" id="qHint" hidden>{ro ? `@ rates come from Price manager (${pl.name}). Read only.` : `@ rates come from Price manager (${pl.name})${q.disc ? `, less ${q.disc}% discount` : ''}. Type quantities; totals update for every brand.`}</p>
         <div className="qtw" ref={tw}><table className="qtab">
           <thead id="qHead"><tr><th className="qsk">Item</th><th className="qsk2 n">Qty</th>{cols.map((s) => <th className="n qch" key={s.id}><b>{s.b}</b><span>{s.r}{s.f ? ' ' + s.f : ''}</span></th>)}</tr></thead>
-          <tbody id="qBody">{sec('Switches &amp; accessories')}{g.rows.filter((r) => r.c !== 'plate').map(row)}{sec('Plates')}{g.rows.filter((r) => r.c === 'plate').map(row)}</tbody>
+          <tbody id="qBody">{g.rows.length ? <>{sec('Switches &amp; accessories')}{g.rows.filter((r) => r.c !== 'plate').map(row)}{sec('Plates')}{g.rows.filter((r) => r.c === 'plate').map(row)}</>
+            : <tr><td colSpan={2 + cols.length} className="ptempty" id="qNoRows">No items to quote yet. Add items with a brand and series in Items &amp; stock, or use “+ Add item row” under the ranges.</td></tr>}</tbody>
           <tfoot id="qFoot" ref={foot}>
             <tr className="qtq"><td className="qsk">Total qty</td><td className="qsk2 n"><b>{qfmt(tq)}</b></td>{cols.map((s) => <td key={s.id}></td>)}</tr>
             <tr><td className="qsk">Switches &amp; accessories</td><td className="qsk2"></td>{T.map((t) => <td className="n" key={t.s.id}>{inr2f(t.acc)}</td>)}</tr>
@@ -348,6 +364,7 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
             <tr className="qgt"><td className="qsk">Total</td><td className="qsk2"></td>{T.map((t) => <td className="n" key={t.s.id}><b>{inr2f(t.total)}</b>{t.miss ? <small className="qmiss">{t.miss} item{t.miss > 1 ? 's' : ''} not available</small> : best !== null && t.total === best && ok.length > 1 ? <small className="qbest">Lowest</small> : null}</td>)}</tr>
           </tfoot></table></div>
       </div>
+      )}
       <SavedList open={savedOpen} rows={rows} onClose={() => setSavedOpen(false)} onOpen={onOpen} onConvert={onConvertRow} onCancel={(r) => void onCancel(r)} />
       <ConvertDialog open={conv} no={q.no} cust={q.cust} n={Object.keys(q.qty).length} ranked={qRanked(T)} onGo={convertBrand} onClose={() => setConv(false)} />
       <AddDialog mode={add} brands={brands} gstOn={gstOn} onClose={() => setAdd(null)} onSer={onSer} onRow={onRow} onItem={onItem} />

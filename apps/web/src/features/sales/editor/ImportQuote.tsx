@@ -36,7 +36,8 @@ export function ImportQuote({ open, onClose, d, s, up, toast }: { open: boolean;
   /* a brand-wise quotation: which brand to bill (prototype iqBrandOpts), at the quotation's rate list and referral */
   const bq = q?.qtype === 'brand' && q.brandQuote && grid.data ? q.brandQuote : null;
   const bctx: QCtx | null = bq ? { IT: d.IT, pl: { id: bq.priceListId ?? d.ctx.defaultList ?? '', name: '', isDefault: !bq.priceListId || bq.priceListId === d.ctx.defaultList }, ref: q!.referrerId ?? '', rules: d.ctx.rules } : null;
-  const bdraft: QDraft | null = bq ? { id: q!.id, no: q!.number, cust: bq.cust, disc: bq.disc, pl: bq.priceListId ?? '', sel: bq.sel.length ? bq.sel : grid.data!.ser.map((x) => x.id), qty: bq.qty, ref: q!.referrerId ?? '', status: 'open', inv: '', brand: '' } : null;
+  // a quotation whose ranges are all hidden now (brand not on Brands & Series) is priced against every range shown
+  const bdraft: QDraft | null = bq ? { id: q!.id, no: q!.number, cust: bq.cust, disc: bq.disc, pl: bq.priceListId ?? '', sel: grid.data!.ser.some((x) => bq.sel.includes(x.id)) ? bq.sel : grid.data!.ser.map((x) => x.id), qty: bq.qty, ref: q!.referrerId ?? '', status: 'open', inv: '', brand: '' } : null;
   const opts = bq ? qRanked(qTotals(bctx!, grid.data!, bdraft!)).map((t) => ({ s: t.s, tot: t.total, miss: t.miss, n: Object.keys(bq.qty).length - t.miss })) : [];
   useEffect(() => { setSid(opts.find((o) => !o.miss)?.s.id ?? opts[0]?.s.id ?? null); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [sel, !!grid.data]);
   const add = async () => {
