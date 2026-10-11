@@ -214,12 +214,11 @@ describe('challans and quotations', () => {
 
   it('a brand-wise quotation keeps quantities per row and ranges; converting records the brand and locks it', async () => {
     const { o, fan, verma } = await shop();
-    // the prototype's grid until the shop changes it
-    const g = (await http().get('/api/quote-grid').set(auth(o)).expect(200)).body;
-    expect(g.rows).toHaveLength(22);
-    expect(g.ser.map((x: { b: string; r: string }) => `${x.b} ${x.r}`)).toContain('Legrand Myrius');
-    await http().put('/api/quote-grid').set(auth(o)).send({ rows: g.rows, ser: [...g.ser, { id: 's7', b: 'Polycab', r: 'Levana', f: 'White' }] }).expect(200);
-    expect((await http().get('/api/quote-grid').set(auth(o)).expect(200)).body.ser).toHaveLength(7);
+    // no sample grid (owner's change): the columns are the shop's own series on Brands & Series
+    expect((await http().get('/api/quote-grid').set(auth(o)).expect(200)).body).toEqual({ rows: [], ser: [] });
+    const pc = (await http().post('/api/brands').set(auth(o)).send({ name: 'Polycab' }).expect(201)).body;
+    await http().post('/api/brand-series').set(auth(o)).send({ brandId: pc.id, name: 'Levana' }).expect(201);
+    expect((await http().get('/api/quote-grid').set(auth(o)).expect(200)).body.ser.map((x: { b: string; r: string }) => `${x.b} ${x.r}`)).toEqual(['Polycab Levana']);
     // nothing to save without quantities
     const body = { date: D, cust: 'Verma Traders', disc: 5, sel: ['s1', 's3'], qty: { r5: 30, p4: 15 }, items: 2, pcs: 45, low: { name: 'Havells Coral White', total: 5230.5 } };
     expect((await http().post('/api/quotations/brand').set(auth(o)).send({ ...body, qty: {} }).expect(400)).body.message).toBe('Enter at least one quantity first');
