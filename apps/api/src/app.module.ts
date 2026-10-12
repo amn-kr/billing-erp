@@ -24,6 +24,7 @@ import { PartiesController } from './modules/parties/parties.controller';
 import { PartiesService } from './modules/parties/parties.service';
 import { ItemsController } from './modules/items/items.controller';
 import { ItemsService } from './modules/items/items.service';
+import { ItemImportService } from './modules/items/item-import.service';
 import { BrandsController } from './modules/items/brands.controller';
 import { BrandsService } from './modules/items/brands.service';
 import { StockController } from './modules/stock/stock.controller';
@@ -75,6 +76,7 @@ import { ReceiptsService } from './modules/sales/receipts.service';
     ExpensesService,
     PartiesService,
     ItemsService,
+    ItemImportService,
     BrandsService,
     StockService,
     PricingService,
