@@ -19,6 +19,7 @@ import { PAL } from '../shell/palette';
 import { SYNC_LABEL } from '../shell/TopBar';
 import { useQuick } from '../sales/QuickSale';
 import { Sw, useS, useSaveS } from './model';
+import { BackupLive } from './BackupCard';
 
 const BOLT = '<path d="M13 3L5 13h6l-1 8 8-10h-6z"/>';
 /** the Alt keys the app frame handles (AppShell), shown under Settings › General › Shortcuts */
@@ -159,9 +160,9 @@ export function GeneralTab() {
       <h3 style={{ margin: '22px 0 4px', fontSize: 16 }}>Modules</h3><p className="mu" style={{ margin: '0 0 14px', fontSize: 13 }}>Turn off parts of the app you don’t use. Your data is kept.</p>
       <div className="tgl"><div className="ti" style={T('var(--blue,#2563eb)')}><Icon name="book" /></div><div className="tx"><b>Accounting</b><small>Chart of accounts, journal vouchers and day book in the side menu.</small></div><Sw id="sAcct" on={S.acct} label="Accounting" onChange={(v) => { void save({ data: { acct: v } }); showToast(v ? 'Accounting turned on' : 'Accounting turned off'); }} /></div>
       <div id="bkpCard"><h3 style={{ margin: '26px 0 4px', fontSize: 16 }}>Backup &amp; restore</h3><p className="mu" style={{ margin: '0 0 12px', fontSize: 13 }}>Keep a copy of your books outside the app. If entries are lost or deleted by mistake, restore the copy.</p>
-        <div className="synccard"><div className="sx"><b>Backup file</b><span id="bkpLastTxt">{l ? `Last downloaded on this device ${when(new Date(l).toISOString())}${days! >= 7 ? ` — ${days} days ago, take a new one` : ''}.` : 'No backup downloaded on this device yet.'}</span></div><button className="btn" type="button" id="bkpRestoreBtn" onClick={() => fileRef.current?.click()}>Restore from file…</button><button className="btn p" type="button" id="bkpDlBtn" onClick={() => void download()}>Download backup</button></div>
-        <div className="synccard" id="bkpCloud"><div className="sx"><b>Daily copies in the cloud</b><span id="bkpCloudTxt">Cloud copies start once cloud sync is connected.</span><div id="bkpCloudList" style={{ marginTop: 6 }}></div></div></div>
-        <div className="synccard"><div className="sx"><b>Storage on this device</b><span id="bkpUseTxt">Your books are kept on the server, not on this device.</span><div style={{ height: 6, borderRadius: 3, background: 'var(--bd,#e2e8f0)', overflow: 'hidden', marginTop: 6 }}><i id="bkpUseBar" style={{ display: 'block', height: '100%', width: '2%', background: 'var(--ac)' }}></i></div></div></div></div>
+        <BackupLive onDownload={() => void download()}>
+          <div className="synccard"><div className="sx"><b>Backup file</b><span id="bkpLastTxt">{l ? `Last downloaded on this device ${when(new Date(l).toISOString())}${days! >= 7 ? ` — ${days} days ago, take a new one` : ''}.` : 'No backup downloaded on this device yet.'}</span></div><button className="btn" type="button" id="bkpRestoreBtn" onClick={() => fileRef.current?.click()}>Restore from file…</button><button className="btn p" type="button" id="bkpDlBtn" onClick={() => void download()}>Download backup</button></div>
+        </BackupLive></div>
       <div id="bzFresh"><h3 style={{ margin: '26px 0 4px', fontSize: 16 }}>Start fresh</h3><p className="mu" style={{ margin: '0 0 12px', fontSize: 13 }}>Begin a new, empty set of books. These books are kept and stay available from the shop menu.</p>
         <div className="synccard" style={{ borderColor: 'color-mix(in srgb,var(--red,#dc2626) 35%,transparent)' }}><div className="sx"><b>Start new books from zero</b><span>Parties, items, invoices, purchases, payments, expenses and bank entries start empty in the new books. Nothing here is deleted.</span></div><button className="btn dz" type="button" id="bzFreshBtn" onClick={() => setFresh(true)}>Start fresh…</button></div></div>
       <h3 style={{ margin: '22px 0 4px', fontSize: 16 }}>Cloud sync</h3><p className="mu" style={{ margin: '0 0 12px', fontSize: 13 }}>One shared set of books for your shop. Open it on any laptop or phone, at any location, and you and your staff see the same invoices, parties and stock. Only people you share the app with as Contributor or Editor can see or change the data.</p>
