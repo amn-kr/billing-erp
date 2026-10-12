@@ -23,7 +23,8 @@ const colOf = (k: ImportKey) => col(IMPORT_KEYS.indexOf(k));
 /** One sample row of each product type (on their own Samples sheet, so they are never imported by mistake). */
 export const SAMPLE_ROWS: Record<ImportKey, string>[] = [
   { type: 'Single Range', name: 'Indotech 5-30A LCB meter', brand: 'Indotech', series: '', code: 'IT-LCB530', qty: '25', rate: '460', date: '01-04-2026', unit: 'PCS', sale: '550', min: '5', godown: '', category: '', gst: '18', hsn: '9028' },
-  { type: 'Multi Range', name: 'Modular switch 6A', brand: 'Havells', series: 'Coral', code: 'AHCSXXW061', qty: '100', rate: '42', date: '01-04-2026', unit: 'PCS', sale: '55', min: '20', godown: '', category: '', gst: '18', hsn: '8536' },
+  // no brand code: it is optional
+  { type: 'Multi Range', name: 'Modular switch 6A', brand: 'Havells', series: 'Coral', code: '', qty: '100', rate: '42', date: '01-04-2026', unit: 'PCS', sale: '55', min: '20', godown: '', category: '', gst: '18', hsn: '8536' },
 ];
 
 async function workbook(): Promise<Workbook> {
@@ -83,13 +84,13 @@ function notesSheet(wb: Workbook) {
   add(['Nothing is saved until you press Final import. You can correct every row on the checking screen first.']);
   add([]);
   add(['Column', 'Required for', 'What to enter'], 'head');
-  const req: Partial<Record<ImportKey, string>> = { type: 'Both', name: 'Both', brand: 'Both', series: 'Multi Range', code: 'Both' };
+  const req: Partial<Record<ImportKey, string>> = { type: 'Both', name: 'Both', brand: 'Both', series: 'Multi Range' };
   for (const c of IMPORT_COLUMNS) add([c.title, req[c.key] ?? '—', c.note]);
   add([]);
   add(['Single Range', 'One item. Its product name must be new.'], 'section');
   add(['Multi Range', 'Many brands and series under one product name, e.g. Modular switch 6A → Havells Coral, Anchor Roma. Saved like Add item’s Variant: “Modular switch 6A · Havells Coral”.'], 'section');
   add([]);
-  add(['Samples', 'The Samples sheet has one filled-in row of each product type. Copy the layout, not the rows.'], 'section');
+  add(['Samples', 'The Samples sheet has one filled-in row of each product type (the Multi Range one has no brand code: it is optional). Copy the layout, not the rows.'], 'section');
 }
 
 /** One sample row of each product type, laid out like the Products sheet (never read on upload). */

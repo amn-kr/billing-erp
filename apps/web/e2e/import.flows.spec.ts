@@ -89,6 +89,9 @@ test('Import products: template, checks, editing, Discard question, error rows a
   await expect(marks(10, 'code')).toHaveText(['Brand code AHCSXXW061 is already used by “Modular switch 6A · Havells Coral”.']);
   await expect(marks(11, 'series')).toHaveText(['Havells Coral is already in Modular switch 6A (item “Modular switch 6A · Havells Coral”).']);
   await expect(marks(13, 'brand')).toHaveText(['Enter the brand name.']);
+  // the brand code is optional: a blank one is not marked (rows 3 and 13)
+  await expect(marks(13, 'code')).toHaveCount(0);
+  await expect(marks(3, 'code')).toHaveCount(0);
   await expect(marks(15, 'date')).toHaveText(['“31-02-2026” is not a date. Type it like 01-04-2026.']);
   await expect(marks(16, 'date')).toHaveText(['01 Jan 2027', 'The date 01-01-2027 is in the future.']);
   await expect(marks(17, 'rate')).toHaveText(['Enter the rate of the opening stock (0 if it cost nothing).']);
@@ -99,6 +102,23 @@ test('Import products: template, checks, editing, Discard question, error rows a
   await expect(marks(5, 'date')).toHaveText(['15 Sep 2026']);
   await expect(marks(6, 'date')).toHaveText(['15 Sep 2026']);
   await expect(page.locator(`tr[data-row="19"] [data-where]`)).toHaveText('Check: Base unit');
+
+  // the screen keeps still: the table fits the window and its rows scroll inside it, under the heading row
+  const layout = () => page.evaluate(() => {
+    const tw = document.querySelector('#imGrid .tw')!, r = tw.getBoundingClientRect();
+    return {
+      pageScrolls: document.documentElement.scrollHeight > innerHeight + 1, scrollY,
+      tableOnScreen: r.bottom <= innerHeight, rowsScroll: tw.scrollHeight > tw.clientHeight,
+      headAtTop: Math.round(tw.querySelector('thead th')!.getBoundingClientRect().top - r.top), tabsTop: Math.round(document.querySelector('#imTabs')!.getBoundingClientRect().top),
+    };
+  });
+  const before = await layout();
+  expect(before).toMatchObject({ pageScrolls: false, scrollY: 0, tableOnScreen: true, rowsScroll: true, headAtTop: 0 });
+  await page.mouse.move(900, 600);
+  for (let i = 0; i < 10; i++) await page.mouse.wheel(0, 400);
+  await expect.poll(() => page.locator('#imGrid .tw').evaluate((e) => e.scrollTop)).toBeGreaterThan(0);
+  expect(await layout()).toEqual({ ...before, headAtTop: 0 });
+  await page.locator('#imGrid .tw').evaluate((e) => { e.scrollTop = 0; });
 
   // filters and search
   await page.click('[data-imf="ok"]');
@@ -165,8 +185,9 @@ test('Import products: template, checks, editing, Discard question, error rows a
   const headers = { Authorization: `Bearer ${(await r.json()).accessToken}` };
   const list = (await (await request.get(APP + '/api/items', { headers })).json()) as { id: string; code: string; name: string; purchase: string }[];
   expect(list.length).toBe(3 + 8);
-  const roma = list.find((i) => i.code === 'ANR-6A-1W')!;
-  expect(roma.name).toBe('Modular switch 6A · Anchor Roma');
+  // imported without a brand code
+  const roma = list.find((i) => i.name === 'Modular switch 6A · Anchor Roma')!;
+  expect(roma.code).toBe('');
   const d = await (await request.get(APP + `/api/items/${roma.id}`, { headers })).json();
   expect(d.movements).toMatchObject([{ kind: 'opening', qty: '200.000', rate: '18.00', date: '2026-04-01', godown: 'Back godown' }]);
   expect(d.rateTable.layers).toEqual([{ rate: '18.00', qty: '200.000', since: '2026-04-01' }]);
@@ -178,6 +199,12 @@ test('Import products: template, checks, editing, Discard question, error rows a
   await page.goto(APP + '/items/import');
   await page.setInputFiles('#imFile', errs);
   await expect(page.locator('#imTot')).toHaveText('errors.xlsx15 rows');
+  // every row has an error: nothing to import, said in red (not "0 products will be imported" in green)
+  await expect(page.locator('#imCount .stt.r')).toHaveText('Nothing to import yet: every row has an error. Fix the errors first.');
+  await page.check('#imSkip');
+  await expect(page.locator('#imCount .stt.r')).toHaveText('Nothing to import yet: every row has an error. Fix the errors first.');
+  await expect(page.locator('#imCount .stt.g')).toHaveCount(0);
+  await expect(page.locator('#imGo')).toBeDisabled();
   await page.click('#imBack');
   await page.click('#dcfYes');
   await expect(page).toHaveURL(APP + '/items');

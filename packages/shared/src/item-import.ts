@@ -16,7 +16,7 @@ export const IMPORT_COLUMNS = [
   { key: 'name', title: 'Product name', note: 'Required. Single Range: the item name, must be new. Multi Range: the parent item; it can repeat for many brands and series.' },
   { key: 'brand', title: 'Brand name', note: 'Required. A brand that is not in Brands & Series yet is created on import.' },
   { key: 'series', title: 'Series / range name', note: 'Required for Multi Range, e.g. Coral. Product + brand + series must be new. Not used for Single Range.' },
-  { key: 'code', title: 'Brand code', note: "Required. The brand's item code. Must not be used by another item." },
+  { key: 'code', title: 'Brand code', note: "Optional. The brand's code for this item (the maker's code). When given, it must not be used by another item." },
   { key: 'qty', title: 'Opening stock', note: 'Quantity in stock today. Optional. Not negative.' },
   { key: 'rate', title: 'At price', note: 'Rate of the opening stock per unit. Required when there is opening stock (0 is allowed). Also saved as the purchase price.' },
   { key: 'date', title: 'As of date', note: 'Date of the opening stock, e.g. 01-04-2026. Blank = today. Not in the future.' },
@@ -217,11 +217,10 @@ export function checkImportRows(rows: ImportRow[], ctx: ImportContext): RowCheck
     if (!v('type')) err('type', 'Choose Single Range or Multi Range.');
     else if (!kind) err('type', `“${v('type')}” is not a product type. Choose Single Range or Multi Range.`);
 
-    // required columns
+    // required columns (the brand code is optional: owner, 12 Oct 2026)
     if (!v('name')) err('name', 'Enter the product name.');
     if (!v('brand')) err('brand', 'Enter the brand name.');
     if (kind === 'multi' && !v('series')) err('series', 'Enter the series / range name (needed for Multi Range).');
-    if (!v('code')) err('code', 'Enter the brand code.');
     if (kind === 'single' && v('series')) warn('series', 'Series is only used for Multi Range. It will be ignored.');
     long('name', kind === 'multi' ? 160 : 200, 'The product name');
     long('brand', 80, 'The brand name');

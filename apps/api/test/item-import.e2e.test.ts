@@ -155,6 +155,34 @@ describe('Items › Import products', () => {
     expect(r.body.checks[2].cells.code[0].message).toBe('Brand code bj1 is already used by “Bajaj fan”.');
   });
 
+  it('brand code is optional: blank codes import, given codes are kept and still checked, existing codes stay', async () => {
+    const o = await owner(app);
+    await http().post('/api/items').set(auth(o)).send({ name: 'Switch · Havells Coral', group: 'Switch', brand: 'Havells', series: 'Coral', code: 'HC1' }).expect(201);
+    await http().post('/api/items').set(auth(o)).send({ name: 'Old bulb', brand: 'Philips', code: '' }).expect(201);
+    const r = await run(o, [
+      // no code, an existing brand and parent item: fine
+      multi(2, 'Switch', 'Havells', 'Oro', '', { qty: '5', rate: '40' }),
+      // no code, like an existing item without a code: fine
+      single(3, 'New bulb', 'Philips', ''),
+      multi(4, 'Switch', 'Anchor', 'Roma', ''),
+      // a code still works as before
+      single(5, 'Fan', 'Bajaj', 'BJ-1'),
+    ]).expect(200);
+    expect(r.body.done).toBe(true);
+    expect(r.body.summary).toMatchObject({ created: 4, skipped: [] });
+    const all = await items(o);
+    const code = (name: string) => all.find((i) => i.name === name)!.code;
+    expect([code('Switch · Havells Oro'), code('New bulb'), code('Switch · Anchor Roma'), code('Fan')]).toEqual(['', '', '', 'BJ-1']);
+    // the items that were there keep their codes; a blank cell never clears one
+    expect([code('Switch · Havells Coral'), code('Old bulb')]).toEqual(['HC1', '']);
+    // a code already used, or twice in the file, is still an error; blank ones are not
+    const d = await run(o, [single(2, 'Fan 2', 'Bajaj', 'bj-1'), single(3, 'A', 'Bajaj', 'Z9'), single(4, 'B', 'Bajaj', 'z9'), single(5, 'C', 'Bajaj', ''), single(6, 'D', 'Bajaj', '')]).expect(200);
+    expect(d.body.done).toBe(false);
+    expect(d.body.checks.map((c: { status: string }) => c.status)).toEqual(['error', 'error', 'error', 'warning', 'warning']);
+    expect(d.body.checks[0].cells.code[0].message).toBe('Brand code bj-1 is already used by “Fan”.');
+    expect(d.body.checks[1].cells.code[0].message).toBe('This brand code is also in row 4 of the uploaded file.');
+  });
+
   it('another shop’s items do not count as duplicates', async () => {
     const a = await owner(app);
     const b = await owner(app);

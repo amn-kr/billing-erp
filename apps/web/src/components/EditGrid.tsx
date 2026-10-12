@@ -3,8 +3,13 @@
  * record, every cell an input, cells marked with an error or a warning and the reason in plain
  * words under the value, optional tick boxes, and pages of 100 rows so thousands of rows stay quick.
  * Built from the app's table classes (tw, ptt2, stt); its own look is in edit-grid.css.
+ *
+ * The table keeps to the room left on the screen below what is above it (like the prototype's price
+ * list table, #vPls .ptxc>.tw): the page itself does not scroll, so the title, buttons, filters and
+ * search stay in place; the rows scroll inside the table under its heading row, and the sideways
+ * scroll bar is always at the bottom of the screen. With few rows the table is just as tall as they are.
  */
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import css from './edit-grid.css?inline';
 import { useStyles } from '../lib/useStyles';
 
@@ -40,11 +45,52 @@ interface Props<R> {
   selection?: { selected: Set<string | number>; onToggle: (key: string | number, on: boolean) => void; onToggleAll: (on: boolean) => void };
   empty?: ReactNode;
   pageSize?: number;
+  /** keep the table within the screen (default); false lets it grow with its rows */
+  fill?: boolean;
 }
 
-export function EditGrid<R>({ id, columns, rows, rowKey, rowLabel, value, onChange, marks, note, lead, selection, empty, pageSize = 100 }: Props<R>) {
+/** the least height the table keeps on a very short window, as the prototype's price list table */
+const MIN_HEIGHT = 260;
+
+/**
+ * Sets the table's greatest height to the room between its top and the bottom of the window, less
+ * what comes after it on the page (the pager, the card's edge, the page's bottom padding).
+ */
+function useFitToScreen(tw: RefObject<HTMLDivElement | null>, on: boolean) {
+  useLayoutEffect(() => {
+    const el = tw.current;
+    const main = el?.closest('main');
+    if (!on || !el || !main) return;
+    // the screen inside <main> that holds the grid
+    let screen: Element = el;
+    while (screen.parentElement && screen.parentElement !== main) screen = screen.parentElement;
+    let raf = 0;
+    const fit = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const r = el.getBoundingClientRect();
+        const top = r.top + window.scrollY;
+        const after = screen.getBoundingClientRect().bottom - r.bottom + parseFloat(getComputedStyle(main).paddingBottom || '0');
+        const h = `${Math.max(MIN_HEIGHT, Math.floor(window.innerHeight - top - after))}px`;
+        if (el.style.maxHeight !== h) el.style.maxHeight = h;
+      });
+    };
+    fit();
+    // anything above or below that changes size (a message, the pager, a wider window) moves the table
+    const ro = new ResizeObserver(fit);
+    ro.observe(screen);
+    window.addEventListener('resize', fit);
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); window.removeEventListener('resize', fit); el.style.maxHeight = ''; };
+  }, [tw, on]);
+}
+
+export function EditGrid<R>({ id, columns, rows, rowKey, rowLabel, value, onChange, marks, note, lead, selection, empty, pageSize = 100, fill = true }: Props<R>) {
   useStyles([css], 'edit-grid');
+  const twRef = useRef<HTMLDivElement>(null);
+  useFitToScreen(twRef, fill);
   const [page, setPage] = useState(0);
+  // a new page of rows starts at its first row
+  useEffect(() => { twRef.current?.scrollTo({ top: 0 }); }, [page]);
   const pages = Math.max(1, Math.ceil(rows.length / pageSize));
   // a filter that leaves fewer pages goes back to the last one
   useEffect(() => { if (page > pages - 1) setPage(pages - 1); }, [page, pages]);
@@ -53,7 +99,7 @@ export function EditGrid<R>({ id, columns, rows, rowKey, rowLabel, value, onChan
 
   return (
     <div className="egw" id={id}>
-      <div className="tw" style={{ margin: 0 }}>
+      <div className={`tw${fill ? ' egfit' : ''}`} ref={twRef} style={{ margin: 0 }}>
         <table className="ptt2 egt">
           <thead>
             <tr>

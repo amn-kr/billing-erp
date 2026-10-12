@@ -1,7 +1,7 @@
 /**
  * Items › Import products is new (the prototype has no such screen), so it is compared with its
  * owner-approved pictures (e2e/approved/) at 1280, 1366 and 1920 px: the start page, the checking
- * screen (all rows, errors only), a row before and after it is corrected, the question before
+ * screen (all rows, scrolled to the last rows, errors only), a row before and after it is corrected, the question before
  * Final import, and the summary.
  */
 import { test } from '@playwright/test';
@@ -35,6 +35,10 @@ for (const width of WIDTHS) {
       await app.waitForSelector('#imGrid tr[data-row="24"]');
       await look();
       await approvedShot(`import-check-${width}`, app, '#vImport');
+      // scrolled to the last rows: the title, tabs, search and heading row stay where they are
+      await app.locator('#imGrid .tw').evaluate((e) => { e.scrollTop = e.scrollHeight; });
+      await approvedShot(`import-scrolled-${width}`, app, '#vImport');
+      await app.locator('#imGrid .tw').evaluate((e) => { e.scrollTop = 0; });
       await app.click('[data-imf="error"]');
       await look();
       await approvedShot(`import-errors-${width}`, app, '#vImport');

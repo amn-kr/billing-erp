@@ -1,7 +1,10 @@
 /* Editable grid (Import products; later Bulk update items) — owner-approved addition, not in the
    prototype. Only the app's own colour tokens: a cell with an error is tinted red, a warning amber,
-   with the reason under the value. The table scrolls sideways inside its card. */
+   with the reason under the value. The table scrolls inside its card: sideways, and up and down
+   when it is kept within the screen. */
 .egw .tw{overflow-x:auto;overscroll-behavior-x:contain}
+/* within the screen: rows scroll inside the table (height set by EditGrid), heading row stays on top */
+.egw .tw.egfit{overflow:auto;overscroll-behavior:contain}
 .egt{border-collapse:separate;border-spacing:0}
 .egt th{white-space:nowrap;position:sticky;top:0;z-index:1}
 .egt td{padding:0!important;vertical-align:top;white-space:normal!important}
