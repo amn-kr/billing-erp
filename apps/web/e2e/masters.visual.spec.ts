@@ -523,7 +523,8 @@ for (const width of WIDTHS) {
       // General
       await both((p) => p.click('#subnav [data-settab="gen"]'));
       await app.waitForSelector('#bzCard #bzName');
-      await align(['#bzFresh', '#bkpUseTxt', '#bkpUseBar']);
+      // the whole Backup & restore card (owner-approved, new): the page behind the Start fresh window must match, it shows at the window's rounded corners
+      await align(['#bzFresh', '#bkpCard']);
       await settle();
       // owner's change: General has the Colour combination and Shortcuts moved from the top bar, so it is compared
       // with its approved picture; from here on the top bar is hidden (it has its own check), also behind the Start fresh window

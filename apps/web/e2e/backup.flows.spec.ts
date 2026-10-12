@@ -78,7 +78,8 @@ test('restore always checks the backup first and needs “I understand”', asyn
   await page.click('#bkpTest');
   await expect(page.locator('#trmT')).toHaveText('Test restore');
   await expect(page.locator('#trmOk')).toHaveText('The backup opened and checked out. Your books were not touched.');
-  await expect(page.locator('#trmBody .rcv')).toContainText('₹48,72,310.00');
+  // (₹ shows only with Settings › Show currency symbol on, which is off in a new shop)
+  await expect(page.locator('#trmBody .rcv')).toContainText('Sales total this year48,72,310.00');
   await expect(page.locator('#trmGo')).toHaveCount(0);
   await page.keyboard.press('Escape');
   await expect(page.locator('#trm')).toBeHidden();
