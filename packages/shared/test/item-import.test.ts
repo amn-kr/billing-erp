@@ -74,8 +74,8 @@ describe('import checks: errors', () => {
     expect(msgs({ type: 'Double Range' })).toEqual(['Product type: “Double Range” is not a product type. Choose Single Range or Multi Range.']);
   });
 
-  it('required columns: Single needs name, brand and code; Multi also the series', () => {
-    expect(msgs({ name: '', brand: '', code: '' }, 'error')).toEqual(['Product name: Enter the product name.', 'Brand name: Enter the brand name.', 'Brand code: Enter the brand code.']);
+  it('required columns: Single needs name and brand; Multi also the series', () => {
+    expect(msgs({ name: '', brand: '', code: '' }, 'error')).toEqual(['Product name: Enter the product name.', 'Brand name: Enter the brand name.']);
     expect(msgs({ type: 'Multi Range', name: 'Switch', brand: 'Anchor', series: '' }, 'error')).toEqual(['Series / range name: Enter the series / range name (needed for Multi Range).']);
   });
 
@@ -101,6 +101,14 @@ describe('import checks: errors', () => {
   it('a Single Range name that a Multi Range row of the file also makes', () => {
     const r = check([good({ type: 'Multi Range', name: 'Switch', brand: 'Anchor', series: 'Roma', code: 'A1' }, 2), good({ name: 'switch · anchor roma', code: 'X' }, 3)]);
     expect(r[1]!.cells.name).toEqual([{ level: 'error', message: 'Row 2 makes an item with this same name.' }]);
+  });
+
+  it('brand code is optional: a blank code is no problem, and blank codes never count as the same code', () => {
+    const c = one({ code: '' });
+    expect(c.status).toBe('ok');
+    expect(c.item!.code).toBe('');
+    const r = check([good({ code: '' }, 2), good({ name: 'Other fan', code: '' }, 3), good({ type: 'Multi Range', name: 'Switch', brand: 'Anchor', series: 'Roma', code: '' }, 4)]);
+    expect(r.map((x) => x.status)).toEqual(['ok', 'ok', 'ok']);
   });
 
   it('brand code used by an item or twice in the file', () => {
