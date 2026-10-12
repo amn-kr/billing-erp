@@ -134,7 +134,8 @@ describe('change list', () => {
     await svc.seal(o.businessId);
     const all = await asShop(o.businessId, (tx) => tx.changeLog.findMany({ orderBy: { id: 'asc' } }));
     expect(all.map((c) => Number(c.seq))).toEqual(all.map((_, k) => k + 1));
-    expect(all.at(-1)!.data).toMatchObject({ name: 'Gupta Stores' });
+    // the last party saved has the highest number (its audit entry comes after it)
+    expect(all.filter((c) => c.tbl === 'parties').at(-1)!.data).toMatchObject({ name: 'Gupta Stores' });
   });
 });
 
