@@ -12,7 +12,15 @@ ignoredBuiltDependencies:
   - "@nestjs/core"
 
 # Security fixes for packages that a library pins to an old version (see each line). Remove a line
-# once the library itself moves on.
+# once the library itself moves on (NestJS 11 and Prisma 7 bring their own safe versions).
 overrides:
   # exceljs 4.4.0 (latest) asks for uuid ^8; uuid 11 keeps the same functions (and CommonJS)
   "exceljs>uuid": "11.1.1"
+  # NestJS 10.4.22 (last 10.x) pins multer 2.0.2, body-parser 1.20.4 and file-type 20.4.1;
+  # express 4 asks for qs ~6.14.0
+  "multer@<2.4.0": "2.4.0"
+  "body-parser@<1.20.6": "1.20.8"
+  "qs@<6.16.0": "6.16.0"
+  "file-type@>=20 <21.3.2": "21.3.2"
+  # Prisma 6.19.3 (last 6.x) pins deepmerge-ts 7.1.5 for reading its config file
+  "deepmerge-ts@<8.0.0": "8.0.0"
