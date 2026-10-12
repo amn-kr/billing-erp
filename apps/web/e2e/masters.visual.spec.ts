@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { approvedShot, hideHeader, sameShot, shot } from './shots';
 import { APP, RAVI, WIDTHS, freshShop, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
+import { BKP, fakeBackup } from './backup.data';
 
 for (const width of WIDTHS) {
   test.describe(`${width}px`, () => {
@@ -493,6 +494,8 @@ for (const width of WIDTHS) {
       test.setTimeout(180_000);
       const proto = await newPage(browser, width);
       const app = await newPage(browser, width);
+      // the Backup & restore card shows the database's size, which changes from run to run: a fixed answer
+      await fakeBackup(app, BKP.none);
       await prototypeWithBackup(proto);
       await openPrototypeView(proto, 'set');
       await signInAs(app, await freshShop(request, 'fresh-shop'));
@@ -520,7 +523,8 @@ for (const width of WIDTHS) {
       // General
       await both((p) => p.click('#subnav [data-settab="gen"]'));
       await app.waitForSelector('#bzCard #bzName');
-      await align(['#bzFresh', '#bkpUseTxt', '#bkpUseBar']);
+      // the whole Backup & restore card (owner-approved, new): the page behind the Start fresh window must match, it shows at the window's rounded corners
+      await align(['#bzFresh', '#bkpCard']);
       await settle();
       // owner's change: General has the Colour combination and Shortcuts moved from the top bar, so it is compared
       // with its approved picture; from here on the top bar is hidden (it has its own check), also behind the Start fresh window

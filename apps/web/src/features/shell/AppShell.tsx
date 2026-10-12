@@ -26,6 +26,7 @@ import { TopBar } from './TopBar';
 import type { Item } from '../items/ItemsPage';
 import { statusOf, type SaleRow } from '../sales/model';
 import { statusOfBill, type PurchaseRow } from '../purchases/model';
+import { BackupBanner } from '../settings/BackupCard';
 import { soon, useOnline, useShell } from './store';
 
 function GoLogin({ query = '' }: { query?: string }) {
@@ -190,6 +191,7 @@ export function AppShell() {
           />
           <main className="page">
             <div className="subbar" id="subBar" hidden role="status"></div>
+            <BackupBanner />
             <Outlet context={me.data} />
           </main>
         </div>
