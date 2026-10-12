@@ -28,7 +28,8 @@ type Cell = string | number;
 export const SAMPLE: Cell[][] = [
   // 2–3 good rows
   ['Single Range', 'BAJAJ MAXIMA NEO 150MM E/F WHITE', 'Bajaj', '', 'BJ-MAX150', 6, 1052, '01-04-2026', 'PCS', 1250, 2, 'Main shop', 'Fans', 18, '8414'],
-  ['Multi Range', 'Modular switch 6A', 'Anchor', 'Roma', 'ANR-6A-1W', 200, 18, '01-04-2026', 'PCS', 26, 50, 'Back godown', 'Switches & MCBs', 18, '8536'],
+  // (no brand code: it is optional)
+  ['Multi Range', 'Modular switch 6A', 'Anchor', 'Roma', '', 200, 18, '01-04-2026', 'PCS', 26, 50, 'Back godown', 'Switches & MCBs', 18, '8536'],
   // 4–6 new series / brand / parent item (warnings: will be created)
   ['Multi Range', 'Modular switch 6A', 'Havells', 'Fabio', 'AHFSXXW061', 120, 48, '01-04-2026', 'PCS', 65, 20, '', 'Switches & MCBs', 18, '8536'],
   ['Multi Range', 'LED batten 20W', 'Wipro', 'Garnet', 'WP-GB20', 40, 165, '15/09/2026', 'PCS', 240, 10, '', 'Lighting', 18, '9405'],

@@ -31,7 +31,7 @@ const n = (v: number) => v.toLocaleString('en-IN');
 const plural = (c: number, w: string, ws = w + 's') => `${n(c)} ${c === 1 ? w : ws}`;
 const STATUS = { ok: ['g', 'OK'], warning: ['a', 'Warning'], error: ['r', 'Error'] } as const;
 const NUMS: ImportKey[] = ['qty', 'rate', 'sale', 'min', 'gst'];
-const REQ: ImportKey[] = ['type', 'name', 'brand', 'code'];
+const REQ: ImportKey[] = ['type', 'name', 'brand'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 /** 2026-04-01 → "01 Apr 2026", so a typed date can be checked at a glance */
 const longDate = (iso: string) => { const [y, m, d] = iso.split('-'); return `${d} ${MON[Number(m) - 1]} ${y}`; };
@@ -212,7 +212,9 @@ export function ImportPage() {
           ))}
         </div>
         <div id="imCount" style={{ fontSize: 13, fontWeight: 600 }}>
-          {count.error && !skip
+          {!importable
+            ? <span className="stt r">Nothing to import yet: every row has an error. Fix the errors first.</span>
+            : count.error && !skip
             ? <span className="stt r">Fix {plural(count.error, 'row')} with errors, or tick “Skip error rows”.</span>
             : <span className="stt g">{plural(importable, 'product')} will be imported{count.error ? `, ${n(count.error)} skipped` : ''}.</span>}
         </div>
