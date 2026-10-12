@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { ITEM_PREFIX, ITEM_PREFIX_DEFAULT, money, todayIst, toDb, type ItemInput } from '@billing/shared';
+import { ITEM_PREFIX, ITEM_PREFIX_DEFAULT, money, stockByPurchaseRate, todayIst, toDb, type ItemInput } from '@billing/shared';
 import type { Prisma } from '@prisma/client';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
@@ -90,6 +90,13 @@ export class ItemsService {
       const ids = (t: string) => [...new Set(movements.filter((m) => m.sourceType === t && m.sourceId).map((m) => m.sourceId!))];
       const sdocs = new Map((await tx.salesDocument.findMany({ where: { id: { in: ids('sales_document') } }, select: { id: true, number: true, kind: true, total: true, cancelledAt: true, cashName: true, billName: true, party: { select: { name: true } } } })).map((d) => [d.id, d]));
       const pdocs = new Map((await tx.purchaseDocument.findMany({ where: { id: { in: ids('purchase_document') } }, select: { id: true, number: true, party: { select: { name: true } } } })).map((d) => [d.id, d]));
+      // credit notes and debit notes: the invoices / bills their lines for this item return against
+      const lineOf = { where: { itemId: id, againstId: { not: null } }, select: { documentId: true, againstId: true } } as const;
+      const against = new Map<string, string[]>();
+      for (const l of [
+        ...(await tx.salesDocumentLine.findMany({ where: { ...lineOf.where, documentId: { in: ids('sales_document') } }, select: lineOf.select })),
+        ...(await tx.purchaseDocumentLine.findMany({ where: { ...lineOf.where, documentId: { in: ids('purchase_document') } }, select: lineOf.select })),
+      ]) against.set(l.documentId, [...(against.get(l.documentId) ?? []), l.againstId!]);
       const bal = await invoiceBalances(tx, [...sdocs.values()].filter((d) => d.kind === 'invoice').map((d) => d.id));
       const refOf = (m: (typeof movements)[number]) => (m.sourceId ? adjs.get(m.sourceId)?.number ?? trfs.get(m.sourceId)?.number ?? sdocs.get(m.sourceId)?.number ?? pdocs.get(m.sourceId)?.number ?? '' : '');
       const partyOf = (m: (typeof movements)[number]) => {
@@ -110,6 +117,14 @@ export class ItemsService {
       };
       return {
         ...item,
+        /** what is left in stock by the purchase rate it was bought at (first in, first out) */
+        rateTable: item.kind === 'service' ? null : stockByPurchaseRate(
+          [...movements].reverse().map((m) => ({
+            date: isoOf(m.date) ?? '', createdAt: m.createdAt.toISOString(), qty: m.qty.toString(), rate: m.rate.toString(), kind: m.kind, sourceType: m.sourceType, sourceId: m.sourceId,
+            against: m.sourceId ? against.get(m.sourceId) : undefined,
+          })),
+          item.purchase,
+        ),
         godowns: godowns.map((g) => ({ id: g.id, name: g.name, stock: q3(byGodown.find((b) => b.godownId === g.id)?._sum.qty ?? '0') })),
         movements: movements.map((m) => ({ id: m.id, date: isoOf(m.date), kind: m.kind, qty: q3(m.qty), rate: toDb(m.rate.toString()), godown: m.godown.name, note: m.note, sourceType: m.sourceType, sourceId: m.sourceId, ref: refOf(m), party: partyOf(m), status: statusOf(m), createdAt: m.createdAt })),
       };
