@@ -1,0 +1,32 @@
+/* Editable grid (Import products; later Bulk update items) — owner-approved addition, not in the
+   prototype. Only the app's own colour tokens: a cell with an error is tinted red, a warning amber,
+   with the reason under the value. The table scrolls sideways inside its card. */
+.egw .tw{overflow-x:auto;overscroll-behavior-x:contain}
+.egt{border-collapse:separate;border-spacing:0}
+.egt th{white-space:nowrap;position:sticky;top:0;z-index:1}
+.egt td{padding:0!important;vertical-align:top;white-space:normal!important}
+.egt td.egn,.egt td.egck,.egt td.eglead{padding:10px!important;white-space:nowrap!important}
+.egt td.eglead{white-space:normal!important;min-width:120px;max-width:150px}
+/* the row number, tick box and status stay in view while the grid scrolls sideways */
+.egt .egn,.egt .egck,.egt .eglead{position:sticky;left:var(--egl,0);z-index:2;background:var(--sf)}
+.egw .tw>table.egt>thead th.egn,.egw .tw>table.egt>thead th.egck,.egw .tw>table.egt>thead th.eglead{position:sticky;z-index:5;background:var(--sf2)}
+.egt .eglead{box-shadow:8px 0 10px -8px color-mix(in srgb,var(--t1) 22%,transparent)}
+.egt td.egn{color:var(--t2);font-size:12px;text-align:right;width:44px}
+.egt th.egn{text-align:right}
+.egt .egn{width:44px;min-width:44px;max-width:44px;box-sizing:border-box}
+.egt .egck{min-width:36px;max-width:36px;box-sizing:border-box}
+.egt .egck{width:36px;text-align:center}
+.egc input,.egc select{display:block;width:100%;min-width:0;height:38px;border:0;border-radius:0;background:transparent;padding:0 10px;font:500 13px var(--font);color:var(--t1);outline:none}
+.egc input.n{text-align:right}
+.egc input:focus,.egc select:focus{box-shadow:inset 0 0 0 2px var(--ac);background:var(--sf)}
+.egc.bad{background:color-mix(in srgb,var(--red) 9%,transparent)}
+.egc.warn{background:color-mix(in srgb,var(--amber) 10%,transparent)}
+.egc.bad input,.egc.bad select{box-shadow:inset 3px 0 0 var(--red)}
+.egc.warn input,.egc.warn select{box-shadow:inset 3px 0 0 var(--amber)}
+.egc.bad input:focus,.egc.bad select:focus,.egc.warn input:focus,.egc.warn select:focus{box-shadow:inset 0 0 0 2px var(--ac)}
+.egm{display:block;padding:0 10px 8px;font-size:11.5px;line-height:1.35;font-weight:600;max-width:260px}
+.egm.bad{color:var(--red)}
+.egm.warn{color:var(--amber)}
+.egm.info{color:var(--t2);font-weight:500}
+.egpg{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:10px 16px;border-top:1px solid var(--bd);font-size:12.5px;color:var(--t2)}
+.egpg span{margin-right:auto}

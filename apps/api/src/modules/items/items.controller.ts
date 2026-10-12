@@ -1,14 +1,18 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
-import { itemSchema, itemUpdateSchema, nameSchema, unitSchema, type ItemInput } from '@billing/shared';
+import { importRowsSchema, itemSchema, itemUpdateSchema, nameSchema, unitSchema, type ImportRowsInput, type ItemInput } from '@billing/shared';
 import type { z } from 'zod';
 import { Ctx, RequirePermission } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
 import type { RequestContext } from '../../common/context';
 import { ItemsService } from './items.service';
+import { ItemImportService } from './item-import.service';
 
 @Controller()
 export class ItemsController {
-  constructor(private readonly items: ItemsService) {}
+  constructor(
+    private readonly items: ItemsService,
+    private readonly importer: ItemImportService,
+  ) {}
 
   @RequirePermission('masters.view')
   @Get('items')
@@ -20,6 +24,21 @@ export class ItemsController {
   @Get('items/next-code')
   nextCode(@Ctx() ctx: RequestContext) {
     return this.items.nextCode(ctx);
+  }
+
+  /** Items › Import products: what the shop has, to check the file's rows against */
+  @RequirePermission('masters.manage')
+  @Get('items/import/context')
+  importContext(@Ctx() ctx: RequestContext) {
+    return this.importer.context(ctx);
+  }
+
+  /** Final import: checks every row again and saves all of them in one go (or none) */
+  @RequirePermission('masters.manage')
+  @HttpCode(200)
+  @Post('items/import')
+  importRows(@Ctx() ctx: RequestContext, @Body(new ZodPipe(importRowsSchema)) body: ImportRowsInput) {
+    return this.importer.run(ctx, body);
   }
 
   @RequirePermission('masters.view')

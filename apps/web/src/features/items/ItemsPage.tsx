@@ -52,6 +52,7 @@ const PRINT = '<path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z"/>';
 const DOTS = '<circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/>';
 const CHEV = '<path d="M6 9l6 6 6-6"/>';
 const CAR = '<path d="M9 6l6 6-6 6"/>';
+const UP = '<path d="M12 20V9M7 14l5-5 5 5M5 4h14"/>';
 
 /** Prototype qfmt(): up to 2 decimals, Indian grouping. */
 export const qfmt = (v: string | number | null) => Number(v ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
@@ -189,12 +190,14 @@ export function ItemsPage() {
           ) : <span>{IT.filter((i) => i.kind === 'service').length} services</span>}
         </div>
         <div className="sp"></div>
+        {/* an icon button, as the ⋯ one: a text button does not fit the top bar at 1280 px (owner's choice) */}
+        {kind === 'p' && <button className="ib" id="itImport" aria-label="Import products" title="Import products" onClick={() => go('/items/import')}><RawIcon d={UP} /></button>}
         {kind === 'p' && <button className="btn" id="itBrands" onClick={() => go('/items/brands')}>Brands &amp; Series</button>}
         <button className="btn p" data-soon="New item" onClick={() => setAdding(true)}><Icon name="plus" />Add item</button>
         <div className="rel">
           <button className="ib" id="itMoreBtn" aria-label="More options" onClick={toggle('more')}><RawIcon d={DOTS} /></button>
           <div className="pop" id="itMorePop" hidden={pop !== 'more'}>
-            <button data-soon="Import items from Excel" onClick={() => soon('Import items from Excel')}>Import items from Excel</button>
+            <button id="itImportMenu" onClick={() => go('/items/import')}>Import products</button>
             <button data-view="prices" onClick={() => soon('Price manager')}>Update prices in bulk</button>
             <button id="itRateBtn" onClick={() => soon('Rate list')}>Download rate list</button>
             <button data-soon="Item categories" onClick={() => soon('Item categories')}>Manage categories</button>

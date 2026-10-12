@@ -32,4 +32,13 @@ export class AuditService {
       },
     });
   }
+
+  /** Many entries at once (imports), 500 per insert. */
+  async logMany(tx: Tx, entries: AuditEntry[]): Promise<void> {
+    for (let i = 0; i < entries.length; i += 500) {
+      await tx.auditLog.createMany({
+        data: entries.slice(i, i + 500).map((e) => ({ businessId: e.businessId, userId: e.userId, action: e.action, entity: e.entity, entityId: e.entityId ?? null, before: json(e.before), after: json(e.after), ip: e.ip ?? '' })),
+      });
+    }
+  }
 }
