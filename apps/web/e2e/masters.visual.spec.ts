@@ -58,6 +58,10 @@ for (const width of WIDTHS) {
       await app.waitForSelector('#itList .ptr');
       await app.waitForSelector('#itHead h2');
       await app.waitForTimeout(400);
+      // owner's change: the item card has a "Purchase rate of stock left" table the prototype doesn't
+      // have (checked with its own approved pictures in item-rates.visual); it is left out here so the
+      // rest of the card is still compared with the prototype pixel for pixel
+      await app.addStyleTag({ content: '#itRates{display:none!important}' });
       // owner's change: the top bar has the Brands & Series button, so it is compared with its approved
       // picture; the rest of the screen is still compared with the prototype
       await approvedShot(`items-bar-${width}`, app, '#vItems .pthd');
