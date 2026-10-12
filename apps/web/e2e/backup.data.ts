@@ -8,9 +8,9 @@ import type { Page, Route } from '@playwright/test';
 const NOW = new Date('2026-10-01T14:00:00+05:30');
 const t = (sec: number) => new Date(+NOW - sec * 1000).toISOString();
 const ok = (sec: number) => ({ lastOkAt: t(sec), failingSince: null, error: null, waiting: 0 });
-const drive = (x = {}) => ({ enabled: true, connected: true, folder: 'Billing ERP Backup - Verma Traders', account: 'pooja.verma@gmail.com', lastSnapshotAt: t(13 * 3600 - 300), ...ok(40), ...x });
-const local = (x = {}) => ({ enabled: true, connected: true, folder: 'ERP backups', account: '', lastSnapshotAt: t(13 * 3600 - 300), ...ok(95), ...x });
-const base = (x: object) => ({ keySet: true, dest: null, drive: null, local: null, snapshot: { lastAt: t(13 * 3600 - 300) }, space: { usedMb: 38, limitMb: 500 }, failMinutes: 15, now: NOW.toISOString(), ...x });
+const drive = (x = {}) => ({ enabled: true, connected: true, reconnect: false, folder: 'Billing ERP Backup - Verma Traders', account: 'pooja.verma@gmail.com', lastSnapshotAt: t(13 * 3600 - 300), ...ok(40), ...x });
+const local = (x = {}) => ({ enabled: true, connected: true, reconnect: false, folder: 'ERP backups', account: '', lastSnapshotAt: t(13 * 3600 - 300), ...ok(95), ...x });
+const base = (x: object) => ({ keySet: true, driveSetUp: true, dest: null, drive: null, local: null, snapshot: { lastAt: t(13 * 3600 - 300) }, space: { usedMb: 38, limitMb: 500 }, failMinutes: 15, now: NOW.toISOString(), ...x });
 
 export const BKP = {
   /** nothing chosen yet (the General tab's picture) */
@@ -22,6 +22,10 @@ export const BKP = {
   retrying: base({ dest: 'drive', drive: drive({ lastOkAt: t(4 * 60 + 10), failingSince: t(3 * 60), error: 'Can’t reach Google Drive.', waiting: 6 }) }),
   firstTime: base({ dest: 'both', drive: drive({ connected: false, lastOkAt: null, lastSnapshotAt: null }), local: local({ connected: false, lastOkAt: null, lastSnapshotAt: null }), snapshot: { lastAt: null } }),
   spaceLow: base({ dest: 'drive', drive: drive(), space: { usedMb: 441, limitMb: 500 } }),
+  /** Google access removed in the owner's Google account, 20 minutes ago */
+  reconnect: base({ dest: 'drive', drive: drive({ reconnect: true, lastOkAt: t(21 * 60), failingSince: t(20 * 60), error: 'Google Drive access was removed. Press “Connect again”.', waiting: 14 }) }),
+  /** just back from Google's sign-in: no folder or full copy yet */
+  justConnected: base({ dest: 'drive', drive: drive({ folder: '', lastOkAt: null, lastSnapshotAt: null }), snapshot: { lastAt: null } }),
   /** failing for `min` minutes */
   failingFor: (min: number) => base({ dest: 'drive', drive: drive({ lastOkAt: t(min * 60 + 30), failingSince: t(min * 60), error: 'Can’t reach Google Drive.', waiting: 3 }) }),
 };

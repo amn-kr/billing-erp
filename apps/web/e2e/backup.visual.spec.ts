@@ -2,7 +2,7 @@
  * Settings › General › Backup & restore (real-time backup): new, so compared with its owner-approved
  * pictures (e2e/approved/, approved 12 Oct 2026) at 1280, 1366 and 1920 px — each place working, a place
  * failing for 23 minutes with the red banner, retrying, first time, Safari/Firefox, space low with the
- * amber banner, and the Test restore / Restore windows.
+ * amber banner, the Test restore / Restore windows, and Google Drive's "Connect again" and just-connected rows.
  */
 import { test, type Page } from '@playwright/test';
 import { BKP, fakeBackup } from './backup.data';
@@ -37,6 +37,10 @@ for (const width of WIDTHS) {
       await approvedShot(`bkp-banner-red-${width}`, app, '#bkpBar');
       await card('retrying', BKP.retrying);
       await card('first-time', BKP.firstTime);
+      // Google Drive (step 3): access removed in Google, and just connected
+      await card('reconnect', BKP.reconnect);
+      await approvedShot(`bkp-banner-reconnect-${width}`, app, '#bkpBar');
+      await card('just-connected', BKP.justConnected);
       await card('space-low', BKP.spaceLow);
       await approvedShot(`bkp-banner-space-${width}`, app, '#spaceBar');
       // Safari and Firefox can't save into a folder: a Download backup button instead

@@ -25,8 +25,9 @@ test('the owner chooses where backups go; places not connected yet say so', asyn
   await expect(page.locator('#toast')).toHaveText('Backups go to Google Drive');
   await expect(page.locator('#bkpDrive')).toContainText('Not connected yet');
   await expect(page.locator('#bkpLocal')).toHaveCount(0);
+  // (this test server has no Google client set)
   await page.click('#bkpDriveGo');
-  await expect(page.locator('#toast')).toHaveText('Connecting Google Drive comes in the next update.');
+  await expect(page.locator('#toast')).toHaveText('Google Drive isn’t set up on this server yet.');
   await page.click('#bkpDest input[value="both"]');
   await expect(page.locator('#toast')).toHaveText('Backups go to Google Drive and this computer');
   await expect(page.locator('#bkpLocalPick')).toBeVisible();
@@ -103,4 +104,43 @@ test('Safari and Firefox get a Download backup button instead of folder access',
   await expect(page.locator('#bkpLocal')).toContainText('This browser can’t save backups into a folder by itself.');
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#bkpLocalDl')]);
   expect(dl.suggestedFilename()).toMatch(/^Verma-Traders-backup-\d{4}-\d{2}-\d{2}-\d{4}\.json$/);
+});
+
+test('Connect Google Drive goes to Google and comes back to the backup settings', async ({ browser, request }) => {
+  const page = await newPage(browser, 1366);
+  const fake = await fakeBackup(page, BKP.firstTime);
+  // Google's sign-in is left out: the server's answer sends the browser straight back, as Google would
+  let asked = 0;
+  await page.route('**/api/backup/drive/connect', (r) => { asked++; return r.fulfill({ json: { url: APP + '/settings?drive=connected' } }); });
+  await signInAs(page, await freshShop(request));
+  await openCard(page);
+  fake.set(BKP.justConnected);
+  await page.click('#bkpDriveGo');
+  await expect(page.locator('#toast')).toHaveText('Google Drive connected. The first full copy goes there within a minute.');
+  expect(asked).toBe(1);
+  await expect(page).toHaveURL(APP + '/settings');
+  await expect(page.locator('#subnav button.on')).toContainText('General');
+  await expect(page.locator('#bkpDrive')).toContainText('Connected to pooja.verma@gmail.com; the first full copy goes there within a minute.');
+  await expect(page.locator('#bkpDrive')).toBeInViewport();
+  // cancelled at Google
+  await page.goto(APP + '/settings?drive=cancelled');
+  await expect(page.locator('#toast')).toHaveText('Google Drive was not connected: the sign-in at Google was cancelled.');
+  await page.goto(APP + '/settings?drive=failed');
+  await expect(page.locator('#toast')).toHaveText('Couldn’t connect Google Drive. Please try again.');
+});
+
+test('when Google access was removed: red row with Connect again instead of Backup now', async ({ browser, request }) => {
+  const page = await newPage(browser, 1366);
+  await fakeBackup(page, BKP.reconnect);
+  let asked = 0;
+  await page.route('**/api/backup/drive/connect', (r) => { asked++; return r.fulfill({ json: { url: APP + '/settings?drive=connected' } }); });
+  await signInAs(page, await freshShop(request));
+  await openCard(page);
+  await expect(page.locator('#bkpDrive .st.r')).toHaveText('Not working');
+  await expect(page.locator('#bkpDrive')).toContainText('Google Drive access was removed. Press “Connect again”. Last good backup 21 minutes ago · 14 changes waiting.');
+  await expect(page.locator('#bkpDriveNow')).toHaveCount(0);
+  await expect(page.locator('#bkpBar')).toContainText('Backup to Google Drive has not worked for 20 minutes.');
+  await page.click('#bkpDriveAgain');
+  await expect(page.locator('#toast')).toHaveText('Google Drive connected. The first full copy goes there within a minute.');
+  expect(asked).toBe(1);
 });
