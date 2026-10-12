@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { approvedShot, hideHeader, sameShot, shot } from './shots';
 import { APP, RAVI, WIDTHS, freshShop, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
+import { BKP, fakeBackup } from './backup.data';
 
 for (const width of WIDTHS) {
   test.describe(`${width}px`, () => {
@@ -493,6 +494,8 @@ for (const width of WIDTHS) {
       test.setTimeout(180_000);
       const proto = await newPage(browser, width);
       const app = await newPage(browser, width);
+      // the Backup & restore card shows the database's size, which changes from run to run: a fixed answer
+      await fakeBackup(app, BKP.none);
       await prototypeWithBackup(proto);
       await openPrototypeView(proto, 'set');
       await signInAs(app, await freshShop(request, 'fresh-shop'));
