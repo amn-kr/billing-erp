@@ -16,13 +16,14 @@ export interface DbScope {
  */
 @Injectable()
 export class DbService extends PrismaClient implements OnModuleDestroy {
-  async scoped<T>(scope: DbScope, fn: (tx: Tx) => Promise<T>, opts?: { timeout?: number }): Promise<T> {
+  /** `repeatable`: every read sees the books as of one moment (a backup's full copy). */
+  async scoped<T>(scope: DbScope, fn: (tx: Tx) => Promise<T>, opts?: { timeout?: number; repeatable?: boolean }): Promise<T> {
     return this.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT set_config('app.business_id', ${scope.businessId ?? ''}, true),
                                 set_config('app.user_id', ${scope.userId ?? ''}, true),
                                 set_config('app.user_email', ${scope.email ?? ''}, true)`;
       return fn(tx);
-    }, { timeout: opts?.timeout ?? 15_000, maxWait: 10_000 });
+    }, { timeout: opts?.timeout ?? 15_000, maxWait: 10_000, ...(opts?.repeatable ? { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead } : {}) });
   }
 
   async onModuleDestroy(): Promise<void> {

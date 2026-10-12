@@ -1395,3 +1395,68 @@ model JournalLine {
   @@index([businessId, partyId])
   @@map("journal_lines")
 }
+
+// ───────────────────────── Real-time backup ─────────────────────────
+
+/// Every change to a shop's rows, written by a trigger in the same transaction (see migration
+/// 20261012120000_backup_change_log). seq is given by the packer in commit order.
+model ChangeLog {
+  id         BigInt   @id @default(autoincrement())
+  businessId String   @map("business_id") @db.Uuid
+  seq        BigInt?
+  tbl        String
+  /// I | U | D
+  op         String   @db.Char(1)
+  data       Json
+  at         DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+
+  @@map("change_log")
+}
+
+/// Where a shop's backups go (Google Drive, this computer) and how far each has confirmed.
+model BackupDestination {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId     String    @map("business_id") @db.Uuid
+  /// drive | local
+  kind           String
+  enabled        Boolean   @default(true)
+  cursorSeq      BigInt    @default(0) @map("cursor_seq")
+  lastOkAt       DateTime? @map("last_ok_at") @db.Timestamptz(6)
+  failingSince   DateTime? @map("failing_since") @db.Timestamptz(6)
+  lastError      String    @default("") @map("last_error")
+  attempts       Int       @default(0)
+  nextTryAt      DateTime? @map("next_try_at") @db.Timestamptz(6)
+  lastSnapshotAt DateTime? @map("last_snapshot_at") @db.Timestamptz(6)
+  leaseUntil     DateTime? @map("lease_until") @db.Timestamptz(6)
+  settings       Json      @default("{}")
+  createdBy      String    @map("created_by") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  files BackupFile[]
+
+  @@unique([businessId, kind])
+  @@map("backup_destinations")
+}
+
+/// A backup file a destination has confirmed.
+model BackupFile {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId    String   @map("business_id") @db.Uuid
+  destinationId String   @map("destination_id") @db.Uuid
+  /// changes | snapshot
+  kind          String
+  name          String
+  afterSeq      BigInt   @map("after_seq")
+  toSeq         BigInt   @map("to_seq")
+  changes       Int      @default(0)
+  bytes         Int
+  sha256        String
+  ref           String   @default("")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  destination BackupDestination @relation(fields: [destinationId], references: [id])
+
+  @@index([destinationId, kind, toSeq])
+  @@map("backup_files")
+}
