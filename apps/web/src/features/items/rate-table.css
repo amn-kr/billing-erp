@@ -1,0 +1,23 @@
+/* Purchase rate of stock left (owner-approved addition, not in the prototype): a small Rate / Rest qty
+   table at the end of the item's figures. Only the app's own colour tokens; the rate tint and the
+   quantity bar get their strength from the page (--k, width). The table scrolls inside its own box. */
+.itrt{flex:0 1 auto;min-width:0;max-width:100%}
+.itrt>small{margin-bottom:6px}
+.itrtw{width:max-content;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;border:1px solid var(--bd);border-radius:10px;background:var(--sf)}
+.itrtt{width:auto;min-width:0;border-collapse:separate;border-spacing:0;font-size:12.5px;font-variant-numeric:tabular-nums}
+.itrtt th,.itrtt td{padding:6px 10px;white-space:nowrap;text-align:right;border-bottom:1px solid var(--bd)}
+.itrtt tr:last-child>*{border-bottom:0}
+.itrtt th{position:sticky;left:0;z-index:1;text-align:left;font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.06em;background:var(--sf2);border-right:1px solid var(--bd);box-shadow:8px 0 10px -8px color-mix(in srgb,var(--t1) 22%,transparent)}
+.itrtt td.r{font-weight:700;color:var(--t1);background:color-mix(in srgb,var(--ac) var(--k,14%),transparent)}
+.itrtt td.q{font-weight:600;min-width:56px}
+.itrtt td.q .bar{display:block;height:4px;margin-top:4px}
+.itrtt td.q .bar i{background:var(--ac)}
+.itrtt td.z,.itrtt td.z.r{color:var(--t2);font-weight:600;background:var(--sf2)}
+.itrtt td.z.r{text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--t2) 60%,transparent)}
+.itrtt td.s{position:sticky;right:0;z-index:1;text-align:left;background:var(--sf);border-left:1px solid var(--bd);padding-left:12px;box-shadow:-8px 0 10px -8px color-mix(in srgb,var(--t1) 22%,transparent)}
+.itrtt td.s small{display:inline;margin-right:6px;font-size:10.5px}
+.itrtt td.s b{font-size:13px;font-weight:800}
+.itrtk{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin-top:6px;font-size:11.5px;color:var(--t2)}
+.itrtk i{display:inline-block;width:28px;height:8px;border-radius:3px;margin-right:5px;vertical-align:0;background:linear-gradient(90deg,color-mix(in srgb,var(--ac) 10%,transparent),color-mix(in srgb,var(--ac) 42%,transparent))}
+.itrtk i.z{width:9px;background:var(--sf2);border:1px solid var(--bd)}
+.itrte{padding:9px 12px;border:1px dashed var(--bd);border-radius:10px;font-size:12.5px;color:var(--t2);background:var(--sf2);max-width:340px;white-space:normal}

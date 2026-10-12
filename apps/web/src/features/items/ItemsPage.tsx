@@ -7,7 +7,7 @@
 import { Fragment, useMemo, useState, type MouseEvent as RMouseEvent } from 'react';
 import { go } from '../../lib/go';
 import { useQuery } from '@tanstack/react-query';
-import { money } from '@billing/shared';
+import { money, type RateTable as Rates } from '@billing/shared';
 import { api } from '../../lib/api';
 import { dmy, inr, inr2f } from '../../lib/format';
 import { useCur, useSettings } from '../../lib/settings';
@@ -16,6 +16,7 @@ import { Icon, RawIcon } from '../../components/Icon';
 import { soon, useShell } from '../shell/store';
 import { AddItemDialog } from './AddItemDialog';
 import { AdjustStockDialog } from './AdjustStockDialog';
+import { RateTable } from './RateTable';
 
 export interface Item {
   id: string;
@@ -43,7 +44,7 @@ export interface Item {
 }
 
 interface Movement { id: string; date: string; kind: string; qty: string; rate: string; note: string; ref: string; sourceType: string; party: string; status: string; createdAt: string }
-interface ItemDetail extends Item { movements: Movement[] }
+interface ItemDetail extends Item { movements: Movement[]; rateTable: Rates | null }
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const FILTER = '<path d="M4 5h16l-6 8v6l-4-2v-4z"/>';
@@ -296,7 +297,7 @@ export function ItemsPage() {
   );
 }
 
-function ItemHead({ i, mrpOn, onBack, onAdjust }: { i: Item; mrpOn: boolean; onBack: (g: string) => void; onAdjust: () => void }) {
+function ItemHead({ i, mrpOn, onBack, onAdjust }: { i: ItemDetail; mrpOn: boolean; onBack: (g: string) => void; onAdjust: () => void }) {
   const s = n(i.stock ?? '0');
   const l = i.kind === 'service' ? '' : i.level;
   const m = n(i.purchase) ? money(i.sale).minus(i.purchase) : money(0);
@@ -335,6 +336,7 @@ function ItemHead({ i, mrpOn, onBack, onAdjust }: { i: Item; mrpOn: boolean; onB
             {/* with MRP switched off the prototype strips every red .neg from this header (its MRP patch), so "Out of stock" quantity isn't red */}
             <div><small>In stock</small><b className={l === 'out' ? (mrpOn ? 'neg' : '') : l === 'low' ? 'lowq' : ''}>{qfmt(s)} {i.unit}</b>{l === 'low' ? <span className="tagw">Below {qfmt(i.minStock)}</span> : l === 'out' ? <span className="tagw r">Out of stock</span> : null}</div>
             <div><small>Stock value</small><b>{inr2f(money(Math.max(0, s)).times(i.purchase))}</b></div>
+            {i.rateTable && <RateTable t={i.rateTable} unit={i.unit} />}
           </>
         )}
       </div>
