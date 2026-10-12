@@ -22,6 +22,16 @@ const schema = z.object({
     .optional()
     .transform((v) => v === 'true'),
   DEMO_EMAIL: z.string().default('demo@billing-erp.example.com'),
+  /**
+   * Real-time backup: the master key every backup file is locked with (each shop gets its own key
+   * made from it). At least 32 random characters, e.g. Render's "Generate" value. Without it no
+   * backups are sent. Losing it makes every backup unreadable: keep a copy in a safe place.
+   */
+  BACKUP_MASTER_KEY: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(32, 'BACKUP_MASTER_KEY must be at least 32 characters').optional()),
+  /** off: this server does not run the every-minute backup sender (tests call it directly). */
+  BACKUP_WORKER: z.enum(['on', 'off']).optional(),
+  /** The database plan's size limit, for the "space for your books" bar and warnings (Neon free plan: 500 MB). */
+  DB_SPACE_LIMIT_MB: z.coerce.number().positive().default(500),
   /** Browser tests only (ignored unless NODE_ENV=test): the date the plan's days left are counted from, matching the tests' frozen clock. */
   TEST_TODAY: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });

@@ -47,6 +47,9 @@ import { ExpensesController } from './modules/expenses/expenses.controller';
 import { ExpensesService } from './modules/expenses/expenses.service';
 import { SalesService } from './modules/sales/sales.service';
 import { ReceiptsService } from './modules/sales/receipts.service';
+import { BackupController } from './modules/backup/backup.controller';
+import { BackupService } from './modules/backup/backup.service';
+import { BackupWorker } from './modules/backup/backup.worker';
 
 @Module({
   imports: [
@@ -58,9 +61,11 @@ import { ReceiptsService } from './modules/sales/receipts.service';
     }),
   ],
   controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HealthController, ImportsController,
-    PartiesController, ItemsController, BrandsController, StockController, PricingController, SettingsController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController],
+    PartiesController, ItemsController, BrandsController, StockController, PricingController, SettingsController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController, BackupController],
   providers: [
     DbService,
+    BackupService,
+    BackupWorker,
     AuditService,
     TokensService,
     AuthService,

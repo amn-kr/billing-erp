@@ -74,6 +74,28 @@ Neon itself can also go back in time on its own, but on the free plan only a few
 
 The scripts behind this are in `infra/db/backup/` and can be run on any computer with Postgres 16 tools.
 
+## Real-time backup (each shop's own copy)
+Separate from the nightly whole-database backup above: each shop's books are copied to the place the
+shop owner chooses (Google Drive, this computer, or both), about a minute behind, plus a full copy each day.
+- Every save also writes its change to the table `change_log`, in the same transaction (a database trigger on every shop table).
+- While the server is awake, it sends each place the changes it hasn't confirmed yet, every minute, as a compressed
+  file locked with AES-256. A file counts as sent only once the place confirms it; if the place is down, it tries again
+  after 1, 2, 4, 8 and then every 15 minutes, and nothing is skipped.
+- Restore puts the backup into **new books** (like *Start fresh*): the current books are never overwritten.
+- Old backup files and old rows of `change_log` are **not deleted yet**; the rule for that comes later, with the owner's approval.
+
+### One-time setup (owner)
+In Render › `billing-erp-api` › *Environment*, add `BACKUP_MASTER_KEY`: click *Generate* for a random value, save,
+then **copy the value into the same safe place as `BACKUP_PASSPHRASE`**. Every backup file is locked with this key
+(each shop with its own key made from it): if it is lost or changed, the backups made with it can't be opened.
+Never paste it into chat, email or GitHub. Until it is set, the server sends no backups (it says so in its log).
+Optional: `DB_SPACE_LIMIT_MB` (default 500, Neon's free plan) for the "space for your books" warning.
+
+### For developers
+A migration that writes shop rows without a shop chosen lifts `FORCE ROW LEVEL SECURITY` on the tables it fills;
+it must lift it on `change_log` too, or the trigger's insert is refused. A new shop table gets the trigger like this
+(an API test fails until it has it): `CREATE TRIGGER <table>_backup AFTER INSERT OR UPDATE OR DELETE ON <table> FOR EACH ROW EXECUTE FUNCTION log_change('business_id');`
+
 ## Limits of the free setup (as checked on 9 Oct 2026; they can change)
 - **The server sleeps.** Render's free web service stops after 15 minutes without visits; the next visit wakes it in about a minute. Render gives 750 free hours a month per workspace (a sleeping server uses none); if they run out, free services stop until the next month.
 - **Database size: 0.5 GB** per Neon project on the free plan, and 100 compute-hours a month; Neon's computer also sleeps after 5 minutes idle (wakes in a moment). If a monthly limit is reached, the database stops until the next month.
