@@ -189,12 +189,13 @@ export function ItemsPage() {
           ) : <span>{IT.filter((i) => i.kind === 'service').length} services</span>}
         </div>
         <div className="sp"></div>
+        {kind === 'p' && <button className="btn" id="itImport" onClick={() => go('/items/import')}>Import products</button>}
         {kind === 'p' && <button className="btn" id="itBrands" onClick={() => go('/items/brands')}>Brands &amp; Series</button>}
         <button className="btn p" data-soon="New item" onClick={() => setAdding(true)}><Icon name="plus" />Add item</button>
         <div className="rel">
           <button className="ib" id="itMoreBtn" aria-label="More options" onClick={toggle('more')}><RawIcon d={DOTS} /></button>
           <div className="pop" id="itMorePop" hidden={pop !== 'more'}>
-            <button data-soon="Import items from Excel" onClick={() => soon('Import items from Excel')}>Import items from Excel</button>
+            <button id="itImportMenu" onClick={() => go('/items/import')}>Import items from Excel</button>
             <button data-view="prices" onClick={() => soon('Price manager')}>Update prices in bulk</button>
             <button id="itRateBtn" onClick={() => soon('Rate list')}>Download rate list</button>
             <button data-soon="Item categories" onClick={() => soon('Item categories')}>Manage categories</button>
