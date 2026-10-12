@@ -13,3 +13,4 @@ export * from './quotes.js';
 export * from './purchases.js';
 export * from './banking.js';
 export * from './expenses.js';
+export * from './stock.js';
