@@ -18,11 +18,12 @@ import { useSetTab } from './model';
 export type Dest = 'drive' | 'local' | 'both';
 type Place = 'drive' | 'local';
 interface Line {
-  enabled: boolean; connected: boolean; folder: string; account: string;
+  enabled: boolean; connected: boolean; reconnect: boolean; folder: string; account: string;
   lastOkAt: string | null; failingSince: string | null; error: string | null; waiting: number; lastSnapshotAt: string | null;
 }
 export interface BackupStatus {
   keySet: boolean;
+  driveSetUp: boolean;
   dest: Dest | null;
   drive: Line | null;
   local: Line | null;
@@ -77,6 +78,12 @@ const failMin = (l: Line | null, now: number) => (l?.failingSince ? Math.floor((
 const on = (s: BackupStatus, p: Place) => s.dest === 'both' || s.dest === p;
 const plural = (n: number, w: string) => `${n.toLocaleString('en-IN')} ${w}${n === 1 ? '' : 's'}`;
 
+/** Scrolls to the Backup & restore card, its heading clear of the top bar. */
+export function showCard(behavior: ScrollBehavior = 'auto') {
+  const el = document.getElementById('bkpCard');
+  if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 90, behavior });
+}
+
 /** The red line across the top of every screen after 15 minutes without a working backup, and the amber one when space is nearly gone. */
 export function BackupBanner() {
   const q = useBackup();
@@ -85,7 +92,7 @@ export function BackupBanner() {
   const s = q.data;
   if (!s) return null;
   const now = nowOf(s, q.dataUpdatedAt);
-  const open = () => { useSetTab.getState().set('gen'); navigate('/settings'); setTimeout(() => document.getElementById('bkpCard')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 120); };
+  const open = () => { useSetTab.getState().set('gen'); navigate('/settings'); setTimeout(() => showCard('smooth'), 120); };
   const bad = (['drive', 'local'] as const).filter((p) => on(s, p) && failMin(s[p], now) >= s.failMinutes);
   const mins = Math.max(0, ...bad.map((p) => failMin(s[p], now)));
   const err = bad.length === 1 ? s[bad[0]!]?.error : null;
@@ -130,6 +137,13 @@ export function BackupLive({ onDownload, children }: { onDownload: () => void; c
       qc.setQueryData(BACKUP_KEY, await api<BackupStatus>('/backup/destination', { method: 'PUT', body: { dest: d } }));
       showToast(d === 'both' ? 'Backups go to Google Drive and this computer' : d === 'drive' ? 'Backups go to Google Drive' : 'Backups go to this computer');
     } catch (e) { fail(e, 'Could not change where backups go.'); }
+  }
+  /** to Google's sign-in; Google sends the owner back to Settings (see SettingsPage) */
+  async function connectDrive() {
+    try {
+      const { url } = await api<{ url: string }>('/backup/drive/connect', { method: 'POST' });
+      window.location.assign(url);
+    } catch (e) { fail(e, 'Could not open Google sign-in.'); }
   }
   async function backupNow(p: Place) {
     if (busy) return;
@@ -176,11 +190,13 @@ export function BackupLive({ onDownload, children }: { onDownload: () => void; c
       {drive && (
         <div className="synccard" id="bkpDrive"><span className="ti" style={TI(drive.failingSince || !drive.connected ? 'var(--red)' : '#16a34a')}><RawIcon d={DRIVE} /></span>
           {drive.connected ? (
-            <><div className="sx"><b>Google Drive {status(drive)}</b><span>{line(drive)}{drive.folder ? ` Folder “${drive.folder}”${drive.account ? ` in ${drive.account}` : ''}.` : ''}</span></div>
-              {can && <button className="btn" type="button" id="bkpDriveNow" disabled={busy} onClick={() => void backupNow('drive')}>Backup now</button>}</>
+            <><div className="sx"><b>Google Drive {status(drive)}</b><span>{line(drive)}{drive.folder ? ` Folder “${drive.folder}”${drive.account ? ` in ${drive.account}` : ''}.` : drive.account ? ` Connected to ${drive.account}; the first full copy goes there within a minute.` : ''}</span></div>
+              {can && (drive.reconnect
+                ? <button className="btn p" type="button" id="bkpDriveAgain" onClick={() => void connectDrive()}>Connect again</button>
+                : <button className="btn" type="button" id="bkpDriveNow" disabled={busy} onClick={() => void backupNow('drive')}>Backup now</button>)}</>
           ) : (
             <><div className="sx"><b>Google Drive</b><span>Not connected yet. The app makes a folder in your Drive and can see only the files it makes there.</span></div>
-              {can && <button className="btn p" type="button" id="bkpDriveGo" onClick={() => showToast('Connecting Google Drive comes in the next update.')}>Connect Google Drive</button>}</>
+              {can && <button className="btn p" type="button" id="bkpDriveGo" onClick={() => void connectDrive()}>Connect Google Drive</button>}</>
           )}
         </div>
       )}

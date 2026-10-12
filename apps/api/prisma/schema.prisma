@@ -1429,6 +1429,8 @@ model BackupDestination {
   lastSnapshotAt DateTime? @map("last_snapshot_at") @db.Timestamptz(6)
   leaseUntil     DateTime? @map("lease_until") @db.Timestamptz(6)
   settings       Json      @default("{}")
+  /// the place's login (Google Drive: refresh token), locked; never sent out by the API
+  secret         String    @default("")
   createdBy      String    @map("created_by") @db.Uuid
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)

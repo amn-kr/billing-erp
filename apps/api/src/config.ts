@@ -32,6 +32,19 @@ const schema = z.object({
   BACKUP_WORKER: z.enum(['on', 'off']).optional(),
   /** The database plan's size limit, for the "space for your books" bar and warnings (Neon free plan: 500 MB). */
   DB_SPACE_LIMIT_MB: z.coerce.number().positive().default(500),
+  /**
+   * Google Drive backups: the OAuth client made in Google Cloud (Google Auth Platform › Clients, a
+   * "Web application" whose redirect URI is APP_URL/api/backup/drive/callback). Without them the
+   * "Connect Google Drive" button says Drive isn't set up on this server. Never logged.
+   */
+  GOOGLE_CLIENT_ID: z.preprocess((v) => (v === '' ? undefined : v), z.string().optional()),
+  GOOGLE_CLIENT_SECRET: z.preprocess((v) => (v === '' ? undefined : v), z.string().optional()),
+  /** The address people open the app at (Google sends them back here); default: the first of WEB_ORIGINS. */
+  APP_URL: z.preprocess((v) => (v === '' ? undefined : v), z.string().url().optional()),
+  /** Tests only: Google's addresses (sign-in, tokens, Drive), pointed at a pretend Google. */
+  GOOGLE_ACCOUNTS_URL: z.string().url().default('https://accounts.google.com'),
+  GOOGLE_OAUTH2_URL: z.string().url().default('https://oauth2.googleapis.com'),
+  GOOGLE_API_URL: z.string().url().default('https://www.googleapis.com'),
   /** Browser tests only (ignored unless NODE_ENV=test): the date the plan's days left are counted from, matching the tests' frozen clock. */
   TEST_TODAY: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
@@ -55,6 +68,9 @@ export function planToday(): string {
   const c = config();
   return c.NODE_ENV === 'test' && c.TEST_TODAY ? c.TEST_TODAY : todayIst();
 }
+
+/** Where the web app is opened (no trailing slash). */
+export const appUrl = (): string => (config().APP_URL ?? config().WEB_ORIGINS.split(',')[0]!.trim()).replace(/\/+$/, '');
 
 /** Tests change env between files. */
 export function resetConfig(): void {

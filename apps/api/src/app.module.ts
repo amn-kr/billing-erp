@@ -50,6 +50,7 @@ import { ReceiptsService } from './modules/sales/receipts.service';
 import { BackupController } from './modules/backup/backup.controller';
 import { BackupService } from './modules/backup/backup.service';
 import { BackupWorker } from './modules/backup/backup.worker';
+import { DriveController, DriveSender } from './modules/backup/drive';
 
 @Module({
   imports: [
@@ -61,11 +62,12 @@ import { BackupWorker } from './modules/backup/backup.worker';
     }),
   ],
   controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HealthController, ImportsController,
-    PartiesController, ItemsController, BrandsController, StockController, PricingController, SettingsController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController, BackupController],
+    PartiesController, ItemsController, BrandsController, StockController, PricingController, SettingsController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController, BackupController, DriveController],
   providers: [
     DbService,
     BackupService,
     BackupWorker,
+    DriveSender,
     AuditService,
     TokensService,
     AuthService,
