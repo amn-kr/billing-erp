@@ -5,8 +5,50 @@ on:
     branches: [main]
   pull_request:
 
+# A newer push to the same PR stops its older run, which would be out of date anyway.
+# Runs on main are never cancelled (each commit has its own group).
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  actions: read # to look up the PR run that already tested the same files
+
 jobs:
+  # After a merge: did a green PR run already test exactly these files? Only a clear yes skips the
+  # full check below; anything missing or unclear runs it (see .github/scripts/already-tested.sh).
+  already-tested:
+    name: Same files already tested on the PR?
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.find.outputs.run }}
+      url: ${{ steps.find.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: find
+        name: Look for a green PR run of these exact files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/already-tested.sh
+
+  skipped:
+    name: Full check skipped - these exact files already passed on the PR
+    needs: already-tested
+    if: needs.already-tested.outputs.run != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Where they passed
+        run: |
+          echo "These exact files passed every test and picture check on the PR: ${{ needs.already-tested.outputs.url }}"
+          echo "Full check skipped: these exact files already passed on the PR: ${{ needs.already-tested.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+
   test:
+    needs: already-tested
+    if: ${{ !cancelled() && needs.already-tested.outputs.run == '' }}
     runs-on: ubuntu-latest
     # the screenshot suite alone takes about 40 minutes (149 tests at three widths)
     timeout-minutes: 90
@@ -23,6 +65,14 @@ jobs:
       PGPASSWORD: postgres
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: What changed (only docs/ or .md files skips the browser and picture tests)
+        id: changes
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+        run: bash .github/scripts/changes.sh
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -32,6 +82,14 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Create database roles
         run: psql -h localhost -U postgres -f infra/db/init-ci.sql
+      - name: Playwright version
+        id: pw
+        run: echo "version=$(pnpm --filter @billing/web exec playwright --version | tail -n 1 | tr -dc '0-9.')" >> "$GITHUB_OUTPUT"
+      - name: Cached Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
       - name: Install Playwright browser (screenshot tests and the importer use it)
         run: pnpm --filter @billing/web exec playwright install --with-deps chromium
       - name: Typecheck
@@ -41,7 +99,11 @@ jobs:
       - name: Build
         run: pnpm build
       - name: End-to-end and screenshot tests (rebuild vs prototype at 1280/1366/1920)
+        if: steps.changes.outputs.docs_only != 'true'
         run: pnpm --filter @billing/web e2e
+      - name: Browser and picture tests skipped - only docs/ or .md files changed
+        if: steps.changes.outputs.docs_only == 'true'
+        run: echo "Browser and picture tests skipped - only docs/ or .md files changed" >> "$GITHUB_STEP_SUMMARY"
       - name: Upload screenshot differences
         if: failure()
         uses: actions/upload-artifact@v4
@@ -49,3 +111,15 @@ jobs:
           name: visual-diffs
           path: apps/web/test-results/
           retention-days: 7
+      # a fingerprint of the files this green PR run tested, so the run after the merge can skip
+      # the same work (see the already-tested job)
+      - name: Remember the tested files
+        if: success() && github.event_name == 'pull_request'
+        run: mkdir -p tested && echo "${{ steps.changes.outputs.tree }} ${{ github.event.pull_request.html_url }}" > tested/tree.txt
+      - if: success() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tested-tree-${{ steps.changes.outputs.tree }}
+          path: tested/tree.txt
+          retention-days: 30
+          overwrite: true
