@@ -34,6 +34,11 @@ for (const width of WIDTHS) {
       await app.goto(APP + '/login');
       await app.waitForSelector('#vAuth:not([hidden])');
       await app.evaluate(() => document.fonts.ready);
+      // owner's change (13 Oct 2026): a "Privacy policy · Terms of service" line under the features (Google requires it);
+      // it has its own approved picture, and is copied into the prototype page so the rest is still compared with it
+      await approvedShot(`login-legal-${width}`, app, '#legal');
+      const legal = await app.evaluate(() => document.getElementById('legal')!.outerHTML);
+      await proto.evaluate((html) => document.querySelector('.pitch .feat')!.insertAdjacentHTML('afterend', html), legal);
       await same(`login-${width}`, await proto.screenshot({ fullPage: true }), await app.screenshot({ fullPage: true }));
       // "Create account" tab
       // The prototype page's script stops early without Firebase settings, so run the same steps its tab handler does.

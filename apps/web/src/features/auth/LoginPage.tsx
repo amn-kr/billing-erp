@@ -165,6 +165,7 @@ export function LoginPage() {
         <h1>Billing, stock and accounts for your shop — in the browser.</h1>
         <p>GST invoices, purchases, payments, expenses, cash and bank, party statements and reports. Work from the counter, the godown or home; your staff see the same books.</p>
         <ul className="feat"><li>GST &amp; non-GST invoices</li><li>Quotations &amp; delivery challans</li><li>Purchase bills &amp; supplier payments</li><li>Stock with low-stock alerts</li><li>Cash book, bank &amp; cheques</li><li>Party statements on WhatsApp</li><li>Staff accounts, shared live</li><li>Daily cloud backup</li></ul>
+        <p className="mu" id="legal" style={{ margin: '18px 0 0' }}><a className="lnk" href="/privacy.html">Privacy policy</a> · <a className="lnk" href="/terms.html">Terms of service</a></p>
       </section>
       <section className="card" id="box" aria-live="polite">
         <div id="vLoad" hidden={view !== 'vLoad'}><h2>Loading…</h2><p className="mu">Checking your account.</p></div>
