@@ -69,3 +69,26 @@ export function openFile<T = unknown>(master: string, businessId: string, file: 
 }
 
 export const sha256 = (b: Buffer) => createHash('sha256').update(b).digest('hex');
+
+/**
+ * A place's login (Google Drive's refresh token) kept in the database: locked with its own key made
+ * from the master key, and tied to the shop, so it can't be read from the database or moved to another shop.
+ */
+const secretKey = (master: string) => Buffer.from(hkdfSync('sha256', master, 'billing-erp destination secret', 'v1', 32));
+
+export function lockSecret(master: string, businessId: string, text: string): string {
+  const iv = randomBytes(12);
+  const c = createCipheriv('aes-256-gcm', secretKey(master), iv);
+  c.setAAD(Buffer.from(businessId));
+  const locked = Buffer.concat([c.update(text, 'utf8'), c.final()]);
+  return 'v1.' + Buffer.concat([iv, c.getAuthTag(), locked]).toString('base64');
+}
+
+export function openSecret(master: string, businessId: string, s: string): string {
+  if (!s.startsWith('v1.')) throw new BackupFileError('The saved login is in an unknown form.');
+  const b = Buffer.from(s.slice(3), 'base64');
+  const d = createDecipheriv('aes-256-gcm', secretKey(master), b.subarray(0, 12));
+  d.setAAD(Buffer.from(businessId));
+  d.setAuthTag(b.subarray(12, 28));
+  try { return Buffer.concat([d.update(b.subarray(28)), d.final()]).toString('utf8'); } catch { throw new BackupFileError('The saved login can’t be opened (the server’s backup key changed?).'); }
+}

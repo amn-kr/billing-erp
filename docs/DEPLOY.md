@@ -91,6 +91,24 @@ then **copy the value into the same safe place as `BACKUP_PASSPHRASE`**. Every b
 Never paste it into chat, email or GitHub. Until it is set, the server sends no backups (it says so in its log).
 Optional: `DB_SPACE_LIMIT_MB` (default 500, Neon's free plan) for the "space for your books" warning.
 
+### Google Drive (one-time setup, owner; free)
+The app asks Google only for **"files this app created"** (`drive.file`, which Google classes as non-sensitive): no Google
+review and no "unverified app" warning, and the app sees nothing in a Drive except its own folder
+"Billing ERP Backup - <shop>". Google's login for each shop is kept locked on the server (with a key made from
+`BACKUP_MASTER_KEY`); it is never shown, logged or written to the activity log. **Do not add a card or start a free
+trial in Google Cloud: nothing here needs billing.**
+1. console.cloud.google.com › project picker › **New project** `Billing ERP` › **Create**, then select it.
+2. Search **Google Drive API** › **Enable**.
+3. Search **Google Auth Platform** › **Get started**: app name `Billing ERP`, your support email › **Next** ›
+   Audience **External** › **Next** › contact email › **Next** › tick *I agree* › **Continue** › **Create**.
+4. **Data Access** › **Add or remove scopes** › filter `drive.file` › tick only `…/auth/drive.file` › **Update** › **Save**.
+5. **Clients** › **+ Create client** › *Web application*, name `Billing ERP server`, **Authorized redirect URIs** ›
+   **+ Add URI** › `https://billing-erp-ynqf.onrender.com/api/backup/drive/callback` › **Create** › **Download JSON** (keep it safe).
+6. **Audience** › **Publish app** › **Confirm**: the status must read **In production** (in "Testing", Google ends the
+   connection every 7 days). Brand verification (app name and logo on Google's screen) is skipped for now.
+7. Render › `billing-erp-api` › **Environment** › add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` from the
+   JSON file › **Save Changes**. Until both are set, "Connect Google Drive" says Drive isn't set up on this server.
+
 ### For developers
 A migration that writes shop rows without a shop chosen lifts `FORCE ROW LEVEL SECURITY` on the tables it fills;
 it must lift it on `change_log` too, or the trigger's insert is refused. A new shop table gets the trigger like this

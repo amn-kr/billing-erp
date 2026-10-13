@@ -2,15 +2,16 @@
  * Settings (#vSet) — the prototype's hero, sub-menu (SUB / SETTABS / setTab) and
  * its three working tabs: Taxes & GST, Items (price lists) and General.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { api, ApiError } from '../../lib/api';
 import { Icon } from '../../components/Icon';
 import type { IconName } from '../../components/icon-paths';
 import { soon, useShell } from '../shell/store';
 import type { PriceList } from '../prices/model';
 import { GeneralTab } from './GeneralTab';
+import { showCard } from './BackupCard';
 import { ITEM_PREFIX } from '@billing/shared';
 import { Sw, useS, useSaveS, useSetTab } from './model';
 import { TaxCards, TaxList, TaxPreview } from './TaxTab';
@@ -23,13 +24,30 @@ const HEAD = {
   items: ['Items & prices', 'Choose which price lists you use. Changes save on their own and apply across the app.'],
   gen: ['General', 'App-wide display preferences. Changes save on their own.'],
 } as const;
+/** back from Google's sign-in (Settings › General › Backup & restore › Connect Google Drive) */
+const DRIVE_BACK: Record<string, string> = {
+  connected: 'Google Drive connected. The first full copy goes there within a minute.',
+  cancelled: 'Google Drive was not connected: the sign-in at Google was cancelled.',
+  failed: 'Couldn’t connect Google Drive. Please try again.',
+};
 const ruleTxt = (p: PriceList) => (p.rule === 'base' ? 'Same as item sale price' : p.rule === 'disc' ? `${Number(p.value)}% off sale price` : `Purchase price + ${Number(p.value)}%`);
 
 export function SettingsPage() {
   const { tab, set } = useSetTab();
   const { S, taxes, ready } = useS();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { showToast } = useShell();
   const [tl, setTl] = useState(false);
+  useEffect(() => {
+    const r = new URLSearchParams(location.search).get('drive');
+    if (!r) return;
+    set('gen');
+    showToast(DRIVE_BACK[r] ?? DRIVE_BACK.failed!);
+    navigate('/settings', { replace: true });
+    setTimeout(() => showCard(), 300);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
   if (!ready) return <section id="vSet"></section>;
   const isTax = tab === 'tax';
   return (

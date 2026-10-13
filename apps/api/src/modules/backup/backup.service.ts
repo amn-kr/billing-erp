@@ -32,6 +32,14 @@ export interface Sender {
 
 export type RunResult = 'sent' | 'up_to_date' | 'not_ready' | 'busy' | 'failed' | 'off';
 
+/** A place's failure that needs more than a retry: the owner must connect again, or the place lost its copies and starts over with a full copy. */
+export class PlaceError extends Error {
+  constructor(message: string, readonly opts: { reconnect?: boolean; restart?: boolean } = {}) {
+    super(message);
+  }
+}
+type PlaceSettings = { folder?: string; account?: string; folderId?: string; reconnect?: boolean };
+
 /** changes per file */
 const BATCH = 5000;
 /** minutes to wait after the 1st, 2nd, 3rd … failure in a row */
@@ -120,10 +128,11 @@ export class BackupService {
         if (!d) return null;
         const [{ n = 0 } = {}] = await tx.$queryRaw<{ n: number }[]>`SELECT count(*)::int AS n FROM change_log WHERE seq > ${d.cursorSeq}`;
         const s = this.senders.get(kind);
-        const st = d.settings as { folder?: string; account?: string };
+        const st = d.settings as PlaceSettings;
         return {
           enabled: d.enabled,
           connected: !!s && (await s.ready(d)),
+          reconnect: !!st.reconnect,
           folder: st.folder ?? '',
           account: st.account ?? '',
           lastOkAt: d.lastOkAt,
@@ -136,6 +145,8 @@ export class BackupService {
       const snaps = ds.filter((d) => d.enabled && d.lastSnapshotAt).map((d) => +d.lastSnapshotAt!);
       return {
         keySet: !!this.key(),
+        /** Google Drive can be connected on this server (its Google client is set) */
+        driveSetUp: this.senders.has('drive'),
         dest: choiceOf(ds),
         drive: await line('drive'),
         local: await line('local'),
@@ -188,9 +199,11 @@ export class BackupService {
         sent = true;
       }
       while (await this.sendChanges(master, businessId, destId, sender)) sent = true;
-      await this.db.scoped({ businessId }, (tx) =>
-        tx.backupDestination.update({ where: { id: destId }, data: { lastOkAt: new Date(), failingSince: null, lastError: '', attempts: 0, nextTryAt: null } }),
-      );
+      // (only the flag is changed in settings: the place may have saved e.g. its folder during this round)
+      await this.db.scoped({ businessId }, (tx) => tx.$executeRaw`
+        UPDATE backup_destinations SET last_ok_at = now(), failing_since = NULL, last_error = '', attempts = 0, next_try_at = NULL,
+          settings = settings || '{"reconnect": false}'::jsonb, updated_at = now()
+        WHERE id = ${destId}::uuid`);
       return sent ? 'sent' : 'up_to_date';
     } catch (e) {
       const msg = plain(e);
@@ -201,7 +214,11 @@ export class BackupService {
         const wait = BACKOFF_MIN[Math.min(attempts, BACKOFF_MIN.length) - 1]!;
         await tx.backupDestination.update({
           where: { id: destId },
-          data: { failingSince: d.failingSince ?? new Date(), lastError: msg, attempts, nextTryAt: new Date(Date.now() + wait * 60_000) },
+          data: {
+            failingSince: d.failingSince ?? new Date(), lastError: msg, attempts, nextTryAt: new Date(Date.now() + wait * 60_000),
+            ...(e instanceof PlaceError && e.opts.reconnect ? { settings: { ...(d.settings as PlaceSettings), reconnect: true } } : {}),
+            ...(e instanceof PlaceError && e.opts.restart ? { lastSnapshotAt: null } : {}),
+          },
         });
       });
       return 'failed';
