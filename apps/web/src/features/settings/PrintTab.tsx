@@ -20,6 +20,7 @@ import { sampleDoc } from '../print/sample';
 import { usePrintStyles } from '../print/printer';
 import { BOT, COLDEF, COLORS, COLS0, NAMES, PRINT_DEF, TOP, usePrintOpts, type ColSet, type PrintOpts } from '../print/opts';
 import { Sw } from './model';
+import { txnOpts } from '../sales/editor/state';
 
 export const PRINT_ICON = '<path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z"/>';
 const UP = '<path d="M6 15l6-6 6 6"/>';
@@ -260,10 +261,11 @@ export function PrintPreview() {
   const o = usePrintOpts();
   const { sample, setSample } = usePrint();
   const biz = useBiz().data;
-  const upi = ((useSettings().data?.data ?? {}) as { upi?: string }).upi ?? '';
+  const sdata = useSettings().data?.data ?? {};
+  const upi = (sdata as { upi?: string }).upi ?? '';
   const last = useSales('invoice').data?.[0]?.id ?? null;
   const doc = useSale(sample === 'last' ? last : null).data;
-  const d = sample === 'last' && doc ? fromSale(doc, { upi }) : sampleDoc(sample === 'gst', biz?.stateCode || '09');
+  const d = sample === 'last' && doc ? fromSale(doc, { upi, txn: txnOpts(sdata) }) : sampleDoc(sample === 'gst', biz?.stateCode || '09');
   const copies = copiesOf(o);
   const opts: [Sample, string][] = [['plain', 'Bill without tax'], ['gst', 'GST bill'], ...(last ? [['last', 'Last invoice'] as [Sample, string]] : [])];
   return (

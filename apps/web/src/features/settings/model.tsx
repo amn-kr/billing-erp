@@ -32,7 +32,7 @@ export function useSaveS() {
 }
 
 /** Which Settings tab is open (kept while moving around the app, like the prototype's SETTAB). */
-export type SetTab = 'tax' | 'items' | 'gen' | 'print';
+export type SetTab = 'tax' | 'txn' | 'items' | 'gen' | 'print';
 export const useSetTab = create<{ tab: SetTab; set: (t: SetTab) => void }>((set) => ({ tab: 'tax', set: (tab) => set({ tab }) }));
 
 export const pct = (n: number | string) => Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 }) + '%';

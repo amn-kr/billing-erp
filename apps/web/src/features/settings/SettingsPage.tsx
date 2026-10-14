@@ -14,14 +14,16 @@ import { GeneralTab } from './GeneralTab';
 import { showCard } from './BackupCard';
 import { ITEM_PREFIX } from '@billing/shared';
 import { Sw, useS, useSaveS, useSetTab, type SetTab } from './model';
+import { TxnCards } from './TxnTab';
 import { TaxCards, TaxList, TaxPreview } from './TaxTab';
 import { PrintCards, PrintPreview, PrinterTabs, ThermalSoon, usePrint } from './PrintTab';
 
 const SUB: [IconName, string, string?][] = [['crown', 'Subscription', 'sub'], ['gear', 'General'], ['receipt', 'Transactions'], ['doc', 'Print & invoice'], ['pct', 'Taxes & GST'], ['chat', 'Messages'], ['users', 'Parties'], ['box', 'Items'], ['bell', 'Reminders'], ['book', 'Accounting'], ['swap', 'Multi-currency']];
-const SETTABS: Record<string, SetTab> = { 'Print & invoice': 'print', 'Taxes & GST': 'tax', Items: 'items', General: 'gen' };
+const SETTABS: Record<string, SetTab> = { 'Print & invoice': 'print', 'Taxes & GST': 'tax', Transactions: 'txn', Items: 'items', General: 'gen' };
 const LIST = '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>';
 const HEAD = {
   tax: ['Taxes & GST', 'Turn tax features on or off. Changes save on their own and apply across the app.'],
+  txn: ['Transactions', 'How sales, purchases and payments are numbered and what their header shows. Changes save on their own.'],
   items: ['Items & prices', 'Choose which price lists you use. Changes save on their own and apply across the app.'],
   gen: ['General', 'App-wide display preferences. Changes save on their own.'],
   print: ['Print & invoice', 'Choose how your printed invoices look. Changes save on their own and apply to every preview, print and PDF.'],
@@ -79,6 +81,7 @@ export function SettingsPage() {
           <section className="card" id="cPlSet" hidden={tab !== 'items'}>{tab === 'items' && <PriceListSwitches />}</section>
           {tab === 'gen' && <GeneralTab />}
           {tab === 'print' && <><PrinterTabs />{pr ? <PrintCards /> : <ThermalSoon />}</>}
+          {tab === 'txn' && <TxnCards />}
         </div>
         {isTax ? <TaxPreview /> : pr ? <PrintPreview /> : <aside className="card pv" id="pv" hidden></aside>}
       </div>
