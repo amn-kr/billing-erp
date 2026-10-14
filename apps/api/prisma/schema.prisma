@@ -67,6 +67,7 @@ model Business {
   invites               Invite[]
   settings              BusinessSettings?
   priceLock             PriceLock?
+  txnPasscode           TxnPasscode?
   cashBankAccounts      CashBankAccount[]
   salesDocuments        SalesDocument[]
   salesDocumentLines    SalesDocumentLine[]
@@ -299,6 +300,25 @@ model PriceLock {
   business Business @relation(fields: [businessId], references: [id])
 
   @@map("price_locks")
+}
+
+/// Transaction passcode (Settings › Transactions): asked when a saved document is changed or cancelled.
+/// Kept apart from settings so the hash never travels with them; the switch lives here too, so the
+/// settings save can't turn it off without the passcode.
+model TxnPasscode {
+  businessId   String    @id @map("business_id") @db.Uuid
+  enabled      Boolean   @default(false)
+  passcodeHash String    @map("passcode_hash")
+  /// wrong tries in a row; 5 locks the passcode for 60 seconds
+  fails        Int       @default(0)
+  waitUntil    DateTime? @map("wait_until") @db.Timestamptz(6)
+  createdBy    String    @map("created_by") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@map("txn_passcodes")
 }
 
 model FinancialYear {
