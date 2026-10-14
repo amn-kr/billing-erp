@@ -94,7 +94,6 @@ test('Settings preview, Sales preview, print and PDF show the same invoice, and 
   await page.emulateMedia({ media: 'print' });
   const printed = page.locator('body > .prclone .ppage').first();
   expect(norm(await printed.innerText())).toBe(inDialog);
-  await page.emulateMedia({ media: 'screen' });
 
   // the PDF has the invoice and nothing of the page behind it
   const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
@@ -105,6 +104,8 @@ test('Settings preview, Sales preview, print and PDF show the same invoice, and 
   expect(text).toContain('Rough Invoice');
   expect(text).toContain(no);
   for (const behind of ['Sales invoices', 'Payment link', 'Share on WhatsApp', 'New invoice', 'Dashboard']) expect(text).not.toContain(behind);
+  // page.pdf() prints with the page's current media: it stayed "print" (as a real print) until here
+  await page.emulateMedia({ media: 'screen' });
 
   // a delivery challan prints only its own paper too
   await page.goto(APP + '/delivery-challans');
