@@ -16,7 +16,7 @@ export function partyView(p: Row, bal?: Money) {
   const shipping = p.addresses.find((a) => a.kind === 'shipping');
   const ob = money(p.openingBalance.toString());
   return {
-    id: p.id, name: p.name, kind: p.kind, group: p.group?.name ?? '', phone: p.phone, email: p.email, gstin: p.gstin, gstType: p.gstType,
+    id: p.id, name: p.name, billingName: p.billingName, kind: p.kind, group: p.group?.name ?? '', phone: p.phone, email: p.email, gstin: p.gstin, gstType: p.gstType,
     state: p.stateCode, creditLimit: p.creditLimit ? toDb(p.creditLimit.toString()) : null, creditDays: p.creditDays,
     openingBalance: toDb(ob), openingType: p.openingType, openingDate: isoOf(p.openingDate),
     /** + they owe us (receivable), − we owe them (payable) */
@@ -72,6 +72,7 @@ export class PartiesService {
     const ob = input.openingBalance;
     return {
       ...(input.name !== undefined && { name: input.name }),
+      ...(input.billingName !== undefined && { billingName: input.billingName }),
       ...(input.kind !== undefined && { kind: input.kind }),
       ...(input.phone !== undefined && { phone: input.phone }),
       ...(input.email !== undefined && { email: input.email }),

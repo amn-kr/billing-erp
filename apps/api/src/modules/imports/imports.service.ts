@@ -102,7 +102,7 @@ export class ImportsService {
       where: { businessId },
       data: { gstEnabled: b.gstEnabled, data: { ...(settings.data as object), imported: plan.settings, upi: b.upi, priceRules: plan.priceRules } as Prisma.InputJsonValue },
     });
-    await tx.documentSeries.updateMany({ where: { docType: 'invoice' }, data: { nextNumber: b.invoiceNext } });
+    await tx.documentSeries.updateMany({ where: { docType: 'invoice', active: true }, data: { nextNumber: b.invoiceNext } });
 
     /* tax list: update the matching default, add custom ones */
     const taxes = await tx.taxRate.findMany();

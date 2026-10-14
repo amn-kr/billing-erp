@@ -96,7 +96,7 @@ export class BusinessesService {
       });
       await tx.documentSeries.createMany({
         data: SERIES.map(([docType, prefix]) => ({
-          businessId: id, financialYearId: year.id, docType, prefix, nextNumber: docType === 'invoice' ? +input.inv || 1 : docType === 'quotation' ? 101 : 1, createdBy: ctx.userId,
+          businessId: id, financialYearId: year.id, docType, prefix, nextNumber: docType === 'invoice' ? +input.inv || 1 : docType === 'quotation' ? 101 : 1, active: true, createdBy: ctx.userId,
         })),
       });
       await seedMasters(tx, { businessId: id, userId: ctx.userId, owner: input.owner, phone: input.phone, address: [input.addr, [input.city, input.pin].filter(Boolean).join(' ')].filter(Boolean).join(', ') });
@@ -132,7 +132,7 @@ export class BusinessesService {
     return this.db.scoped({ businessId: ctx.businessId, userId: ctx.userId, email: ctx.email }, async (tx) => {
       const b = await tx.business.findUniqueOrThrow({ where: { id: ctx.businessId! }, include: { settings: true } });
       const owner = await tx.membership.findFirst({ where: { userId: b.ownerId } });
-      const inv = await tx.documentSeries.findFirst({ where: { docType: 'invoice' }, orderBy: { createdAt: 'desc' } });
+      const inv = await tx.documentSeries.findFirst({ where: { docType: 'invoice', active: true } });
       return { ...b, ownerName: owner?.displayName ?? '', invoiceNext: inv?.nextNumber ?? 1 };
     });
   }
@@ -163,7 +163,7 @@ export class BusinessesService {
       if (input.gstin) await tx.businessSettings.update({ where: { businessId: before.id }, data: { gstEnabled: true } });
       if (input.inv !== undefined && input.inv !== '') {
         // Phase 3 will refuse numbers below invoices already made; there are none yet
-        await tx.documentSeries.updateMany({ where: { docType: 'invoice' }, data: { nextNumber: Math.max(1, Number(input.inv)) } });
+        await tx.documentSeries.updateMany({ where: { docType: 'invoice', active: true }, data: { nextNumber: Math.max(1, Number(input.inv)) } });
       }
       await this.audit.log(tx, { businessId: before.id, userId: ctx.userId, action: 'update', entity: 'business', entityId: before.id, before, after: { ...after, owner: input.owner, inv: input.inv }, ip: ctx.ip });
       return after;

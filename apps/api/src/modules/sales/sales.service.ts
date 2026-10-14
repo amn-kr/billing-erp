@@ -154,10 +154,16 @@ export class SalesService {
 
     if (!number) number = await this.numbers.next(tx, businessId, ctx.userId, docType, input.date);
     else if (number !== before?.number) await this.numbers.claim(tx, businessId, ctx.userId, docType, input.date, number);
+    // a new bill keeps its own copy of the party's billing name, so a later party edit never changes it
+    let billName = input.billName;
+    if (!before && !billName && party?.billingName) {
+      const set = await tx.businessSettings.findUnique({ where: { businessId } });
+      if ((set?.data as Record<string, unknown> | undefined)?.txnBillName) billName = party.billingName;
+    }
 
     const head = {
       number, date: day(input.date), dueDate: isInv ? day(cash ? input.date : (input.dueDate ?? input.date)) : input.extra.validTill ? day(input.extra.validTill) : null,
-      mode: input.mode, partyId: party?.id ?? null, cashName: cash ? input.cashName.trim() || 'Walk-in customer' : '', cashPhone: cash ? input.cashPhone : '', billName: input.billName,
+      mode: input.mode, partyId: party?.id ?? null, cashName: cash ? input.cashName.trim() || 'Walk-in customer' : '', cashPhone: cash ? input.cashPhone : '', billName,
       taxMode: books.mode, pricesInclTax: input.pricesInclTax, placeOfSupply: pos, roundOff: input.roundOff,
       billDiscPct: input.billDiscPct, billDiscAmt: input.billDiscPct ? null : input.billDiscAmt,
       transport: toDb(input.transport), labour: toDb(input.labour), bankCharge: toDb(input.bankCharge), tcsRate: books.tcsRate ? books.tcsRate.toFixed(2) : null,
@@ -334,7 +340,7 @@ export class SalesService {
         itemsTotal: d2(d.itemsTotal), billDiscount: d2(d.billDiscount), taxable: d2(d.taxable), tax: d2(d.tax), cgst: d2(d.cgst), sgst: d2(d.sgst), igst: d2(d.igst), tcs: d2(d.tcs),
         roundAmount: d2(d.roundAmount), total: total.toFixed(2), words: amountInWords(total),
         received: d.cancelledAt ? (atSale ? toDb(atSale.amount.toString()) : '0.00') : total.minus(bal).toFixed(2), balance: d.cancelledAt ? '0.00' : bal.toFixed(2),
-        notes: d.notes, reason: d.reason, extra: d.extra, referrerId: d.referrerId, cancelled: !!d.cancelledAt, cancelledAt: d.cancelledAt, legacy: !!d.legacyId,
+        notes: d.notes, reason: d.reason, extra: d.extra, referrerId: d.referrerId, cancelled: !!d.cancelledAt, cancelledAt: d.cancelledAt, legacy: !!d.legacyId, savedAt: d.createdAt,
         lines: d.lines.map((l) => {
           const it = l.itemId ? items.get(l.itemId) : undefined;
           return {

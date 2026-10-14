@@ -27,6 +27,8 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Choose a date.');
 export const partySchema = z
   .object({
     name: trim.min(1, 'Enter the party name.').max(160),
+    /** printed under Bill To instead of the name (Settings › Transactions › Billing name of parties) */
+    billingName: opt(160),
     kind: z.enum(['customer', 'supplier']).default('customer'),
     group: opt(80),
     phone: opt(20).transform((v) => v.replace(/\s/g, '')).refine((v) => !v || /^[6-9]\d{9}$/.test(v), 'Enter a 10-digit mobile number.'),

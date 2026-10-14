@@ -17,6 +17,8 @@ export interface EItem {
 }
 export interface EParty {
   id: string; name: string; phone: string; gstin: string; city: string; state: string; group: string; days: number; limit: number; supplier: boolean; balance: number;
+  /** printed under Bill To instead of the name (Settings › Transactions) */
+  billingName?: string;
 }
 export interface Line {
   item: EItem | null; name: string; hsn: string; qty: string | number; unit: string; price: number; disc: number; gst: number;
@@ -65,7 +67,12 @@ export interface Ctx {
   /** price lists: default id and which party groups use which active list */
   defaultList: string | null; listForGroup: Record<string, string>; listName: Record<string, string>;
   rules: Record<string, CommRule>;
+  /** Settings › Transactions › Transaction header */
+  txn?: TxnOpts;
 }
+export interface TxnOpts { showNo: boolean; time: boolean; cashDefault: boolean; billName: boolean }
+/** the switches as saved in settings (Invoice / bill no. is on unless turned off) */
+export const txnOpts = (d: Record<string, unknown>): TxnOpts => ({ showNo: d.txnInvNo !== false, time: !!d.txnTime, cashDefault: !!d.txnCash, billName: !!d.txnBillName });
 
 export function priceListFor(c: Ctx, p: EParty | null): string | null {
   if (!p) return c.defaultList;
@@ -137,7 +144,7 @@ export const money2 = (v: number) => money(v).toFixed(2);
 export function newSI(c: Ctx, o: { no: string; date: string; doc?: 'sale' | 'quote' }): SI {
   return {
     doc: o.doc ?? 'sale', autoNo: true, no: o.no, date: o.date, due: o.date, dueTouched: false, valid: addDaysIso(o.date, 15),
-    mode: 'credit', party: null, cashName: '', cashPhone: '', billName: '', pos: c.state, incl: true,
+    mode: o.doc !== 'quote' && c.txn?.cashDefault ? 'cash' : 'credit', party: null, cashName: '', cashPhone: '', billName: '', pos: c.state, incl: true,
     lines: [blankLine()], pays: [], recvTouched: o.doc === 'quote', notes: o.doc === 'quote' ? SI_TT.est : SI_TT.sale, roundOff: true, warnOk: false, err: '', chgOk: false,
     challan: '', poNo: '', poDate: '', ewb: '', transport: '', vehicle: '', delivDate: '', desc: '', showDesc: false, attach: [],
     bdisc: 0, bdiscP: '', chTr: 0, chLab: 0, chBank: 0, ref: '', crOv: null, qrefs: [], fromChallanId: null, editId: null, editOf: null, editBal: 0, dirty: false,

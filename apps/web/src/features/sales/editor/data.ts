@@ -7,7 +7,7 @@ import type { Item } from '../../items/ItemsPage';
 import type { Party } from '../../parties/PartiesPage';
 import type { PriceList } from '../../prices/model';
 import { useBiz } from '../InvoicePreview';
-import type { Ctx, EItem, EParty } from './state';
+import { txnOpts, type Ctx, type EItem, type EParty } from './state';
 
 interface Prices { lists: { id: string; name: string }[]; items: { id: string; lists: Record<string, { price: string; fixed: boolean }> }[] }
 export interface Referrer { id: string; name: string; phone: string; city: string; partyId: string | null }
@@ -34,6 +34,7 @@ export function useEditorData() {
     mode, state: biz.data.stateCode || '09', tcsRate: tcs ? Number(tcs.rate) : null,
     defaultList: def?.id ?? null, listForGroup, listName: Object.fromEntries(lists.data.map((l) => [l.id, l.name])),
     rules: Object.fromEntries(rules.data.map((r) => [r.category, { t: KIND[r.kind] ?? 'n', v: Number(r.value) }])),
+    txn: txnOpts(settings.data.data),
   };
   const pm = new Map(prices.data.items.map((p) => [p.id, p.lists]));
   const IT: EItem[] = items.data.map((i) => ({
@@ -43,7 +44,7 @@ export function useEditorData() {
   }));
   const PT: EParty[] = parties.data.map((p) => ({
     id: p.id, name: p.name, phone: p.phone, gstin: p.gstin, city: p.billing?.city ?? '', state: p.state, group: p.group, days: p.creditDays ?? 0,
-    limit: Number(p.creditLimit ?? 0), supplier: p.kind === 'supplier', balance: Number(p.balance),
+    limit: Number(p.creditLimit ?? 0), supplier: p.kind === 'supplier', balance: Number(p.balance), billingName: p.billingName ?? '',
   }));
   const gstRates = settings.data.taxes.filter((t) => t.kind === 'GST').map((t) => Number(t.rate));
   return { ctx, IT, PT, gstRates, refs: refs.data, gstOn: settings.data.gstEnabled };

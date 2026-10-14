@@ -324,20 +324,24 @@ model FinancialYear {
 model DocumentSeries {
   id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   businessId      String   @map("business_id") @db.Uuid
-  financialYearId String   @map("financial_year_id") @db.Uuid
+  /// the year the row was made in (older rows); numbering itself no longer depends on it
+  financialYearId String?  @map("financial_year_id") @db.Uuid
   /// invoice | quotation | challan | credit_note | receipt | purchase_order | bill | debit_note | payment | expense
   docType         String   @map("doc_type")
+  /// "" = None (numbers without a prefix)
   prefix          String
   nextNumber      Int      @map("next_number")
   padding         Int      @default(4)
+  /// the one prefix of its type used for new documents (a partial unique index allows only one)
+  active          Boolean  @default(false)
   createdBy       String   @map("created_by") @db.Uuid
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   business      Business      @relation(fields: [businessId], references: [id])
-  financialYear FinancialYear @relation(fields: [financialYearId], references: [id])
+  financialYear FinancialYear? @relation(fields: [financialYearId], references: [id])
 
-  @@unique([businessId, financialYearId, docType])
+  @@unique([businessId, docType, prefix])
   @@map("document_series")
 }
 
@@ -414,6 +418,8 @@ model Party {
   phone          String    @default("")
   email          String    @default("")
   gstin          String    @default("")
+  /// printed under Bill To instead of the name when filled (Settings › Transactions › Billing name of parties)
+  billingName    String    @default("") @map("billing_name")
   /// e.g. "Registered business – regular", "Unregistered / consumer"
   gstType        String    @default("") @map("gst_type")
   /// place of supply (GST state code); blank = the shop's own state

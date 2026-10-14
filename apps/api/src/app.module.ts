@@ -32,6 +32,7 @@ import { StockService } from './modules/stock/stock.service';
 import { PricingController } from './modules/pricing/pricing.controller';
 import { PricingService } from './modules/pricing/pricing.service';
 import { SettingsController } from './modules/settings/settings.controller';
+import { PrefixesController } from './modules/settings/prefixes.controller';
 import { CommissionController } from './modules/commission/commission.controller';
 import { CommissionService } from './modules/commission/commission.service';
 import { ReportsController } from './modules/reports/reports.controller';
@@ -62,7 +63,7 @@ import { DriveController, DriveSender } from './modules/backup/drive';
     }),
   ],
   controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HealthController, ImportsController,
-    PartiesController, ItemsController, BrandsController, StockController, PricingController, SettingsController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController, BackupController, DriveController],
+    PartiesController, ItemsController, BrandsController, StockController, PricingController, SettingsController, PrefixesController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController, BackupController, DriveController],
   providers: [
     DbService,
     BackupService,

@@ -12,3 +12,5 @@ export const dmy = (iso: string | null | undefined) => (iso ? formatDmy(iso) : '
 export const curFix = (t: string) => t.replace(/\s?\(₹\)/g, '').replace(/₹\s?/g, '');
 /** Prototype fmtD: 1 Oct 2026. */
 export const fmtD = (iso: string) => new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+/** "4:35 pm", India time (Settings › Transactions › Add time on transactions) */
+export const timeIst = (at: string) => new Date(at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();

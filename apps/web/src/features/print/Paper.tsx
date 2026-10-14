@@ -9,7 +9,7 @@
  */
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { money } from '@billing/shared';
-import { dmy, inr2f } from '../../lib/format';
+import { dmy, inr2f, timeIst } from '../../lib/format';
 import { qfmt } from '../items/ItemsPage';
 import type { SaleDoc } from '../sales/model';
 import { COLDEF, MARGIN_PX, NAME_PX, PAPER, TEXT_PX, type Bot, type ColKey, type PrintOpts, type Top } from './opts';
@@ -28,13 +28,15 @@ export interface PDoc {
   received: string; payMode: string; balance: string; partyBalance: string | null; upi: string;
   /** delivery challan heading lines (number · date, "Billed in …" / "Against invoice …") and its transport line */
   dc?: { no: string; sub: string[]; transport: string };
+  /** Settings › Transactions: number hidden, time saved ("4:35 pm") */
+  hideNo?: boolean; time?: string;
 }
 
 const STATES_NAME: Record<string, string> = {};
 export const stateName = (c: string, list: readonly (readonly [string, string])[]) => (STATES_NAME[c] ??= list.find((s) => s[0] === c)?.[1] ?? '');
 
 /** a SaleDoc from the API → PDoc. `challan`: the delivery challan view of an invoice. */
-export function fromSale(v: SaleDoc, o: { challan?: boolean; upi?: string; partyBalance?: string | null; hsnOf?: (itemId: string | null) => string } = {}): PDoc {
+export function fromSale(v: SaleDoc, o: { challan?: boolean; upi?: string; partyBalance?: string | null; hsnOf?: (itemId: string | null) => string; txn?: { showNo: boolean; time: boolean; billName: boolean } } = {}): PDoc {
   const x = v.extra as Record<string, unknown>;
   const s = (k: string) => (typeof x[k] === 'string' ? (x[k] as string) : '');
   const qs = (x.quoteRefs as { no: string; date: string }[] | undefined) ?? [];
@@ -43,16 +45,19 @@ export function fromSale(v: SaleDoc, o: { challan?: boolean; upi?: string; party
   const atSale = v.payment ? money(v.payment.amount) : money(0);
   const recv = atSale.gt(v.total) ? money(v.total) : atSale;
   const bal = money(v.total).minus(recv);
+  // Settings › Transactions › Billing name of parties: the bill's own copy is printed as Bill To
+  const billTo = !!o.txn?.billName && !!v.billName;
   const refs = ([
-    ['Billing name', v.billName], ['Challan no.', s('challanNo')], ['PO / estimate', s('poNo') ? s('poNo') + (s('poDate') ? ' · ' + dmy(s('poDate')) : '') : ''],
+    ['Billing name', billTo ? '' : v.billName], ['Challan no.', s('challanNo')], ['PO / estimate', s('poNo') ? s('poNo') + (s('poDate') ? ' · ' + dmy(s('poDate')) : '') : ''],
     ['Quotation', qs.map((q) => q.no + (q.date ? ' (' + dmy(q.date) + ')' : '')).join(', ')], ['E-way bill', g ? s('ewb') : ''], ['Transport', s('transport')],
     ['Vehicle / bilty', s('vehicle')], ['Delivery date', s('deliveryDate') ? dmy(s('deliveryDate')) : ''],
   ] as [string, string][]).filter((r) => !!r[1]);
   const isDc = o.challan || v.kind === 'challan';
   return {
     kind: isDc ? 'challan' : v.kind, number: v.number, date: v.date, dueDate: v.dueDate, mode: v.mode, taxMode: v.taxMode, placeOfSupply: v.placeOfSupply, cancelled: v.cancelled,
-    party: { name: v.partyName, city: v.party?.city ?? '', phone: v.party?.phone || v.cashPhone, gstin: v.party?.gstin ?? '' },
+    party: { name: billTo ? v.billName : v.partyName, city: v.party?.city ?? '', phone: v.party?.phone || v.cashPhone, gstin: v.party?.gstin ?? '' },
     refs, description: s('description'), notes: v.notes,
+    hideNo: o.txn?.showNo === false, time: o.txn?.time && v.savedAt && !v.legacy ? timeIst(v.savedAt) : '',
     lines: v.lines.map((l) => {
       const e = l as typeof l & { mrp?: string | null; listPrice?: string | null; wholesalePrice?: string | null };
       return { name: l.group && l.brand ? l.group : l.name, code: l.code, hsn: (o.hsnOf ? o.hsnOf(l.itemId) : l.hsn) || l.hsn, brand: l.brand, series: l.series, cat: l.category, grp: l.group, qty: l.qty, unit: l.unit, mrp: e.mrp ?? null, list: e.listPrice ?? null, whole: e.wholesalePrice ?? null, price: l.price, discPct: l.discPct, gst: l.gstRate, taxable: l.taxable, tax: l.tax, amount: l.amount };
@@ -189,7 +194,7 @@ function Classic({ d, o, biz, states, copy, style }: { d: PDoc; o: PrintOpts; bi
   const rates: Record<string, { tv: number; tx: number }> = {};
   if (g) for (const l of d.lines) { const r = (rates[Number(l.gst)] ??= { tv: 0, tx: 0 }); r.tv += Number(l.taxable); r.tx += Number(l.tax); }
   const meta: [string, string][] = [
-    [dc ? 'Challan No.' : q ? 'Quotation No.' : d.kind === 'credit_note' ? 'Credit Note No.' : 'Invoice No.', docNo(d)], ['Date', dmy(d.date)],
+    ...((d.hideNo ? [] : [[dc ? 'Challan No.' : q ? 'Quotation No.' : d.kind === 'credit_note' ? 'Credit Note No.' : 'Invoice No.', docNo(d)]]) as [string, string][]), ['Date', dmy(d.date) + (d.time ? ` · ${d.time}` : '')],
     ...d.refs.filter(([k]) => k !== 'Billing name').map(([k, v]): [string, string] => [k === 'Challan no.' ? 'Challan No.' : k, v]),
     ...((q ? [['Valid till', dmy(d.dueDate)]] : d.kind === 'invoice' && d.mode === 'credit' && d.dueDate ? [['Due date', dmy(d.dueDate)]] : []) as [string, string][]),
     ...((g ? [['Place of supply', `${stateName(d.placeOfSupply, states)} (${d.placeOfSupply})`]] : []) as [string, string][]),
@@ -287,7 +292,7 @@ function Simple({ d, o, biz, states, copy, style }: { d: PDoc; o: PrintOpts; biz
       <div className="ivh"><div className="ivb"><span className="logo" style={{ width: 44, height: 44, fontSize: 18 }}>{(name[0] || 'B').toUpperCase()}</span><div>{o.showName ? <b>{name}</b> : null}<small>{line}</small>{o.showEmail && biz?.email ? <small>{biz.email}</small> : null}{o.firm ? <small>{o.firm}</small> : null}{g ? <small>GSTIN {biz?.gstin} · State {stateName(BS, states)} ({BS})</small> : null}</div></div>
         <div className="ivt"><b>{docTitle(d, o).toUpperCase()}</b><small>{q ? (d.dueDate ? `Valid till ${dmy(d.dueDate)}` : '') : copy}</small></div></div>
       <div className="ivg"><div><span>Bill to</span><b>{d.party.name}</b>{d.party.city ? <small>{d.party.city}</small> : null}{d.party.phone ? <small>+91 {d.party.phone}</small> : null}{g && d.party.gstin ? <small>GSTIN {d.party.gstin}</small> : null}</div>
-        <div><span>{q ? 'Quotation no.' : 'Invoice no.'}</span><b>{d.number}</b><span style={{ marginTop: 6 }}>Date</span><b>{dmy(d.date)}</b></div>
+        <div>{d.hideNo ? null : <><span>{q ? 'Quotation no.' : 'Invoice no.'}</span><b>{d.number}</b></>}<span style={d.hideNo ? undefined : { marginTop: 6 }}>Date</span><b>{dmy(d.date)}{d.time ? ` · ${d.time}` : ''}</b></div>
         <div>{d.mode === 'credit' || q ? <><span>{q ? 'Valid till' : 'Due date'}</span><b>{dmy(d.dueDate ?? d.date)}</b></> : <><span>Payment</span><b>Cash sale</b></>}{g ? <><span style={{ marginTop: 6 }}>Place of supply</span><b>{stateName(d.placeOfSupply, states)} ({d.placeOfSupply})</b></> : null}</div></div>
       {R.length ? <div className="ivrefs">{R.map(([k, t]) => <span key={k}><small>{k}</small>{t}</span>)}</div> : null}
       {o.description && d.description ? <p className="ivdesc">{d.description}</p> : null}

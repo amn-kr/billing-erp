@@ -82,7 +82,7 @@ The app is live and the owner has created an account and signed in. Details (no 
 
 ### Differences from the prototype (on purpose)
 - Unticking "comes in different brands or sizes" in Add item returns to the single-item form (the prototype's script crashes there).
-- Document numbers are real and per financial year (ADJ-0001, TRF-0001); the prototype makes up random ones.
+- Document numbers are real (ADJ-0001, TRF-0001), from the active prefix of Settings › Transactions; the prototype makes up random ones.
 - The price PIN is checked by the server, with the same 5 tries / 60-second wait; the prototype kept it in the browser.
 - Prices are worked out with exact decimal maths, so a few prototype results that were off by 1 paisa (computer rounding) are now exact.
 - The tax list shows how many of your items really use each rate (the prototype shows sample numbers). Removing a rate switches it off; it is kept for old documents.

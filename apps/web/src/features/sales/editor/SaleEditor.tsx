@@ -254,6 +254,8 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
   const pre = s.party ? r2(s.party.balance - (s.editOf ? editBalance(s) : 0)) : null;
 
   const pickParty = (p: EParty) => up2((x) => {
+    // Settings › Transactions › Billing name of parties: the bill keeps its own copy
+    if (ctx.txn?.billName && (!x.billName || x.billName === x.party?.billingName)) x.billName = p.billingName ?? '';
     x.party = p; x.pos = partyState(ctx, p);
     if (!x.dueTouched) x.due = addDaysIso(x.date, p.days || 0);
     x.lines.forEach((l) => { if (l.item) { const b = unitPrice(ctx, l.item, p); if (l.bp !== undefined) l.bp = b; else l.price = b; cmApply(ctx, x, l); } });
@@ -379,7 +381,7 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
         <div className="dgsw" id="siMode" role="group" aria-label="Sale type"><span className={cash ? '' : 'on'}>{quote ? 'Party' : 'Credit'}</span><button type="button" className={`dgtg ${cash ? 'on' : ''}`} role="switch" aria-checked={cash} aria-label="Cash sale" data-simode={cash ? 'credit' : 'cash'}
           onClick={() => { up2((x) => { x.mode = cash ? 'credit' : 'cash'; x.recvTouched = quote; if (x.mode === 'cash') { x.party = null; x.pos = ctx.state; } x.pays = []; }); full(); }}><i></i></button><span className={cash ? 'on' : ''}>{quote ? 'Walk-in' : 'Cash'}</span></div>
         <div className="sp"></div>
-        <div className="tnd" id="siND" key={`nd${rk}`}><label className="tndf"><span>{quote ? 'Quotation no.' : 'Invoice no.'}</span><input className="fi mono" id="siNo" defaultValue={s.no} autoComplete="off" aria-label={quote ? 'Quotation no.' : 'Invoice no.'} onInput={(e) => up2((x) => { x.no = (e.target as HTMLInputElement).value.trim(); x.autoNo = false; })} /></label>
+        <div className="tnd" id="siND" key={`nd${rk}`}>{ctx.txn?.showNo !== false && <label className="tndf"><span>{quote ? 'Quotation no.' : 'Invoice no.'}</span><input className="fi mono" id="siNo" defaultValue={s.no} autoComplete="off" aria-label={quote ? 'Quotation no.' : 'Invoice no.'} onInput={(e) => up2((x) => { x.no = (e.target as HTMLInputElement).value.trim(); x.autoNo = false; })} /></label>}
           <label className="tndf"><span>Date</span><input className="fi" type="date" id="siDate" defaultValue={s.date} aria-label="Date" onChange={(e) => { up2((x) => { x.date = e.target.value; if (!x.dueTouched && x.party) x.due = addDaysIso(x.date, x.party.days || 0); }); full(); }} /></label></div>
         <EntryClose onBack={back} onLeave={() => ops.close(tabId, false)} dirty={isDirty(s)} label={quote ? 'Cancel quotation entry' : 'Cancel bill entry'} /></div>
 

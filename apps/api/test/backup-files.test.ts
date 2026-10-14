@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BackupFileError, lockFile, openFile, readHeader } from '../src/modules/backup/crypto';
-import { chainAfter, remapIds, replay, summarise, type Books, type Row } from '../src/modules/backup/restore';
+import { chainAfter, remapIds, replay, summarise, upgradeSeries, type Books, type Row } from '../src/modules/backup/restore';
 import type { TableInfo } from '../src/modules/backup/tables';
 
 /** Backup files (locking, opening) and rebuilding books from a full copy + later changes — no database. */
@@ -104,5 +104,26 @@ describe('rebuilding the books', () => {
     expect(out.get('businesses')!.get(OTHER)!.id).toBe(OTHER);
     // the backup itself is unchanged
     expect(books.get('parties')!.get(P1)!.id).toBe(P1);
+  });
+});
+
+describe('a backup made before Settings › Transactions (14 Oct 2026)', () => {
+  it('gets one numbering row per prefix with the highest counter, the latest year’s prefix active', () => {
+    const fy = (id: string, start: string): [string, Row] => [id, { id, start_date: start }];
+    const s = (id: string, fyId: string, doc: string, prefix: string, next: number): [string, Row] => [id, { id, financial_year_id: fyId, doc_type: doc, prefix, next_number: next, created_at: '2026-10-01T00:00:00Z' }];
+    const books: Books = new Map([
+      ['financial_years', new Map([fy('y25', '2025-04-01'), fy('y26', '2026-04-01')])],
+      ['document_series', new Map([
+        s('a', 'y25', 'invoice', 'INV-', 57), s('b', 'y26', 'invoice', 'INV-', 12),
+        s('c', 'y25', 'receipt', 'OLD/', 40), s('d', 'y26', 'receipt', 'PI-', 3),
+      ])],
+    ]);
+    upgradeSeries(books);
+    const out = [...books.get('document_series')!.values()].map((r) => `${String(r.doc_type)} ${String(r.prefix)} ${String(r.next_number)}${r.active ? ' active' : ''}`).sort();
+    expect(out).toEqual(['invoice INV- 57 active', 'receipt OLD/ 40', 'receipt PI- 3 active']);
+    // a backup already in the new shape is left alone
+    const again = structuredClone(books);
+    upgradeSeries(again);
+    expect([...again.get('document_series')!.values()]).toEqual([...books.get('document_series')!.values()]);
   });
 });

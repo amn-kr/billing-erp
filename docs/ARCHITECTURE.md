@@ -31,7 +31,7 @@ infra/           Docker, Terraform, env templates
 
 Tables by area:
 - **Accounts and SaaS:** users, businesses, memberships, invites, roles, role_permissions, sessions, plans, subscriptions, subscription_payments
-- **Setup:** business_settings, tax_rates, document_series (per type per financial year), financial_years
+- **Setup:** business_settings, tax_rates, document_series (several prefixes per type, one active; counters keep going across financial years), financial_years
 - **Parties:** parties, party_groups, party_addresses, party_contacts
 - **Catalogue:** items, item_groups, brands, categories, units, hsn_codes
 - **Pricing:** price_lists, price_list_rules, item_prices, price_history, quotation_grids, quotation_grid_rates
@@ -54,7 +54,7 @@ Tables by area:
 | 5 | SaaS + launch: Razorpay, admin console, onboarding, security review, load test, beta | 16–19 | Beta sign-off, restore drill passes |
 
 ## Production rules that differ from the prototype
-1. The server assigns document numbers, per financial year (April–March).
+1. The server assigns document numbers from the type's active prefix (Settings › Transactions). Each prefix has its own counter, which keeps going across financial years (owner's choice, 14 Oct 2026); a number already used is never given again.
 2. Saving a document is one transaction covering stock, party balance, cash/bank and the journal.
 3. Saved invoices are cancelled, never deleted. Every change goes to the audit log.
 4. All GST and rounding maths lives in `packages/shared`, with unit tests.

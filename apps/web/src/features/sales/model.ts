@@ -27,6 +27,8 @@ export interface SaleDoc {
   billDiscPct: string | null; billDiscAmt: string | null; transport: string; labour: string; bankCharge: string; tcsRate: string | null;
   itemsTotal: string; billDiscount: string; taxable: string; tax: string; cgst: string; sgst: string; igst: string; tcs: string; roundAmount: string; total: string; words: string;
   received: string; balance: string; notes: string; reason: string; extra: Record<string, unknown>; referrerId: string | null; cancelled: boolean; legacy: boolean;
+  /** when the document was saved (shown with Settings › Transactions › Add time) */
+  savedAt?: string;
   lines: SaleLine[];
   payment: { id: string; number: string; amount: string; mode: string; reference: string; splits: { mode: string; amount: string; ref: string }[] } | null;
   settlements: { amount: string; kind: 'payment' | 'credit_note'; number: string; date: string | null; mode: string; atSale: boolean; cancelled: boolean }[];
