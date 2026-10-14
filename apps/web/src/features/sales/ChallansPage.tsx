@@ -18,6 +18,7 @@ import type { Party } from '../parties/PartiesPage';
 import { qfmt, type Item } from '../items/ItemsPage';
 import { useSale, useSales, type SaleDoc, type SaleRow } from './model';
 import { InvoicePreview } from './InvoicePreview';
+import { cancelAsk, withPasscode } from '../settings/passcode';
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const PLUS = '<path d="M12 5v14M5 12h14"/>';
@@ -45,9 +46,10 @@ export function ChallansPage() {
   const cancel = async (d: SaleRow) => {
     if (sure !== d.id) return setSure(d.id);
     try {
-      await api(`/sales/${d.id}/cancel`, { method: 'POST', body: {} });
-      await qc.invalidateQueries({ queryKey: ['sales', 'challan'] });
-      showToast(`${d.number} cancelled`);
+      if (await withPasscode(qc, cancelAsk(d.number, 'challan'), (h) => api(`/sales/${d.id}/cancel`, { method: 'POST', body: {}, headers: h }))) {
+        await qc.invalidateQueries({ queryKey: ['sales', 'challan'] });
+        showToast(`${d.number} cancelled`);
+      }
     } catch (e) { showToast(e instanceof ApiError ? e.message : 'Could not cancel the challan.'); }
     setSure(null);
   };

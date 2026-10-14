@@ -28,6 +28,7 @@ import { qComm, qCols, qRanked, qRate, qTotals, type QCtx, type QDraft } from '.
 import { quoteExcel, quotePdf, quoteWhatsApp, qUsed } from './exports';
 import { AddDialog, ConvertDialog, SavedList, type AddMode } from './QuoteDialogs';
 import { printNow } from '../print/printer';
+import { cancelAsk, editAsk, passcodeOn, withPasscode } from '../settings/passcode';
 
 const P = {
   plus: '<path d="M12 5v14M5 12h14"/>',
@@ -97,7 +98,12 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
     if (!Object.keys(x.qty).length) { if (!silent) toast('Enter at least one quantity first'); return null; }
     try {
       const body = snapshot(x);
-      const r = await api<{ id: string; number: string }>(x.id ? `/quotations/brand/${x.id}` : '/quotations/brand', { method: x.id ? 'PUT' : 'POST', body });
+      const call = (h?: Record<string, string>) => api<{ id: string; number: string }>(x.id ? `/quotations/brand/${x.id}` : '/quotations/brand', { method: x.id ? 'PUT' : 'POST', body, headers: h });
+      // a saved quotation is changed only with the passcode, so it isn't saved in the background then
+      if (x.id && silent && passcodeOn(qc)) { toast(`Changes to ${x.no} not saved. Press Save and enter the passcode to keep them`); return null; }
+      const res = x.id && !silent ? await withPasscode(qc, editAsk(x.no), call) : { value: await call() };
+      if (!res) return null;
+      const r = res.value;
       void qc.invalidateQueries({ queryKey: ['sales', 'quotation'] });
       void qc.invalidateQueries({ queryKey: ['next-number'] });
       const nx = { ...x, id: r.id, no: r.number, status: 'open' as const };
@@ -194,7 +200,7 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
   };
   const onCancel = async (r: SaleRow) => {
     try {
-      await api(`/sales/${r.id}/cancel`, { method: 'POST', body: { reason: 'Cancelled from Saved quotations' } });
+      if (!(await withPasscode(qc, cancelAsk(r.number, 'quotation'), (h) => api(`/sales/${r.id}/cancel`, { method: 'POST', body: { reason: 'Cancelled from Saved quotations' }, headers: h })))) return;
       await qc.invalidateQueries({ queryKey: ['sales', 'quotation'] });
       if (q.id === r.id) { const no = await nextNo(); setQ((x) => ({ ...fresh(g, no), pl: x.pl, sel: x.sel })); }
       toast(`${r.number} cancelled`);

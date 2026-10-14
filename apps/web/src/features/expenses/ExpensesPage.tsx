@@ -21,6 +21,7 @@ import { SlModal, type SlModalProps } from '../sales/SlModal';
 import type { Party } from '../parties/PartiesPage';
 import { useEntryView } from '../banking/BankingPages';
 import { BK_KEYS, useAccounts, type Account, type BkPer } from '../banking/model';
+import { cancelAsk, editAsk, withPasscode } from '../settings/passcode';
 
 export interface ExpenseRow {
   key: string; id: string; src: 'ex' | 'bt'; number: string; date: string; category: string; categoryId: string | null; payee: string; mode: string;
@@ -114,7 +115,7 @@ export function ExpensesPage() {
   );
   async function cancelX(x: ExpenseRow) {
     try {
-      await api(`/expenses/${x.id}/cancel`, { method: 'POST', body: {} });
+      if (!(await withPasscode(qc, cancelAsk(x.number, 'expense'), (h) => api(`/expenses/${x.id}/cancel`, { method: 'POST', body: {}, headers: h })))) return;
       setModal(null);
       await Promise.all(EX_KEYS.map((k) => qc.invalidateQueries({ queryKey: [k] })));
       useShell.getState().showToast(`${x.number} cancelled`);
@@ -186,7 +187,10 @@ function ExpenseDialog({ open, all, cats, accounts, gst, onClose, onNewCat, onAg
     if (!date) return setErr('Pick the date.');
     setBusy(true);
     try {
-      const r = await api<{ number: string; total: string; account: string | null }>(x ? `/expenses/${x.id}` : '/expenses', { method: x ? 'PUT' : 'POST', body: { categoryId: c.id, date, payee: payee.trim(), reference: refNo.trim(), notes: note.trim(), mode, accountId: acct || null, lines } });
+      const call = (h?: Record<string, string>) => api<{ number: string; total: string; account: string | null }>(x ? `/expenses/${x.id}` : '/expenses', { method: x ? 'PUT' : 'POST', body: { categoryId: c.id, date, payee: payee.trim(), reference: refNo.trim(), notes: note.trim(), mode, accountId: acct || null, lines }, headers: h });
+      const res = x ? await withPasscode(qc, editAsk(x.number), call) : { value: await call() };
+      if (!res) return;
+      const r = res.value;
       await Promise.all(EX_KEYS.map((k) => qc.invalidateQueries({ queryKey: [k] })));
       showToast(`${r.number} saved · ${inr2f(r.total)} from ${accounts.find((a) => a.id === r.account)?.name ?? '—'}`);
       if (again) onAgain(cat); else onClose();

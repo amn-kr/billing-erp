@@ -19,6 +19,7 @@ import { inPeriod, statusOf, useSale, useSales, type Period, type SaleDoc, type 
 import { InvoicePreview } from './InvoicePreview';
 import { SlModal, type SlModalProps } from './SlModal';
 import { printNow } from '../print/printer';
+import { cancelAsk, withPasscode } from '../settings/passcode';
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const FILTER = '<path d="M4 5h16l-6 8v6l-4-2v-4z"/>';
@@ -116,7 +117,7 @@ export function SalesPage() {
       body: <ul className="slcl"><li>The invoice stays in your records, marked <b>Cancelled</b>.</li><li>Its balance{recv.gt(0) ? '' : ' and total'} no longer count toward the party’s dues.</li>{d.legacy && false ? null : <li>Items go back into stock.</li>}{recv.gt(0) && s.party ? <li>₹{inr2f(recv.toFixed(2))} already received becomes an <b>advance</b> for {s.partyName}.</li> : null}</ul>,
       onOk: async () => {
         try {
-          await api(`/sales/${s.id}/cancel`, { method: 'POST', body: {} });
+          if (!(await withPasscode(qc, cancelAsk(s.number, 'invoice'), (h) => api(`/sales/${s.id}/cancel`, { method: 'POST', body: {}, headers: h })))) return;
           setModal(null);
           await refresh();
           showToast(`${s.number} cancelled`);

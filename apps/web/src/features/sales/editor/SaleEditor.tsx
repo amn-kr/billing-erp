@@ -30,6 +30,7 @@ import { ImportQuote, QuoteRefs, qrefRemoveModal } from './ImportQuote';
 import type { SlModalProps } from '../SlModal';
 import { SlModal } from '../SlModal';
 import { printNow } from '../../print/printer';
+import { editAsk, withPasscode } from '../../settings/passcode';
 import {
   DG_TERMS, SI_MODES, SI_TT, addDaysIso, blankLine, calc, cmApply, daysDiff, hasContent, lineComm, lineFor, newSI, partyState, paySum, priceListFor, r2, unitPrice, useSI, useTab, TabCtx, isDirty,
   type EItem, type EParty, type Line, type SI,
@@ -297,7 +298,11 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
     };
     setBusy(true);
     try {
-      const r = await api<{ id: string; number: string; total: string; balance: string; settledOld: string; advance: string; change: string }>(s.editId ? `/sales/${s.editId}` : '/sales', { method: s.editId ? 'PUT' : 'POST', body });
+      const call = (h?: Record<string, string>) => api<{ id: string; number: string; total: string; balance: string; settledOld: string; advance: string; change: string }>(s.editId ? `/sales/${s.editId}` : '/sales', { method: s.editId ? 'PUT' : 'POST', body, headers: h });
+      // a saved bill: the passcode is asked now, after editing (when it's switched on)
+      const res = s.editId ? await withPasscode(qc, editAsk(s.no), call) : { value: await call() };
+      if (!res) return;
+      const r = res.value;
       await Promise.all(['sales', 'parties', 'items', 'receipts', 'sale', 'next-number', 'dues'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
       const due = Number(r.balance);
       if (quote) toast(`${r.number} saved · ₹${inr2f(r.total)}${s.party ? ' for ' + s.party.name : ''}`);
