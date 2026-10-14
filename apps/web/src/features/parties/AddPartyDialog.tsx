@@ -29,17 +29,20 @@ const loadAps = (): Aps => {
 
 type Tab = 'addr' | 'cred' | 'extra';
 interface Form {
-  name: string; phone: string; group: string; gstin: string; gtype: string; gtypeTouched: boolean; state: string; email: string;
+  name: string; billName: string; phone: string; group: string; gstin: string; gtype: string; gtypeTouched: boolean; state: string; email: string;
   billing: string; bLine: string; bCity: string; bPin: string; shipping: string; ob: string; obDate: string; lim: string; days: string;
 }
 const blank = (): Form => ({
-  name: '', phone: '', group: 'General', gstin: '', gtype: GTYPES[0]!, gtypeTouched: false, state: '', email: '',
+  name: '', billName: '', phone: '', group: 'General', gstin: '', gtype: GTYPES[0]!, gtypeTouched: false, state: '', email: '',
   billing: '', bLine: '', bCity: '', bPin: '', shipping: '', ob: '', obDate: today(), lim: '', days: '30',
 });
 
 export function AddPartyDialog({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved: (id: string) => void }) {
   const cur = useCur();
-  const gstOn = !!useSettings().data?.gstEnabled;
+  const settings = useSettings().data;
+  const gstOn = !!settings?.gstEnabled;
+  // Settings › Transactions › Billing name of parties
+  const billOn = !!settings?.data.txnBillName;
   const qc = useQueryClient();
   const { showToast } = useShell();
   const groups = useQuery({ queryKey: ['party-groups'], queryFn: () => api<{ id: string; name: string }[]>('/party-groups'), enabled: open });
@@ -119,7 +122,7 @@ export function AddPartyDialog({ open, onClose, onSaved }: { open: boolean; onCl
     setBusy(true);
     try {
       const body = {
-        name: f.name.trim(), kind: type === 'pay' ? 'supplier' : 'customer', group: aps.groups ? f.group : 'General', phone: ph,
+        name: f.name.trim(), billingName: billOn ? f.billName.trim() : '', kind: type === 'pay' ? 'supplier' : 'customer', group: aps.groups ? f.group : 'General', phone: ph,
         email: f.email.trim(), gstin: f.gstin.trim(), gstType: gstOn ? gtype : '', state: gstOn ? f.state : '',
         billing: detail ? { line: f.bLine, city: f.bCity, pin: f.bPin, state: '' } : { line: f.billing.trim(), city: '', pin: '', state: '' },
         shipping: ship && !same ? f.shipping.trim() : '',
@@ -191,6 +194,7 @@ export function AddPartyDialog({ open, onClose, onSaved }: { open: boolean; onCl
                     <label className="apf">State<select className="fi" data-f="state" id="apState" value={f.state} onChange={set('state')}><option value="">Select state</option>{STATES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}</select><small className="aphint">Same state as you → CGST + SGST. Other state → IGST.</small></label>
                   </>
                 )}
+                {billOn && <label className="apf">Billing name<input className="fi" data-f="billName" id="apBillName" value={f.billName} onChange={set('billName')} maxLength={160} placeholder="Name printed on bills, if different" autoComplete="off" /><small className="aphint">Bill To shows this instead of the party name.</small></label>}
                 <label className="apf">Email ID<input className={`fi ${bad('email')}`} data-f="email" value={f.email} onChange={set('email')} type="email" placeholder="name@business.com" autoComplete="off" />{E('email')}</label>
               </div>
               <div className="apcol bl">

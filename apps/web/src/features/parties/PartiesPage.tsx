@@ -20,6 +20,7 @@ import { AddPartyDialog } from './AddPartyDialog';
 export interface Party {
   id: string;
   name: string;
+  billingName?: string;
   kind: 'customer' | 'supplier';
   group: string;
   phone: string;
