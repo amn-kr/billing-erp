@@ -6,6 +6,7 @@ import { ZodPipe } from '../../common/zod.pipe';
 import type { RequestContext } from '../../common/context';
 import { BankingService } from './banking.service';
 import { ChequesService } from './cheques.service';
+import { NeedsPasscode } from '../settings/passcode.interceptor';
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Choose a date.');
 const clearSchema = z.object({ accountId: z.string().uuid({ message: 'Add a bank account first — Banking › Bank accounts' }), date: isoDate });
@@ -37,6 +38,7 @@ export class BankingController {
   }
 
   @RequirePermission('money.manage')
+  @NeedsPasscode('cancel', 'cheque')
   @Post('cheques/:id/undo')
   undo(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
     return this.cheques.undo(ctx, id);
@@ -97,6 +99,7 @@ export class BankingController {
   }
 
   @RequirePermission('money.manage')
+  @NeedsPasscode('cancel', 'bank_entry')
   @Post('entries/:id/cancel')
   cancel(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
     return this.banking.cancelEntry(ctx, id);

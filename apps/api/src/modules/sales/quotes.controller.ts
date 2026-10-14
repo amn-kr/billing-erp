@@ -11,6 +11,7 @@ import type { RequestContext } from '../../common/context';
 import { day } from '../../common/lookups';
 import { booksOf } from './sales.service';
 import { BrandsService } from '../items/brands.service';
+import { NeedsPasscode } from '../settings/passcode.interceptor';
 
 type Grid = z.infer<typeof quoteGridSchema>;
 type BrandQuote = z.infer<typeof brandQuoteSchema>;
@@ -103,6 +104,7 @@ export class QuotesController {
   }
 
   @RequirePermission('sales.create')
+  @NeedsPasscode('edit', 'quotation')
   @Put('quotations/brand/:id')
   update(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(brandQuoteSchema)) body: BrandQuote) {
     return this.db.scoped(this.scope(ctx), (tx) => this.write(tx, ctx, body, id));
