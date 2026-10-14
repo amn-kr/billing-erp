@@ -3,6 +3,7 @@
  * Same DOM as the prototype; screens render inside <main> through the router.
  */
 import { QuickSale, useQuick } from '../sales/QuickSale';
+import { PasscodeBox } from '../settings/passcode';
 import { useCallback, useEffect, useLayoutEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -208,6 +209,7 @@ export function AppShell() {
       <Toast />
       <DiscardDialog />
       <QuickSale />
+      <PasscodeBox />
     </>
   );
 }
