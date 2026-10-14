@@ -12,6 +12,11 @@ for (const width of WIDTHS) {
     test('Transactions settings: header switches, prefix list and the Sale prefixes window', async ({ browser, request }) => {
       test.setTimeout(120_000);
       const app = await newPage(browser, width);
+      // every picture is checked even when an earlier one differs, so one run shows them all
+      const bad: string[] = [];
+      const pic = async (name: string, sel: string) => {
+        try { await approvedShot(name, app, sel); } catch (e) { bad.push((e as Error).message.split('\n')[0]!); }
+      };
       await signInAs(app, await freshShop(request, 'sales-shop'));
       await app.goto(APP + '/settings');
       await app.click('#subnav button:has-text("Transactions")');
@@ -20,7 +25,7 @@ for (const width of WIDTHS) {
       // the 'added' message comes and goes on a timer; the pictures are of the page under it
       await app.addStyleTag({ content: '#toast{visibility:hidden!important}' });
       await app.mouse.move(0, 0);
-      await approvedShot(`txn-header-${width}`, app, '#cTxHead');
+      await pic(`txn-header-${width}`, '#cTxHead');
       await app.click('[data-px="invoice"] button');
       await app.waitForSelector('#pxBody tr');
       await app.fill('#pxNew', 'JE/INV/');
@@ -32,9 +37,10 @@ for (const width of WIDTHS) {
       await app.waitForSelector('#pxBody [data-prefix="JE/27/"]');
       await app.fill('#pxNew', 'JE/28/');
       await app.mouse.move(0, 0);
-      await approvedShot(`txn-prefixes-window-${width}`, app, '#px .mdl');
+      await pic(`txn-prefixes-window-${width}`, '#px .mdl');
       await app.click('#pxClose');
-      await approvedShot(`txn-prefixes-${width}`, app, '#cTxPre');
+      await pic(`txn-prefixes-${width}`, '#cTxPre');
+      if (bad.length) throw new Error(bad.join('\n'));
     });
   });
 }
