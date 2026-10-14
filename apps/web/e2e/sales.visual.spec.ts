@@ -17,7 +17,7 @@ async function pages(browser: Parameters<typeof newPage>[0], width: number, view
   await prototypeWithBackup(proto, 'sales-shop');
   await openPrototypeView(proto, view);
   // the invoice window is compared with the prototype's, so print with the prototype's layout ("Simple")
-  await savePrint(app.request, who, PROTO_PRINT);
+  await savePrint(who, PROTO_PRINT);
   await signInAs(app, who);
   await app.goto(APP + path);
   await app.waitForSelector(ready);

@@ -69,7 +69,7 @@ test('a change in Settings › Print shows in the Sales invoice preview', async 
 
 test('Settings preview, Sales preview, print and PDF show the same invoice, and only the invoice', async ({ browser, request }) => {
   const who = await freshShop(request, 'sales-shop');
-  await savePrint(request, who, { names: { sale: 'Rough Invoice' } });
+  await savePrint(who, { names: { sale: 'Rough Invoice' } });
   const page = await newPage(browser, 1366);
   await signInAs(page, who);
 
@@ -90,8 +90,11 @@ test('Settings preview, Sales preview, print and PDF show the same invoice, and 
   await page.evaluate(() => { window.print = () => undefined; });
   await page.click('#ipvPrint');
   await expect(page).toHaveTitle(`Rough Invoice ${no}`);
+  // the copy is hidden on screen, so read it as the printer sees it
+  await page.emulateMedia({ media: 'print' });
   const printed = page.locator('body > .prclone .ppage').first();
   expect(norm(await printed.innerText())).toBe(inDialog);
+  await page.emulateMedia({ media: 'screen' });
 
   // the PDF has the invoice and nothing of the page behind it
   const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });

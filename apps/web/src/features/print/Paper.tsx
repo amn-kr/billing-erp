@@ -44,7 +44,7 @@ export function fromSale(v: SaleDoc, o: { challan?: boolean; upi?: string; party
   const recv = atSale.gt(v.total) ? money(v.total) : atSale;
   const bal = money(v.total).minus(recv);
   const refs = ([
-    ['Billing name', v.billName], ['Challan No.', s('challanNo')], ['PO / estimate', s('poNo') ? s('poNo') + (s('poDate') ? ' · ' + dmy(s('poDate')) : '') : ''],
+    ['Billing name', v.billName], ['Challan no.', s('challanNo')], ['PO / estimate', s('poNo') ? s('poNo') + (s('poDate') ? ' · ' + dmy(s('poDate')) : '') : ''],
     ['Quotation', qs.map((q) => q.no + (q.date ? ' (' + dmy(q.date) + ')' : '')).join(', ')], ['E-way bill', g ? s('ewb') : ''], ['Transport', s('transport')],
     ['Vehicle / bilty', s('vehicle')], ['Delivery date', s('deliveryDate') ? dmy(s('deliveryDate')) : ''],
   ] as [string, string][]).filter((r) => !!r[1]);
@@ -190,7 +190,7 @@ function Classic({ d, o, biz, states, copy, style }: { d: PDoc; o: PrintOpts; bi
   if (g) for (const l of d.lines) { const r = (rates[Number(l.gst)] ??= { tv: 0, tx: 0 }); r.tv += Number(l.taxable); r.tx += Number(l.tax); }
   const meta: [string, string][] = [
     [dc ? 'Challan No.' : q ? 'Quotation No.' : d.kind === 'credit_note' ? 'Credit Note No.' : 'Invoice No.', docNo(d)], ['Date', dmy(d.date)],
-    ...d.refs.filter(([k]) => k !== 'Billing name'),
+    ...d.refs.filter(([k]) => k !== 'Billing name').map(([k, v]): [string, string] => [k === 'Challan no.' ? 'Challan No.' : k, v]),
     ...((q ? [['Valid till', dmy(d.dueDate)]] : d.kind === 'invoice' && d.mode === 'credit' && d.dueDate ? [['Due date', dmy(d.dueDate)]] : []) as [string, string][]),
     ...((g ? [['Place of supply', `${stateName(d.placeOfSupply, states)} (${d.placeOfSupply})`]] : []) as [string, string][]),
   ];

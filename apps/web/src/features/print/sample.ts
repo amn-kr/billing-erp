@@ -31,7 +31,7 @@ export function sampleDoc(gst: boolean, stateCode = '09'): PDoc {
   return {
     kind: 'invoice', number: 'SAMPLE-001', date: '2026-04-01', dueDate: null, mode: 'cash', taxMode: gst ? 'gst' : 'none', placeOfSupply: stateCode, cancelled: false,
     party: { name: 'ABC Traders', city: 'Sample address, City', phone: '', gstin: gst ? '00AAAAA0000A0Z0' : '' },
-    refs: [['Challan No.', '001']], description: 'Sample description.', notes: '',
+    refs: [['Challan no.', '001']], description: 'Sample description.', notes: '',
     lines, billDiscount: '0.00', taxable: toDb(taxable), cgst: toDb(half), sgst: toDb(tax.minus(half)), igst: '0.00', tcs: '0.00', transport: '0.00', labour: '0.00', bankCharge: '0.00',
     roundAmount: toDb(total.minus(exact)), total: toDb(total), words: amountInWords(total),
     received: toDb(SAMPLE_RECEIVED), payMode: 'UPI', balance: toDb(balance), partyBalance: toDb(balance.plus(1000)), upi: 'example@upi',

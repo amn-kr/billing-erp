@@ -6,7 +6,7 @@ import { SAMPLE_ITEMS, sampleDoc } from './sample';
  * Every shop sees the example, so every word in it must be one of these obviously fake
  * values (an allow-list: a real customer, item, UPI or bill number can't slip in).
  */
-const FAKE = /^(|ABC Traders|Sample address, City|Sample description\.|Item [1-4]|ITEM-00[1-4]|Pcs|Nos|Brand A|Series 1|Category A|Group A|9999|SAMPLE-001|Challan No\.|001|example@upi|UPI|00AAAAA0000A0Z0|invoice|cash|gst|none|2026-04-01|Rupees .* Only|[\d.]+)$/;
+const FAKE = /^(|ABC Traders|Sample address, City|Sample description\.|Item [1-4]|ITEM-00[1-4]|Pcs|Nos|Brand A|Series 1|Category A|Group A|9999|SAMPLE-001|Challan no\.|001|example@upi|UPI|00AAAAA0000A0Z0|invoice|cash|gst|none|2026-04-01|Rupees .* Only|[\d.]+)$/;
 const strings = (v: unknown): string[] => (typeof v === 'string' ? [v] : Array.isArray(v) ? v.flatMap(strings) : v && typeof v === 'object' ? Object.values(v).flatMap(strings) : []);
 
 describe('Settings › Print example bill', () => {
