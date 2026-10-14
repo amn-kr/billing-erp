@@ -3,6 +3,7 @@
  * Excel, PDF, WhatsApp and Print outputs, with the same layout and file names.
  */
 import { useEffect, useRef } from 'react';
+import { printNow, usePrintSource } from '../print/printer';
 import { useQuery } from '@tanstack/react-query';
 import { create } from 'zustand';
 import { money, round2 } from '@billing/shared';
@@ -44,6 +45,8 @@ export function RateList({ open, data, onClose }: { open: boolean; data: PriceDa
   const biz = useQuery({ queryKey: ['business-current'], queryFn: () => api<Biz>('/businesses/current'), enabled: open });
   const ovRef = useRef<HTMLDivElement>(null);
   useOpenFocus(open, ovRef);
+  // the prototype's printing-rl rules, on a copy of the window at the end of <body>
+  usePrintSource(open, { el: () => ovRef.current, title: 'Rate list', cls: 'printing-rl' });
   const { IT, PLS, brands } = data;
   const PLA = PLS.filter((p) => p.isDefault || p.active);
   const allCats = [...new Set(IT.map((i) => i.cat || 'Other'))];
@@ -194,9 +197,7 @@ export function RateList({ open, data, onClose }: { open: boolean; data: PriceDa
     a.remove();
   }
   function print() {
-    document.body.classList.add('printing-rl');
-    window.print();
-    setTimeout(() => document.body.classList.remove('printing-rl'), 500);
+    printNow();
   }
   const set = RL.set;
   const togCat = (k: string, on: boolean) => set({ cats: on ? [...cats, k] : [...cats].filter((x) => x !== k) });

@@ -18,6 +18,7 @@ import { today as todayIst } from '../../lib/time';
 import { inPeriod, statusOf, useSale, useSales, type Period, type SaleDoc, type SaleRow } from './model';
 import { InvoicePreview } from './InvoicePreview';
 import { SlModal, type SlModalProps } from './SlModal';
+import { printNow } from '../print/printer';
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const FILTER = '<path d="M4 5h16l-6 8v6l-4-2v-4z"/>';
@@ -62,7 +63,7 @@ export function SalesPage() {
     if (!st?.preview) return;
     setPreview({ id: st.preview });
     navigate('.', { replace: true, state: null });
-    if (st.print) setTimeout(() => window.print(), 500);
+    if (st.print) setTimeout(() => printNow(), 500);
   }, [location.state, navigate]);
   const closePop = useCallback((refocus: boolean) => setPop((p) => { if (refocus) (p?.anchor.el as HTMLElement | undefined)?.focus(); return null; }), []);
 
@@ -101,7 +102,8 @@ export function SalesPage() {
     if (a === 'ret') return navigate(`/credit-notes?invoice=${s.id}`);
     if (a === 'dch') return setPreview({ id: s.id, challan: true });
     if (a === 'dup') return navigate(`/sales/new?copy=${s.id}`);
-    if (a === 'pdf' || a === 'print') { setPreview({ id: s.id }); if (a === 'print') setTimeout(() => window.print(), 300); return; }
+    // Open PDF and Print: the same paper through the browser's print window (choose "Save as PDF"; the file is named e.g. "Tax Invoice INV-0101")
+    if (a === 'pdf' || a === 'print') { setPreview({ id: s.id }); printNow(); return; }
     const d = await qc.fetchQuery({ queryKey: ['sale', s.id], queryFn: () => api<SaleDoc>(`/sales/${s.id}`) });
     if (a === 'cancel') return askCancel(s, d);
     if (a === 'payh') return payHistory(s, d);
