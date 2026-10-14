@@ -37,7 +37,7 @@ export function InvoicePreview({ doc, challan, hsnOf, onClose, onNew, onLink }: 
   const open = !!doc;
   const partyId = doc?.party?.id;
   const party = useQuery({ queryKey: ['party', partyId], queryFn: () => api<{ balance: string }>(`/parties/${partyId}`), enabled: !!partyId && o.partyBal && doc?.kind === 'invoice' });
-  const pd = doc ? fromSale(doc, { challan: challan || doc.kind === 'challan', upi: sdata.upi ?? '', partyBalance: party.data?.balance ?? null, hsnOf }) : null;
+  const pd = doc ? fromSale(doc, { challan, upi: sdata.upi ?? '', partyBalance: party.data?.balance ?? null, hsnOf }) : null;
   usePrintSource(open, { el: () => document.getElementById('ipvCopies'), title: pd ? fileTitle(docTitle(pd, o), docNo(pd)) : document.title, page: pageSize(o) });
   useOpenFocus(open, ref);
   useEscape(open, onClose);
