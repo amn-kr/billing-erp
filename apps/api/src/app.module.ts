@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { config } from './config';
@@ -33,6 +33,9 @@ import { PricingController } from './modules/pricing/pricing.controller';
 import { PricingService } from './modules/pricing/pricing.service';
 import { SettingsController } from './modules/settings/settings.controller';
 import { PrefixesController } from './modules/settings/prefixes.controller';
+import { PasscodeController } from './modules/settings/passcode.controller';
+import { PasscodeService } from './modules/settings/passcode.service';
+import { PasscodeInterceptor } from './modules/settings/passcode.interceptor';
 import { CommissionController } from './modules/commission/commission.controller';
 import { CommissionService } from './modules/commission/commission.service';
 import { ReportsController } from './modules/reports/reports.controller';
@@ -63,7 +66,7 @@ import { DriveController, DriveSender } from './modules/backup/drive';
     }),
   ],
   controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HealthController, ImportsController,
-    PartiesController, ItemsController, BrandsController, StockController, PricingController, SettingsController, PrefixesController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController, BackupController, DriveController],
+    PartiesController, ItemsController, BrandsController, StockController, PricingController, SettingsController, PrefixesController, PasscodeController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController, BackupController, DriveController],
   providers: [
     DbService,
     BackupService,
@@ -93,6 +96,8 @@ import { DriveController, DriveSender } from './modules/backup/drive';
     PurchasesService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
+    PasscodeService,
+    { provide: APP_INTERCEPTOR, useClass: PasscodeInterceptor },
   ],
 })
 export class AppModule {}

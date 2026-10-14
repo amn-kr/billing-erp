@@ -19,6 +19,7 @@ import { inPeriod } from '../sales/model';
 import { SlModal, type SlModalProps } from '../sales/SlModal';
 import { receiptModal, type Receipt } from '../sales/PaymentsReceivedPage';
 import { BK_KEYS, bkCol, bkMask, ledger, tint, useAccounts, useBook, type Account, type BkPer, type Book, type BookEntry } from './model';
+import { cancelAsk, withPasscode } from '../settings/passcode';
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const PLUS = '<path d="M12 5v14M5 12h14"/>';
@@ -77,7 +78,7 @@ export function useEntryView(accounts: Account[]) {
       body: <div className="rcv"><div><span>Amount</span><b>{inr2f(t.amount)}</b></div>{two ? <div><span>From → to</span><b>{name(t.accountId)} → {name(t.toAccountId)}</b></div> : <div><span>Account</span><b>{name(t.accountId)}</b></div>}<div><span>Reference</span><b className="mono">{t.reference || '—'}</b></div><div><span>Note</span><b>{t.note || '—'}</b></div></div>,
       onOk: async () => {
         try {
-          await api(`/banking/entries/${t.id}/cancel`, { method: 'POST', body: {} });
+          if (!(await withPasscode(qc, cancelAsk(t.number, 'entry'), (h) => api(`/banking/entries/${t.id}/cancel`, { method: 'POST', body: {}, headers: h })))) return;
           setModal(null);
           await Promise.all(BK_KEYS.map((k) => qc.invalidateQueries({ queryKey: [k] })));
           showToast(`${t.number} cancelled`);

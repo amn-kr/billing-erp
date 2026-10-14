@@ -5,6 +5,7 @@ import { Ctx, RequirePermission } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
 import type { RequestContext } from '../../common/context';
 import { ExpensesService } from './expenses.service';
+import { NeedsPasscode } from '../settings/passcode.interceptor';
 
 const nameSchema = z.object({ name: z.string().trim().max(60).default('') });
 
@@ -32,12 +33,14 @@ export class ExpensesController {
   }
 
   @RequirePermission('money.manage')
+  @NeedsPasscode('edit', 'expense')
   @Put('expenses/:id')
   edit(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(expenseSchema)) body: ExpenseInput) {
     return this.expenses.save(ctx, body, id);
   }
 
   @RequirePermission('money.manage')
+  @NeedsPasscode('cancel', 'expense')
   @Post('expenses/:id/cancel')
   cancel(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
     return this.expenses.cancel(ctx, id);

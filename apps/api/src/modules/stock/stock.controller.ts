@@ -5,6 +5,7 @@ import { Ctx, RequirePermission } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
 import type { RequestContext } from '../../common/context';
 import { StockService } from './stock.service';
+import { NeedsPasscode } from '../settings/passcode.interceptor';
 
 const godownUpdate = godownSchema.partial().extend({ isDefault: z.boolean().optional() });
 
@@ -63,6 +64,7 @@ export class StockController {
 
   @RequirePermission('masters.manage')
   @HttpCode(204)
+  @NeedsPasscode('cancel', 'stock_adjustment')
   @Post('stock-adjustments/:id/cancel')
   cancelAdjustment(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
     return this.stock.cancelAdjustment(ctx, id);
@@ -76,6 +78,7 @@ export class StockController {
 
   @RequirePermission('masters.manage')
   @HttpCode(204)
+  @NeedsPasscode('cancel', 'stock_transfer')
   @Post('stock-transfers/:id/cancel')
   cancelTransfer(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
     return this.stock.cancelTransfer(ctx, id);

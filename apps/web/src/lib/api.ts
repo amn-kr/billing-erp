@@ -36,14 +36,14 @@ export function refreshSession(): Promise<boolean> {
 const NETWORK = 'No internet connection.';
 
 /** JSON call to the API. Retries once after refreshing an expired access token. */
-export async function api<T>(path: string, init: { method?: string; body?: unknown } = {}, retry = true): Promise<T> {
+export async function api<T>(path: string, init: { method?: string; body?: unknown; headers?: Record<string, string> } = {}, retry = true): Promise<T> {
   const token = useSession.getState().accessToken;
   let r: Response;
   try {
     r = await fetch('/api' + path, {
       method: init.method ?? (init.body === undefined ? 'GET' : 'POST'),
       credentials: 'include',
-      headers: { ...(init.body !== undefined && { 'Content-Type': 'application/json' }), ...(token && { Authorization: `Bearer ${token}` }) },
+      headers: { ...init.headers, ...(init.body !== undefined && { 'Content-Type': 'application/json' }), ...(token && { Authorization: `Bearer ${token}` }) },
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
     });
   } catch {

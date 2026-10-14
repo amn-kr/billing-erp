@@ -5,6 +5,7 @@ import { Ctx, RequirePermission } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
 import type { RequestContext } from '../../common/context';
 import { PurchasesService } from './purchases.service';
+import { NeedsPasscode } from '../settings/passcode.interceptor';
 
 const KINDS = ['bill', 'order', 'debit_note'] as const;
 
@@ -45,6 +46,7 @@ export class PurchasesController {
   }
 
   @RequirePermission('purchases.manage')
+  @NeedsPasscode('cancel', 'purchase')
   @Post('purchases/:id/cancel')
   cancel(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(cancelSchema)) body: z.infer<typeof cancelSchema>) {
     return this.purchases.cancel(ctx, id, body.reason);

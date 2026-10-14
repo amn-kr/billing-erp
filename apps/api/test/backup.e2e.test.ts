@@ -338,6 +338,19 @@ describe('restore', () => {
     expect((await http().get('/api/sales/next-number?kind=invoice').set(auth(n)).expect(200)).body.number).toBe('INV-0002');
   });
 
+  it('restored books keep the transaction passcode switched on, with the same passcode (made-up)', async () => {
+    const { o, inv } = await shop();
+    await http().post('/api/settings/passcode/on').set(auth(o)).send({ passcode: '4826' }).expect(200);
+    await useDrive(o);
+    await svc.runDue();
+    const r = (await http().post('/api/backup/restore').set(auth(o)).send({ from: 'drive', confirm: true }).expect(200)).body;
+    const n = { token: (await http().post('/api/businesses/switch').set(auth(o)).send({ businessId: r.businessId }).expect(201)).body.accessToken as string };
+    expect((await http().get('/api/settings/passcode').set(auth(n)).expect(200)).body).toEqual({ set: true, enabled: true });
+    const id = ((await http().get('/api/sales').set(auth(n)).expect(200)).body as { id: string; number: string }[]).find((s) => s.number === inv.number)!.id;
+    await http().post(`/api/sales/${id}/cancel`).set(auth(n)).send({}).expect(403);
+    await http().post(`/api/sales/${id}/cancel`).set(auth(n)).set('x-txn-passcode', '4826').send({}).expect(200);
+  });
+
   it('says what is missing before anything was backed up', async () => {
     const o = await owner(app);
     expect((await http().post('/api/backup/test-restore').set(auth(o)).send({ from: 'drive' }).expect(404)).body.message).toBe('Nothing has been backed up to this place yet.');

@@ -16,6 +16,7 @@ import { useShell } from '../shell/store';
 import { inPeriod } from '../sales/model';
 import { MoveMoney, type Move } from './BankingPages';
 import { BK_KEYS, bkMask, useAccounts, useBook, type Account } from './model';
+import { withPasscode } from '../settings/passcode';
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 
@@ -50,7 +51,8 @@ export function ChequesPage() {
   const name = (id: string | null) => accts.data.find((a) => a.id === id)?.name ?? '';
   const undo = async (c: Cheque) => {
     try {
-      await api(`/banking/cheques/${c.id}/undo`, { method: 'POST', body: {} });
+      const ask = { title: `Undo ${c.ref || c.number}?`, sub: 'Enter the passcode to undo this cheque. It becomes pending again.', go: 'Undo', keep: 'Keep it' };
+      if (!(await withPasscode(qc, ask, (h) => api(`/banking/cheques/${c.id}/undo`, { method: 'POST', body: {}, headers: h })))) return;
       await Promise.all(CQ_KEYS.map((k) => qc.invalidateQueries({ queryKey: [k] })));
       showToast(`${c.ref || c.number} is pending again`);
     } catch (e) { showToast(e instanceof ApiError ? e.message : 'Could not undo.'); }

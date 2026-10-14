@@ -19,6 +19,7 @@ import { RangeForm } from '../sales/SalesPage';
 import { PU_KEYS, statusOfBill, usePaymentsMade, usePurchases, type PurchaseRow } from './model';
 import { PayDialog, type PayOpen } from './PayDialog';
 import { PurchaseView } from './PurchaseView';
+import { cancelAsk, withPasscode } from '../settings/passcode';
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const FILTER = '<path d="M4 5h16l-6 8v6l-4-2v-4z"/>';
@@ -134,7 +135,7 @@ export function PurchaseOrdersPage() {
     if (sure !== d.id) { setSure(d.id); setTimeout(() => setSure((x) => (x === d.id ? null : x)), 2500); return; }
     setSure(null);
     try {
-      await api(`/purchases/${d.id}/cancel`, { method: 'POST', body: {} });
+      if (!(await withPasscode(qc, cancelAsk(d.number, 'order'), (h) => api(`/purchases/${d.id}/cancel`, { method: 'POST', body: {}, headers: h })))) return;
       await Promise.all(PU_KEYS.map((k) => qc.invalidateQueries({ queryKey: [k] })));
       showToast(`${d.number} cancelled`);
     } catch (e) { showToast(e instanceof ApiError ? e.message : 'Could not cancel the order.'); }

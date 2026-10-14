@@ -9,6 +9,7 @@ import { ZodPipe } from '../../common/zod.pipe';
 import type { RequestContext } from '../../common/context';
 import { SalesService } from './sales.service';
 import { ReceiptsService } from './receipts.service';
+import { NeedsPasscode } from '../settings/passcode.interceptor';
 
 /** Sales: invoices, item-wise quotations, challans, payments received, credit notes. */
 @Controller()
@@ -56,6 +57,7 @@ export class SalesController {
   }
 
   @RequirePermission('sales.create')
+  @NeedsPasscode('edit', 'sale')
   @Put('sales/:id')
   update(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(saleSchema)) body: SaleInput) {
     return this.sales.save(ctx, body, id);
@@ -63,6 +65,7 @@ export class SalesController {
 
   @RequirePermission('sales.cancel')
   @HttpCode(200)
+  @NeedsPasscode('cancel', 'sale')
   @Post('sales/:id/cancel')
   cancel(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(cancelSchema)) body: z.infer<typeof cancelSchema>) {
     return this.sales.cancel(ctx, id, body.reason);

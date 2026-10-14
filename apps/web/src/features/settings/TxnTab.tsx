@@ -1,6 +1,7 @@
 /**
  * Settings › Transactions: the Transaction header switches (kept in the settings JSON) and the
- * Transaction prefixes of the open business (several per document type, one active).
+ * Transaction prefixes of the open business (several per document type, one active), and the
+ * transaction passcode (asked when a saved document is changed or cancelled).
  * Built from the prototype's Taxes & GST card and its Tax list dialog (#tl).
  */
 import { useEffect, useRef, useState, type FormEvent } from 'react';
@@ -12,6 +13,7 @@ import { Icon } from '../../components/Icon';
 import { P } from '../../components/icon-paths';
 import { useShell } from '../shell/store';
 import { Sw, useS, useSaveS } from './model';
+import { openPasscodeBox, PASSCODE_KEY, usePasscodeState } from './passcode';
 
 const T = (c: string) => ({ background: `color-mix(in srgb,${c} 14%,transparent)`, color: c });
 const shown = (p: string) => p || 'None';
@@ -40,8 +42,36 @@ export function TxnCards() {
           {opt('tBill', 'txnBillName', !!d.txnBillName, 'Billing name of parties', 'Adds a “Billing name” field to the party form. Bills show it under Bill To; if it is empty, the party name is used.')}
         </div>
       </section>
+      <PasscodeCard />
       <PrefixCard />
     </>
+  );
+}
+
+/** Enable Passcode for transaction edit/delete. The switch is kept by the server with the passcode, not in the settings JSON. */
+function PasscodeCard() {
+  const qc = useQueryClient();
+  const { showToast } = useShell();
+  const st = usePasscodeState();
+  const on = !!st.data?.enabled;
+  const flip = async (v: boolean) => {
+    if (!v) return openPasscodeBox('off');
+    if (!st.data?.set) return openPasscodeBox('set');
+    try {
+      qc.setQueryData(PASSCODE_KEY, await api('/settings/passcode/on', { body: {} }));
+      showToast('Passcode turned on');
+    } catch (e) { showToast(e instanceof ApiError ? e.message : 'Could not turn the passcode on.'); }
+  };
+  return (
+    <section className="card" id="cTxLock">
+      <div className="tgl" style={{ marginTop: 0 }}><div className="ti" style={T('var(--amber,#d97706)')}><Icon name="lock" /></div><div className="tx"><b>Transaction passcode</b><small>Stops anyone without the passcode from changing or cancelling saved documents. New documents never need it.</small></div></div>
+      <div className="opts">
+        <div className="opt"><div className="tx"><b>Enable Passcode for transaction edit/delete</b><small>{on
+          ? 'Asked every time a saved sale, purchase, quotation, challan, credit or debit note or expense is saved after changes, or cancelled. 5 wrong tries lock it for 60 seconds.'
+          : 'When on, a 4 to 6 digit passcode is asked every time a saved document is saved after changes, or cancelled.'}</small>{on ? <button type="button" className="lnk" id="tPassChange" onClick={() => openPasscodeBox('change')}>Change Passcode</button> : null}</div>
+          <Sw id="tPass" on={on} label="Enable Passcode for transaction edit/delete" disabled={!st.data} onChange={(v) => void flip(v)} /></div>
+      </div>
+    </section>
   );
 }
 
