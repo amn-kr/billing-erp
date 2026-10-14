@@ -183,3 +183,20 @@ export async function freshShop(request: APIRequestContext, fixture?: string, op
   }
   return who;
 }
+
+/** Save Settings › Print & invoice choices for a shop (what the owner picks on that screen). */
+export async function savePrint(request: APIRequestContext, who: { email: string; password: string }, print: Record<string, unknown>): Promise<void> {
+  const login = await request.post(APP + '/api/auth/login', { data: who });
+  const r = await request.patch(APP + '/api/settings', { headers: { Authorization: `Bearer ${(await login.json()).accessToken}` }, data: { data: { print } } });
+  if (!r.ok()) throw new Error(`saving print settings failed: ${r.status()} ${await r.text()}`);
+}
+
+/**
+ * The prototype's own invoice: layout "Simple" with its columns and wording
+ * (same as PROTO_PRINT in src/features/print/opts.ts). Picture tests that compare
+ * the invoice window with the prototype save this first.
+ */
+export const PROTO_PRINT = {
+  theme: 'simple', showEmail: false, sign: 'Authorised signatory', color: '#151b2e',
+  cols: { sl: { on: true, label: '#' }, name: { on: true, label: 'Item' }, code: { on: true, label: 'Code' }, brand: { on: true, label: 'Brand' }, series: { on: true, label: 'Series' }, hsn: { on: true, label: 'HSN' }, qty: { on: true, label: 'Qty' }, unit: { on: false, label: 'Unit' }, price: { on: true, label: 'Rate' }, discPct: { on: true, label: 'Disc' }, taxPct: { on: true, label: 'GST' }, rate: { on: false, label: 'Final Rate' }, amount: { on: true, label: 'Amount' } },
+};
