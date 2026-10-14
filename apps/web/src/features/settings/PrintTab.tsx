@@ -17,6 +17,7 @@ import { useBiz } from '../sales/InvoicePreview';
 import { useSale, useSales } from '../sales/model';
 import { Paper, PaperFit, columns, copiesOf, fromSale } from '../print/Paper';
 import { sampleDoc } from '../print/sample';
+import { usePrintStyles } from '../print/printer';
 import { BOT, COLDEF, COLORS, COLS0, NAMES, PRINT_DEF, TOP, usePrintOpts, type ColSet, type PrintOpts } from '../print/opts';
 import { Sw } from './model';
 
@@ -255,6 +256,7 @@ function NamesDialog() {
 
 /** Right column: the live preview, drawn by the shared renderer exactly as it prints. */
 export function PrintPreview() {
+  usePrintStyles();
   const o = usePrintOpts();
   const { sample, setSample } = usePrint();
   const biz = useBiz().data;

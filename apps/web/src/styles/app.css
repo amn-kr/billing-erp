@@ -1361,34 +1361,3 @@ input[type=checkbox]:focus-visible,input[type=radio]:focus-visible{outline:2px s
 .rpbar{display:inline-block;width:60px;height:6px;border-radius:99px;background:var(--sf2);margin-right:8px;vertical-align:middle;overflow:hidden}.rpbar i{display:block;height:100%;background:var(--ac);border-radius:99px}
 .rpw.rpfull{grid-template-columns:minmax(0,1fr)}.rpw.rpfull>.rpl{display:none}.rptg{flex:none;margin-top:4px}
 .rpt th,.rpt td{padding:9px 10px!important}.rpt td{font-size:13px}
-/* Settings › Print & invoice (new: not in the prototype). Layout "Simple" keeps the invoice preview's classes (.ivpg adds colour and sizes); "Classic boxed" is .ivx. */
-.ivpg{--ivc:#151b2e;background:#fff;color:#151b2e;font-size:var(--ivfs,12.5px)}
-.ivpg .ivh{border-bottom-color:var(--ivc)}.ivpg .ivb b{font-size:var(--ivcn,16px)}.ivpg .ivt b{color:var(--ivc)}.ivpg .ivtot .ivg2{border-top-color:var(--ivc)}.ivpg .ivtot .ivg2 span,.ivpg .ivtot .ivg2 b{color:var(--ivc)}
-.ppad .ivpg,.prcopies .ivpg{padding:var(--pm,30px) calc(var(--pm,30px) + 4px)}
-.ivxpre{white-space:pre-wrap}
-/* Classic boxed (the owner's sample bill) */
-.ivsheet.ppx{padding:0}.ppfit{overflow:hidden}.ppfit .ivx{box-shadow:0 0 0 1px var(--bd)}
-/* printing one document (features/print/printer.ts): only the copy at the end of <body> prints */
-@media screen{.prclone{display:none!important}}
-@media print{body.printing-doc>:not(.prclone){display:none!important}body.printing-doc>.prclone{display:block!important}
- .prclone .ppage{width:auto!important;min-height:var(--phmm)!important;box-shadow:none!important;break-after:page}.prclone .ppage:last-child{break-after:auto}
- .prclone .ivxtab thead{display:table-header-group}.prclone .ivxtab tr{break-inside:avoid}
- html.noscroll,html.noscroll body{overflow:visible!important}}
-.ivx{--ivc:#6b7280;background:#fff;color:#151b2e;font-size:var(--ivfs,12px);display:flex;flex-direction:column;box-sizing:border-box;line-height:1.35}
-.ivx small{display:block;font-size:.92em}.ivx span{color:#151b2e}
-.ivxt{text-align:center;margin-bottom:6px}.ivxt b{display:block;font-size:15px}.ivxt small{color:#5b6478}
-.ivxbox{flex:1;display:flex;flex-direction:column;border:1px solid var(--ivc)}
-.ivxbx{border-top:1px solid var(--ivc)}.ivxbox>:first-child{border-top:0}.ivxbox>.ivxt{border-top:0;border-bottom:1px solid var(--ivc);margin:0;padding:6px}
-.ivxh{display:grid;grid-template-columns:1fr 1fr}.ivxco{padding:6px 8px}.ivxco b{display:block;font-size:var(--ivcn,20px);margin-bottom:2px}
-.ivxmeta{display:grid;grid-template-columns:1fr 1fr;border-left:1px solid var(--ivc)}.ivxmeta>div{padding:5px 8px;border-bottom:1px solid var(--ivc)}.ivxmeta>div:nth-child(odd){border-right:1px solid var(--ivc)}.ivxmeta>div:nth-last-child(-n+2){border-bottom:0}
-.ivxmeta span,.ivxbill span,.ivxsum span{display:block}.ivxmeta b{display:block}
-.ivxbill{padding:5px 8px}.ivxbill b{display:block;margin-top:4px}
-.ivxtw{border-top:1px solid var(--ivc)}.ivx.full .ivxtw{flex:1;display:flex;flex-direction:column}.ivx.full .ivxtab{flex:1;height:100%}.ivx.full .ivxtab tr:not(.ivfill){height:1px}
-.ivxtab{width:100%;min-width:0;border-collapse:collapse;border-style:hidden}.ivxtab th{text-align:left;padding:5px 6px;border:1px solid var(--ivc);font-weight:700}.ivxtab td{padding:5px 6px;border-left:1px solid var(--ivc);border-right:1px solid var(--ivc);vertical-align:top}
-.ivxtab .n{text-align:right;white-space:nowrap}.ivxtab th,.ivxtab td{color:#151b2e;background:none;font-weight:400;font-size:inherit}.ivxtab th{font-weight:700}.ivxtab b{font-weight:700}.ivxtab tr.ivxtot td{border:1px solid var(--ivc)}.ivxtab tr:hover td{background:none}.ivxtab tr.ivempty td{height:24px}
-.ivxsum{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.ivxsum>div:first-child{padding:5px 8px}.ivxsum>div:first-child b{display:block;margin-top:4px}
-.ivxamt{border-left:1px solid var(--ivc)}.ivxamt>b{display:block;padding:4px 8px}.ivxamt>div{display:flex;justify-content:space-between;padding:4px 8px;border-top:1px solid var(--ivc)}
-.ivxtax{width:100%;min-width:0;border-collapse:collapse;margin-top:8px}.ivxtax th,.ivxtax td{border:1px solid var(--ivc);padding:3px 5px;text-align:left;background:none;color:#151b2e;font-size:inherit;font-weight:400}.ivxtax th{font-weight:700}.ivxtax .n{text-align:right}
-.ivxft{display:grid}.ivxft>div{padding:6px 8px;min-height:92px}.ivxft>div+div{border-left:1px solid var(--ivc)}.ivxft b{display:block;margin-bottom:4px}
-.ivxbank{display:flex;gap:8px;align-items:flex-start}.ivxqr{flex:none;width:64px;height:64px;border:1px dashed #9aa1b1;display:grid;place-items:center;color:#9aa1b1!important;font-weight:700;font-size:11px}
-.ivxsig{text-align:center;display:flex;flex-direction:column;align-items:center}.ivxsimg{display:block;height:38px}

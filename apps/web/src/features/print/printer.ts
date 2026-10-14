@@ -8,6 +8,11 @@
  * The Print buttons call printNow(); Ctrl+P works too (beforeprint).
  */
 import { useEffect, useRef } from 'react';
+import { useStyles } from '../../lib/useStyles';
+import css from './print.css?inline';
+
+/** the print layouts' and print-only CSS (features/print/print.css) while a document window is on screen */
+export const usePrintStyles = () => useStyles([css], 'print');
 
 export interface PrintSource { el: () => HTMLElement | null; title: string; page?: string; cls?: string }
 const sources: PrintSource[] = [];
@@ -53,6 +58,7 @@ if (typeof window !== 'undefined') {
 
 /** Register the open window's document while `open`. */
 export function usePrintSource(open: boolean, src: PrintSource) {
+  usePrintStyles();
   const ref = useRef(src);
   ref.current = src;
   useEffect(() => {
