@@ -112,3 +112,32 @@ export function summarise(books: Books, fy: { start: string; end: string }) {
 
 /** Rows per table, for comparing a restored copy with the books as they are now. */
 export const countsOf = (books: Books) => Object.fromEntries([...books].map(([t, m]) => [t, m.size]));
+
+/**
+ * A backup made before 14 Oct 2026 has one numbering row per type per financial year and no
+ * "active" mark. It is upgraded the way migration 20261014120000_transaction_prefixes upgraded
+ * the live books: one row per prefix with its highest counter, the latest year's prefix active.
+ */
+export function upgradeSeries(books: Books): void {
+  const series = books.get('document_series');
+  if (!series?.size || [...series.values()].some((r) => 'active' in r)) return;
+  const start = new Map([...(books.get('financial_years')?.values() ?? [])].map((f) => [String(f.id), String(f.start_date ?? '')]));
+  const yearOf = (r: Row) => start.get(String(r.financial_year_id)) ?? '';
+  const latest = new Map<string, Row>();
+  for (const r of series.values()) {
+    const k = String(r.doc_type);
+    const cur = latest.get(k);
+    if (!cur || yearOf(r) > yearOf(cur) || (yearOf(r) === yearOf(cur) && String(r.created_at) > String(cur.created_at))) latest.set(k, r);
+  }
+  const groups = new Map<string, [string, Row][]>();
+  for (const e of series) {
+    const k = `${String(e[1].doc_type)}|${String(e[1].prefix)}`;
+    groups.set(k, [...(groups.get(k) ?? []), e]);
+  }
+  series.clear();
+  for (const g of groups.values()) {
+    const active = g.some(([, r]) => latest.get(String(r.doc_type)) === r);
+    const [pk, row] = g.find(([, r]) => latest.get(String(r.doc_type)) === r) ?? g[0]!;
+    series.set(pk, { ...row, next_number: Math.max(...g.map(([, r]) => Number(r.next_number))), active });
+  }
+}

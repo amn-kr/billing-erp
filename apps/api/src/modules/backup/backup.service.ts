@@ -15,7 +15,7 @@ import { AuditService } from '../../common/audit.service';
 import type { RequestContext } from '../../common/context';
 import { BackupFileError, lockFile, openFile, sha256 } from './crypto';
 import { NOT_RESTORED, q, shopTables, type TableInfo } from './tables';
-import { chainAfter, countsOf, remapIds, replay, summarise, type Change, type ChangesBody, type Row, type SnapshotBody } from './restore';
+import { chainAfter, countsOf, remapIds, replay, summarise, upgradeSeries, type Change, type ChangesBody, type Row, type SnapshotBody } from './restore';
 
 export type DestKind = 'drive' | 'local';
 export type DestChoice = DestKind | 'both' | null;
@@ -348,6 +348,7 @@ export class BackupService {
     const oldId = ctx.businessId!;
     const newId = randomUUID();
     const books = remapIds(b.books, b.tables, oldId, newId);
+    upgradeSeries(books);
     const biz = [...(books.get('businesses')?.values() ?? [])][0];
     if (!biz) throw new BadRequestException({ message: 'This backup has no business details.' });
     const { cur, me } = await this.db.scoped(scopeOf(ctx), async (tx) => ({
