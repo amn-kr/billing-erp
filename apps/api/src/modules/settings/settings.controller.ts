@@ -12,11 +12,15 @@ import type { RequestContext } from '../../common/context';
  * Shop settings (Settings screens). The prototype's many switches are kept as
  * one JSON object; known keys are typed here, unknown keys are refused.
  */
+/** Settings › Print & invoice: one group (layout, columns, names, …); the web app fills in defaults for anything missing */
+const printSchema = z.record(z.string().max(40), z.unknown()).refine((v) => JSON.stringify(v).length <= 20_000, 'The print settings are too large.');
 const settingsSchema = z
   .object({
     gstEnabled: z.boolean(),
     /** the rest of the prototype's settings (S): reg, hsn, pos, rcm, cess, tcs, tds, upi, payQr, waLink, … */
-    data: z.record(z.string().max(40), z.union([z.string().max(500), z.number(), z.boolean(), z.null()])),
+    data: z
+      .record(z.string().max(40), z.union([z.string().max(500), z.number(), z.boolean(), z.null(), printSchema]))
+      .refine((d) => Object.entries(d).every(([k, v]) => k === 'print' || v === null || typeof v !== 'object'), 'Only the print settings can hold a group of values.'),
   })
   .partial();
 
