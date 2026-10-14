@@ -98,9 +98,12 @@ describe('numbering rows of two financial years', () => {
 
   it('allows only one active prefix per type, and each prefix once', async () => {
     await db.$executeRawUnsafe('ALTER TABLE document_series NO FORCE ROW LEVEL SECURITY');
-    await expect(db.$executeRawUnsafe(`INSERT INTO document_series (business_id, doc_type, prefix, next_number, active, created_by) VALUES ('${A}', 'invoice', 'NEW-', 1, true, '${U}')`)).rejects.toThrow(/document_series_one_active/);
-    await expect(db.$executeRawUnsafe(`INSERT INTO document_series (business_id, doc_type, prefix, next_number, created_by) VALUES ('${A}', 'invoice', 'INV-', 1, '${U}')`)).rejects.toThrow(/document_series_business_id_doc_type_prefix_key/);
-    await db.$executeRawUnsafe('ALTER TABLE document_series FORCE ROW LEVEL SECURITY');
+    try {
+      await expect(db.$executeRawUnsafe(`INSERT INTO document_series (business_id, doc_type, prefix, next_number, active, created_by) VALUES ('${A}', 'invoice', 'NEW-', 1, true, '${U}')`)).rejects.toThrow(/Key \(business_id, doc_type\)=.* already exists/);
+      await expect(db.$executeRawUnsafe(`INSERT INTO document_series (business_id, doc_type, prefix, next_number, created_by) VALUES ('${A}', 'invoice', 'INV-', 1, '${U}')`)).rejects.toThrow(/Key \(business_id, doc_type, prefix\)=.* already exists/);
+    } finally {
+      await db.$executeRawUnsafe('ALTER TABLE document_series FORCE ROW LEVEL SECURITY');
+    }
   });
 
   it('keeps row-level security forced', async () => {
