@@ -9,7 +9,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../../lib/api';
 import { dmy } from '../../lib/format';
 import { today } from '../../lib/time';
-import { useSettings } from '../../lib/settings';
 import { useFitTables } from '../../lib/useFitTables';
 import { useOpenFocus } from '../../lib/useOpenFocus';
 import { Icon, RawIcon } from '../../components/Icon';
@@ -18,12 +17,10 @@ import { useShell } from '../shell/store';
 import type { Party } from '../parties/PartiesPage';
 import { qfmt, type Item } from '../items/ItemsPage';
 import { useSale, useSales, type SaleDoc, type SaleRow } from './model';
-import { bzLine, bzName, useBiz } from './InvoicePreview';
+import { InvoicePreview } from './InvoicePreview';
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const PLUS = '<path d="M12 5v14M5 12h14"/>';
-const PRINT = '<path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z"/>';
-const X = '<path d="M6 6l12 12M18 6L6 18"/>';
 const ST: Record<string, { t: string; c: string }> = { open: { t: 'Open', c: 'b' }, invoiced: { t: 'Invoiced', c: 'g' }, cancelled: { t: 'Cancelled', c: 'x' } };
 
 export function ChallansPage() {
@@ -75,40 +72,15 @@ export function ChallansPage() {
   );
 }
 
-/** Challan print view in the invoice preview window (prototype dcPrint). */
+/** Challan print view (prototype dcPrint): the invoice preview window with the shared renderer. */
 function ChallanPrint({ id, onClose }: { id: string | null; onClose: () => void }) {
-  const ref = useRef<HTMLDivElement>(null);
   const d = useSale(id).data;
-  const biz = useBiz().data;
-  const g = !!useSettings().data?.gstEnabled;
   const items = useQuery({ queryKey: ['items'], queryFn: () => api<Item[]>('/items'), enabled: !!id });
-  const v: SaleDoc | undefined = d && d.id === id ? d : undefined;
-  useOpenFocus(!!v, ref);
-  if (!v) return <div className="ov c" id="ipv" hidden ref={ref}><div className="mdl ipvm" role="dialog" aria-modal="true" aria-labelledby="ipvTitle"></div></div>;
-  const x = v.extra as { transport?: string; vehicle?: string; invoiceNo?: string };
-  const pq = v.lines.reduce((a, l) => a + Number(l.qty), 0);
+  const v: SaleDoc | null = d && d.id === id ? d : null;
   const hsn = (itemId: string | null) => (items.data ?? []).find((i) => i.id === itemId)?.hsn ?? '';
-  const phone = v.party?.phone || v.cashPhone;
-  return (
-    <div className="ov c" id="ipv" ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'ipv') onClose(); }}>
-      <div className="mdl ipvm" role="dialog" aria-modal="true" aria-labelledby="ipvTitle">
-        <div className="ipvbar"><h3 id="ipvTitle" style={{ margin: 0, fontSize: 16, flex: 1 }}>Delivery challan · {v.number}</h3>
-          <button className="btn sm" type="button" id="ipvLink" hidden style={{ display: 'none' }}><Icon name="phone" />Payment link</button>
-          <a className="btn sm" id="ipvWa" href="#" target="_blank" rel="noopener" style={{ textDecoration: 'none', display: 'none' }}><svg className="i" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: '<path d="M4 5h16v11H9l-5 4z"/>' }} />Share on WhatsApp</a>
-          <button className="btn sm" type="button" id="ipvPrint" onClick={() => window.print()}><RawIcon d={PRINT} />Print</button>
-          <button className="btn p sm" type="button" id="ipvNew" style={{ display: 'none' }}><Icon name="plus" />New invoice</button>
-          <button className="ib" type="button" id="ipvClose" aria-label="Close" onClick={onClose}><RawIcon d={X} /></button></div>
-        <div className="ivsheet" id="ipvSheet"><div className="dch"><div className="dchh"><div><b>{bzName(biz)}</b><small>{bzLine(biz)}</small>{g ? <small>GSTIN {biz?.gstin}</small> : null}</div><div className="dcht"><span>DELIVERY CHALLAN</span><small>{v.number} · {dmy(v.date)}</small>{x.invoiceNo ? <small>Billed in {x.invoiceNo}</small> : null}</div></div>
-          <div className="dchp"><span>Deliver to</span><b>{v.partyName}</b>{v.party?.city ? <small>{v.party.city}</small> : null}{phone ? <small>+91 {phone}</small> : null}{x.transport || x.vehicle ? <small>Transport: {[x.transport, x.vehicle].filter(Boolean).join(' · ')}</small> : null}</div>
-          <table className="ivtab"><thead><tr><th>#</th><th>Item</th>{g ? <th>HSN</th> : null}<th className="n">Qty</th><th>Unit</th></tr></thead><tbody>{v.lines.map((l, i) => <tr key={l.id}><td>{i + 1}</td><td>{l.name}</td>{g ? <td>{hsn(l.itemId)}</td> : null}<td className="n">{qfmt(l.qty)}</td><td>{l.unit}</td></tr>)}
-            <tr className="dchtot"><td></td><td>Total quantity</td>{g ? <td></td> : null}<td className="n">{qfmt(pq)}</td><td></td></tr></tbody></table>{v.notes ? <p className="ivdesc">{v.notes}</p> : null}
-          <div className="dchs"><div><i></i>Received by (name &amp; signature)</div><div><i></i>For {bzName(biz)}</div></div></div></div>
-      </div>
-    </div>
-  );
+  return <InvoicePreview doc={v} hsnOf={hsn} onClose={onClose} onNew={() => undefined} onLink={() => undefined} />;
 }
 
-/** New delivery challan (#dcm). */
 function ChallanDialog({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved: (id: string, print: boolean) => void }) {
   const qc = useQueryClient();
   const { showToast } = useShell();

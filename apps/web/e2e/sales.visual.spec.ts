@@ -8,7 +8,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { approvedShot, sameShot } from './shots';
-import { APP, SALES, WIDTHS, freshShop, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
+import { APP, PROTO_PRINT, SALES, WIDTHS, freshShop, newPage, openPrototypeView, prototypeWithBackup, savePrint, signInAs } from './setup';
 
 /** `who`: a shop of its own for tests that add records (the shared sales shop must stay as the prototype's) */
 async function pages(browser: Parameters<typeof newPage>[0], width: number, view: string, path: string, ready: string, who = SALES) {
@@ -16,6 +16,8 @@ async function pages(browser: Parameters<typeof newPage>[0], width: number, view
   const app = await newPage(browser, width);
   await prototypeWithBackup(proto, 'sales-shop');
   await openPrototypeView(proto, view);
+  // the invoice window is compared with the prototype's, so print with the prototype's layout ("Simple")
+  await savePrint(who, PROTO_PRINT);
   await signInAs(app, who);
   await app.goto(APP + path);
   await app.waitForSelector(ready);

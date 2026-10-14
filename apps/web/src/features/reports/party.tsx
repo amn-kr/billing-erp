@@ -1,5 +1,6 @@
 /** Party reports (prototype RPT.pstmt / ppl / allp / pitem / spp / spg): same markup, wording and maths. */
 import { useRef, useState, type ComponentType, type ReactNode } from 'react';
+import { fileTitle, printNow, usePrintSource } from '../print/printer';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
@@ -127,6 +128,7 @@ function StPrint({ D, onClose }: { D: Statement; onClose: () => void }) {
   useOpenFocus(true, ref);
   useEscape(true, onClose);
   const P = D.party, sup = P.sup;
+  usePrintSource(true, { el: () => document.getElementById('ipvSheet'), title: fileTitle('Party statement', P.name) });
   const span = `${dmyOf(D.from).replace('01/01/2000', 'Start')} to ${dmyOf(D.to).replace('31/12/2099', 'Today')}`;
   return (
     <div className="ov c" id="ipv" ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'ipv') onClose(); }}>
@@ -134,7 +136,7 @@ function StPrint({ D, onClose }: { D: Statement; onClose: () => void }) {
         <div className="ipvbar"><h3 id="ipvTitle" style={{ margin: 0, fontSize: 16, flex: 1 }}>Party statement · {P.name}</h3>
           <button className="btn sm" type="button" id="ipvLink" hidden style={{ display: 'none' }}><Icon name="phone" />Payment link</button>
           <a className="btn sm" id="ipvWa" href="#" target="_blank" rel="noopener" style={{ textDecoration: 'none', display: 'none' }}><svg className="i" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: '<path d="M4 5h16v11H9l-5 4z"/>' }} />Share on WhatsApp</a>
-          <button className="btn sm" type="button" id="ipvPrint" onClick={() => window.print()}><RawIcon d={PRINT} />Print</button>
+          <button className="btn sm" type="button" id="ipvPrint" onClick={printNow}><RawIcon d={PRINT} />Print</button>
           <button className="btn p sm" type="button" id="ipvNew" style={{ display: 'none' }}><Icon name="plus" />New invoice</button>
           <button className="ib" type="button" id="ipvClose" aria-label="Close" onClick={onClose}><RawIcon d={X} /></button></div>
         <div className="ivsheet" id="ipvSheet"><div className="dch"><div className="dchh"><div><b>{bzName(biz)}</b><small>{bzLine(biz)}</small>{gst && biz?.gstin ? <small>GSTIN {biz.gstin}</small> : null}</div><div className="dcht"><span>PARTY STATEMENT</span><small>{span}</small></div></div>

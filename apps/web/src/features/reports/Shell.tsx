@@ -4,6 +4,7 @@
  * period, summary boxes, the table with its total row, and a note. Same markup and class names.
  */
 import { useRef, type ReactNode } from 'react';
+import { fileTitle, printNow, usePrintSource } from '../print/printer';
 import { Icon, RawIcon } from '../../components/Icon';
 import { saveFile, xlsxBlob } from '../../lib/files';
 import { dmy } from '../../lib/format';
@@ -76,6 +77,8 @@ export function RpPrint({ o, p, onClose }: { o: RpDef | null; p: PeriodState; on
   const biz = useBiz().data;
   useOpenFocus(!!o, ref);
   useEscape(!!o, onClose);
+  // prints only this report (shared print step), saved as e.g. "Sale report"
+  usePrintSource(!!o, { el: () => document.getElementById('ipvSheet'), title: fileTitle(o?.title ?? 'Report', '') });
   if (!o) return <div className="ov c" id="ipv" hidden ref={ref}><div className="mdl ipvm" role="dialog" aria-modal="true" aria-labelledby="ipvTitle"></div></div>;
   return (
     <div className="ov c" id="ipv" ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'ipv') onClose(); }}>
@@ -83,7 +86,7 @@ export function RpPrint({ o, p, onClose }: { o: RpDef | null; p: PeriodState; on
         <div className="ipvbar"><h3 id="ipvTitle" style={{ margin: 0, fontSize: 16, flex: 1 }}>{o.title}</h3>
           <button className="btn sm" type="button" id="ipvLink" hidden style={{ display: 'none' }}><Icon name="phone" />Payment link</button>
           <a className="btn sm" id="ipvWa" href="#" target="_blank" rel="noopener" style={{ textDecoration: 'none', display: 'none' }}><svg className="i" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: '<path d="M4 5h16v11H9l-5 4z"/>' }} />Share on WhatsApp</a>
-          <button className="btn sm" type="button" id="ipvPrint" onClick={() => window.print()}><RawIcon d={PRINT} />Print</button>
+          <button className="btn sm" type="button" id="ipvPrint" onClick={printNow}><RawIcon d={PRINT} />Print</button>
           <button className="btn p sm" type="button" id="ipvNew" style={{ display: 'none' }}><Icon name="plus" />New invoice</button>
           <button className="ib" type="button" id="ipvClose" aria-label="Close" onClick={onClose}><RawIcon d={X} /></button></div>
         <div className="ivsheet" id="ipvSheet"><div className="dch"><div className="dchh"><div><b>{bzName(biz)}</b><small>{bzLine(biz)}</small></div><div className="dcht"><span>{o.title.toUpperCase()}</span><small>{o.period === false ? 'As on ' + dmy(today()) : rangeTxt(p)}</small>{o.sub ? <small>{o.sub}</small> : null}</div></div>

@@ -341,6 +341,8 @@ export class SalesService {
             id: l.id, itemId: l.itemId, name: l.name, hsn: l.hsn, qty: q3(l.qty), unit: l.unit, price: d2(l.price), discPct: l.discPct.toString(), gstRate: l.gstRate.toString(),
             taxable: d2(l.taxable), tax: d2(l.tax), amount: d2(l.amount), basePrice: d2(l.basePrice), commOverride: l.commOverride, commType: l.commType, commValue: d2(l.commValue), commAmount: d2(l.commAmount),
             againstId: l.againstId, code: it?.code ?? '', brand: it?.brand?.name ?? '', series: it?.series ?? '', group: it?.itemGroup?.name ?? '', category: it?.category?.name ?? '', categoryId: it?.categoryId ?? null,
+            // today's item prices, for the optional MRP / list / wholesale columns and "You saved" on the printed invoice
+            mrp: d2(it?.mrp ?? null), listPrice: d2(it?.listPrice ?? null), wholesalePrice: d2(it?.wholesalePrice ?? null),
           };
         }),
         payment: atSale ? { id: atSale.id, number: atSale.number, amount: d2(atSale.amount), mode: atSale.mode, reference: atSale.reference, splits: atSale.splits } : null,

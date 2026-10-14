@@ -29,6 +29,7 @@ import { cmBillModal, useElecModal } from './Referral';
 import { ImportQuote, QuoteRefs, qrefRemoveModal } from './ImportQuote';
 import type { SlModalProps } from '../SlModal';
 import { SlModal } from '../SlModal';
+import { printNow } from '../../print/printer';
 import {
   DG_TERMS, SI_MODES, SI_TT, addDaysIso, blankLine, calc, cmApply, daysDiff, hasContent, lineComm, lineFor, newSI, partyState, paySum, priceListFor, r2, unitPrice, useSI, useTab, TabCtx, isDirty,
   type EItem, type EParty, type Line, type SI,
@@ -106,7 +107,7 @@ export function SaleEditor() {
   const tab = tabs.find((t) => t.id === active);
   // printing a saved bill shown here ("Save & print" with other bills open)
   const printNext = useRef(false);
-  useEffect(() => { if (shownDoc.data && printNext.current) { printNext.current = false; setTimeout(() => window.print(), 500); } }, [shownDoc.data]);
+  useEffect(() => { if (shownDoc.data && printNext.current) { printNext.current = false; setTimeout(() => printNow(), 500); } }, [shownDoc.data]);
   if (!d || !tab) return <section id="vNewInv"></section>;
   const ops: TabOps = {
     newTab: () => void newTab(tab.si.doc),

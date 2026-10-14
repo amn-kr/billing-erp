@@ -228,6 +228,11 @@ describe('settings and commission', () => {
     const acc = await member(app, o, 'accountant');
     await http().patch('/api/settings').set(auth(acc)).send({ gstEnabled: true }).expect(403);
     await http().patch('/api/settings').set(auth(o)).send({ data: { nested: { x: 1 } } }).expect(400);
+    // Settings › Print & invoice is the one group of values, kept as sent
+    const print = { theme: 'classic', names: { sale: 'Rough Invoice' }, cols: { code: { on: true, label: 'Item Code' } }, top: ['title', 'biz', 'bill'] };
+    await http().patch('/api/settings').set(auth(o)).send({ data: { print } }).expect(200);
+    expect((await http().get('/api/settings').set(auth(o)).expect(200)).body.data.print).toEqual(print);
+    await http().patch('/api/settings').set(auth(o)).send({ data: { print: { terms: 'x'.repeat(30_000) } } }).expect(400);
   });
 
   it('tax list: real usage, add, refuse duplicates, switch off (not delete), keep the only chosen TCS rate', async () => {

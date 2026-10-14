@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { test, type APIRequestContext, type Browser, type Page } from '@playwright/test';
+import { request as playwrightRequest, test, type APIRequestContext, type Browser, type Page } from '@playwright/test';
 // Same frozen clock, timezone and local fonts as the Phase 0 baseline.
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const common = createRequire(import.meta.url)('../../../tools/design-baseline/common.cjs') as {
@@ -183,3 +183,26 @@ export async function freshShop(request: APIRequestContext, fixture?: string, op
   }
   return who;
 }
+
+/** Save Settings › Print & invoice choices for a shop (what the owner picks on that screen). */
+export async function savePrint(who: { email: string; password: string }, print: Record<string, unknown>): Promise<void> {
+  // a connection of its own: signing in here must not sign in the test's browser (it then expects the sign-in page)
+  const api = await playwrightRequest.newContext();
+  try {
+    const login = await api.post(APP + '/api/auth/login', { data: who });
+    const r = await api.patch(APP + '/api/settings', { headers: { Authorization: `Bearer ${(await login.json()).accessToken}` }, data: { data: { print } } });
+    if (!r.ok()) throw new Error(`saving print settings failed: ${r.status()} ${await r.text()}`);
+  } finally {
+    await api.dispose();
+  }
+}
+
+/**
+ * The prototype's own invoice: layout "Simple" with its columns and wording
+ * (same as PROTO_PRINT in src/features/print/opts.ts). Picture tests that compare
+ * the invoice window with the prototype save this first.
+ */
+export const PROTO_PRINT = {
+  theme: 'simple', showEmail: false, sign: 'Authorised signatory', color: '#151b2e',
+  cols: { sl: { on: true, label: '#' }, name: { on: true, label: 'Item' }, code: { on: true, label: 'Code' }, brand: { on: true, label: 'Brand' }, series: { on: true, label: 'Series' }, hsn: { on: true, label: 'HSN' }, qty: { on: true, label: 'Qty' }, unit: { on: false, label: 'Unit' }, price: { on: true, label: 'Rate' }, discPct: { on: true, label: 'Disc' }, taxPct: { on: true, label: 'GST' }, rate: { on: false, label: 'Final Rate' }, amount: { on: true, label: 'Amount' } },
+};

@@ -27,6 +27,7 @@ import { addDaysIso, blankLine, lineFor, newSI, partyState, useSI, type Line } f
 import { qComm, qCols, qRanked, qRate, qTotals, type QCtx, type QDraft } from './model';
 import { quoteExcel, quotePdf, quoteWhatsApp, qUsed } from './exports';
 import { AddDialog, ConvertDialog, SavedList, type AddMode } from './QuoteDialogs';
+import { printNow } from '../print/printer';
 
 const P = {
   plus: '<path d="M12 5v14M5 12h14"/>',
@@ -246,7 +247,7 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
     if (!st?.preview) return;
     setPreview(st.preview);
     navigate('.', { replace: true, state: null });
-    if (st.print) setTimeout(() => window.print(), 500);
+    if (st.print) setTimeout(() => printNow(), 500);
   }, [location.state, navigate]);
   useEffect(() => { if (!clearSure) return; const t = setTimeout(() => setClearSure(false), 2500); return () => clearTimeout(t); }, [clearSure]);
   // pop-ups close on a click outside and on Escape
