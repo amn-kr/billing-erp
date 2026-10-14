@@ -32,7 +32,8 @@ export function useSaveS() {
 }
 
 /** Which Settings tab is open (kept while moving around the app, like the prototype's SETTAB). */
-export const useSetTab = create<{ tab: 'tax' | 'items' | 'gen'; set: (t: 'tax' | 'items' | 'gen') => void }>((set) => ({ tab: 'tax', set: (tab) => set({ tab }) }));
+export type SetTab = 'tax' | 'items' | 'gen' | 'print';
+export const useSetTab = create<{ tab: SetTab; set: (t: SetTab) => void }>((set) => ({ tab: 'tax', set: (tab) => set({ tab }) }));
 
 export const pct = (n: number | string) => Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 }) + '%';
 /** prototype inr2: ₹ with paise only when there are paise */
