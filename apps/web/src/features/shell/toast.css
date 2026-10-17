@@ -1,0 +1,7 @@
+/* Message strip (owner-approved change, 17 Oct 2026, not in the prototype): it shows at the top centre
+   instead of the bottom and slides down from the top edge (same speed); green after a document is saved,
+   red when a save failed. The colours are the prototype's own --green and --red, with white text like its
+   red button (.btn.dg). Size, font and the black of every other message are unchanged. */
+.toast{top:calc(28px + env(safe-area-inset-top,0px));bottom:auto;transform:translate(-50%,-16px)}
+.toast.ok{background:var(--green);color:#fff}
+.toast.bad{background:var(--red);color:#fff}

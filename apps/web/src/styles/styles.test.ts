@@ -41,6 +41,26 @@ describe('stylesheets are unchanged copies of the prototype', () => {
   });
 });
 
+/*
+ * The one exception, approved by the owner in writing on 17 Oct 2026: the message strip (.toast) moves to the
+ * top centre and is green after a save / red when a save failed. It lives in its own small file, loaded after
+ * app.css (which stays an exact copy, checked above). This check allows exactly these three rules and nothing else.
+ */
+describe('owner-approved toast change', () => {
+  it('features/shell/toast.css holds only the approved toast rules, with the prototype’s colours', () => {
+    const t = fs.readFileSync(path.join(__dirname, '../features/shell/toast.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(t.split('\n').map((l) => l.trim()).filter(Boolean)).toEqual([
+      '.toast{top:calc(28px + env(safe-area-inset-top,0px));bottom:auto;transform:translate(-50%,-16px)}',
+      '.toast.ok{background:var(--green);color:#fff}',
+      '.toast.bad{background:var(--red);color:#fff}',
+    ]);
+    // the prototype's own .toast (bottom 28px, 16px slide) is what this mirrors, and its colours exist there
+    expect(proto).toContain('.toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translate(-50%,16px);');
+    expect(proto).toContain('--green:#10b981;');
+    expect(proto).toContain('--red:#ef4444;');
+  });
+});
+
 describe('icons are the prototype’s', () => {
   it('every icon path matches const P in the prototype', async () => {
     const { P } = await import('../components/icon-paths');

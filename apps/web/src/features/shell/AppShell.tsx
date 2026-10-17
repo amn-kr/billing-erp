@@ -17,6 +17,7 @@ import { useSettings } from '../../lib/settings';
 import { goToLogin } from '../../lib/nav';
 import { setGo } from '../../lib/go';
 import { APP_STYLES } from '../../styles';
+import toastCss from './toast.css?inline';
 import { VIEW_LABEL, VIEW_PATH, type NavLink } from './nav';
 import { REPSEC, repOf } from '../reports/catalogue';
 import { Sidebar } from './Sidebar';
@@ -36,7 +37,8 @@ function GoLogin({ query = '' }: { query?: string }) {
 }
 
 export function AppShell() {
-  useStyles(APP_STYLES, 'app');
+  // the owner-approved toast change comes after the prototype's CSS, so it wins
+  useStyles([...APP_STYLES, toastCss], 'app');
   const token = useSession((s) => s.accessToken);
   const me = useMe();
   const settings = useSettings();
