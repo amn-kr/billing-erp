@@ -6,7 +6,7 @@
  */
 import { createContext, useCallback, useContext } from 'react';
 import { create } from 'zustand';
-import { useSession } from '../../../lib/session';
+import { tokenOwner, useSession } from '../../../lib/session';
 import { lineCommission, money, saleTotals, type CommRule, type TaxMode } from '@billing/shared';
 
 export interface EItem {
@@ -197,12 +197,8 @@ export const useSI = create<Store>((set, get) => ({
   },
   clear: () => set({ tabs: [], active: null, v: get().v + 1 }),
 }));
-const who = (tok: string | null) => {
-  if (!tok) return '';
-  try { const c = JSON.parse(atob(tok.split('.')[1]!.replace(/-/g, '+').replace(/_/g, '/'))) as { sub?: string; bid?: string | null }; return `${c.sub}|${c.bid}`; } catch { return ''; }
-};
-let owner = who(useSession.getState().accessToken);
-useSession.subscribe((st) => { const w = who(st.accessToken); if (w !== owner) { owner = w; useSI.getState().clear(); } });
+let owner = tokenOwner(useSession.getState().accessToken);
+useSession.subscribe((st) => { const w = tokenOwner(st.accessToken); if (w !== owner) { owner = w; useSI.getState().clear(); } });
 
 /** The tab an editor is drawing. */
 export const TabCtx = createContext('');

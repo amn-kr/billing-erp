@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from './api';
-import { useSession } from './session';
+import { ownerKey, useSession } from './session';
 import { curFix } from './format';
 
 export interface ShopSettings {
@@ -11,7 +11,8 @@ export interface ShopSettings {
 
 export function useSettings() {
   const token = useSession((s) => s.accessToken);
-  return useQuery({ queryKey: ['settings', token], queryFn: () => api<ShopSettings>('/settings'), enabled: !!token, staleTime: 60_000 });
+  const owner = useSession((s) => ownerKey(s.accessToken));
+  return useQuery({ queryKey: ['settings', owner], queryFn: () => api<ShopSettings>('/settings'), enabled: !!token, staleTime: 60_000 });
 }
 
 /** Text helper that drops "₹" when the shop has the currency symbol switched off (the prototype's default). */

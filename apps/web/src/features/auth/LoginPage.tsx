@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { STATES, createBusinessSchema, firstError, type MeResponse } from '@billing/shared';
 import { api, apiWithToken, ApiError, refreshSession, signOut } from '../../lib/api';
 import { useSession } from '../../lib/session';
+import { meKey } from '../../lib/me';
 import { useStyles } from '../../lib/useStyles';
 import { goToApp } from '../../lib/nav';
 import { AUTH_STYLES } from '../../styles';
@@ -48,7 +49,7 @@ export function LoginPage() {
     setView('vLoad');
     try {
       const me = await api<MeResponse>('/me');
-      qc.setQueryData(['me', useSession.getState().accessToken], me);
+      qc.setQueryData(meKey(useSession.getState().accessToken), me);
       if (me.business && !newShop) return goToApp();
       const inv = me.invites[0];
       if (inv && !newShop) {
