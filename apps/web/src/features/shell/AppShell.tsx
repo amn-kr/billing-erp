@@ -36,7 +36,20 @@ function GoLogin({ query = '' }: { query?: string }) {
   return null;
 }
 
+/**
+ * The message strip sits beside the frame, not inside it: while the frame waits for another shop's data
+ * (after switching shop or starting fresh books) it draws nothing, and a message sent then must still show.
+ */
 export function AppShell() {
+  return (
+    <>
+      <AppFrame />
+      <Toast />
+    </>
+  );
+}
+
+function AppFrame() {
   // the owner-approved toast change comes after the prototype's CSS, so it wins
   useStyles([...APP_STYLES, toastCss], 'app');
   const token = useSession((s) => s.accessToken);
@@ -208,7 +221,6 @@ export function AppShell() {
           goToLogin();
         }}
       />
-      <Toast />
       <DiscardDialog />
       <QuickSale />
       <PasscodeBox />
