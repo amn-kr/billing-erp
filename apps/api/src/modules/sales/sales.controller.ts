@@ -71,6 +71,15 @@ export class SalesController {
     return this.sales.cancel(ctx, id, body.reason);
   }
 
+  /** Delete an invoice, quotation, challan or credit note: undone like a cancel, then hidden from the lists (never erased). */
+  @RequirePermission('sales.cancel')
+  @HttpCode(200)
+  @NeedsPasscode('delete', 'sale')
+  @Post('sales/:id/delete')
+  remove(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(cancelSchema)) body: z.infer<typeof cancelSchema>) {
+    return this.sales.delete(ctx, id, body.reason);
+  }
+
   @RequirePermission('sales.view')
   @Get('parties/:id/dues')
   dues(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Query('except') except?: string) {
@@ -87,6 +96,15 @@ export class SalesController {
   @Post('receipts')
   receive(@Ctx() ctx: RequestContext, @Body(new ZodPipe(receiptSchema)) body: ReceiptInput) {
     return this.receipts.receive(ctx, body);
+  }
+
+  /** Delete a payment received: cancelled in the books, then hidden from the lists (never erased). */
+  @RequirePermission('sales.cancel')
+  @HttpCode(200)
+  @NeedsPasscode('delete', 'receipt')
+  @Post('receipts/:id/delete')
+  removeReceipt(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(cancelSchema)) body: z.infer<typeof cancelSchema>) {
+    return this.receipts.delete(ctx, id, body.reason);
   }
 
   @RequirePermission('sales.view')

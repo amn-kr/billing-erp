@@ -114,6 +114,7 @@ export class QuotesController {
     const businessId = ctx.businessId!;
     const before = id ? await tx.salesDocument.findFirst({ where: { id, kind: 'quotation' } }) : null;
     if (id && !before) throw new NotFoundException({ message: 'That quotation was not found.' });
+    if (before?.deletedAt) throw new BadRequestException({ message: `${before.number} is deleted. It can’t be changed.` });
     if (before?.cancelledAt) throw new BadRequestException({ message: `${before.number} is cancelled. It can’t be changed.` });
     if (before?.status === 'converted') throw new BadRequestException({ message: 'This quotation is locked and can’t be edited.' });
     let number = q.number.trim() || before?.number || '';

@@ -15,7 +15,7 @@ import { PasscodeService, type PasscodeUse } from './passcode.service';
 const NEEDS_PASSCODE = 'needsPasscode';
 interface Need { use: PasscodeUse; document: string }
 
-/** Changing or cancelling a saved document: needs the transaction passcode when it is switched on. */
+/** Changing, cancelling or deleting a saved document: needs the transaction passcode when it is switched on. */
 export const NeedsPasscode = (use: PasscodeUse, document: string) => SetMetadata(NEEDS_PASSCODE, { use, document } satisfies Need);
 
 @Injectable()
