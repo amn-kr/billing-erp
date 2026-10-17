@@ -6,7 +6,7 @@
  * Privacy policy and Terms pages, and the Google Drive backup folder. Package, folder, database and
  * file names are separate and never change with it.
  */
-const name = 'Billing ERP';
+const name = 'BillinGo';
 
 export const BRAND = {
   /** the app's name, as people see it (keep it short: the brand check warns above 16 letters) */
