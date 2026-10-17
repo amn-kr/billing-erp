@@ -15,6 +15,7 @@ import { today } from '../../lib/time';
 import { Icon, RawIcon } from '../../components/Icon';
 import { useDcf } from '../../components/Discard';
 import { useShell } from '../shell/store';
+import { toastSaveFailed, toastSaved } from '../shell/saved';
 import { EntryClose, useFullscreen } from '../shell/EntryFrame';
 import { AddPartyDialog } from '../parties/AddPartyDialog';
 import { AddItemDialog } from '../items/AddItemDialog';
@@ -193,7 +194,7 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
 
   /* ---------- save (prototype savePE) ---------- */
   const save = async () => {
-    const err = (m: string, focus?: () => void) => { up((x) => { x.err = m; }); focus?.(); };
+    const err = (m: string, focus?: () => void) => { up((x) => { x.err = m; }); toastSaveFailed(m); focus?.(); };
     const lines = s.lines.filter((l) => l.id || l.name.trim());
     if (!p) return err('Choose the supplier.', () => document.getElementById('peParty')?.focus());
     if (!lines.length) return err('Add at least one item.');
@@ -215,10 +216,9 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
     };
     setBusy(true);
     try {
-      const r = await api<{ number: string; priceChanges: number }>('/purchases', { method: 'POST', body });
+      await api('/purchases', { method: 'POST', body });
       await Promise.all(PU_KEYS.map((x) => qc.invalidateQueries({ queryKey: [x] })));
-      const ch = r.priceChanges;
-      showToast(k === 'bill' ? `${r.number} saved · stock added${ch ? ` · ${ch} purchase price${ch > 1 ? 's' : ''} updated` : ''}` : k === 'order' ? `${r.number} saved · sent to ${p.name}` : `${r.number} saved · stock reduced`);
+      toastSaved(k);
       navigate(LIST[k]);
     } catch (e) { err(e instanceof ApiError ? e.message : 'Could not save.'); }
     finally { setBusy(false); }

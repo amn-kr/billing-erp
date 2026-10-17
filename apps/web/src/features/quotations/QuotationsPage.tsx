@@ -14,6 +14,7 @@ import { dmy, inr2f } from '../../lib/format';
 import { useSettings } from '../../lib/settings';
 import { today } from '../../lib/time';
 import { useShell } from '../shell/store';
+import { toastSaveFailed, toastSaved } from '../shell/saved';
 import type { Brand } from '../items/BrandsPage';
 import { qfmt } from '../items/ItemsPage';
 import { usePm, type PriceList } from '../prices/model';
@@ -94,8 +95,8 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
     return { number: x.no, date, cust: x.cust, priceListId: x.pl || null, disc: x.disc, sel: x.sel, qty: x.qty, referrerId: x.ref || null, items: Object.keys(x.qty).length, pcs: Object.values(x.qty).reduce((a, b) => a + b, 0), low: t ? { name: qSerName(t.s), total: r2(t.total) } : null };
   };
   const save = useCallback(async (x: QDraft, silent: boolean): Promise<QDraft | null> => {
-    if (x.status === 'converted') { if (!silent) toast('This quotation is converted and locked'); return null; }
-    if (!Object.keys(x.qty).length) { if (!silent) toast('Enter at least one quantity first'); return null; }
+    if (x.status === 'converted') { if (!silent) toastSaveFailed('This quotation is converted and locked'); return null; }
+    if (!Object.keys(x.qty).length) { if (!silent) toastSaveFailed('Enter at least one quantity first'); return null; }
     try {
       const body = snapshot(x);
       const call = (h?: Record<string, string>) => api<{ id: string; number: string }>(x.id ? `/quotations/brand/${x.id}` : '/quotations/brand', { method: x.id ? 'PUT' : 'POST', body, headers: h });
@@ -108,9 +109,9 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
       void qc.invalidateQueries({ queryKey: ['next-number'] });
       const nx = { ...x, id: r.id, no: r.number, status: 'open' as const };
       savedAs.current = JSON.stringify(nx);
-      if (!silent) toast(`${r.number} saved${x.cust ? ' for ' + x.cust : ''}`);
+      if (!silent) toastSaved('quotation');
       return nx;
-    } catch (e) { if (!silent) toast(e instanceof ApiError ? e.message : 'Could not save the quotation.'); return null; }
+    } catch (e) { if (!silent) toastSaveFailed(e instanceof ApiError ? e.message : 'Could not save the quotation.'); return null; }
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [qc, toast, date, d, g, pl.id]);
   // leaving the page with new quantities keeps the quotation in Saved

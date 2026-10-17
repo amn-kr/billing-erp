@@ -11,7 +11,7 @@ import { dmy, inr, inr2f } from '../../lib/format';
 import { today } from '../../lib/time';
 import { useOpenFocus } from '../../lib/useOpenFocus';
 import { Icon } from '../../components/Icon';
-import { useShell } from '../shell/store';
+import { toastSaveFailed, toastSaved } from '../shell/saved';
 import type { Party } from '../parties/PartiesPage';
 import { PU_KEYS, statusOfBill, type UnpaidBill } from './model';
 
@@ -24,7 +24,6 @@ let lastMode: string = 'Bank transfer';
 
 export function PayDialog({ open, onClose }: { open: PayOpen | null; onClose: () => void }) {
   const qc = useQueryClient();
-  const { showToast } = useShell();
   const ref = useRef<HTMLDivElement>(null);
   const isOpen = !!open;
   const [party, setParty] = useState('');
@@ -72,18 +71,19 @@ export function PayDialog({ open, onClose }: { open: PayOpen | null; onClose: ()
   const used = r2(Object.values(alloc).reduce((a, b) => a + (b || 0), 0));
   const amt = Number(amount) || 0;
   const save = async () => {
-    if (!party) { setErr('Choose the supplier.'); return document.getElementById('pySup')?.focus(); }
-    if (!(amt > 0)) { setErr('Enter the amount paid.'); return document.getElementById('pyAmt')?.focus(); }
+    const fail = (m: string) => { setErr(m); toastSaveFailed(m); };
+    if (!party) { fail('Choose the supplier.'); return document.getElementById('pySup')?.focus(); }
+    if (!(amt > 0)) { fail('Enter the amount paid.'); return document.getElementById('pyAmt')?.focus(); }
     const A = Object.entries(alloc).filter(([, a]) => a > 0).map(([to, a]) => { const b = B.find((x) => x.id === to); return { to, amount: String(r2(Math.min(a, b ? Number(b.balance) : 0))) }; }).filter((a) => Number(a.amount) > 0);
-    if (A.reduce((s, a) => s + Number(a.amount), 0) > amt + 0.009) return setErr('The bill amounts add up to more than the payment.');
-    if (mode === 'Cheque' && !refNo.trim()) { setErr('Enter the cheque number.'); return document.getElementById('pyRef')?.focus(); }
+    if (A.reduce((s, a) => s + Number(a.amount), 0) > amt + 0.009) return fail('The bill amounts add up to more than the payment.');
+    if (mode === 'Cheque' && !refNo.trim()) { fail('Enter the cheque number.'); return document.getElementById('pyRef')?.focus(); }
     setBusy(true);
     try {
-      const r = await api<{ number: string }>('/payments-made', { method: 'POST', body: { partyId: party, date, amount: String(amt), mode, ref: refNo.trim(), allocations: A } });
+      await api('/payments-made', { method: 'POST', body: { partyId: party, date, amount: String(amt), mode, ref: refNo.trim(), allocations: A } });
       onClose();
       await Promise.all(PU_KEYS.map((k) => qc.invalidateQueries({ queryKey: [k] })));
-      showToast(`${r.number} · ₹${inr2f(amt)} paid to ${S.find((p) => p.id === party)?.name ?? ''}`);
-    } catch (e) { setErr(e instanceof ApiError ? e.message : 'Could not save the payment.'); }
+      toastSaved('payment');
+    } catch (e) { fail(e instanceof ApiError ? e.message : 'Could not save the payment.'); }
     finally { setBusy(false); }
   };
   return (

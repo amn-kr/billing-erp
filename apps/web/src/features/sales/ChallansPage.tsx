@@ -14,6 +14,7 @@ import { useOpenFocus } from '../../lib/useOpenFocus';
 import { Icon, RawIcon } from '../../components/Icon';
 import { useDiscardGuard } from '../../components/Discard';
 import { useShell } from '../shell/store';
+import { toastSaveFailed, toastSaved } from '../shell/saved';
 import type { Party } from '../parties/PartiesPage';
 import { qfmt, type Item } from '../items/ItemsPage';
 import { useSale, useSales, type SaleDoc, type SaleRow } from './model';
@@ -85,7 +86,6 @@ function ChallanPrint({ id, onClose }: { id: string | null; onClose: () => void 
 
 function ChallanDialog({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved: (id: string, print: boolean) => void }) {
   const qc = useQueryClient();
-  const { showToast } = useShell();
   const ref = useRef<HTMLDivElement>(null);
   const parties = useQuery({ queryKey: ['parties'], queryFn: () => api<Party[]>('/parties'), enabled: open });
   const items = useQuery({ queryKey: ['items'], queryFn: () => api<Item[]>('/items'), enabled: open });
@@ -109,10 +109,11 @@ function ChallanDialog({ open, onClose, onSaved }: { open: boolean; onClose: () 
   }, [open]);
   const goods = (items.data ?? []).filter((i) => i.kind === 'goods');
   const save = async (print: boolean) => {
+    const fail = (m: string) => { setErr(m); toastSaveFailed(m); };
     const L = lines.filter((l) => Number(l.qty) > 0);
-    if (!party) { setErr('Choose who the goods are going to.'); return document.getElementById('dcParty')?.focus(); }
-    if (party === '__walk' && !f.name.trim()) { setErr('Enter the name.'); return document.getElementById('dcName')?.focus(); }
-    if (!L.length) return setErr('Add at least one item with a quantity.');
+    if (!party) { fail('Choose who the goods are going to.'); return document.getElementById('dcParty')?.focus(); }
+    if (party === '__walk' && !f.name.trim()) { fail('Enter the name.'); return document.getElementById('dcName')?.focus(); }
+    if (!L.length) return fail('Add at least one item with a quantity.');
     setBusy(true);
     try {
       const r = await api<{ id: string; number: string; partyName: string; items: number }>('/challans', {
@@ -120,9 +121,9 @@ function ChallanDialog({ open, onClose, onSaved }: { open: boolean; onClose: () 
       });
       onClose();
       await Promise.all(['sales', 'next-number'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
-      showToast(`${r.number} saved · ${r.items} item${r.items > 1 ? 's' : ''} sent to ${r.partyName}`);
+      toastSaved('challan');
       onSaved(r.id, print);
-    } catch (e) { setErr(e instanceof ApiError ? e.message : 'Could not save the challan.'); }
+    } catch (e) { fail(e instanceof ApiError ? e.message : 'Could not save the challan.'); }
     finally { setBusy(false); }
   };
   return (
