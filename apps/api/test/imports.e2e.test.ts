@@ -4,6 +4,7 @@ import type { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { OLD_APP } from '@billing/shared';
 import { TEST_DB } from './env';
 import { auth, member, owner, startApp } from './helpers';
 
@@ -118,7 +119,7 @@ describe('POST /api/imports', () => {
   it('explains a wrong file in plain words', async () => {
     const o = await owner(app);
     const res = await http().post('/api/imports').set(auth(o)).send({ backup: '{"hello":1}' }).expect(422);
-    expect(res.body.message).toMatch(/isn’t a backup from the Billing ERP app/);
+    expect(res.body.message).toContain(`isn’t a backup from the ${OLD_APP.name} app`);
   });
 
   it('only the owner can import', async () => {

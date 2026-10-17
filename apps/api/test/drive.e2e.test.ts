@@ -6,6 +6,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { TEST_DB } from './env';
 import { auth, member, owner, startApp, SHOP } from './helpers';
+import { BRAND } from '@billing/shared';
 import { resetConfig } from '../src/config';
 import { BackupService } from '../src/modules/backup/backup.service';
 import { DRIVE_SCOPE } from '../src/modules/backup/drive';
@@ -199,7 +200,7 @@ describe('backing up to Google Drive', () => {
     const o = await connected();
     await http().post('/api/parties').set(auth(o)).send({ name: 'Verma Traders' }).expect(201);
     expect((await now(o)).body.results).toEqual({ drive: 'sent' });
-    const folders = [...g.folders].filter(([, f]) => f.name === `Billing ERP Backup - ${SHOP.name}`);
+    const folders = [...g.folders].filter(([, f]) => f.name === `${BRAND.backupFolder} - ${SHOP.name}`);
     expect(folders.length).toBeGreaterThanOrEqual(1);
     const folderId = (((await dest(o)).settings) as { folderId: string }).folderId;
     const mine = [...g.files.values()].filter((f) => f.parent === folderId);
@@ -208,7 +209,7 @@ describe('backing up to Google Drive', () => {
     expect(g.calls.filter((c) => c.path.startsWith('/drive') || c.path.startsWith('/upload')).every((c) => c.auth.startsWith('Bearer at-'))).toBe(true);
     expect(g.calls.some((c) => c.path.includes(REFRESH))).toBe(false);
     const st = await status(o);
-    expect(st.drive).toMatchObject({ connected: true, folder: `Billing ERP Backup - ${SHOP.name}`, account: 'owner@gmail.com', waiting: 0, error: null });
+    expect(st.drive).toMatchObject({ connected: true, folder: `${BRAND.backupFolder} - ${SHOP.name}`, account: 'owner@gmail.com', waiting: 0, error: null });
     const r = (await http().post('/api/backup/test-restore').set(auth(o)).send({ from: 'drive' }).expect(200)).body;
     expect(r).toMatchObject({ from: 'drive', matches: true, parties: 1 });
   });

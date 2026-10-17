@@ -4,11 +4,12 @@
  * these looks are shown with the server's answer filled in by the test.
  */
 import type { Page, Route } from '@playwright/test';
+import { OLD_APP } from '../../../packages/shared/src/brand';
 
 const NOW = new Date('2026-10-01T14:00:00+05:30');
 const t = (sec: number) => new Date(+NOW - sec * 1000).toISOString();
 const ok = (sec: number) => ({ lastOkAt: t(sec), failingSince: null, error: null, waiting: 0 });
-const drive = (x = {}) => ({ enabled: true, connected: true, reconnect: false, folder: 'Billing ERP Backup - Verma Traders', account: 'pooja.verma@gmail.com', lastSnapshotAt: t(13 * 3600 - 300), ...ok(40), ...x });
+const drive = (x = {}) => ({ enabled: true, connected: true, reconnect: false, folder: `${OLD_APP.backupFolder} - Verma Traders`, account: 'pooja.verma@gmail.com', lastSnapshotAt: t(13 * 3600 - 300), ...ok(40), ...x });
 const local = (x = {}) => ({ enabled: true, connected: true, reconnect: false, folder: 'ERP backups', account: '', lastSnapshotAt: t(13 * 3600 - 300), ...ok(95), ...x });
 const base = (x: object) => ({ keySet: true, driveSetUp: true, dest: null, drive: null, local: null, snapshot: { lastAt: t(13 * 3600 - 300) }, space: { usedMb: 38, limitMb: 500 }, failMinutes: 15, now: NOW.toISOString(), ...x });
 
