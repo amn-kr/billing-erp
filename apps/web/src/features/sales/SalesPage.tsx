@@ -2,7 +2,7 @@
  * Sales invoices (#vSales) — the prototype's renderSales with its later changes:
  * collapsible search, column-header filters (date, number, party, amounts, due
  * date, status), right-click / ⋮ actions (#slCtx) and the small window (#slm)
- * for cancel, history and payment history. A row opens the invoice preview.
+ * for cancel, delete, history and payment history. A row opens the invoice preview.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -19,7 +19,7 @@ import { inPeriod, statusOf, useSale, useSales, type Period, type SaleDoc, type 
 import { InvoicePreview } from './InvoicePreview';
 import { SlModal, type SlModalProps } from './SlModal';
 import { printNow } from '../print/printer';
-import { cancelAsk, withPasscode } from '../settings/passcode';
+import { cancelAsk, deleteAsk, withPasscode } from '../settings/passcode';
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const FILTER = '<path d="M4 5h16l-6 8v6l-4-2v-4z"/>';
@@ -105,6 +105,7 @@ export function SalesPage() {
     if (a === 'dup') return navigate(`/sales/new?copy=${s.id}`);
     // Open PDF and Print: the same paper through the browser's print window (choose "Save as PDF"; the file is named e.g. "Tax Invoice INV-0101")
     if (a === 'pdf' || a === 'print') { setPreview({ id: s.id }); printNow(); return; }
+    if (a === 'del') return askDelete(s);
     const d = await qc.fetchQuery({ queryKey: ['sale', s.id], queryFn: () => api<SaleDoc>(`/sales/${s.id}`) });
     if (a === 'cancel') return askCancel(s, d);
     if (a === 'payh') return payHistory(s, d);
@@ -122,6 +123,22 @@ export function SalesPage() {
           await refresh();
           showToast(`${s.number} cancelled`);
         } catch (e) { showToast(e instanceof ApiError ? e.message : 'Could not cancel the invoice.'); }
+      },
+    });
+  };
+  /** Delete (prototype slConfirm 'del'): undone like cancel, then hidden from the list — kept in the records, never erased. */
+  const askDelete = (s: SaleRow) => {
+    const recv = s.cancelled ? money(0) : money(s.total).minus(s.balance);
+    setModal({
+      title: `Delete ${s.number}?`, sub: `${s.partyName} · ₹${inr2f(s.total)}`, ok: 'Delete invoice', danger: true,
+      body: <p className="slcl" style={{ margin: 0 }}>{s.cancelled ? 'The invoice is already cancelled. ' : ''}It is hidden from your lists but kept safely in your records. Nothing is erased.{s.cancelled ? null : <> Its items go back into stock{recv.gt(0) ? (s.party ? <>, and ₹{inr2f(recv.toFixed(2))} already received becomes an <b>advance</b> for {s.partyName}</> : <>, and the ₹{inr2f(recv.toFixed(2))} taken with it is refunded</>) : null}.</>}</p>,
+      onOk: async () => {
+        try {
+          if (!(await withPasscode(qc, deleteAsk(s.number, 'invoice'), (h) => api(`/sales/${s.id}/delete`, { method: 'POST', body: {}, headers: h })))) return;
+          setModal(null);
+          await refresh();
+          showToast(`${s.number} deleted`);
+        } catch (e) { showToast(e instanceof ApiError ? e.message : 'Could not delete the invoice.'); }
       },
     });
   };
@@ -254,7 +271,6 @@ function SaleMenu({ menu, onClose: onCloseProp, onPick }: { menu: { row: SaleRow
   const off: Record<string, string> = r ? {
     einv: c ? 'Cancelled invoice' : '', recv: c ? 'Cancelled invoice' : !r.party ? 'Counter sale — no party to collect from' : bal <= 0 ? 'Fully paid' : '',
     plink: c ? 'Cancelled invoice' : bal <= 0 ? 'Fully paid' : '', ret: c ? 'Cancelled invoice' : '', cancel: c ? 'Already cancelled' : '',
-    del: 'Invoices are never deleted — cancel instead',
   } : {};
   return (
     <div className="ctxm" id="slCtx" role="menu" aria-label="Invoice actions" hidden={!menu} ref={ref} style={pos ? { left: pos.left, top: pos.top } : undefined}>

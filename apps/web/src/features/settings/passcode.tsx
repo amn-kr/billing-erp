@@ -1,7 +1,7 @@
 /**
  * Transaction passcode (Settings › Transactions): the passcode box and withPasscode().
  * The box is the prototype's price PIN dialog (#plkm classes) with 4 to 6 digits. The server
- * checks every edit and cancel; this only asks for the passcode and sends it along.
+ * checks every edit, cancel and delete; this only asks for the passcode and sends it along.
  * Asked every time — the passcode is never kept after the call it was typed for.
  */
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
@@ -61,6 +61,9 @@ export async function withPasscode<T>(qc: QueryClient, ask: { title: string; sub
 export const editAsk = (no: string) => ({ title: 'Passcode needed', sub: <>Enter the passcode to save your changes to <No n={no} />.</>, go: 'Save changes' });
 /** The box's words when a document is cancelled ("invoice", "challan" …). */
 export const cancelAsk = (no: string, what: string) => ({ title: `Cancel ${no}?`, sub: `Enter the passcode to cancel this ${what}. It stays in your records as cancelled.`, go: `Cancel ${what}`, keep: `Keep ${what}` });
+
+/** The box's words when a document is deleted ("invoice" …): hidden from the lists, never erased. */
+export const deleteAsk = (no: string, what: string) => ({ title: `Delete ${no}?`, sub: `Enter the passcode to delete this ${what}. It is hidden from your lists but kept safely in your records. Nothing is erased.`, go: `Delete ${what}`, keep: `Keep ${what}` });
 
 /** True when a saved document can't be saved quietly (in the background) because the passcode is on. */
 export const passcodeOn = (qc: QueryClient) => !!qc.getQueryData<PasscodeState>(PASSCODE_KEY)?.enabled;
