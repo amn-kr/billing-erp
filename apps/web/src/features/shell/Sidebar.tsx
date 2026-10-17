@@ -5,6 +5,7 @@ import { Icon } from '../../components/Icon';
 import { P } from '../../components/icon-paths';
 import { NAV, type NavEntry, type NavLink } from './nav';
 import { readLocal, useShell, write } from './store';
+import { APP_LETTER, APP_NAME } from '../../lib/brand';
 
 const MINI_ICON = '<path d="M11 7l-5 5 5 5M6 12h13M20 5v14"/>';
 
@@ -120,7 +121,7 @@ export function Sidebar({ active, rsec, lowStock, acct, onView, onSoon }: Props)
 
   return (
     <aside className={sideOpen ? 'side open' : 'side'} id="side" aria-label="Main menu">
-      <div className="sbh"><div className="logo">B</div><b>Billing ERP</b></div>
+      <div className="sbh"><div className="logo">{APP_LETTER}</div><b>{APP_NAME}</b></div>
       <nav id="nav" ref={navRef} onMouseLeave={() => hideFly()}>
         {NAV.map((row) => {
           if ('heading' in row) return <div className="nl" key={row.heading}>{row.heading}</div>;

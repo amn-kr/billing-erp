@@ -1,6 +1,8 @@
 /**
  * Google Drive as a backup place. Narrowest permission only: drive.file ("files this app created"),
- * so the app sees nothing in the owner's Drive except its own folder "Billing ERP Backup - <shop>".
+ * so the app sees nothing in the owner's Drive except its own folder "<BRAND.backupFolder> - <shop>".
+ * The folder is found by its saved id, never by its name: renaming the app (packages/shared/src/brand.ts)
+ * leaves a shop's existing folder and its backups as they are; only a new folder gets the new name.
  *
  * Connecting: the owner presses "Connect Google Drive", signs in at Google and comes back to
  * Settings. The refresh token Google gives is kept locked in backup_destinations.secret (lockSecret);
@@ -11,6 +13,7 @@ import { JwtService } from '@nestjs/jwt';
 import { randomBytes } from 'node:crypto';
 import type { BackupDestination } from '@prisma/client';
 import type { Response as Reply } from 'express';
+import { BRAND } from '@billing/shared';
 import { appUrl, config } from '../../config';
 import { Ctx, Public, RequirePermission } from '../../common/decorators';
 import { DbService } from '../../common/db.service';
@@ -116,7 +119,7 @@ export class DriveSender implements Sender, OnModuleInit {
       throw new PlaceError('The backup folder was removed from Google Drive. A new one is made on the next try.', { restart: true });
     }
     const shop = await this.db.scoped({ businessId: d.businessId }, (tx) => tx.business.findUniqueOrThrow({ where: { id: d.businessId }, select: { name: true } }));
-    const name = `Billing ERP Backup - ${shop.name}`.slice(0, 200);
+    const name = `${BRAND.backupFolder} - ${shop.name}`.slice(0, 200);
     const r = await this.drive(d, `${google().api}/drive/v3/files?fields=id`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, mimeType: FOLDER }) });
     const { id } = (await r.json()) as { id: string };
     await this.db.scoped({ businessId: d.businessId }, (tx) => tx.$executeRaw`

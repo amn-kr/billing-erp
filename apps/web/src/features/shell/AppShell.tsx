@@ -29,6 +29,7 @@ import { statusOf, type SaleRow } from '../sales/model';
 import { statusOfBill, type PurchaseRow } from '../purchases/model';
 import { BackupBanner } from '../settings/BackupCard';
 import { soon, useOnline, useShell } from './store';
+import { APP_NAME } from '../../lib/brand';
 
 function GoLogin({ query = '' }: { query?: string }) {
   useEffect(() => goToLogin(query), [query]);
@@ -56,7 +57,7 @@ export function AppShell() {
       html.dataset.gst = business.gstEnabled ? 'on' : 'off';
       html.dataset.sub = business.plan === 'expired' ? 'ended' : business.plan === 'paid' ? 'active' : 'trial';
     }
-    document.title = 'Billing ERP – Dashboard';
+    document.title = APP_NAME + ' – Dashboard';
   }, [pal, business]);
   // Settings › General: currency symbol and MRP switches (body classes + the prototype's ₹ remover)
   const sdata = settings.data?.data as { showCurrency?: boolean; mrp?: boolean; acct?: boolean } | undefined;

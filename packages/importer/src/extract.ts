@@ -11,6 +11,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium, type Browser } from 'playwright-core';
+import { OLD_APP } from '@billing/shared';
 import { backupSchema, snapshotSchema, type Backup, type Snapshot } from './snapshot.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -26,7 +27,7 @@ export function parseBackup(text: string): Backup {
     throw new ImportError('This file is not a backup: it is not valid JSON.');
   }
   const r = backupSchema.safeParse(raw);
-  if (!r.success) throw new ImportError('This file isn’t a backup from the Billing ERP app (Settings › General › Backup & restore).');
+  if (!r.success) throw new ImportError(`This file isn’t a backup from the ${OLD_APP.name} app (Settings › General › Backup & restore).`);
   return r.data;
 }
 

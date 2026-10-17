@@ -92,6 +92,8 @@ jobs:
           key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
       - name: Install Playwright browser (screenshot tests and the importer use it)
         run: pnpm --filter @billing/web exec playwright install --with-deps chromium
+      - name: Brand check (the app's name is read from packages/shared/src/brand.ts everywhere)
+        run: pnpm brand:check
       - name: Typecheck
         run: pnpm typecheck
       - name: Unit and API tests
