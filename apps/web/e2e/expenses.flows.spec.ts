@@ -22,7 +22,7 @@ test('add an expense with Alt+E, save & new keeps the category, edit it, then ca
   await expect(page.locator('#xpLines [data-f="amt"]')).toHaveValue('320');
   await page.fill('#xpPayee', 'Sharma Tea Stall');
   await page.click('#xpSaveNew');
-  await expect(page.locator('#toast')).toHaveText('EXP-0006 saved · 320.00 from Cash in hand');
+  await expect(page.locator('#toast')).toHaveText('Expense saved successfully');
   // the window stays open for the next one, same category
   await expect(page.locator('#xpCat')).toHaveValue('Tea & refreshments');
   await expect(page.locator('#xpNo')).toHaveText('EXP-0007');
@@ -36,7 +36,7 @@ test('add an expense with Alt+E, save & new keeps the category, edit it, then ca
   await page.selectOption('#xpMode', 'UPI');
   await expect(page.locator('#xpAcct option:checked')).toHaveText('HDFC Bank');
   await page.click('#xpSave');
-  await expect(page.locator('#toast')).toHaveText('EXP-0006 saved · 320.00 from HDFC Bank');
+  await expect(page.locator('#toast')).toHaveText('Expense saved successfully');
   await page.goto(APP + '/bank-accounts');
   await expect(page.locator('#bkRows tr').first()).toContainText('Expense · Tea & refreshments');
 
@@ -64,7 +64,7 @@ test('a new category from the expense window comes back chosen; renaming fixes e
   await expect(page.locator('#xpCat')).toHaveValue('Staff welfare');
   await page.fill('#xpLines [data-f="amt"]', '1200');
   await page.click('#xpSave');
-  await expect(page.locator('#toast')).toHaveText('EXP-0006 saved · 1,200.00 from Cash in hand');
+  await expect(page.locator('#toast')).toHaveText('Expense saved successfully');
 
   await page.click('#exCats');
   const row = page.locator('#xcList .xcrow', { has: page.locator('input[value="Staff welfare"]') });

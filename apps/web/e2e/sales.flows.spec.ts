@@ -32,7 +32,7 @@ test('a credit sale made in the invoice editor is saved, previewed, and opens ag
   // first save asks to check discount & charges, as in the prototype
   if (await page.locator('#siChgPop:not([hidden])').count()) await page.click('#siChgDone');
   // (this shop hides the ₹ sign: Settings › General)
-  await expect(page.locator('#toast')).toHaveText(`${no} saved · 870.00 · 770.00 due`);
+  await expect(page.locator('#toast')).toHaveText('Invoice saved successfully');
   await expect(page).toHaveURL(/\/sales$/);
   // the saved invoice opens in the preview straight away
   await expect(page.locator('#ipv:not([hidden]) .mdl')).toContainText(no);
@@ -134,7 +134,7 @@ test('bill tabs, rule 3: a sale number is used only when the bill is saved', asy
   await expect(page.locator('#siParty')).toHaveValue('Raju Electrician');
   await page.click('#siSave');
   if (await page.locator('#siChgPop:not([hidden])').count()) await page.click('#siChgDone');
-  await expect(page.locator('#toast')).toContainText('INV-0107 saved');
+  await expect(page.locator('#toast')).toHaveText('Invoice saved successfully');
   // other bills are still open, so the saved one is shown over the editor
   await expect(page.locator('#ipv:not([hidden]) .mdl')).toContainText('INV-0107');
   await page.keyboard.press('Escape');
@@ -143,7 +143,7 @@ test('bill tabs, rule 3: a sale number is used only when the bill is saved', asy
   await expect(page.locator('#siNo')).toHaveValue('INV-0108');
   await page.click('#siSave');
   if (await page.locator('#siChgPop:not([hidden])').count()) await page.click('#siChgDone');
-  await expect(page.locator('#toast')).toContainText('INV-0108 saved');
+  await expect(page.locator('#toast')).toHaveText('Invoice saved successfully');
   await expect(page).toHaveURL(/\/sales$/);
   await page.keyboard.press('Escape');
   await expect(page.locator('#slRows tr[data-sno="INV-0107"]')).toContainText('Raju Electrician');
@@ -198,7 +198,7 @@ test('Quick sale (Alt+N): a walk-in cash sale is saved as an invoice, and its nu
   await page.locator('#qsRows .qsq').first().fill('2');
   await page.click('#qsPay [data-qspay="UPI"]');
   await page.click('#qsSave');
-  await expect(page.locator('#toast')).toHaveText('INV-0107 saved · 190.00 · UPI');
+  await expect(page.locator('#toast')).toHaveText('Invoice saved successfully');
   await expect(page.locator('#qsm')).toHaveCount(0);
   await expect(page.locator('#slRows tr[data-sno="INV-0107"]')).toContainText('Sunil');
 });
@@ -227,7 +227,7 @@ test('brand-wise quotation: no sample brands; the shop’s own brands and series
   await page.getByLabel('Quantity of Modular switch 6A').fill('4');
   await expect(page.locator('#qFoot .qgt td.n')).toHaveText(['792.00Lowest', '1,098.00']);
   await page.click('#qSave');
-  await expect(page.locator('#toast')).toHaveText('Q-0101 saved for Sunil');
+  await expect(page.locator('#toast')).toHaveText('Quotation saved successfully');
   await expect(page.locator('#qState')).toHaveText('Saved');
   // convert: the brands with every item come first, cheapest first
   await page.click('#qConv');
@@ -239,10 +239,10 @@ test('brand-wise quotation: no sample brands; the shop’s own brands and series
   await expect(page.locator('#siMid .qref')).toContainText('Q-0101');
   await expect(page.locator('#siMid .qref em')).toHaveText('Anchor Roma');
   await expect(page.locator('#siRows tr[data-ln]')).toHaveCount(3); // two items and the empty row
+  const inv = await page.locator('#siNo').inputValue();
   await page.click('#siSave');
   if (await page.locator('#siChgPop:not([hidden])').count()) await page.click('#siChgDone');
-  await expect(page.locator('#toast')).toContainText(/^INV-\d+ saved/);
-  const inv = (await page.locator('#toast').textContent())!.split(' ')[0]!;
+  await expect(page.locator('#toast')).toHaveText('Invoice saved successfully');
   // the quotation is converted and locked
   await page.goto(APP + '/quotations');
   await page.click('#qSaved');

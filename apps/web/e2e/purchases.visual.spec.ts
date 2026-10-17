@@ -74,6 +74,8 @@ for (const width of WIDTHS) {
       await sameShot(`pur-pay-${width}`, proto, app, '#ppm .mdl');
       // a mistake shows the prototype's message
       await both(proto, app, async (p) => { await p.selectOption('#pyMode', 'Cheque'); await p.click('#pySave'); });
+      // the rebuild also shows the reason as a red message at the top (owner-approved); the prototype doesn't
+      await app.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
       await sameShot(`pur-pay-error-${width}`, proto, app, '#ppm .mdl');
     });
 

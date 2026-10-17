@@ -28,7 +28,6 @@ const cash = async (request: APIRequestContext) =>
   Number(((await api(request, '/banking/accounts')) as { kind: string; balance: string }[]).find((a) => a.kind === 'cash')!.balance);
 const pick = async (sel: string, text: string) => { await page.fill(sel, text); await page.waitForTimeout(150); await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter'); };
 const choose = async (sel: string, text: string) => { const v = await page.locator(`${sel} option`, { hasText: text }).first().getAttribute('value'); await page.selectOption(sel, v!); };
-const toastText = async () => (await page.locator('#toast').textContent()) ?? '';
 
 const errors: string[] = [];
 let inv = { no: '', total: 0 };
@@ -67,7 +66,7 @@ test('an invoice raises the party balance', async ({ request }) => {
   await expect(page.locator('#siRows tr[data-ln="1"] [data-f="name"]')).toHaveValue(/LED bulb/);
   await page.click('#siSave');
   if (await page.locator('#siChgPop:not([hidden])').count()) await page.click('#siChgDone');
-  await expect(page.locator('#toast')).toContainText(`${inv.no} saved`);
+  await expect(page.locator('#toast')).toHaveText('Invoice saved successfully');
   await page.keyboard.press('Escape');
   const sale = ((await api(request, '/sales?kind=invoice')) as { number: string; total: string; date: string }[]).find((s) => s.number === inv.no)!;
   inv.total = Number(sale.total);
@@ -117,9 +116,9 @@ test('a purchase bill is saved and raises what the shop owes; a payment made low
   await pick('#peRows tr[data-ln="0"] .pe-item', 'LED bulb');
   await page.fill('#peRows tr[data-ln="0"] [data-pf="qty"]', '10');
   await page.fill('#peRef', 'SUP-77');
+  const billNo = await page.locator('#peNo').inputValue();
   await page.click('#peSave');
-  await expect(page.locator('#toast')).toContainText('saved · stock added');
-  const billNo = (await toastText()).split(' ')[0]!;
+  await expect(page.locator('#toast')).toHaveText('Purchase Bill saved successfully');
   const bill = ((await api(request, '/purchases?kind=bill')) as { number: string; total: string }[]).find((b) => b.number === billNo)!;
   const owe2 = await balanceOf(request, 'Kanpur Cables Pvt Ltd');
   expect(Math.abs(owe2 - owe)).toBeCloseTo(Number(bill.total), 2);
@@ -130,7 +129,7 @@ test('a purchase bill is saved and raises what the shop owes; a payment made low
   await page.fill('#pyAmt', '1000');
   await page.locator('#pyAmt').dispatchEvent('input');
   await page.click('#pySave');
-  await expect(page.locator('#toast')).toContainText('1,000.00 paid to Kanpur Cables Pvt Ltd');
+  await expect(page.locator('#toast')).toHaveText('Payment Out saved successfully');
   expect(Math.abs(Math.abs(await balanceOf(request, 'Kanpur Cables Pvt Ltd')) - Math.abs(owe2))).toBeCloseTo(1000, 2);
 });
 
