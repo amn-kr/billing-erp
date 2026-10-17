@@ -43,8 +43,6 @@ for (const width of WIDTHS) {
       // right-click actions on a partly paid invoice
       const menu = (no: string) => both(proto, app, async (p) => { const b = await p.locator(`#slRows tr[data-sno="${no}"]`).boundingBox(); await p.mouse.click(b!.x + 200, b!.y + 10, { button: 'right' }); });
       await menu('INV-0101');
-      // deliberate difference: invoices are never deleted, so "Delete" is greyed out with a reason
-      await proto.evaluate(() => { const b = document.querySelector<HTMLButtonElement>('#slCtx [data-sla="del"]')!; b.disabled = true; b.title = 'Invoices are never deleted — cancel instead'; });
       await sameShot(`sales-menu-${width}`, proto, app, '#slCtx');
       await both(proto, app, (p) => p.keyboard.press('Escape'));
 

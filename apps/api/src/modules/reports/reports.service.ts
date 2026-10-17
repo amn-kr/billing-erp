@@ -39,7 +39,8 @@ export class ReportsService {
     const [parties, items, sales, pays, purch, cheques] = await Promise.all([
       tx.party.findMany({ where: partyId ? { id: partyId } : { archivedAt: null }, include: { group: true, addresses: { where: { kind: 'billing' }, take: 1 } }, orderBy: { name: 'asc' } }),
       tx.item.findMany({ include: { unit: true, category: true } }),
-      tx.salesDocument.findMany({ where: { kind: { in: ['invoice', 'credit_note'] }, ...pw }, include: { lines: { orderBy: { position: 'asc' } } }, orderBy: [{ date: 'asc' }, { number: 'asc' }] }),
+      // deleted documents are left out (they count for nothing, like cancelled ones, and are hidden)
+      tx.salesDocument.findMany({ where: { kind: { in: ['invoice', 'credit_note'] }, deletedAt: null, ...pw }, include: { lines: { orderBy: { position: 'asc' } } }, orderBy: [{ date: 'asc' }, { number: 'asc' }] }),
       tx.payment.findMany({ where: { cancelledAt: null, ...pw }, orderBy: [{ date: 'asc' }, { number: 'asc' }] }),
       tx.purchaseDocument.findMany({ where: { kind: { in: ['bill', 'debit_note'] }, cancelledAt: null, ...(partyId ? { partyId } : {}) }, include: { lines: { orderBy: { position: 'asc' } } }, orderBy: [{ date: 'asc' }, { number: 'asc' }] }),
       tx.cheque.findMany({ where: { status: 'bounced', ...pw } }),

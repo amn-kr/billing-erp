@@ -88,7 +88,7 @@ export class ItemsService {
       const trfs = new Map((await tx.stockTransfer.findMany({ where: { id: { in: trfIds } } })).map((t) => [t.id, t]));
       // invoices, credit notes and bills behind sale / return / purchase rows: their number, party and (invoices) paid status
       const ids = (t: string) => [...new Set(movements.filter((m) => m.sourceType === t && m.sourceId).map((m) => m.sourceId!))];
-      const sdocs = new Map((await tx.salesDocument.findMany({ where: { id: { in: ids('sales_document') } }, select: { id: true, number: true, kind: true, total: true, cancelledAt: true, cashName: true, billName: true, party: { select: { name: true } } } })).map((d) => [d.id, d]));
+      const sdocs = new Map((await tx.salesDocument.findMany({ where: { id: { in: ids('sales_document') } }, select: { id: true, number: true, kind: true, total: true, cancelledAt: true, deletedAt: true, cashName: true, billName: true, party: { select: { name: true } } } })).map((d) => [d.id, d]));
       const pdocs = new Map((await tx.purchaseDocument.findMany({ where: { id: { in: ids('purchase_document') } }, select: { id: true, number: true, party: { select: { name: true } } } })).map((d) => [d.id, d]));
       // credit notes and debit notes: the invoices / bills their lines for this item return against
       const lineOf = { where: { itemId: id, againstId: { not: null } }, select: { documentId: true, againstId: true } } as const;
@@ -126,7 +126,8 @@ export class ItemsService {
           item.purchase,
         ),
         godowns: godowns.map((g) => ({ id: g.id, name: g.name, stock: q3(byGodown.find((b) => b.godownId === g.id)?._sum.qty ?? '0') })),
-        movements: movements.map((m) => ({ id: m.id, date: isoOf(m.date), kind: m.kind, qty: q3(m.qty), rate: toDb(m.rate.toString()), godown: m.godown.name, note: m.note, sourceType: m.sourceType, sourceId: m.sourceId, ref: refOf(m), party: partyOf(m), status: statusOf(m), createdAt: m.createdAt })),
+        // a deleted document's movements (taken out and put back) still count in the stock, but aren't listed
+        movements: movements.filter((m) => !(m.sourceId && sdocs.get(m.sourceId)?.deletedAt)).map((m) => ({ id: m.id, date: isoOf(m.date), kind: m.kind, qty: q3(m.qty), rate: toDb(m.rate.toString()), godown: m.godown.name, note: m.note, sourceType: m.sourceType, sourceId: m.sourceId, ref: refOf(m), party: partyOf(m), status: statusOf(m), createdAt: m.createdAt })),
       };
     });
   }

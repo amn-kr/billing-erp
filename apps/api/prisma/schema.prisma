@@ -1004,6 +1004,10 @@ model SalesDocument {
   cancelledAt   DateTime? @map("cancelled_at") @db.Timestamptz(6)
   cancelledBy   String?   @map("cancelled_by") @db.Uuid
   cancelReason  String    @default("") @map("cancel_reason")
+  /// deleted: hidden from the lists, kept for good (cancelled_at is set too: its effects are undone)
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy     String?   @map("deleted_by") @db.Uuid
+  deleteReason  String    @default("") @map("delete_reason")
   legacyId      String?   @map("legacy_id")
   createdBy     String    @map("created_by") @db.Uuid
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -1158,6 +1162,10 @@ model Payment {
   splits      Json      @default("[]")
   cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(6)
   cancelledBy String?   @map("cancelled_by") @db.Uuid
+  /// deleted (payments received): hidden from the lists, kept for good (cancelled_at is set too)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy   String?   @map("deleted_by") @db.Uuid
+  deleteReason String   @default("") @map("delete_reason")
   legacyId    String?   @map("legacy_id")
   createdBy   String    @map("created_by") @db.Uuid
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)

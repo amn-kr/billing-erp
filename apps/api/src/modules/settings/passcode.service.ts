@@ -15,7 +15,7 @@ const TRIES = 5;
 const WAIT_MS = 60_000;
 
 /** What the passcode protects, for the audit log and the messages. */
-export type PasscodeUse = 'edit' | 'cancel';
+export type PasscodeUse = 'edit' | 'cancel' | 'delete';
 
 export interface PasscodeState {
   set: boolean;

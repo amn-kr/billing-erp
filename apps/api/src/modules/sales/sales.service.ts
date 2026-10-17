@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, type SalesDocument } from '@prisma/client';
 import {
   amountInWords, lineCommission, money, saleTotals, taxModeOf, toDb, todayIst, type CommRule, type Money, type SaleInput, type TaxMode,
 } from '@billing/shared';
@@ -11,6 +11,8 @@ import type { RequestContext } from '../../common/context';
 import { day, isoOf } from '../../common/lookups';
 import { invoiceBalances, openDues, unusedAmounts } from './dues';
 import { writeAtSale } from './at-sale';
+import { cancelPayment } from './money-in';
+import { ALREADY_DELETED, deleteMark } from '../../common/deleting';
 
 const q3 = (v: { toString(): string }) => money(v.toString()).toDecimalPlaces(3).toFixed(3);
 const d2 = (v: { toString(): string } | null | undefined) => (v === null || v === undefined ? null : toDb(v.toString()));
@@ -96,6 +98,7 @@ export class SalesService {
     const isInv = kind === 'invoice';
     const before = id ? await tx.salesDocument.findFirst({ where: { id, kind }, include: { lines: true } }) : null;
     if (id && !before) throw new NotFoundException({ message: `That ${KIND_WORD[kind].toLowerCase()} was not found.` });
+    if (before?.deletedAt) throw new BadRequestException({ message: `${before.number} is deleted. It can’t be changed.` });
     if (before?.cancelledAt) throw new BadRequestException({ message: `${before.number} is cancelled. It can’t be changed.` });
 
     /* checks, in the prototype's order and words */
@@ -262,28 +265,54 @@ export class SalesService {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const d = await tx.salesDocument.findFirst({ where: { id } });
       if (!d) throw new NotFoundException({ message: 'That document was not found.' });
+      if (d.deletedAt) throw new BadRequestException({ message: ALREADY_DELETED });
       if (d.cancelledAt) throw new BadRequestException({ message: 'Already cancelled' });
-      const today = todayIst();
-      let movedToAdvance = money(0);
-      if (d.kind === 'invoice') {
-        const bal = (await invoiceBalances(tx, [d.id])).get(d.id) ?? money(0);
-        movedToAdvance = money(d.total.toString()).minus(bal);
-        await this.ledger.cancel(tx, 'sales_document', d.id);
-        await this.reverseStock(tx, ctx, d.id, today, `Cancelled ${d.number}`);
-        if (!d.partyId) {
-          // a walk-in has no account to keep an advance in: the money taken with it is refunded
-          const pays = await tx.payment.findMany({ where: { sourceId: d.id, atSale: true, cancelledAt: null } });
-          for (const p of pays) {
-            await tx.payment.update({ where: { id: p.id }, data: { cancelledAt: new Date(), cancelledBy: ctx.userId } });
-            await this.ledger.cancel(tx, 'payment', p.id);
-            await tx.cheque.updateMany({ where: { paymentId: p.id, status: 'pending' }, data: { status: 'cancelled', statusDate: day(today) } });
-          }
-          movedToAdvance = money(0);
-        }
+      return this.cancelIn(tx, ctx, d, reason, new Date());
+    });
+  }
+
+  /** Undoes a document's effects and marks it cancelled; a delete runs the same steps first. */
+  private async cancelIn(tx: Tx, ctx: RequestContext, d: SalesDocument, reason: string, at: Date) {
+    const id = d.id;
+    const today = todayIst();
+    let movedToAdvance = money(0);
+    if (d.kind === 'invoice') {
+      const bal = (await invoiceBalances(tx, [d.id])).get(d.id) ?? money(0);
+      movedToAdvance = money(d.total.toString()).minus(bal);
+      await this.ledger.cancel(tx, 'sales_document', d.id);
+      await this.reverseStock(tx, ctx, d.id, today, `Cancelled ${d.number}`);
+      if (!d.partyId) {
+        // a walk-in has no account to keep an advance in: the money taken with it is refunded
+        const pays = await tx.payment.findMany({ where: { sourceId: d.id, atSale: true, cancelledAt: null } });
+        for (const p of pays) await cancelPayment(tx, this.ledger, { id: p.id, userId: ctx.userId, date: today, at });
+        movedToAdvance = money(0);
       }
-      await tx.salesDocument.update({ where: { id }, data: { cancelledAt: new Date(), cancelledBy: ctx.userId, cancelReason: reason, ...(d.kind === 'challan' && { status: 'cancelled' }) } });
-      await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'cancel', entity: 'sales_document', entityId: id, before: d, after: { reason, movedToAdvance: movedToAdvance.toFixed(2) }, ip: ctx.ip });
-      return { id, number: d.number, movedToAdvance: movedToAdvance.toFixed(2) };
+    } else if (d.kind === 'credit_note') {
+      // the returned goods go out of stock again and its entry (credit or refund) no longer counts
+      await this.ledger.cancel(tx, 'sales_document', d.id);
+      await this.reverseStock(tx, ctx, d.id, today, `Cancelled ${d.number}`);
+    }
+    await tx.salesDocument.update({ where: { id }, data: { cancelledAt: at, cancelledBy: ctx.userId, cancelReason: reason, ...(d.kind === 'challan' && { status: 'cancelled' }) } });
+    await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'cancel', entity: 'sales_document', entityId: id, before: d, after: { reason, movedToAdvance: movedToAdvance.toFixed(2) }, ip: ctx.ip });
+    return { id, number: d.number, movedToAdvance: movedToAdvance.toFixed(2) };
+  }
+
+  /* ───────── delete ───────── */
+
+  /**
+   * Delete (common/deleting.ts): the same steps as cancel, then hidden from the lists and kept for
+   * good. A document cancelled earlier has nothing left to undo: it is only marked deleted.
+   */
+  delete(ctx: RequestContext, id: string, reason: string) {
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      const d = await tx.salesDocument.findFirst({ where: { id } });
+      if (!d) throw new NotFoundException({ message: 'That document was not found.' });
+      if (d.deletedAt) throw new BadRequestException({ message: ALREADY_DELETED });
+      const at = new Date();
+      const r = d.cancelledAt ? { movedToAdvance: '0.00' } : await this.cancelIn(tx, ctx, d, reason, at);
+      await tx.salesDocument.update({ where: { id }, data: deleteMark(ctx, reason, at) });
+      await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'delete', entity: 'sales_document', entityId: id, before: d, after: { reason, wasCancelled: !!d.cancelledAt, movedToAdvance: r.movedToAdvance }, ip: ctx.ip });
+      return { id, number: d.number, movedToAdvance: r.movedToAdvance };
     });
   }
 
@@ -292,7 +321,7 @@ export class SalesService {
   list(ctx: RequestContext, kind: string) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const docs = await tx.salesDocument.findMany({
-        where: { kind }, include: { party: { select: { id: true, name: true, gstin: true, addresses: { where: { kind: 'billing' }, select: { city: true } } } }, lines: { select: { qty: true, name: true } } },
+        where: { kind, deletedAt: null }, include: { party: { select: { id: true, name: true, gstin: true, addresses: { where: { kind: 'billing' }, select: { city: true } } } }, lines: { select: { qty: true, name: true } } },
         orderBy: [{ date: 'desc' }, { number: 'desc' }],
       });
       const bal = kind === 'invoice' ? await invoiceBalances(tx, docs.map((d) => d.id)) : new Map<string, Money>();
@@ -323,7 +352,7 @@ export class SalesService {
         where: { id },
         include: { party: { include: { addresses: { where: { kind: 'billing' } } } }, lines: { orderBy: { position: 'asc' } } },
       });
-      if (!d) throw new NotFoundException({ message: 'That document was not found.' });
+      if (!d || d.deletedAt) throw new NotFoundException({ message: 'That document was not found.' });
       const items = new Map((await tx.item.findMany({ where: { id: { in: d.lines.flatMap((l) => (l.itemId ? [l.itemId] : [])) } }, include: { brand: true, category: true, itemGroup: true } })).map((i) => [i.id, i]));
       const bal = d.kind === 'invoice' ? ((await invoiceBalances(tx, [d.id])).get(d.id) ?? money(0)) : money(d.total.toString());
       const allocs = await tx.paymentAllocation.findMany({ where: { OR: [{ salesDocumentId: d.id }, { noteId: d.id }] }, include: { payment: true }, orderBy: { createdAt: 'asc' } });

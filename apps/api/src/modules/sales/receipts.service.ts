@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { money, toDb, type CreditNoteInput, type ChallanInput, type Money, type ReceiptInput } from '@billing/shared';
+import { money, toDb, todayIst, type CreditNoteInput, type ChallanInput, type Money, type ReceiptInput } from '@billing/shared';
 import { Prisma } from '@prisma/client';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
@@ -8,7 +8,8 @@ import { LedgerService } from '../../common/ledger.service';
 import type { RequestContext } from '../../common/context';
 import { day, isoOf } from '../../common/lookups';
 import { invoiceBalances, openDues, unusedAmounts } from './dues';
-import { accountFor, moneyInLines } from './money-in';
+import { accountFor, cancelPayment, moneyInLines } from './money-in';
+import { ALREADY_DELETED, deleteMark } from '../../common/deleting';
 import { booksOf } from './sales.service';
 
 const q3 = (v: { toString(): string }) => money(v.toString()).toDecimalPlaces(3).toFixed(3);
@@ -71,7 +72,7 @@ export class ReceiptsService {
   /** Payments received list (prototype allReceipts). */
   receipts(ctx: RequestContext) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
-      const pays = await tx.payment.findMany({ where: { direction: 'in', cancelledAt: null }, include: { party: { select: { id: true, name: true, phone: true } }, allocations: true }, orderBy: [{ date: 'desc' }, { number: 'desc' }] });
+      const pays = await tx.payment.findMany({ where: { direction: 'in', cancelledAt: null, deletedAt: null }, include: { party: { select: { id: true, name: true, phone: true } }, allocations: true }, orderBy: [{ date: 'desc' }, { number: 'desc' }] });
       const used = await unusedAmounts(tx, 'payment', pays.map((p) => p.id));
       const docIds = [...new Set(pays.flatMap((p) => p.allocations.flatMap((a) => (a.salesDocumentId ? [a.salesDocumentId] : []))))];
       const src = await tx.salesDocument.findMany({ where: { id: { in: [...docIds, ...pays.flatMap((p) => (p.sourceId ? [p.sourceId] : []))] } }, select: { id: true, number: true, cashName: true, cancelledAt: true } });
@@ -93,12 +94,38 @@ export class ReceiptsService {
     });
   }
 
+  /**
+   * Delete a payment received (common/deleting.ts): cancelled the way a walk-in sale's money is,
+   * then hidden from the lists and kept for good. What it settled is owed again.
+   * Money taken on an invoice belongs to that invoice, a commission adjustment to its payout, and a
+   * cheque already cleared or bounced has its own entry: those are refused with what to do instead.
+   */
+  delete(ctx: RequestContext, id: string, reason: string) {
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      const p = await tx.payment.findFirst({ where: { id, direction: 'in' } });
+      if (!p) throw new NotFoundException({ message: 'That payment was not found.' });
+      if (p.deletedAt) throw new BadRequestException({ message: ALREADY_DELETED });
+      if (p.atSale) {
+        const inv = p.sourceId ? await tx.salesDocument.findFirst({ where: { id: p.sourceId }, select: { number: true } }) : null;
+        throw new BadRequestException({ message: `This payment was taken with ${inv?.number ?? 'an invoice'}. Edit or delete the invoice instead.` });
+      }
+      if (p.mode === 'Commission adjust') throw new BadRequestException({ message: 'This payment comes from a commission payout. It can’t be deleted here.' });
+      const chq = await tx.cheque.findFirst({ where: { paymentId: id, status: { in: ['cleared', 'bounced'] } } });
+      if (chq) throw new BadRequestException({ message: `Cheque ${chq.chequeNo} on this payment is already ${chq.status}. Undo it on the Cheques page first.` });
+      const at = new Date();
+      if (!p.cancelledAt) await cancelPayment(tx, this.ledger, { id, userId: ctx.userId, date: todayIst(), at });
+      await tx.payment.update({ where: { id }, data: deleteMark(ctx, reason, at) });
+      await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'delete', entity: 'payment', entityId: id, before: p, after: { reason, wasCancelled: !!p.cancelledAt }, ip: ctx.ip });
+      return { id, number: p.number, amount: toDb(p.amount.toString()) };
+    });
+  }
+
   /* ───────── credit notes ───────── */
 
   /** How much of each invoice line can still be returned (sold − already returned). */
   returnable(ctx: RequestContext, invoiceId: string) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
-      const inv = await tx.salesDocument.findFirst({ where: { id: invoiceId, kind: 'invoice' }, include: { lines: { orderBy: { position: 'asc' } } } });
+      const inv = await tx.salesDocument.findFirst({ where: { id: invoiceId, kind: 'invoice', deletedAt: null }, include: { lines: { orderBy: { position: 'asc' } } } });
       if (!inv) throw new NotFoundException({ message: 'That invoice was not found.' });
       const back = await this.returned(tx, invoiceId);
       return inv.lines.map((l) => {
@@ -220,7 +247,7 @@ export class ReceiptsService {
 
   creditNotes(ctx: RequestContext) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
-      const cns = await tx.salesDocument.findMany({ where: { kind: 'credit_note' }, include: { party: { select: { id: true, name: true } }, lines: { orderBy: { position: 'asc' } } }, orderBy: [{ date: 'desc' }, { number: 'desc' }] });
+      const cns = await tx.salesDocument.findMany({ where: { kind: 'credit_note', deletedAt: null }, include: { party: { select: { id: true, name: true } }, lines: { orderBy: { position: 'asc' } } }, orderBy: [{ date: 'desc' }, { number: 'desc' }] });
       const used = await unusedAmounts(tx, 'note', cns.map((c) => c.id));
       const invs = await tx.salesDocument.findMany({ where: { id: { in: cns.flatMap((c) => c.lines.flatMap((l) => (l.againstId ? [l.againstId] : []))) } }, select: { id: true, number: true } });
       const no = new Map(invs.map((i) => [i.id, i.number]));

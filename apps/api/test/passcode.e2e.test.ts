@@ -44,10 +44,12 @@ async function sale(o: S) {
   return { inv, body };
 }
 
-/** Every edit / cancel call the passcode protects. */
+/** Every edit / cancel / delete call the passcode protects. */
 const GUARDED: [method: 'put' | 'post', path: (id: string) => string][] = [
   ['put', (id) => `/api/sales/${id}`],
   ['post', (id) => `/api/sales/${id}/cancel`],
+  ['post', (id) => `/api/sales/${id}/delete`],
+  ['post', (id) => `/api/receipts/${id}/delete`],
   ['put', (id) => `/api/quotations/brand/${id}`],
   ['post', (id) => `/api/purchases/${id}/cancel`],
   ['put', (id) => `/api/expenses/${id}`],

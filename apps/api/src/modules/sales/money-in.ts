@@ -1,6 +1,6 @@
 import { money, type Money, type PayPart } from '@billing/shared';
 import type { Tx } from '../../common/db.service';
-import type { PostLine } from '../../common/ledger.service';
+import type { LedgerService, PostLine } from '../../common/ledger.service';
 import { day } from '../../common/lookups';
 
 /**
@@ -50,4 +50,15 @@ export function capSplits(parts: PayPart[], cap: Money) {
     over = over.minus(cut);
   }
   return out.filter((p) => p.amount.gt(0));
+}
+
+/**
+ * Cancels a payment received: its entry in the books no longer counts and a cheque still waiting
+ * is cancelled. What it settled stops counting by itself (a cancelled payment settles nothing).
+ * Used when a walk-in sale is cancelled (its money is refunded) and when a payment is deleted.
+ */
+export async function cancelPayment(tx: Tx, ledger: LedgerService, o: { id: string; userId: string; date: string; at?: Date }) {
+  await tx.payment.update({ where: { id: o.id }, data: { cancelledAt: o.at ?? new Date(), cancelledBy: o.userId } });
+  await ledger.cancel(tx, 'payment', o.id);
+  await tx.cheque.updateMany({ where: { paymentId: o.id, status: 'pending' }, data: { status: 'cancelled', statusDate: day(o.date) } });
 }
