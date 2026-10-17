@@ -27,7 +27,7 @@ infra/           Docker, Terraform, env templates
 ## Database (about 45 tables)
 - **Common columns:** every shop-owned table has `business_id` (with RLS), UUID ids, `created_by`, `created_at` and `updated_at`.
 - **Types:** money is `numeric(14,2)`, quantities are `numeric(14,3)`.
-- **No deletes:** documents are cancelled with `cancelled_at`, never deleted.
+- **No deletes:** documents are cancelled with `cancelled_at`, never deleted. "Delete" on screen (from Oct 2026: sales documents and payments received) runs the same steps as cancel and also sets `deleted_at`, which only hides the document from the lists; the row is kept (`apps/api/src/common/deleting.ts`).
 
 Tables by area:
 - **Accounts and SaaS:** users, businesses, memberships, invites, roles, role_permissions, sessions, plans, subscriptions, subscription_payments

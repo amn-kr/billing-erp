@@ -270,10 +270,15 @@ describe('delete a payment received', () => {
     expect((await delPay(o, pi.id).expect(400)).body.message).toBe('This payment was taken with INV-0001. Edit or delete the invoice instead.');
   });
 
-  it('billing staff can’t delete a payment', async () => {
+  it('billing staff can’t delete a payment; another shop never sees or deletes it', async () => {
     const { o, verma } = await shop();
     const pay = (await http().post('/api/receipts').set(auth(o)).send({ partyId: verma.id, date: D, amount: '100', mode: 'Cash', allocations: [] }).expect(201)).body;
     const staff = await member(app, o, 'billing_staff');
     await http().post(`/api/receipts/${pay.id}/delete`).set(auth(staff)).send({}).expect(403);
+    const other = await owner(app);
+    await delPay(other, pay.id).expect(404);
+    expect((await http().get('/api/receipts').set(auth(o)).expect(200)).body).toHaveLength(1);
+    await delPay(o, pay.id).expect(200);
+    expect((await http().get('/api/receipts').set(auth(other)).expect(200)).body).toEqual([]);
   });
 });
