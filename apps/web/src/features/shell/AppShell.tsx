@@ -17,6 +17,7 @@ import { useSettings } from '../../lib/settings';
 import { goToLogin } from '../../lib/nav';
 import { setGo } from '../../lib/go';
 import { APP_STYLES } from '../../styles';
+import toastCss from './toast.css?inline';
 import { VIEW_LABEL, VIEW_PATH, type NavLink } from './nav';
 import { REPSEC, repOf } from '../reports/catalogue';
 import { Sidebar } from './Sidebar';
@@ -36,8 +37,22 @@ function GoLogin({ query = '' }: { query?: string }) {
   return null;
 }
 
+/**
+ * The message strip sits beside the frame, not inside it: while the frame waits for another shop's data
+ * (after switching shop or starting fresh books) it draws nothing, and a message sent then must still show.
+ */
 export function AppShell() {
-  useStyles(APP_STYLES, 'app');
+  return (
+    <>
+      <AppFrame />
+      <Toast />
+    </>
+  );
+}
+
+function AppFrame() {
+  // the owner-approved toast change comes after the prototype's CSS, so it wins
+  useStyles([...APP_STYLES, toastCss], 'app');
   const token = useSession((s) => s.accessToken);
   const me = useMe();
   const settings = useSettings();
@@ -207,7 +222,6 @@ export function AppShell() {
           goToLogin();
         }}
       />
-      <Toast />
       <DiscardDialog />
       <QuickSale />
       <PasscodeBox />

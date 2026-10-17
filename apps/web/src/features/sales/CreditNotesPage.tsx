@@ -16,6 +16,7 @@ import { useOpenFocus } from '../../lib/useOpenFocus';
 import { Icon, RawIcon } from '../../components/Icon';
 import { useDiscardGuard } from '../../components/Discard';
 import { useShell } from '../shell/store';
+import { toastSaveFailed, toastSaved } from '../shell/saved';
 import type { Party } from '../parties/PartiesPage';
 import { qfmt, type Item } from '../items/ItemsPage';
 import { useSales, type SaleRow } from './model';
@@ -156,19 +157,20 @@ export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string }
   const cols = gst ? 7 : 6;
   const setLine = (k: number, f: Partial<CnLine>) => setLines((x) => x.map((l, i) => (i === k ? { ...l, ...f } : l)));
   const save = async () => {
+    const fail = (m: string) => { setErr(m); toastSaveFailed(m); };
     const L = lines.filter((l) => l.qty > 0);
-    if (!party) { setErr('Choose the customer.'); return document.getElementById('cnParty')?.focus(); }
-    if (!L.length) return setErr('Enter the quantity returned for at least one item.');
-    if (party === '__cash' && settle !== 'refund') return setErr('Counter sales have no customer account. Choose “Refund now”.');
+    if (!party) { fail('Choose the customer.'); return document.getElementById('cnParty')?.focus(); }
+    if (!L.length) return fail('Enter the quantity returned for at least one item.');
+    if (party === '__cash' && settle !== 'refund') return fail('Counter sales have no customer account. Choose “Refund now”.');
     setBusy(true);
     try {
-      const r = await api<{ number: string; total: string; invoices: number }>('/credit-notes', {
+      await api('/credit-notes', {
         method: 'POST', body: { partyId: party === '__cash' ? null : party, date, reason, settle, refundMode: refMode, lines: L.map((l) => ({ invoiceId: l.inv || null, itemId: l.id, qty: String(l.qty), price: String(l.price), gstRate: String(l.gst) })) },
       });
       onClose();
       await Promise.all(['credit-notes', 'sales', 'parties', 'items', 'next-number', 'sale', 'returnable'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
-      showToast(`${r.number} saved · ${inr2f(r.total)}${r.invoices > 1 ? ' across ' + r.invoices + ' invoices' : ''} · stock returned${settle === 'refund' ? ' · refunded by ' + refMode : ''}`);
-    } catch (e) { setErr(e instanceof ApiError ? e.message : 'Could not save the credit note.'); }
+      toastSaved('credit_note');
+    } catch (e) { fail(e instanceof ApiError ? e.message : 'Could not save the credit note.'); }
     finally { setBusy(false); }
   };
   const row = ([l, k]: [CnLine, number]) => (

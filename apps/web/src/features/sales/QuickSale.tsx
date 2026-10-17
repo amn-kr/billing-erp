@@ -12,7 +12,7 @@ import { api, ApiError } from '../../lib/api';
 import { fmtD, inr, inr2f } from '../../lib/format';
 import { today } from '../../lib/time';
 import { useEscape } from '../../lib/useEscape';
-import { useShell } from '../shell/store';
+import { toastSaveFailed, toastSaved } from '../shell/saved';
 import { qfmt } from '../items/ItemsPage';
 import { useEditorData, type EditorData } from './editor/data';
 import { ComboList, comboKey, partyOpts, useCombo, type ComboOpt } from './editor/Grid';
@@ -38,7 +38,6 @@ export function QuickSale() {
 function QuickSaleWindow({ d, close }: { d: EditorData; close: () => void }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const toast = useShell((s) => s.showToast);
   const date = today();
   const nn = useQuery({ queryKey: ['next-number', 'sale', date], queryFn: () => api<{ number: string }>(`/sales/next-number?kind=invoice&date=${date}`) });
   const [party, setParty] = useState<EParty | null>(null);
@@ -87,14 +86,15 @@ function QuickSaleWindow({ d, close }: { d: EditorData; close: () => void }) {
   const setLine = (i: number, patch: Partial<Line>) => setLines((L) => L.map((l, k) => (k === i ? { ...l, ...patch } : l)));
 
   const save = async (print: boolean) => {
+    const fail = (m: string) => { setErr(m); toastSaveFailed(m); };
     setErr('');
     const L = lines.filter((l) => l.item || l.name.trim());
-    if (!L.length) { setErr('Add at least one item.'); return document.querySelector<HTMLInputElement>('#qsRows .qs-item')?.focus(); }
+    if (!L.length) { fail('Add at least one item.'); return document.querySelector<HTMLInputElement>('#qsRows .qs-item')?.focus(); }
     const unk = L.find((l) => !l.item);
-    if (unk) return setErr(`Pick “${unk.name}” from the list.`);
+    if (unk) return fail(`Pick “${unk.name}” from the list.`);
     const bad = L.find((l) => !(Number(l.qty) > 0));
-    if (bad) return setErr(`Enter a quantity for ${bad.name}.`);
-    if (pay === 'Credit' && !party) return setErr('Choose a party for a credit sale.');
+    if (bad) return fail(`Enter a quantity for ${bad.name}.`);
+    if (pay === 'Credit' && !party) return fail('Choose a party for a credit sale.');
     const credit = pay === 'Credit';
     const body: SaleInput = {
       kind: 'invoice', number: '', date, dueDate: credit && party ? new Date(Date.parse(date + 'T00:00:00Z') + (party.days || 0) * 864e5).toISOString().slice(0, 10) : date,
@@ -110,9 +110,9 @@ function QuickSaleWindow({ d, close }: { d: EditorData; close: () => void }) {
       const r = await api<{ id: string; number: string; total: string }>('/sales', { method: 'POST', body });
       await Promise.all(['sales', 'parties', 'items', 'receipts', 'next-number', 'dues'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
       close();
-      toast(`${r.number} saved · ₹${inr2f(r.total)} · ${credit ? 'on credit' : pay}`);
+      toastSaved('invoice');
       if (print) navigate('/sales', { state: { preview: r.id, print: true } });
-    } catch (e) { setErr(e instanceof ApiError ? e.message : 'Could not save the bill.'); } finally { setBusy(false); }
+    } catch (e) { fail(e instanceof ApiError ? e.message : 'Could not save the bill.'); } finally { setBusy(false); }
   };
   /* Open full invoice: the same party and items in a new bill tab of the editor */
   const full = () => {

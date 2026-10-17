@@ -39,6 +39,8 @@ for (const width of WIDTHS) {
       await both(proto, app, (p) => p.click('#exNew'));
       await app.waitForSelector('#xpm:not([hidden]) #xpNo:not(:empty)');
       await both(proto, app, (p) => p.click('#xpSave'));
+      // the rebuild also shows the reason as a red message at the top (owner-approved); the prototype doesn't
+      await app.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
       await sameShot(`exp-new-error-${width}`, proto, app, '#xpm .mdl');
       await both(proto, app, async (p) => {
         await p.selectOption('#xpCat', 'Repairs');

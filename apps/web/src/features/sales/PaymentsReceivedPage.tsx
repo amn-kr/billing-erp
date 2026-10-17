@@ -14,7 +14,7 @@ import { useFitTables } from '../../lib/useFitTables';
 import { useOpenFocus } from '../../lib/useOpenFocus';
 import { Icon, RawIcon } from '../../components/Icon';
 import { useDiscardGuard } from '../../components/Discard';
-import { useShell } from '../shell/store';
+import { toastSaveFailed, toastSaved } from '../shell/saved';
 import type { Party } from '../parties/PartiesPage';
 import { inPeriod, type Period } from './model';
 import { SlModal, type SlModalProps } from './SlModal';
@@ -92,7 +92,6 @@ export function receiptModal(x: Receipt): SlModalProps {
 /** Receive payment (#rcm). `open.party` / `open.invoice` pre-fill it from a party or an invoice. */
 export function ReceiveDialog({ open, parties, onClose }: { open: { party?: string; invoice?: string } | null; parties: Party[]; onClose: () => void }) {
   const qc = useQueryClient();
-  const { showToast } = useShell();
   const ref = useRef<HTMLDivElement>(null);
   const [party, setParty] = useState('');
   const [amount, setAmount] = useState('');
@@ -137,18 +136,19 @@ export function ReceiveDialog({ open, parties, onClose }: { open: { party?: stri
   const used = r2(Object.values(alloc).reduce((a, b) => a + (b || 0), 0));
   const amt = Number(amount) || 0;
   const save = async () => {
-    if (!party) { setErr('Choose the customer.'); return document.getElementById('rcParty')?.focus(); }
-    if (!(amt > 0)) { setErr('Enter the amount received.'); return document.getElementById('rcAmt')?.focus(); }
-    if (mode === 'Cheque' && !refNo.trim()) { setErr('Enter the cheque number.'); return document.getElementById('rcRef')?.focus(); }
+    const fail = (m: string) => { setErr(m); toastSaveFailed(m); };
+    if (!party) { fail('Choose the customer.'); return document.getElementById('rcParty')?.focus(); }
+    if (!(amt > 0)) { fail('Enter the amount received.'); return document.getElementById('rcAmt')?.focus(); }
+    if (mode === 'Cheque' && !refNo.trim()) { fail('Enter the cheque number.'); return document.getElementById('rcRef')?.focus(); }
     const A = Object.entries(alloc).filter(([, a]) => a > 0).map(([to, a]) => { const t = D.find((x) => x.to === to); return { to, amount: String(r2(Math.min(a, t ? Number(t.balance) : 0))) }; }).filter((a) => Number(a.amount) > 0);
-    if (A.reduce((s2, a) => s2 + Number(a.amount), 0) > amt + 0.009) return setErr('The invoice amounts add up to more than the payment.');
+    if (A.reduce((s2, a) => s2 + Number(a.amount), 0) > amt + 0.009) return fail('The invoice amounts add up to more than the payment.');
     setBusy(true);
     try {
-      const r = await api<{ number: string; amount: string; partyName: string }>('/receipts', { method: 'POST', body: { partyId: party, date, amount: String(amt), mode, ref: refNo.trim(), allocations: A } });
+      await api('/receipts', { method: 'POST', body: { partyId: party, date, amount: String(amt), mode, ref: refNo.trim(), allocations: A } });
       onClose();
       await Promise.all(['receipts', 'sales', 'parties', 'dues', 'next-number', 'sale'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
-      showToast(`${r.number} · ${inr2f(amt)} received from ${r.partyName}`);
-    } catch (e) { setErr(e instanceof ApiError ? e.message : 'Could not save the payment.'); }
+      toastSaved('receipt');
+    } catch (e) { fail(e instanceof ApiError ? e.message : 'Could not save the payment.'); }
     finally { setBusy(false); }
   };
   return (

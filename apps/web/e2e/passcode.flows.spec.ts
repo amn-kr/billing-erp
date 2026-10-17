@@ -66,7 +66,7 @@ test('turn on, then an edited invoice saves only with the right passcode; cancel
   await expect(page.locator('#pcPin')).toHaveValue('');
   await enter(page, PASS);
   await expect(box(page)).toHaveCount(0);
-  await expect(page.locator('#toast')).toContainText(`${inv.number} saved`);
+  await expect(page.locator('#toast')).toHaveText('Invoice saved successfully');
 
   // asked every time: editing again asks again; closing the box keeps the bill unsaved and open
   await page.goto(APP + `/sales/new?edit=${inv.id}`);
@@ -128,7 +128,7 @@ test('Change Passcode asks for the current one; turning off needs the new one; t
   await enter(page, PASS);
   await expect(page.locator('#pcErr')).toHaveText('Wrong passcode. 4 tries left.');
   await enter(page, NEW);
-  await expect(page.locator('#toast')).toContainText(`${no} saved`);
+  await expect(page.locator('#toast')).toHaveText('Expense saved successfully');
   await page.locator(`#exRows tr[data-exk="EX:${no}"] td`).first().click();
   await page.click('#xpDel');
   await page.click('#slmOk');
@@ -154,7 +154,7 @@ test('Change Passcode asks for the current one; turning off needs the new one; t
   await page.goto(APP + '/expenses');
   await page.locator('#exRows tr[data-exk^="EX:"] td').first().click();
   await page.click('#xpSave');
-  await expect(page.locator('#toast')).toContainText('saved');
+  await expect(page.locator('#toast')).toHaveText('Expense saved successfully');
   await expect(box(page)).toHaveCount(0);
 });
 

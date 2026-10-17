@@ -7,7 +7,7 @@
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { STATES, amountInWords, type SaleInput } from '@billing/shared';
 import { api, ApiError } from '../../../lib/api';
 import { inr, inr2f } from '../../../lib/format';
@@ -15,6 +15,7 @@ import { today } from '../../../lib/time';
 import { Icon, RawIcon } from '../../../components/Icon';
 import { useDcf } from '../../../components/Discard';
 import { useShell } from '../../shell/store';
+import { toastSaveFailed, toastSaved } from '../../shell/saved';
 import { EntryClose, useFullscreen } from '../../shell/EntryFrame';
 import { AddPartyDialog } from '../../parties/AddPartyDialog';
 import { AddItemDialog } from '../../items/AddItemDialog';
@@ -48,6 +49,11 @@ const nextNo = (doc: SI['doc'], date: string) => ({
 });
 /** An untouched new bill (nothing entered): reused instead of opening another. */
 const blank = (x: SI) => !hasContent(x) && !x.editOf && x.autoNo && !x.fromChallanId;
+/**
+ * The visit (one click / address change) whose bill was already opened. It lives outside the screen, so
+ * the editor drawn again for the same visit doesn't open another bill; leaving the editor forgets it.
+ */
+let handledVisit = '';
 
 export function SaleEditor() {
   useFullscreen();
@@ -58,6 +64,7 @@ export function SaleEditor() {
   const { tabs, active, open, activate } = useSI();
   const key = params.toString();
   const started = useRef<string | null>(null);
+  const visit = useLocation().key;
   // a saved bill shown over the editor while other bills are still open
   const [shown, setShown] = useState<string | null>(null);
   const shownDoc = useSale(shown);
@@ -78,6 +85,8 @@ export function SaleEditor() {
   useEffect(() => {
     if (!d || started.current === key) return;
     started.current = key;
+    if (handledVisit === visit) return;
+    handledVisit = visit;
     void (async () => {
       // a bill already put in a tab (Quick sale › Open full invoice): just show it
       if (params.get('keep') !== null && useSI.getState().active) return;
@@ -103,7 +112,9 @@ export function SaleEditor() {
       }
       open(s);
     })();
-  }, [d, key, params, qc, open, activate, fresh, newTab]);
+  }, [d, key, visit, params, qc, open, activate, fresh, newTab]);
+  // gone to another screen (not just drawn again at the same address): the next visit opens its bill
+  useEffect(() => { const at = window.location.href; return () => { if (window.location.href !== at) handledVisit = ''; }; }, [key]);
 
   const tab = tabs.find((t) => t.id === active);
   // printing a saved bill shown here ("Save & print" with other bills open)
@@ -275,7 +286,7 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
   /* ---------- save (prototype saveSI) ---------- */
   const save = async (again: boolean, print = false) => {
     if (!s.chgOk && !quote) { pending.current = { again, print }; setChgMsg('Please check the discount and charges once before saving.'); setPop('chg'); return; }
-    const err = (m: string, focus?: () => void) => { up((x) => { x.err = m; }); focus?.(); };
+    const err = (m: string, focus?: () => void) => { up((x) => { x.err = m; }); toastSaveFailed(m); focus?.(); };
     up((x) => { x.err = ''; });
     const lines = s.lines.filter((l) => l.item || l.name.trim());
     if (!cash && !s.party) return err(quote ? 'Choose the party, or switch to Walk-in and type a name.' : 'Choose who this bill is for. For a counter sale, switch to Cash.', () => document.getElementById('siParty')?.focus());
@@ -304,12 +315,10 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
       if (!res) return;
       const r = res.value;
       await Promise.all(['sales', 'parties', 'items', 'receipts', 'sale', 'next-number', 'dues'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
-      const due = Number(r.balance);
-      if (quote) toast(`${r.number} saved · ₹${inr2f(r.total)}${s.party ? ' for ' + s.party.name : ''}`);
-      else toast(`${r.number} saved · ₹${inr2f(r.total)}${due > 0 ? ` · ₹${inr2f(due)} due` : ' · fully paid'}${Number(r.settledOld) > 0 ? ` · ₹${inr2f(r.settledOld)} adjusted in old dues` : ''}${Number(r.advance) > 0 ? ` · ₹${inr2f(r.advance)} saved as advance` : ''}${Number(r.change) > 0 ? ` · return change ₹${inr2f(r.change)}` : ''}`);
+      toastSaved(quote ? 'quotation' : 'invoice');
       await ops.saved(tabId, r, again ? 'again' : print ? 'print' : 'save');
     } catch (e) {
-      if (e instanceof ApiError && e.code === 'over_credit_limit') { up((x) => { x.warnOk = true; x.err = e.message; }); return; }
+      if (e instanceof ApiError && e.code === 'over_credit_limit') { up((x) => { x.warnOk = true; x.err = e.message; }); toastSaveFailed(e.message); return; }
       err(e instanceof ApiError ? e.message : 'Could not save the invoice.');
     } finally { setBusy(false); }
   };

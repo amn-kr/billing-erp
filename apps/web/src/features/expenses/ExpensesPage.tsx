@@ -16,6 +16,7 @@ import { Icon, RawIcon } from '../../components/Icon';
 import { useDiscardGuard } from '../../components/Discard';
 import { useSettings } from '../../lib/settings';
 import { useShell } from '../shell/store';
+import { toastSaveFailed, toastSaved } from '../shell/saved';
 import { inPeriod } from '../sales/model';
 import { SlModal, type SlModalProps } from '../sales/SlModal';
 import type { Party } from '../parties/PartiesPage';
@@ -133,7 +134,6 @@ function ExpenseDialog({ open, all, cats, accounts, gst, onClose, onNewCat, onAg
   onClose: () => void; onNewCat: () => void; onAgain: (cat: string) => void; onCancel: (x: ExpenseRow) => void;
 }) {
   const qc = useQueryClient();
-  const { showToast } = useShell();
   const ref = useRef<HTMLDivElement>(null);
   const x = open?.row;
   const [cat, setCat] = useState('');
@@ -182,19 +182,19 @@ function ExpenseDialog({ open, all, cats, accounts, gst, onClose, onNewCat, onAg
   }));
   const addLine = () => { setLines((L) => [...L, blank()]); setTimeout(() => (document.querySelector('#xpLines tr:last-child input') as HTMLElement | null)?.focus(), 0); };
   const save = async (again: boolean) => {
+    const fail = (m: string) => { setErr(m); toastSaveFailed(m); };
     const c = cats.find((k) => k.name === cat);
-    if (!c) { setErr('Choose a category.'); return document.getElementById('xpCat')?.focus(); }
-    if (!date) return setErr('Pick the date.');
+    if (!c) { fail('Choose a category.'); return document.getElementById('xpCat')?.focus(); }
+    if (!date) return fail('Pick the date.');
     setBusy(true);
     try {
       const call = (h?: Record<string, string>) => api<{ number: string; total: string; account: string | null }>(x ? `/expenses/${x.id}` : '/expenses', { method: x ? 'PUT' : 'POST', body: { categoryId: c.id, date, payee: payee.trim(), reference: refNo.trim(), notes: note.trim(), mode, accountId: acct || null, lines }, headers: h });
       const res = x ? await withPasscode(qc, editAsk(x.number), call) : { value: await call() };
       if (!res) return;
-      const r = res.value;
       await Promise.all(EX_KEYS.map((k) => qc.invalidateQueries({ queryKey: [k] })));
-      showToast(`${r.number} saved · ${inr2f(r.total)} from ${accounts.find((a) => a.id === r.account)?.name ?? '—'}`);
+      toastSaved('expense');
       if (again) onAgain(cat); else onClose();
-    } catch (e) { setErr(e instanceof ApiError ? e.message : 'Could not save the expense.'); }
+    } catch (e) { fail(e instanceof ApiError ? e.message : 'Could not save the expense.'); }
     finally { setBusy(false); }
   };
   return (

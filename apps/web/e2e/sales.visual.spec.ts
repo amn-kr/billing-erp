@@ -81,6 +81,8 @@ for (const width of WIDTHS) {
       await sameShot(`receive-${width}`, proto, app, '#rcm .mdl');
       // a mistake shows the prototype's message
       await both(proto, app, async (p) => { await p.selectOption('#rcModeI', 'Cheque'); await p.click('#rcSave'); });
+      // the rebuild also shows the reason as a red message at the top (owner-approved); the prototype doesn't
+      await app.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
       await sameShot(`receive-error-${width}`, proto, app, '#rcm .mdl');
     });
 

@@ -24,15 +24,20 @@ const savedPal = (): PalId => {
   return (PAL.some((p) => p.id === s) ? s : 'ledger') as PalId;
 };
 
+/** Black (most messages), green (a document saved) or red (a save that failed). */
+export type ToastKind = 'info' | 'ok' | 'error';
+export interface ToastMsg { text: string; n: number; kind: ToastKind }
+
 interface ShellState {
-  toast: { text: string; n: number } | null;
+  /** waiting to be shown; the Toast takes it out once it shows it */
+  toast: ToastMsg | null;
   pop: PopId | null;
   /** colour combination, remembered on this device (Settings › General › Display) */
   palId: PalId;
   sideOpen: boolean;
   mini: boolean;
   dialog: 'so' | null;
-  showToast: (text: string) => void;
+  showToast: (text: string, kind?: ToastKind) => void;
   setPop: (p: PopId | null) => void;
   choosePal: (id: PalId) => void;
   setSideOpen: (open: boolean) => void;
@@ -49,11 +54,11 @@ export const useShell = create<ShellState>((set, get) => ({
   sideOpen: false,
   mini: !!read('erp-mini') && typeof window !== 'undefined' && window.innerWidth > 980,
   dialog: null,
-  showToast: (text) => set({ toast: { text, n: ++toastN } }),
+  showToast: (text, kind = 'info') => set({ toast: { text, n: ++toastN, kind } }),
   setPop: (pop) => set({ pop }),
   choosePal: (palId) => {
     write('erp-pal', palId);
-    set({ palId, toast: { text: `${PAL.find((p) => p.id === palId)!.name} applied`, n: ++toastN } });
+    set({ palId, toast: { text: `${PAL.find((p) => p.id === palId)!.name} applied`, n: ++toastN, kind: 'info' } });
   },
   setSideOpen: (sideOpen) => set({ sideOpen }),
   toggleMini: () => {

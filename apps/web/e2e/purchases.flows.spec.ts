@@ -39,7 +39,7 @@ test('a purchase bill: last rates from the supplier, a new rate updates the item
   await page.click('[data-paydone="pe"]');
   await expect(page.locator('#pePayBtnTx')).toContainText('Inv Dues172.00');
   await page.click('#peSave');
-  await expect(page.locator('#toast')).toHaveText('PB-0003 saved · stock added · 1 purchase price updated');
+  await expect(page.locator('#toast')).toHaveText('Purchase Bill saved successfully');
   await expect(page).toHaveURL(/\/purchase-bills$/);
   const row = page.locator('#puRows tr[data-bno="PB-0003"]');
   await expect(row).toContainText('672.00');
@@ -83,7 +83,7 @@ test('a purchase order becomes a bill; another open order is cancelled with two 
   await pick(page, '#peRows tr[data-ln="0"] .pe-item', 'Copper wire');
   await page.fill('#peRows tr[data-ln="0"] [data-pf="qty"]', '5');
   await page.click('#peSave');
-  await expect(page.locator('#toast')).toHaveText('ORD-0003 saved · sent to Kanpur Cables Pvt Ltd');
+  await expect(page.locator('#toast')).toHaveText('Purchase Order saved successfully');
   await expect(page.locator('#poSum')).toContainText('Open orders2');
 
   await page.click('#poRows [data-poconv="ORD-0002"]');
@@ -91,7 +91,7 @@ test('a purchase order becomes a bill; another open order is cancelled with two 
   await expect(page.locator('#peRows tr[data-ln="0"] .pe-item')).toHaveValue('MCB 32A double pole');
   await expect(page.locator('#peRows tr[data-ln="0"] [data-pf="qty"]')).toHaveValue('20');
   await page.click('#peSave');
-  await expect(page.locator('#toast')).toHaveText(/^PB-0003 saved · stock added/);
+  await expect(page.locator('#toast')).toHaveText('Purchase Bill saved successfully');
   await page.goto(APP + '/purchase-orders');
   const conv = page.locator('#poRows tr[data-pono="ORD-0002"]');
   await expect(conv.locator('.stt')).toHaveText('Received');
@@ -112,7 +112,7 @@ test('paying a bill from its row, and returning goods against it', async ({ brow
   await expect(page.locator('#pyBills input[data-pya="PB-0002"]')).toHaveValue('3248');
   await page.fill('#pyRef', 'NEFT 5521');
   await page.click('#pySave');
-  await expect(page.locator('#toast')).toHaveText('PO-0003 · 3,248.00 paid to Kanpur Cables Pvt Ltd');
+  await expect(page.locator('#toast')).toHaveText('Payment Out saved successfully');
   await expect(page.locator('#puRows tr[data-bno="PB-0002"] .stt')).toHaveText('Paid');
 
   await page.locator('#puRows tr[data-bno="PB-0001"] td').first().click();
@@ -121,7 +121,7 @@ test('paying a bill from its row, and returning goods against it', async ({ brow
   await expect(page.locator('#peAgainst option:checked')).toContainText('PB-0001');
   await expect(page.locator('#peRows tr[data-ln="0"] [data-pf="qty"]')).toHaveValue('1');
   await page.click('#peSave');
-  await expect(page.locator('#toast')).toHaveText('DN-0002 saved · stock reduced');
+  await expect(page.locator('#toast')).toHaveText('Debit Note saved successfully');
   await expect(page).toHaveURL(/\/debit-notes$/);
   await expect(page.locator('#dnRows tr[data-dnno="DN-0002"]')).toContainText('PB-0001');
 });
