@@ -1,4 +1,7 @@
-# Billing ERP
+# Shop billing app
+
+The app's name, as people see it, is set in one place: `packages/shared/src/brand.ts` (how to rename: `docs/RENAME.md`).
+
 
 Billing, stock and accounting software for Indian shops and small businesses. It covers:
 

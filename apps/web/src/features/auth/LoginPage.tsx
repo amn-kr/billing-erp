@@ -10,9 +10,10 @@ import { useSession } from '../../lib/session';
 import { useStyles } from '../../lib/useStyles';
 import { goToApp } from '../../lib/nav';
 import { AUTH_STYLES } from '../../styles';
+import { APP_LETTER, APP_NAME } from '../../lib/brand';
 
 type View = 'vLoad' | 'vAuth' | 'vJoin' | 'vShop';
-const APP = 'Billing ERP';
+const APP = APP_NAME;
 const TRIAL = Number(import.meta.env.VITE_TRIAL_DAYS ?? 14);
 const msgOf = (e: unknown) => (e instanceof ApiError ? e.message : 'Something went wrong.');
 
@@ -161,7 +162,7 @@ export function LoginPage() {
   return (
     <div className="wrap">
       <section className="pitch">
-        <div className="brand"><span className="logo" id="appLogo">{APP[0]!.toUpperCase()}</span><span id="appName">{APP}</span></div>
+        <div className="brand"><span className="logo" id="appLogo">{APP_LETTER}</span><span id="appName">{APP}</span></div>
         <h1>Billing, stock and accounts for your shop — in the browser.</h1>
         <p>GST invoices, purchases, payments, expenses, cash and bank, party statements and reports. Work from the counter, the godown or home; your staff see the same books.</p>
         <ul className="feat"><li>GST &amp; non-GST invoices</li><li>Quotations &amp; delivery challans</li><li>Purchase bills &amp; supplier payments</li><li>Stock with low-stock alerts</li><li>Cash book, bank &amp; cheques</li><li>Party statements on WhatsApp</li><li>Staff accounts, shared live</li><li>Daily cloud backup</li></ul>
