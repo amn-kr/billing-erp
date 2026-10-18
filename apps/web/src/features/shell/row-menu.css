@@ -1,7 +1,7 @@
-/* Row actions ⋮ button (owner asked for it on every document list, 18 Oct 2026): the prototype styles its
+/* Row actions ⋮ button (owner asked for it on every document list, 18 Oct 2026; purchase lists added for group 2): the prototype styles its
    ⋮ button (.slact / .slm) and the highlighted row (tr.ctxon) only for the Sales list (#slRows). These are
    the same rules, word for word, for the other lists that now have it. Nothing else. */
-#dcRows td.slact,#cnRows td.slact,#rcRows td.slact,#qlRows td.slact{padding-top:0;padding-bottom:0}
-#dcRows .slm,#cnRows .slm,#rcRows .slm,#qlRows .slm{width:26px;height:26px;border-radius:7px;vertical-align:middle;border-color:transparent;background:transparent}
-#dcRows .slm:hover,#dcRows tr:focus-within .slm,#cnRows .slm:hover,#cnRows tr:focus-within .slm,#rcRows .slm:hover,#rcRows tr:focus-within .slm,#qlRows .slm:hover,#qlRows tr:focus-within .slm{border-color:var(--bd);background:var(--sf)}
-#dcRows tr.ctxon td,#cnRows tr.ctxon td,#rcRows tr.ctxon td,#qlRows tr.ctxon td{background:var(--acs)}
+#dcRows td.slact,#cnRows td.slact,#rcRows td.slact,#qlRows td.slact,#puRows td.slact,#poRows td.slact,#pxRows td.slact,#dnRows td.slact{padding-top:0;padding-bottom:0}
+#dcRows .slm,#cnRows .slm,#rcRows .slm,#qlRows .slm,#puRows .slm,#poRows .slm,#pxRows .slm,#dnRows .slm{width:26px;height:26px;border-radius:7px;vertical-align:middle;border-color:transparent;background:transparent}
+#dcRows .slm:hover,#dcRows tr:focus-within .slm,#cnRows .slm:hover,#cnRows tr:focus-within .slm,#rcRows .slm:hover,#rcRows tr:focus-within .slm,#qlRows .slm:hover,#qlRows tr:focus-within .slm,#puRows .slm:hover,#puRows tr:focus-within .slm,#poRows .slm:hover,#poRows tr:focus-within .slm,#pxRows .slm:hover,#pxRows tr:focus-within .slm,#dnRows .slm:hover,#dnRows tr:focus-within .slm{border-color:var(--bd);background:var(--sf)}
+#dcRows tr.ctxon td,#cnRows tr.ctxon td,#rcRows tr.ctxon td,#qlRows tr.ctxon td,#puRows tr.ctxon td,#poRows tr.ctxon td,#pxRows tr.ctxon td,#dnRows tr.ctxon td{background:var(--acs)}

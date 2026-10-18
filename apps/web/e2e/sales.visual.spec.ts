@@ -6,11 +6,8 @@
  * The entry windows are full screen (owner's change: no sidebar or top bar), so pictures of the
  * editor and of the pop-ups over it are compared with owner-approved pictures (e2e/approved/).
  */
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
-import { approvedShot, sameShot } from './shots';
+import { approvedShot, sameShot, withDots } from './shots';
 import { APP, PROTO_PRINT, SALES, WIDTHS, freshShop, newPage, openPrototypeView, prototypeWithBackup, savePrint, signInAs } from './setup';
 
 /** `who`: a shop of its own for tests that add records (the shared sales shop must stay as the prototype's) */
@@ -35,26 +32,6 @@ const both = async (a: Page, b: Page, fn: (p: Page) => Promise<unknown>) => { aw
 async function withTabs(proto: Page, app: Page) {
   const html = await app.locator('#siTabs').evaluate((e) => e.outerHTML);
   await proto.evaluate((h) => { document.getElementById('siTabs')?.remove(); document.querySelector('#vNewInv > .sitop')!.insertAdjacentHTML('afterbegin', h); window.dispatchEvent(new Event('resize')); }, html);
-}
-
-/**
- * Deliberate difference (owner's request, 18 Oct 2026): every document list has a ⋮ actions button
- * in each row, drawn with the prototype's own leftover ⋮ styles (.slact / .slm; for lists other than
- * Sales the same rules repeated in features/shell/row-menu.css). Copy the rebuild's ⋮ cells, and that
- * small style file, into the prototype so everything else is still compared pixel for pixel.
- */
-async function withDots(proto: Page, app: Page, tbody: string) {
-  const css = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '../src/features/shell/row-menu.css'), 'utf8');
-  const cells = await app.locator(`${tbody} tr`).evaluateAll((rows) => rows.map((r) => { const b = r.querySelector('[data-slm]'); return b ? { own: b.parentElement!.classList.contains('slact'), html: b.parentElement!.classList.contains('slact') ? b.parentElement!.outerHTML : b.outerHTML } : null; }));
-  const th = await app.locator(tbody).evaluate((b) => { const h = b.closest('table')!.querySelector('thead tr')!.lastElementChild!; return h.classList.contains('slact') ? h.outerHTML : ''; });
-  await proto.evaluate(({ tbody, cells, th, css }) => {
-    const b = document.querySelector(tbody)!;
-    const head = b.closest('table')!.querySelector('thead tr')!;
-    if (th && !head.lastElementChild!.classList.contains('slact')) head.insertAdjacentHTML('beforeend', th);
-    [...b.children].forEach((r, k) => { const c = cells[k]; if (!c || r.querySelector('[data-slm]')) return; if (c.own) r.insertAdjacentHTML('beforeend', c.html); else r.lastElementChild!.insertAdjacentHTML('beforeend', ' ' + c.html); });
-    if (!document.getElementById('rowMenuCss')) { const st = document.createElement('style'); st.id = 'rowMenuCss'; st.textContent = css; document.head.appendChild(st); }
-    window.dispatchEvent(new Event('resize'));
-  }, { tbody, cells, th, css });
 }
 
 for (const width of WIDTHS) {
