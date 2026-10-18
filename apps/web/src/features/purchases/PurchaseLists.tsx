@@ -101,17 +101,16 @@ export function PurchaseBillsPage() {
           <select className="fi" hidden id="puSt" aria-label="Filter by status" value={st} onChange={(e) => setSt(e.target.value)}>{ST.map(([v, t]) => <option value={v} key={v}>{t}</option>)}</select></div>
         <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr>
           <th><span className="thw2">Date<Thf id="puPerSel" label="Filter by date" on={P.per !== 'all'} title={P.perOpts.find((o) => o[0] === P.per)?.[1] ?? ''} onOpen={P.toggle('per')} /></span></th><th>Bill no.</th><th>Supplier bill</th><th>Supplier</th><th className="n">Total</th><th className="n">Paid</th><th className="n">Balance</th><th>Due date</th>
-          <th><span className="thw2">Status<Thf id="puSt" label="Filter by status" on={st !== 'all'} title={ST.find((o) => o[0] === st)?.[1] ?? ''} onOpen={P.toggle('st')} /></span></th><th><span className="vh">Pay</span></th><th className="slact"><span className="vh">Actions</span></th></tr></thead>
+          <th><span className="thw2">Status<Thf id="puSt" label="Filter by status" on={st !== 'all'} title={ST.find((o) => o[0] === st)?.[1] ?? ''} onOpen={P.toggle('st')} /></span></th><th><span className="vh">Pay</span></th></tr></thead>
           <tbody id="puRows" onContextMenu={rm.onContextMenu} onKeyDown={rowKeys('tr[data-bno]', rm.menuKey)}>
             {L.length ? L.map((b) => {
               const bal = Number(b.balance), stt = statusOfBill(b);
               return (
                 <tr tabIndex={0} data-bno={b.number} className={[b.cancelled ? 'slcan' : '', on(menu, b.id) ?? ''].join(' ').trim() || undefined} key={b.id} onClick={(e) => { if (!(e.target as HTMLElement).closest('button')) setView(b.id); }}><td>{dmy(b.date)}</td><td className="mono">{b.number}{b.cancelled ? null : NEW}</td><td className="mono mu">{b.supplierRef || '—'}</td><td><b style={{ fontWeight: 600 }}>{b.partyName}</b></td>
                   <td className="n">{inr2f(b.total)}</td><td className="n">{inr2f(b.paid)}</td><td className="n">{inr2f(b.balance)}</td><td>{bal > 0 && b.dueDate ? dmy(b.dueDate) : ''}</td><td><span className={`stt ${stt.c}`}>{stt.t}</span></td>
-                  <td className="n">{bal > 0 ? <button className="btn sm" data-paybill={b.number} onClick={(e) => { e.stopPropagation(); setPay({ party: b.party.id, bill: b.id }); }}>Pay</button> : null}</td>
-                  <td className="slact"><RowMenuButton no={b.number} label={`Actions for ${b.number}`} onOpen={(el) => setMenu({ row: b, ...atButton(el), tr: el.closest('tr') })} /></td></tr>
+                  <td className="n" style={{ whiteSpace: 'nowrap' }}>{bal > 0 ? <button className="btn sm" data-paybill={b.number} onClick={(e) => { e.stopPropagation(); setPay({ party: b.party.id, bill: b.id }); }}>Pay</button> : null} <RowMenuButton no={b.number} label={`Actions for ${b.number}`} onOpen={(el) => setMenu({ row: b, ...atButton(el), tr: el.closest('tr') })} /></td></tr>
               );
-            }) : <tr><td colSpan={11} className="ptempty">No purchase bills match. <button className="lnk" data-pnew="bill" onClick={newBill}>Record a purchase bill</button></td></tr>}
+            }) : <tr><td colSpan={10} className="ptempty">No purchase bills match. <button className="lnk" data-pnew="bill" onClick={newBill}>Record a purchase bill</button></td></tr>}
           </tbody></table></div>
       </div>
       <ThfPop anchor={P.pop?.anchor ?? null} onClose={P.closePop} focus={P.pop?.kind === 'range' ? '#thdFrom' : 'button.on,button'}>
@@ -171,17 +170,16 @@ export function PurchaseOrdersPage() {
           <div className="sumrow sumin" id="poSum"><div><small>Open orders</small><b>{open.length}</b></div><div><small>Open value</small><b>{inr(val.toFixed(2))}</b></div><div><small>Received</small><b className="pos">{A.filter((d) => d.status === 'received').length}</b></div><div><small>Cancelled</small><b>{A.filter((d) => d.status === 'cancelled').length}</b></div></div>
           <select className="fi" hidden id="poSt" aria-label="Filter by status" value={st} onChange={(e) => setSt(e.target.value)}>{PO_ST.map(([v, t]) => <option value={v} key={v}>{t}</option>)}</select></div>
         <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr><th>Date</th><th>Order no.</th><th>Supplier</th><th>Expected</th><th className="n">Items</th><th className="n">Amount</th>
-          <th><span className="thw2">Status<Thf id="poSt" label="Filter by status" on={st !== 'all'} title={PO_ST.find((o) => o[0] === st)?.[1] ?? ''} onOpen={P.toggle('st')} /></span></th><th><span className="vh">Actions</span></th><th className="slact"><span className="vh">More actions</span></th></tr></thead>
+          <th><span className="thw2">Status<Thf id="poSt" label="Filter by status" on={st !== 'all'} title={PO_ST.find((o) => o[0] === st)?.[1] ?? ''} onOpen={P.toggle('st')} /></span></th><th><span className="vh">Actions</span></th></tr></thead>
           <tbody id="poRows" onContextMenu={rm.onContextMenu} onKeyDown={rowKeys('tr[data-pono]', rm.menuKey)}>
             {L.length ? L.map((d) => {
               const late = d.status === 'open' && !!d.dueDate && d.dueDate < today;
               return (
                 <tr tabIndex={0} data-pono={d.number} key={d.id} className={on(menu, d.id)} onClick={(e) => { if (!(e.target as HTMLElement).closest('button')) setView(d.id); }}><td>{dmy(d.date)}</td><td className="mono">{d.number}</td><td><b style={{ fontWeight: 600 }}>{d.partyName}</b></td><td className={late ? 'neg' : ''}>{d.dueDate ? dmy(d.dueDate) : '—'}{late ? ' · late' : ''}</td><td className="n">{d.items}</td><td className="n">{inr2f(d.total)}</td>
                   <td><span className={`stt ${PO_S[d.status]!.c}`}>{PO_S[d.status]!.t}</span>{d.bill ? <small className="mu" style={{ display: 'block' }}>{d.bill}</small> : null}</td>
-                  <td className="n" style={{ whiteSpace: 'nowrap' }}>{d.status === 'open' ? <><button className="btn p sm" data-poconv={d.number} onClick={() => convert(d)}>Convert to bill</button> <button className="btn sm" data-pocancel={d.number} onClick={() => void cancel(d)}>{sure === d.id ? 'Click again to cancel' : 'Cancel'}</button></> : null}</td>
-                  <td className="slact"><RowMenuButton no={d.number} label={`Actions for ${d.number}`} onOpen={(el) => setMenu({ row: d, ...atButton(el), tr: el.closest('tr') })} /></td></tr>
+                  <td className="n" style={{ whiteSpace: 'nowrap' }}>{d.status === 'open' ? <><button className="btn p sm" data-poconv={d.number} onClick={() => convert(d)}>Convert to bill</button> <button className="btn sm" data-pocancel={d.number} onClick={() => void cancel(d)}>{sure === d.id ? 'Click again to cancel' : 'Cancel'}</button></> : null} <RowMenuButton no={d.number} label={`Actions for ${d.number}`} onOpen={(el) => setMenu({ row: d, ...atButton(el), tr: el.closest('tr') })} /></td></tr>
               );
-            }) : <tr><td colSpan={9} className="ptempty">No purchase orders. <button className="lnk" data-pnew="po" onClick={newPo}>Create a purchase order</button></td></tr>}
+            }) : <tr><td colSpan={8} className="ptempty">No purchase orders. <button className="lnk" data-pnew="po" onClick={newPo}>Create a purchase order</button></td></tr>}
           </tbody></table></div>
       </div>
       <ThfPop anchor={P.pop?.anchor ?? null} onClose={P.closePop} focus="button.on,button">
