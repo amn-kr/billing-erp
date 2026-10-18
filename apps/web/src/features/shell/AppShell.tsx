@@ -18,6 +18,7 @@ import { goToLogin } from '../../lib/nav';
 import { setGo } from '../../lib/go';
 import { APP_STYLES } from '../../styles';
 import toastCss from './toast.css?inline';
+import rowMenuCss from './row-menu.css?inline';
 import { VIEW_LABEL, VIEW_PATH, type NavLink } from './nav';
 import { REPSEC, repOf } from '../reports/catalogue';
 import { Sidebar } from './Sidebar';
@@ -52,7 +53,7 @@ export function AppShell() {
 
 function AppFrame() {
   // the owner-approved toast change comes after the prototype's CSS, so it wins
-  useStyles([...APP_STYLES, toastCss], 'app');
+  useStyles([...APP_STYLES, toastCss, rowMenuCss], 'app');
   const token = useSession((s) => s.accessToken);
   const me = useMe();
   const settings = useSettings();

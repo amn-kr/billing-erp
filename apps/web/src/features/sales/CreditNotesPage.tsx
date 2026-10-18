@@ -21,11 +21,17 @@ import type { Party } from '../parties/PartiesPage';
 import { qfmt, type Item } from '../items/ItemsPage';
 import { useSales, type SaleRow } from './model';
 import { SlModal, type SlModalProps } from './SlModal';
+import { editAsk, withPasscode } from '../settings/passcode';
+import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
 
 interface CreditNote {
   id: string; number: string; date: string; party: { id: string; name: string } | null; partyName: string; reason: string; settle: 'adjust' | 'refund'; refundMode: string;
   against: string[]; qty: string; total: string; unused: string; cancelled: boolean;
   lines: { name: string; qty: string; unit: string; price: string; amount: string; invoice: string }[];
+}
+interface CnDoc {
+  id: string; number: string; date: string; partyId: string | null; reason: string; settle: 'adjust' | 'refund'; refundMode: string; cancelled: boolean;
+  lines: { invoiceId: string | null; itemId: string; name: string; unit: string; qty: string; price: string; gstRate: string }[];
 }
 interface Returnable { itemId: string; name: string; unit: string; sold: string; max: string; price: string; gstRate: string }
 interface CnLine { inv: string; invNo: string; id: string; name: string; sold?: number; max?: number; qty: number; unit: string; price: number; gst: number; amt: number }
@@ -33,6 +39,7 @@ interface CnLine { inv: string; invNo: string; id: string; name: string; sold?: 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const PLUS = '<path d="M12 5v14M5 12h14"/>';
 const r2 = (n: number) => Math.round(n * 100) / 100;
+const CN_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View']];
 
 export function CreditNotesPage() {
   useFitTables();
@@ -43,8 +50,9 @@ export function CreditNotesPage() {
   useEffect(() => { if ((loc.state as { view?: string } | null)?.view) nav('.', { replace: true, state: null }); }, [loc.state, nav]);
   const list = useQuery({ queryKey: ['credit-notes'], queryFn: () => api<CreditNote[]>('/credit-notes') });
   const [q, setQ] = useState('');
-  const [open, setOpen] = useState<{ invoice?: string } | null>(null);
+  const [open, setOpen] = useState<{ invoice?: string; edit?: string } | null>(null);
   const [modal, setModal] = useState<SlModalProps | null>(null);
+  const [menu, setMenu] = useState<RowMenuAt<CreditNote> | null>(null);
   useEffect(() => {
     const inv = params.get('invoice');
     if (inv) { setOpen({ invoice: inv }); setParams({}, { replace: true }); }
@@ -64,28 +72,34 @@ export function CreditNotesPage() {
     });
   };
   if (want) { const x = list.data.find((y) => y.number === want); setWant(null); if (x) queueMicrotask(() => view(x)); }
+  const rm = rowMenuHandlers('tr[data-cnno]', (tr) => A.find((c) => c.number === tr.dataset.cnno), setMenu);
+  const m = menu?.row;
 
   return (
     <section id="vCns">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Credit notes</h1><span className="pttot">Goods returned by customers</span><div className="sp"></div><button className="btn p" id="cnNew" onClick={() => setOpen({})}><RawIcon d={PLUS} />New credit note</button></div>
       <div className="card ptxc"><div className="ptfil" style={{ padding: '14px 16px', alignItems: 'center' }}><label className="search" htmlFor="cnQ" style={{ maxWidth: 300, height: 36 }}><RawIcon d={SEARCH} /><input id="cnQ" placeholder="Search credit note, party or invoice" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
         <div className="sumrow sumin" id="cnSum"><div><small>Returns value</small><b>{inr(tot.toFixed(2))}</b></div><div><small>Credit notes</small><b>{A.length}</b></div><div><small>Items returned</small><b>{qfmt(A.reduce((a, c) => a + Number(c.qty), 0))}</b></div><div><small>Unused credit</small><b>{inr(cr.toFixed(2))}</b></div></div></div>
-        <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr><th>Date</th><th>Credit note</th><th>Party</th><th>Against invoice</th><th>Reason</th><th className="n">Qty</th><th className="n">Amount</th><th>Settled as</th></tr></thead>
-          <tbody id="cnRows" onKeyDown={(e) => { const r = (e.target as HTMLElement).closest<HTMLElement>('tr[data-cnno]'); if (r && e.key === 'Enter') { e.preventDefault(); r.click(); } }}>
+        <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr><th>Date</th><th>Credit note</th><th>Party</th><th>Against invoice</th><th>Reason</th><th className="n">Qty</th><th className="n">Amount</th><th>Settled as</th><th className="slact"><span className="vh">Actions</span></th></tr></thead>
+          <tbody id="cnRows" onContextMenu={rm.onContextMenu} onKeyDown={(e) => { if (rm.menuKey(e)) return; const r = (e.target as HTMLElement).closest<HTMLElement>('tr[data-cnno]'); if (r && e.key === 'Enter') { e.preventDefault(); r.click(); } }}>
             {L.length ? L.map((c) => (
-              <tr tabIndex={0} data-cnno={c.number} key={c.id} onClick={() => view(c)}><td>{dmy(c.date)}</td><td className="mono">{c.number}</td><td><b style={{ fontWeight: 600 }}>{c.partyName}</b></td>
+              <tr tabIndex={0} data-cnno={c.number} key={c.id} className={menu?.row.id === c.id ? 'ctxon' : undefined} onClick={() => view(c)}><td>{dmy(c.date)}</td><td className="mono">{c.number}</td><td><b style={{ fontWeight: 600 }}>{c.partyName}</b></td>
                 <td className="mono">{c.against.length ? <>{c.against[0]}{c.against.length > 1 ? <> <small className="mu" title={c.against.join(', ')}>+{c.against.length - 1} more</small></> : null}</> : '—'}</td><td>{c.reason}</td><td className="n">{qfmt(c.qty)}</td><td className="n"><b>{inr2f(c.total)}</b></td>
-                <td>{c.settle === 'refund' ? <span className="stt b">Refunded · {c.refundMode}</span> : Number(c.unused) > 0 ? <span className="stt a">Credit {inr2f(c.unused)}</span> : <span className="stt g">Adjusted</span>}</td></tr>
-            )) : <tr><td colSpan={8}><div className="ptempty pue"><b>No credit notes yet</b><span>When a customer returns goods, record a credit note. Stock goes back up and their invoice due is reduced.</span><button className="btn p sm" id="cnNew2" onClick={() => setOpen({})}>New credit note</button></div></td></tr>}
+                <td>{c.settle === 'refund' ? <span className="stt b">Refunded · {c.refundMode}</span> : Number(c.unused) > 0 ? <span className="stt a">Credit {inr2f(c.unused)}</span> : <span className="stt g">Adjusted</span>}</td>
+                <td className="slact"><RowMenuButton no={c.number} label={`Actions for ${c.number}`} onOpen={(b) => setMenu({ row: c, ...atButton(b), tr: b.closest('tr') })} /></td></tr>
+            )) : <tr><td colSpan={9}><div className="ptempty pue"><b>No credit notes yet</b><span>When a customer returns goods, record a credit note. Stock goes back up and their invoice due is reduced.</span><button className="btn p sm" id="cnNew2" onClick={() => setOpen({})}>New credit note</button></div></td></tr>}
           </tbody></table></div></div>
+      <RowMenu id="cnCtx" label="Credit note actions" rows="#cnRows tr[data-cnno]" menu={menu} head={m ? <><b>{m.number}</b> · {m.partyName}</> : null} actions={CN_ACT}
+        off={{ edit: m?.cancelled ? 'Cancelled document' : '' }} onClose={() => { const tr = menu?.tr; setMenu(null); return tr; }}
+        onPick={(a) => { const c = menu?.row; setMenu(null); if (!c) return; if (a === 'edit') setOpen({ edit: c.id }); else view(c); }} />
       <CreditNoteDialog open={open} onClose={() => setOpen(null)} />
       <SlModal m={modal} onClose={() => setModal(null)} />
     </section>
   );
 }
 
-/** New credit note (#cnm). `open.invoice` starts with that invoice ticked. */
-export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string } | null; onClose: () => void }) {
+/** New credit note (#cnm). `open.invoice` starts with that invoice ticked; `open.edit` edits a saved one (same number, passcode when it is on). */
+export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string; edit?: string } | null; onClose: () => void }) {
   const qc = useQueryClient();
   const { showToast } = useShell();
   const gst = !!useSettings().data?.gstEnabled;
@@ -94,7 +108,9 @@ export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string }
   const parties = useQuery({ queryKey: ['parties'], queryFn: () => api<Party[]>('/parties'), enabled: isOpen });
   const items = useQuery({ queryKey: ['items'], queryFn: () => api<Item[]>('/items'), enabled: isOpen });
   const sales = useSales('invoice');
-  const no = useQuery({ queryKey: ['next-number', 'credit_note'], queryFn: () => api<{ number: string }>('/sales/next-number?kind=credit_note'), enabled: isOpen });
+  const editId = open?.edit ?? null;
+  const no = useQuery({ queryKey: ['next-number', 'credit_note'], queryFn: () => api<{ number: string }>('/sales/next-number?kind=credit_note'), enabled: isOpen && !editId });
+  const [editNo, setEditNo] = useState('');
   const [party, setParty] = useState('');
   const [invs, setInvs] = useState<string[]>([]);
   const [lines, setLines] = useState<CnLine[]>([]);
@@ -125,7 +141,8 @@ export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string }
   const toggle = async (s: SaleRow, on: boolean) => {
     if (on) {
       if (invs.includes(s.id)) return;
-      const ret = await qc.fetchQuery({ queryKey: ['returnable', s.id], queryFn: () => api<Returnable[]>(`/sales/${s.id}/returnable`), staleTime: 0 });
+      // editing: what this credit note returned can be returned again
+      const ret = await qc.fetchQuery({ queryKey: ['returnable', s.id, editId], queryFn: () => api<Returnable[]>(`/sales/${s.id}/returnable${editId ? `?except=${editId}` : ''}`), staleTime: 0 });
       setInvs((x) => [...x, s.id]);
       setLines((x) => [...x, ...ret.map((l) => ({ inv: s.id, invNo: s.number, id: l.itemId, name: l.name, sold: Number(l.sold), max: Number(l.max), qty: 0, unit: l.unit, price: Number(l.price), gst: Number(l.gstRate), amt: 0 }))]);
     } else {
@@ -136,7 +153,8 @@ export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string }
   };
   useEffect(() => {
     if (!open) return;
-    setInvs([]); setLines([]); setIq(''); setDate(today()); setReason(CN_REASONS[0]); setSettle('adjust'); setRefMode('Cash'); setErr('');
+    setInvs([]); setLines([]); setIq(''); setDate(today()); setReason(CN_REASONS[0]); setSettle('adjust'); setRefMode('Cash'); setErr(''); setEditNo('');
+    if (open.edit) { void loadSaved(open.edit); return; }
     const s = open.invoice ? all.find((x) => x.id === open.invoice) : undefined;
     const p = s ? s.party?.id ?? '__cash' : '';
     setParty(p);
@@ -145,6 +163,28 @@ export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string }
     setTimeout(() => (document.querySelector(p ? '#cnInvs input' : '#cnParty') as HTMLElement | null)?.focus(), 30);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  /** Editing: the saved credit note fills the window — its invoices ticked, with what can be returned leaving out this note. */
+  async function loadSaved(id: string) {
+    try {
+      const d = await qc.fetchQuery({ queryKey: ['credit-note', id], queryFn: () => api<CnDoc>(`/credit-notes/${id}`), staleTime: 0 });
+      setEditNo(d.number); setParty(d.partyId ?? '__cash'); setDate(d.date); setReason(d.reason); setSettle(d.settle); setRefMode(d.refundMode);
+      const ids = [...new Set(d.lines.flatMap((l) => (l.invoiceId ? [l.invoiceId] : [])))];
+      const out: CnLine[] = [];
+      for (const inv of ids) {
+        const ret = await qc.fetchQuery({ queryKey: ['returnable', inv, id], queryFn: () => api<Returnable[]>(`/sales/${inv}/returnable?except=${id}`), staleTime: 0 });
+        const invNo = all.find((x) => x.id === inv)?.number ?? '';
+        for (const l of ret) {
+          const mine = d.lines.find((x) => x.invoiceId === inv && x.itemId === l.itemId);
+          const qty = mine ? Number(mine.qty) : 0;
+          const price = mine ? Number(mine.price) : Number(l.price);
+          out.push({ inv, invNo, id: l.itemId, name: l.name, sold: Number(l.sold), max: Number(l.max), qty, unit: l.unit, price, gst: Number(l.gstRate), amt: r2(qty * price) });
+        }
+      }
+      for (const l of d.lines.filter((x) => !x.invoiceId)) out.push({ inv: '', invNo: '', id: l.itemId, name: l.name, qty: Number(l.qty), unit: l.unit, price: Number(l.price), gst: Number(l.gstRate), amt: r2(Number(l.qty) * Number(l.price)) });
+      setInvs(ids); setLines(out); redraw();
+    } catch (e) { showToast(e instanceof ApiError ? e.message : 'Could not open the credit note.'); onClose(); }
+  }
 
   const calc = () => { let tot = 0, tax = 0; for (const l of lines) { const a = r2(l.qty * l.price); tot += a; tax += a - a / (1 + l.gst / 100); } return { tot: r2(tot), tax: r2(tax) }; };
   const c = calc();
@@ -164,11 +204,11 @@ export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string }
     if (party === '__cash' && settle !== 'refund') return fail('Counter sales have no customer account. Choose “Refund now”.');
     setBusy(true);
     try {
-      await api('/credit-notes', {
-        method: 'POST', body: { partyId: party === '__cash' ? null : party, date, reason, settle, refundMode: refMode, lines: L.map((l) => ({ invoiceId: l.inv || null, itemId: l.id, qty: String(l.qty), price: String(l.price), gstRate: String(l.gst) })) },
-      });
+      const body = { partyId: party === '__cash' ? null : party, date, reason, settle, refundMode: refMode, lines: L.map((l) => ({ invoiceId: l.inv || null, itemId: l.id, qty: String(l.qty), price: String(l.price), gstRate: String(l.gst) })) };
+      if (editId) { if (!(await withPasscode(qc, editAsk(editNo), (h) => api(`/credit-notes/${editId}`, { method: 'PUT', body, headers: h })))) return; }
+      else await api('/credit-notes', { method: 'POST', body });
       onClose();
-      await Promise.all(['credit-notes', 'sales', 'parties', 'items', 'next-number', 'sale', 'returnable'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
+      await Promise.all(['credit-notes', 'credit-note', 'sales', 'parties', 'items', 'next-number', 'sale', 'returnable', 'dues'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
       toastSaved('credit_note');
     } catch (e) { fail(e instanceof ApiError ? e.message : 'Could not save the credit note.'); }
     finally { setBusy(false); }
@@ -184,7 +224,7 @@ export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string }
   return (
     <div className="ov c" id="cnm" hidden={!isOpen} ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'cnm') close(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="cnT" style={{ width: 'min(820px,100%)' }}>
-        <div className="dh"><div><h3 id="cnT" style={{ margin: 0, fontSize: 18 }}>New credit note</h3><small className="mu mono" id="cnNo">{no.data?.number ?? ''}</small></div><button className="ib" type="button" id="cnClose" aria-label="Close" onClick={close}><Icon name="x" /></button></div>
+        <div className="dh"><div><h3 id="cnT" style={{ margin: 0, fontSize: 18 }}>{editId ? 'Edit credit note' : 'New credit note'}</h3><small className="mu mono" id="cnNo">{editId ? editNo : (no.data?.number ?? '')}</small></div><button className="ib" type="button" id="cnClose" aria-label="Close" onClick={close}><Icon name="x" /></button></div>
         <div className="cnhd" style={{ marginTop: 14 }}><label className="fl" htmlFor="cnParty">Customer<select className="fi" id="cnParty" value={party} onChange={(e) => { setParty(e.target.value); setInvs([]); setLines([]); setIq(''); if (e.target.value === '__cash') setSettle('refund'); redraw(); }}>
           <option value="">Choose customer</option>{(parties.data ?? []).filter((p) => p.kind !== 'supplier').map((p) => <option value={p.id} key={p.id}>{p.name}</option>)}<option value="__cash">Counter sales (no account)</option></select></label>
           <label className="fl" htmlFor="cnDate">Date<input className="fi" type="date" id="cnDate" value={date} onChange={(e) => setDate(e.target.value)} /></label>

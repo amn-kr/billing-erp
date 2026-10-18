@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { qSerName, type QuoteRow, type QuoteSeries } from '@billing/shared';
 import { RawIcon } from '../../components/Icon';
+import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
 import { dmy, inr2f } from '../../lib/format';
 import { useEscape } from '../../lib/useEscape';
 import { useOpenFocus } from '../../lib/useOpenFocus';
@@ -10,6 +11,7 @@ import type { SaleRow } from '../sales/model';
 import type { QTotal } from './model';
 
 const X = '<path d="M6 6l12 12M18 6L6 18"/>';
+const QL_ACT: RowAction[] = [['edit', 'Edit'], ['open', 'Open'], ['conv', 'Convert to invoice']];
 
 /** a button that asks once more before acting (prototype confirmTwice) */
 function SureBtn({ label, ask, title, onSure, ...rest }: { label: string; ask: string; title: string; onSure: () => void; 'data-qdl': string; 'aria-label': string }) {
@@ -20,25 +22,33 @@ function SureBtn({ label, ask, title, onSure, ...rest }: { label: string; ask: s
 
 export function SavedList({ open, rows, onClose, onOpen, onConvert, onCancel }: { open: boolean; rows: SaleRow[]; onClose: () => void; onOpen: (r: SaleRow) => void; onConvert: (r: SaleRow) => void; onCancel: (r: SaleRow) => void }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [menu, setMenu] = useState<RowMenuAt<SaleRow> | null>(null);
   useOpenFocus(open, ref);
-  useEscape(open, onClose);
+  useEscape(open && !menu, onClose);
+  useEffect(() => { if (!open) setMenu(null); }, [open]);
+  const rm = rowMenuHandlers('tr[data-qno]', (tr) => rows.find((q) => q.number === tr.dataset.qno), setMenu);
+  const m = menu?.row;
+  const done = m?.status === 'converted' ? `Already turned into invoice ${m.invoiceNo}. Edit the invoice instead.` : '';
   return (
     <div className="ov c" id="qlm" hidden={!open} ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'qlm') onClose(); }}>
       <div className="mdl wide" role="dialog" aria-modal="true" aria-labelledby="qlT" style={{ width: 'min(880px,100%)' }}>
         <div className="dh"><div><h3 id="qlT" style={{ margin: 0, fontSize: 18 }}>Saved quotations</h3><small className="mu">Open one to continue, or convert it to a sale invoice.</small></div><button className="ib" type="button" id="qlClose" aria-label="Close" onClick={onClose}><RawIcon d={X} /></button></div>
         <div className="tw stk" style={{ marginTop: 14 }}><table className="ptt2" style={{ minWidth: 720 }}><thead><tr><th>Quote</th><th>Date</th><th>Customer</th><th className="n">Items</th><th>Lowest</th><th>Status</th><th className="n"><span className="vh">Actions</span></th></tr></thead>
-          <tbody id="qlRows">{rows.length ? rows.map((q) => {
+          <tbody id="qlRows" onContextMenu={rm.onContextMenu} onKeyDown={(e) => void rm.menuKey(e)}>{rows.length ? rows.map((q) => {
             const low = q.qtype === 'brand' ? q.brandQuote?.low ?? null : { name: 'Item-wise', total: Number(q.total) };
             return (
-              <tr key={q.id}><td className="mono"><b>{q.number}</b>{q.qtype === 'items' ? <> <span className="st b" style={{ fontSize: 10, padding: '1px 6px' }}>Item-wise</span></> : null}</td><td>{dmy(q.date)}</td><td>{q.partyName || '—'}</td><td className="n">{q.items} · {qfmt(Number(q.qty))} pcs</td>
+              <tr key={q.id} data-qno={q.number} className={menu?.row.id === q.id ? 'ctxon' : undefined}><td className="mono"><b>{q.number}</b>{q.qtype === 'items' ? <> <span className="st b" style={{ fontSize: 10, padding: '1px 6px' }}>Item-wise</span></> : null}</td><td>{dmy(q.date)}</td><td>{q.partyName || '—'}</td><td className="n">{q.items} · {qfmt(Number(q.qty))} pcs</td>
                 <td>{low ? <>{low.name}<small className="mu" style={{ display: 'block' }}>₹{inr2f(low.total)}</small></> : '—'}</td>
                 <td>{q.status === 'converted' ? <><span className="st g">Converted</span><small className="mu" style={{ display: 'block' }}>{q.invoiceNo} · {q.qtype === 'items' ? 'Item-wise' : q.invoiceBrand}</small></> : <span className="st b">Open</span>}</td>
                 <td className="n" style={{ whiteSpace: 'nowrap' }}><button className="btn sm" data-qopen={q.number} onClick={() => onOpen(q)}>Open</button> {q.status === 'converted' ? null : <><button className="btn p sm" data-qconv={q.number} onClick={() => onConvert(q)}>Convert</button> </>}
                   {/* quotations are cancelled, never deleted: it leaves this list and is kept in the books */}
-                  <SureBtn label="×" ask="Cancel?" title="Cancel quotation" data-qdl={q.number} aria-label={`Cancel ${q.number}`} onSure={() => onCancel(q)} /></td></tr>
+                  <SureBtn label="×" ask="Cancel?" title="Cancel quotation" data-qdl={q.number} aria-label={`Cancel ${q.number}`} onSure={() => onCancel(q)} /> <RowMenuButton no={q.number} label={`Actions for ${q.number}`} onOpen={(b) => setMenu({ row: q, ...atButton(b), tr: b.closest('tr') })} /></td></tr>
             );
           }) : <tr><td colSpan={7}><div className="ptempty">No saved quotations yet. Enter quantities and press Save.</div></td></tr>}</tbody></table></div>
       </div>
+      <RowMenu id="qlCtx" label="Quotation actions" rows="#qlRows tr[data-qno]" menu={menu} head={m ? <><b>{m.number}</b> · {m.partyName || '—'}</> : null} actions={QL_ACT}
+        off={{ edit: done, conv: done ? 'Already converted' : '' }} onClose={() => { const tr = menu?.tr; setMenu(null); return tr; }}
+        onPick={(a) => { const q = menu?.row; setMenu(null); if (!q) return; if (a === 'conv') onConvert(q); else onOpen(q); }} />
     </div>
   );
 }
