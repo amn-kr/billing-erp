@@ -1,7 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { auth, owner, startApp } from './helpers';
+import { auth, expectNoPasscode, owner, startApp } from './helpers';
 
 /**
  * Edit for saved sales-side documents (group 1): payments received, credit notes, delivery challans
@@ -68,6 +68,16 @@ async function figures(s: Shop) {
   });
 }
 
+describe('the “no passcode in the audit log” check', () => {
+  it('catches a hash or the passcode in a field, and ignores ids and postal PIN codes that only contain the digits', () => {
+    expect(() => expectNoPasscode([{ after: { passcodeHash: '$argon2id$x' } }], PASS)).toThrow();
+    expect(() => expectNoPasscode([{ after: { secret: 'x' } }], PASS)).toThrow();
+    expect(() => expectNoPasscode([{ after: { pin: PASS } }], PASS)).toThrow();
+    expect(() => expectNoPasscode([{ before: { passcode: Number(PASS) } }], PASS)).toThrow();
+    expectNoPasscode([{ id: 'c4fda900-9cb2-4826-962a-0d8f2b1c4826', at: '2026-10-18T14:48:26.000Z', after: { pin: '226018', businessId: 'a4826b00-0000-4000-8000-000000004826' } }], PASS);
+  });
+});
+
 /* ───────── payments received ───────── */
 
 describe('edit a payment received', () => {
@@ -91,7 +101,7 @@ describe('edit a payment received', () => {
     const up = a.find((e) => e.action === 'update' && e.entity === 'payment');
     expect(up).toMatchObject({ entityId: pay.id, before: { amount: '1000', allocations: [{ to: inv.id, amount: '1000.00' }] }, after: { amount: '1500', allocations: [{ to: inv.id, amount: '1500.00' }] } });
     expect(a.find((e) => e.action === 'passcode_used')).toMatchObject({ entityId: pay.id, after: { for: 'edit', document: 'receipt' } });
-    expect(JSON.stringify(a)).not.toContain(PASS);
+    expectNoPasscode(a, PASS);
   });
 
   it('with the passcode off it needs no passcode', async () => {
