@@ -103,3 +103,58 @@ describe('Items › Brands & Series', () => {
     await http().patch(`/api/brands/${b.body.id}`).set(auth(other)).send({ name: 'Mine' }).expect(404);
   });
 });
+
+type Pick = { name: string; taken: boolean };
+describe('Add item › Series of one brand', () => {
+  it('only that brand’s active series, from Brands & Series and from its items, once each whatever the capitals', async () => {
+    const o = await owner(app);
+    const hav = await http().post('/api/brands').set(auth(o)).send({ name: 'Havells' }).expect(201);
+    const anc = await http().post('/api/brands').set(auth(o)).send({ name: 'Anchor' }).expect(201);
+    await http().post('/api/brand-series').set(auth(o)).send({ brandId: hav.body.id, name: 'Coral' }).expect(201);
+    await http().post('/api/brand-series').set(auth(o)).send({ brandId: anc.body.id, name: 'Roma' }).expect(201);
+    const off = await http().post('/api/brand-series').set(auth(o)).send({ brandId: hav.body.id, name: 'Old line' }).expect(201);
+    await http().patch(`/api/brand-series/${off.body.id}`).set(auth(o)).send({ active: false }).expect(200);
+    // typed on items: CORAL (same as the saved Coral), Pearl twice in different capitals, an inactive series' name, and no series
+    await http().post('/api/items').set(auth(o)).send({ name: 'SW · Havells CORAL', group: 'SW', brand: 'Havells', series: 'CORAL' }).expect(201);
+    await http().post('/api/items').set(auth(o)).send({ name: 'SW · Havells Pearl', group: 'SW', brand: 'Havells', series: 'Pearl' }).expect(201);
+    await http().post('/api/items').set(auth(o)).send({ name: 'Plate · Havells pearl', group: 'Plate', brand: 'Havells', series: 'pearl' }).expect(201);
+    await http().post('/api/items').set(auth(o)).send({ name: 'SW · Havells old line', group: 'SW', brand: 'Havells', series: 'old line' }).expect(201);
+    await http().post('/api/items').set(auth(o)).send({ name: 'LED 12W', brand: 'Havells' }).expect(201);
+    const list = (await http().get(`/api/brands/${hav.body.id}/series`).set(auth(o)).expect(200)).body as Pick[];
+    expect(list.map((s) => s.name)).toEqual(['Coral', 'Pearl']);
+    expect(list.every((s) => !s.taken)).toBe(true);
+  });
+
+  it('marks the series this parent item already has with this brand (the save still refuses them)', async () => {
+    const o = await owner(app);
+    const hav = await http().post('/api/brands').set(auth(o)).send({ name: 'Havells' }).expect(201);
+    await http().post('/api/brand-series').set(auth(o)).send({ brandId: hav.body.id, name: 'Coral' }).expect(201);
+    await http().post('/api/items').set(auth(o)).send({ name: 'Switch 6A · Havells Pearl', group: 'Switch 6A', brand: 'Havells', series: 'Pearl' }).expect(201);
+    await http().post('/api/items').set(auth(o)).send({ name: 'Plate · Havells Coral', group: 'Plate', brand: 'Havells', series: 'Coral' }).expect(201);
+    const list = (await http().get(`/api/brands/${hav.body.id}/series`).query({ group: 'switch 6a' }).set(auth(o)).expect(200)).body as Pick[];
+    expect(list).toEqual([{ name: 'Coral', taken: false }, { name: 'Pearl', taken: true }]);
+    expect((await http().post('/api/items').set(auth(o)).send({ name: 'Switch 6A · Havells PEARL', group: 'Switch 6A', brand: 'Havells', series: 'PEARL' }).expect(409)).body.message)
+      .toBe('Havells PEARL is already in this item. Enter a different series.');
+  });
+
+  it('a series added from Add item is a Brands & Series series: same duplicate rules, shows on that page', async () => {
+    const o = await owner(app);
+    const b = await http().post('/api/catalogue/brands').set(auth(o)).send({ name: 'Polycab' }).expect(201);
+    await http().post('/api/brand-series').set(auth(o)).send({ brandId: b.body.id, name: 'Maxima' }).expect(201);
+    expect((await http().post('/api/brand-series').set(auth(o)).send({ brandId: b.body.id, name: 'MAXIMA' }).expect(409)).body.message).toBe('Polycab already has a series called MAXIMA.');
+    expect((await http().get(`/api/brands/${b.body.id}/series`).set(auth(o)).expect(200)).body).toEqual([{ name: 'Maxima', taken: false }]);
+    expect((await http().get('/api/brand-series').set(auth(o)).expect(200)).body.map((s: Row) => `${s.brand} ${s.name}`)).toEqual(['Polycab Maxima']);
+  });
+
+  it('billing staff can look; another shop’s brand is not found', async () => {
+    const o = await owner(app);
+    const b = await http().post('/api/brands').set(auth(o)).send({ name: 'Wipro' }).expect(201);
+    await http().post('/api/brand-series').set(auth(o)).send({ brandId: b.body.id, name: 'Garnet' }).expect(201);
+    const staff = await member(app, o, 'billing_staff');
+    expect((await http().get(`/api/brands/${b.body.id}/series`).set(auth(staff)).expect(200)).body).toEqual([{ name: 'Garnet', taken: false }]);
+    const other = await owner(app);
+    await http().get(`/api/brands/${b.body.id}/series`).set(auth(other)).expect(404);
+    await http().post('/api/brand-series').set(auth(other)).send({ brandId: b.body.id, name: 'Mine' }).expect(400);
+    await http().get('/api/brands/not-an-id/series').set(auth(o)).expect(400);
+  });
+});

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { brandSchema, brandUpdateSchema, seriesFromItemsSchema, seriesSchema, seriesUpdateSchema, type BrandInput, type BrandUpdate, type SeriesInput, type SeriesUpdate } from '@billing/shared';
 import type { z } from 'zod';
 import { Ctx, RequirePermission } from '../../common/decorators';
@@ -27,6 +27,13 @@ export class BrandsController {
   @Patch('brands/:id')
   update(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(brandUpdateSchema)) body: BrandUpdate) {
     return this.brands.updateBrand(ctx, id, body);
+  }
+
+  /** Add item › Series: one brand's series, marked when the parent item (group) already has them with this brand. */
+  @RequirePermission('masters.view')
+  @Get('brands/:id/series')
+  seriesOfBrand(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Query('group') group?: string) {
+    return this.brands.seriesOfBrand(ctx, id, group);
   }
 
   @RequirePermission('masters.view')

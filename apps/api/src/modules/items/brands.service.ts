@@ -102,6 +102,33 @@ export class BrandsService {
     return this.db.scoped(this.scope(ctx), (tx) => this.seriesList(tx));
   }
 
+  /**
+   * Add item › Series: the brand's active series (saved here, or typed on its items; a name saved here and
+   * made inactive is left out), once each ignoring capital letters. `taken` = the parent item already has it
+   * with this brand, which ItemsService refuses on save.
+   */
+  seriesOfBrand(ctx: RequestContext, brandId: string, group?: string) {
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      if (!(await tx.brand.findFirst({ where: { id: brandId } }))) throw new NotFoundException({ message: 'That brand was not found.' });
+      const [rows, typed, used] = await Promise.all([
+        tx.brandSeries.findMany({ where: { brandId }, orderBy: { createdAt: 'asc' } }),
+        tx.item.findMany({ where: { archivedAt: null, brandId, series: { not: '' } }, select: { series: true }, orderBy: { createdAt: 'asc' } }),
+        group?.trim() ? tx.item.findMany({ where: { archivedAt: null, brandId, itemGroup: { name: { equals: group.trim(), mode: 'insensitive' } } }, select: { series: true } }) : [],
+      ]);
+      const taken = new Set(used.map((i) => key(brandId, i.series)));
+      const out = new Map<string, { name: string; taken: boolean }>();
+      const seen = new Set(rows.map((r) => key(brandId, r.name)));
+      for (const r of rows) if (!r.archivedAt) out.set(key(brandId, r.name), { name: r.name, taken: taken.has(key(brandId, r.name)) });
+      for (const i of typed) {
+        const k = key(brandId, i.series);
+        if (!i.series.trim() || seen.has(k)) continue;
+        seen.add(k);
+        out.set(k, { name: i.series.trim(), taken: taken.has(k) });
+      }
+      return [...out.values()].sort((a, b) => a.name.localeCompare(b.name));
+    });
+  }
+
   /** Every series with its stable id (key) and whether it and its brand are active, for the Quotation columns. */
   seriesForQuotes(tx: Tx) {
     return this.seriesList(tx);
