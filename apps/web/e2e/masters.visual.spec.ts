@@ -51,6 +51,8 @@ for (const width of WIDTHS) {
     });
 
     test('Items screen, Add item and Adjust stock', async ({ browser }) => {
+      // about 35 s when every picture matches; a changed picture is taken up to three times, so give it room
+      test.slow();
       const proto = await newPage(browser, width);
       const app = await newPage(browser, width);
       await prototypeWithBackup(proto);
