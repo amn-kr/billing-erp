@@ -150,17 +150,21 @@ test('add items (with opening stock, service, brands/sizes) and adjust stock', a
   await expect(page.locator('#aiName')).toHaveValue('Copper wire 1.5 sq mm');
   await expect(page.locator('#aiBrandSel')).toHaveValue('Havells');
   await expect(page.locator('#aiSeries')).toHaveValue('');
-  // a series already in this parent and brand can't be picked, nor added again whatever the capitals
-  await page.click('#aiSeries');
-  await expect(page.locator('#aiSeriesL [role="option"][aria-disabled="true"]')).toHaveText('FR Redalready added');
+  // a series this parent item already has with this brand can be chosen (any capitals), but is flagged at once and Save refuses it
   await page.fill('#aiSeries', 'fr red');
+  await expect(page.locator('#aiSeriesL [role="option"]').first()).toHaveText('FR Redalready added');
   await page.keyboard.press('Enter');
-  await expect(page.locator('#aiAdd_seriesN')).toHaveValue('fr red');
-  await page.click('#aiAdd_seriesGo');
-  await expect(page.locator('#aiAdd_series .msg')).toHaveText('Havells FR Red is already in this item. Choose a different series.');
-  await page.fill('#aiAdd_seriesN', 'FR Black');
-  await page.click('#aiAdd_seriesGo');
+  await expect(page.locator('#aiSeries')).toHaveValue('FR Red');
+  await expect(page.locator('#aiSeriesDup')).toHaveText('Copper wire 1.5 sq mm Havells FR Red is already added. Open that item');
   await page.fill('#aiSale', '1650');
+  await page.click('#aiSave');
+  await expect(page.locator('#aiSeriesDup')).toContainText('Copper wire 1.5 sq mm Havells FR Red is already added.');
+  await expect(page.locator('#ai')).toBeVisible();
+  // a new series instead
+  await page.fill('#aiSeries', 'FR Black');
+  await page.keyboard.press('Enter');
+  await page.click('#aiAdd_seriesGo');
+  await expect(page.locator('#aiSeriesDup')).toHaveCount(0);
   await page.click('#aiSave');
   await expect(page.locator('#toast')).toHaveText('Copper wire 1.5 sq mm · Havells FR Black added');
   await expect(page.locator('#itHead h2')).toHaveText('Copper wire 1.5 sq mm');
@@ -249,8 +253,25 @@ test('Add item › Variant: parent by typing, only the brand’s series, add a s
   await page.click('#aiSeries');
   await expect(page.locator('#aiSeriesL [role="option"]')).toHaveText(['CLASSIC', '+ Add series']);
   await page.keyboard.press('Escape');
-  await page.keyboard.press('Escape');
+
+  // an "already added" series can be chosen: flagged at once, Save makes no second item, "Open that item" opens it
+  await page.fill('#aiName', '1way');
+  await page.keyboard.press('Enter');
+  await page.fill('#aiBrandSel', 'havells');
+  await page.keyboard.press('Enter');
+  await page.click('#aiSeries');
+  await page.locator('#aiSeriesL').getByRole('option', { name: 'Allure already added' }).click();
+  await expect(page.locator('#aiSeriesDup')).toHaveText('6A-10A 1WAY SWITCH HAVELLS Allure is already added. Open that item');
+  await page.fill('#aiSale', '60');
+  await page.click('#aiSave');
+  await expect(page.locator('#ai')).toBeVisible();
+  await expect(page.locator('#aiSeriesDup')).toContainText('is already added.');
+  await page.click('#aiOpenDup');
   await expect(page.locator('#ai')).toBeHidden();
+  await expect(page.locator('#itHead h2')).toHaveText('HAVELLS Allure');
+  // still one Allure: the parent item has its four variants (CORAL, PEARLZ, NORWOOD CLASSIC, Allure)
+  await page.click('#itHead [data-gback]');
+  await expect(page.locator('#itHead .vtab tbody tr')).toHaveCount(4);
 
   // Brands & Series lists the series added from Add item
   await page.goto(APP + '/items/brands');

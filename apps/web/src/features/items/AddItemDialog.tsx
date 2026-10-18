@@ -9,7 +9,8 @@
  * - adding a brand, category, unit, series or parent item opens a small popup;
  * - Parent item, Brand, Series and Category are searchable drop-downs (components/SearchSelect). Series lists
  *   only the chosen brand's series (Brands & Series plus those typed on its items); one this parent item
- *   already has with that brand is shown as "already added". "+ Add series" saves it on the brand at once.
+ *   already has with that brand is marked "already added": it can be chosen, but a red line under the field
+ *   says so (with "Open that item") and Save refuses it. "+ Add series" saves it on the brand at once.
  * Saves through POST /api/items.
  */
 import { useEffect, useRef, useState } from 'react';
@@ -30,8 +31,8 @@ interface Unit { code: string; name: string }
 interface Rate { unit: string; secondaryUnit: string; rate: string }
 interface Brand { id: string; name: string }
 interface Catalogue { units: Unit[]; categories: { name: string }[]; brands: Brand[]; groups: { name: string }[]; rates: Rate[] }
-/** GET /brands/:id/series: taken = this parent item already has it with this brand */
-interface BrandSeries { name: string; taken: boolean }
+/** GET /brands/:id/series: taken = this parent item already has it with this brand (itemId = that item) */
+interface BrandSeries { name: string; taken: boolean; itemId?: string }
 const F0 = { name: '', group: '', hsn: '', unit: 'PCS', sec: '', rate: '', cat: '', code: '', brand: '', series: '', sale: '', mrp: '', saleTax: 'With tax', disc: '', whole: '', wholeQty: '', purch: '', purchTax: 'With tax', gst: '18', oq: '', op: '', od: '', min: '', loc: '' };
 type Form = typeof F0;
 const num = (x: string) => Number(String(x).replace(/,/g, ''));
@@ -44,7 +45,11 @@ type Pop = 'brand' | 'cat' | 'group' | 'unit' | 'series' | null;
 /** Select unit window: base, secondary ('' = None) and the chosen rate ('new' = typed in, else a saved rate). */
 interface UnitWin { base: string; sec: string; pick: string; typed: string; err: string; addFor: 'base' | 'sec' }
 
-export function AddItemDialog({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved: (id: string, svc: boolean, group?: string) => void }) {
+/**
+ * onOpenItem: "Open that item" for a variant that already exists (Items page: its detail screen). Without it
+ * (a bill being made) the button reads "Use that item" and hands the existing item to onSaved instead.
+ */
+export function AddItemDialog({ open, onClose, onSaved, onOpenItem }: { open: boolean; onClose: () => void; onSaved: (id: string, svc: boolean, group?: string) => void; onOpenItem?: (id: string) => void }) {
   const cur = useCur();
   const settings = useSettings().data;
   const qc = useQueryClient();
@@ -105,6 +110,9 @@ export function AddItemDialog({ open, onClose, onSaved }: { open: boolean; onClo
     enabled: open && vary && !!brandId,
   });
   const seriesList = brandId ? (seriesQ.data ?? []) : [];
+  /** the chosen series is already a variant of this parent item with this brand */
+  const dup = vary && f.series ? seriesList.find((x) => x.taken && same(x.name, f.series)) : undefined;
+  const dupText = dup ? `${f.group} ${f.brand} ${dup.name} is already added.` : '';
   const groups = [...new Set([...(cat.data?.groups.map((g) => g.name) ?? []), ...extraGroups])].sort((a, b) => a.localeCompare(b));
   const gstList = (settings?.taxes ?? []).filter((t) => t.kind === 'GST');
   const pre = cur('₹') ? 'pre2' : 'pre2 ncur';
@@ -134,6 +142,7 @@ export function AddItemDialog({ open, onClose, onSaved }: { open: boolean; onClo
       if (!f.group) er.name = 'Choose the parent item.';
       if (!f.brand) er.brand = 'Choose a brand.';
       if (!series) er.series = 'Choose or add a series.';
+      else if (dup) er.series = dupText;
     } else if (!name) er.name = svc ? 'Enter the service name.' : 'Enter the item name.';
     if (f.hsn && !/^\d{4,8}$/.test(f.hsn)) er.hsn = 'HSN/SAC is 4 to 8 digits.';
     if (f.sale && Number.isNaN(num(f.sale))) er.sale = 'Enter a number.';
@@ -189,7 +198,6 @@ export function AddItemDialog({ open, onClose, onSaved }: { open: boolean; onClo
         // the chosen brand's series, added the same way as on Items › Brands & Series (same duplicate rules)
         const n = name.replace(/\s+/g, ' ');
         const hit = seriesList.find((x) => same(x.name, n));
-        if (hit?.taken) return `${f.brand} ${hit.name} is already in this item. Choose a different series.`;
         if (!hit) {
           await api('/brand-series', { body: { brandId, name: n } });
           await Promise.all(['brand-series-of', 'brand-series', 'brands'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
@@ -267,7 +275,9 @@ export function AddItemDialog({ open, onClose, onSaved }: { open: boolean; onClo
                 <label className="apf">Category<SearchSelect id="aiCat" dataF="cat" value={f.cat} options={cats.map((c) => ({ value: c }))} placeholder="No category" empty="No category" add="+ Add category" onAdd={(t) => addNew('cat', t)} onChange={(v) => setF((x) => ({ ...x, cat: v }))} /></label>
                 <label className="apf">Item code<span className="aicode"><input className={`fi ${bad('code')}`} data-f="code" id="aiCode" value={f.code} onChange={set('code')} placeholder="Maker's code" autoComplete="off" /><button type="button" className="btn sm" id="aiGen" onClick={assignCode}>Assign code</button></span>{E('code')}</label>
                 {!svc && <label className="apf">Brand{vary && <> <span className="req">*</span></>}<SearchSelect id="aiBrandSel" dataF="brand" className={bad('brand')} value={f.brand} options={brands.map((b) => ({ value: b }))} placeholder={vary ? 'Choose brand' : 'No brand'} empty={vary ? undefined : 'No brand'} add="+ Add new brand" onAdd={(t) => addNew('brand', t)} onChange={(v) => { setF((x) => (v === x.brand ? x : { ...x, brand: v, series: '' })); setErr(({ brand: _, ...x }) => x); }} />{E('brand')}</label>}
-                {vary && <label className="apf">Series / model <span className="req">*</span><SearchSelect id="aiSeries" dataF="series" className={bad('series')} value={f.series} disabled={!f.brand} options={seriesList.map((x) => ({ value: x.name, disabled: x.taken, note: x.taken ? 'already added' : undefined }))} placeholder={f.brand ? 'Choose series' : 'Choose a brand first'} add="+ Add series" onAdd={(t) => addNew('series', t)} onChange={(v) => { setF((x) => ({ ...x, series: v })); setErr(({ series: _, ...x }) => x); }} />{E('series')}</label>}
+                {vary && <label className="apf">Series / model <span className="req">*</span><SearchSelect id="aiSeries" dataF="series" className={bad('series')} value={f.series} disabled={!f.brand} options={seriesList.map((x) => ({ value: x.name, note: x.taken ? 'already added' : undefined }))} placeholder={f.brand ? 'Choose series' : 'Choose a brand first'} add="+ Add series" onAdd={(t) => addNew('series', t)} onChange={(v) => { setF((x) => ({ ...x, series: v })); setErr(({ series: _, ...x }) => x); }} />{dup ? (
+                  <div className="aperr" id="aiSeriesDup">{dupText} <button type="button" className="btn sm" id="aiOpenDup" onClick={() => (onOpenItem ? onOpenItem(dup.itemId!) : onSaved(dup.itemId!, false, f.group))}>{onOpenItem ? 'Open that item' : 'Use that item'}</button></div>
+                ) : E('series')}</label>}
               </div>
               <label className="aiimg" htmlFor="aiFile" title="Add item image"><Icon name="cam" /><span>Add image</span><small>JPG or PNG</small><input type="file" id="aiFile" accept="image/*" onChange={() => showToast('Item photos come with file storage')} /></label>
             </div>

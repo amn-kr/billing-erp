@@ -104,7 +104,7 @@ describe('Items › Brands & Series', () => {
   });
 });
 
-type Pick = { name: string; taken: boolean };
+type Pick = { name: string; taken: boolean; itemId?: string };
 describe('Add item › Series of one brand', () => {
   it('only that brand’s active series, from Brands & Series and from its items, once each whatever the capitals', async () => {
     const o = await owner(app);
@@ -129,12 +129,14 @@ describe('Add item › Series of one brand', () => {
     const o = await owner(app);
     const hav = await http().post('/api/brands').set(auth(o)).send({ name: 'Havells' }).expect(201);
     await http().post('/api/brand-series').set(auth(o)).send({ brandId: hav.body.id, name: 'Coral' }).expect(201);
-    await http().post('/api/items').set(auth(o)).send({ name: 'Switch 6A · Havells Pearl', group: 'Switch 6A', brand: 'Havells', series: 'Pearl' }).expect(201);
+    const pearl = await http().post('/api/items').set(auth(o)).send({ name: 'Switch 6A · Havells Pearl', group: 'Switch 6A', brand: 'Havells', series: 'Pearl' }).expect(201);
     await http().post('/api/items').set(auth(o)).send({ name: 'Plate · Havells Coral', group: 'Plate', brand: 'Havells', series: 'Coral' }).expect(201);
     const list = (await http().get(`/api/brands/${hav.body.id}/series`).query({ group: 'switch 6a' }).set(auth(o)).expect(200)).body as Pick[];
-    expect(list).toEqual([{ name: 'Coral', taken: false }, { name: 'Pearl', taken: true }]);
+    // the item that has it comes along, so Add item can open it
+    expect(list).toEqual([{ name: 'Coral', taken: false }, { name: 'Pearl', taken: true, itemId: pearl.body.id }]);
     expect((await http().post('/api/items').set(auth(o)).send({ name: 'Switch 6A · Havells PEARL', group: 'Switch 6A', brand: 'Havells', series: 'PEARL' }).expect(409)).body.message)
       .toBe('Havells PEARL is already in this item. Enter a different series.');
+    expect((await http().get('/api/items').set(auth(o)).expect(200)).body.filter((i: { group: string }) => i.group === 'Switch 6A')).toHaveLength(1);
   });
 
   it('a series added from Add item is a Brands & Series series: same duplicate rules, shows on that page', async () => {

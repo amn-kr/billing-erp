@@ -105,7 +105,7 @@ export class BrandsService {
   /**
    * Add item › Series: the brand's active series (saved here, or typed on its items; a name saved here and
    * made inactive is left out), once each ignoring capital letters. `taken` = the parent item already has it
-   * with this brand, which ItemsService refuses on save.
+   * with this brand (ItemsService refuses that on save); `itemId` is that item, so Add item can open it.
    */
   seriesOfBrand(ctx: RequestContext, brandId: string, group?: string) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
@@ -113,17 +113,19 @@ export class BrandsService {
       const [rows, typed, used] = await Promise.all([
         tx.brandSeries.findMany({ where: { brandId }, orderBy: { createdAt: 'asc' } }),
         tx.item.findMany({ where: { archivedAt: null, brandId, series: { not: '' } }, select: { series: true }, orderBy: { createdAt: 'asc' } }),
-        group?.trim() ? tx.item.findMany({ where: { archivedAt: null, brandId, itemGroup: { name: { equals: group.trim(), mode: 'insensitive' } } }, select: { series: true } }) : [],
+        group?.trim() ? tx.item.findMany({ where: { archivedAt: null, brandId, itemGroup: { name: { equals: group.trim(), mode: 'insensitive' } } }, select: { id: true, series: true }, orderBy: { createdAt: 'asc' } }) : [],
       ]);
-      const taken = new Set(used.map((i) => key(brandId, i.series)));
-      const out = new Map<string, { name: string; taken: boolean }>();
+      const taken = new Map<string, string>();
+      for (const i of used) if (!taken.has(key(brandId, i.series))) taken.set(key(brandId, i.series), i.id);
+      const pick = (k: string, name: string) => (taken.has(k) ? { name, taken: true, itemId: taken.get(k) } : { name, taken: false });
+      const out = new Map<string, { name: string; taken: boolean; itemId?: string }>();
       const seen = new Set(rows.map((r) => key(brandId, r.name)));
-      for (const r of rows) if (!r.archivedAt) out.set(key(brandId, r.name), { name: r.name, taken: taken.has(key(brandId, r.name)) });
+      for (const r of rows) if (!r.archivedAt) out.set(key(brandId, r.name), pick(key(brandId, r.name), r.name));
       for (const i of typed) {
         const k = key(brandId, i.series);
         if (!i.series.trim() || seen.has(k)) continue;
         seen.add(k);
-        out.set(k, { name: i.series.trim(), taken: taken.has(k) });
+        out.set(k, pick(k, i.series.trim()));
       }
       return [...out.values()].sort((a, b) => a.name.localeCompare(b.name));
     });
