@@ -108,6 +108,35 @@ describe('debit note', () => {
   });
 });
 
+describe("the party's transactions (Parties page)", () => {
+  it("show the supplier's own number on bills and debit notes; other rows, other parties and other shops never get it", async () => {
+    const { o, bulb, kc } = await shop();
+    const b = (await buy(o, { partyId: kc.id, supplierRef: 'KC/2209', lines: [line(bulb, '10', '50')] }).expect(201)).body;
+    await buy(o, { partyId: kc.id, date: '2026-10-05', lines: [line(bulb, '5', '50')] }).expect(201); // no supplier number
+    await buy(o, { kind: 'debit_note', partyId: kc.id, date: '2026-10-06', supplierRef: 'KC/DN-7', againstId: b.id, reason: 'Damaged goods', lines: [line(bulb, '1', '50')] }).expect(201);
+    await http().post('/api/payments-made').set(auth(o)).send({ partyId: kc.id, date: '2026-10-07', amount: '100', mode: 'Cash', ref: '' }).expect(201);
+    const tx = (await http().get(`/api/reports/party-tx/${kc.id}`).set(auth(o)).expect(200)).body as Record<string, string>[];
+    expect(tx.map((t) => [t.type, t.no, t.supplierRef])).toEqual([
+      ['Payment-Out', 'PO-0001', undefined], ['Debit note', 'DN-0001', 'KC/DN-7'], ['Purchase', 'PB-0002', undefined], ['Purchase', 'PB-0001', 'KC/2209'],
+    ]);
+    // rows without a supplier number keep exactly the old fields
+    for (const t of [tx[0], tx[2]]) expect(Object.keys(t!).sort()).toEqual(['bal', 'date', 'due', 'no', 'total', 'type']);
+    expect(tx[3]).toEqual({ type: 'Purchase', no: 'PB-0001', date: D, total: '590.00', bal: '531.00', due: '2026-11-03', supplierRef: 'KC/2209' });
+
+    // a customer's sale rows are unchanged
+    const cu = (await http().post('/api/parties').set(auth(o)).send({ name: 'Verma Traders' }).expect(201)).body;
+    await http().post('/api/sales').set(auth(o)).send({ date: D, dueDate: D, partyId: cu.id, lines: [{ itemId: bulb.id, name: bulb.name, qty: '1', price: '95', discPct: '0', gstRate: '18' }] }).expect(201);
+    const ctx = (await http().get(`/api/reports/party-tx/${cu.id}`).set(auth(o)).expect(200)).body as Record<string, string>[];
+    expect(ctx.map((t) => t.type)).toEqual(['Sale']);
+    expect(Object.keys(ctx[0]!).sort()).toEqual(['bal', 'date', 'due', 'no', 'total', 'type']);
+
+    // another shop never sees this supplier or its numbers
+    const other = await owner(app);
+    const r = await http().get(`/api/reports/party-tx/${kc.id}`).set(auth(other)).expect(404);
+    expect(JSON.stringify(r.body)).not.toContain('KC/');
+  });
+});
+
 describe('payments made', () => {
   it('settles the bills chosen, keeps the rest as an advance, and a cheque needs its number', async () => {
     const { o, bulb, kc } = await shop();
