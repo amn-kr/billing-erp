@@ -163,3 +163,29 @@ export function stockByPurchaseRate(moves: LedgerMove[], fallbackRate: MoneyInpu
     lastRate,
   };
 }
+
+/* ───────── editing a saved adjustment or transfer (the editor's "in stock" figures) ───────── */
+
+/**
+ * An item's stock in one place while a saved adjustment is edited: what is there now without the
+ * adjustment's own quantity (signed: + added, − reduced), when it is for that item.
+ */
+export function stockBeforeAdjustment(now: MoneyInput, saved: { itemId: string; qty: MoneyInput } | null, itemId: string): Money {
+  return saved && saved.itemId === itemId ? money(now).minus(money(saved.qty)) : money(now);
+}
+
+/** Stock after adding or reducing a quantity. */
+export const stockAfterAdjustment = (base: MoneyInput, mode: 'add' | 'reduce', qty: MoneyInput): Money => (mode === 'add' ? money(base).plus(money(qty)) : money(base).minus(money(qty)));
+
+/**
+ * What can be moved out of a godown while a saved transfer is edited: what is there now, plus what
+ * that transfer took out of it, less what it brought in (both are given back when it is saved).
+ */
+export function availableForTransfer(now: MoneyInput, saved: { itemId: string; fromId: string; toId: string; qty: MoneyInput } | null, itemId: string, fromId: string): Money {
+  let v = money(now);
+  if (saved && saved.itemId === itemId) {
+    if (saved.fromId === fromId) v = v.plus(money(saved.qty));
+    if (saved.toId === fromId) v = v.minus(money(saved.qty));
+  }
+  return v;
+}

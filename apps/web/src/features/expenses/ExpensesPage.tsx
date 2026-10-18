@@ -20,13 +20,16 @@ import { toastSaveFailed, toastSaved } from '../shell/saved';
 import { inPeriod } from '../sales/model';
 import { SlModal, type SlModalProps } from '../sales/SlModal';
 import type { Party } from '../parties/PartiesPage';
-import { useEntryView } from '../banking/BankingPages';
+import { MoveMoney, useEntryView, type EntryDoc, type Move } from '../banking/BankingPages';
+import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
 import { BK_KEYS, useAccounts, type Account, type BkPer } from '../banking/model';
 import { cancelAsk, editAsk, withPasscode } from '../settings/passcode';
 
 export interface ExpenseRow {
   key: string; id: string; src: 'ex' | 'bt'; number: string; date: string; category: string; categoryId: string | null; payee: string; mode: string;
   accountId: string | null; reference: string; notes: string; total: string; gst: string; lines: { name: string; qty: string; rate: string; gst: number; amt: string }[];
+  /** why it can't be changed now ('' when it can) */
+  locked: string;
 }
 interface Cat { id: string; name: string; fixed: boolean }
 
@@ -35,6 +38,9 @@ const PLUS = '<path d="M12 5v14M5 12h14"/>';
 const KBD = { marginLeft: 6, background: 'transparent', color: 'inherit', borderColor: 'rgba(255,255,255,.4)' };
 const PER_TXT: Record<BkPer, string> = { all: 'all time', oct: 'this month', sep: 'last month' };
 const EX_KEYS = ['expenses', 'expense-categories', 'next-number', ...BK_KEYS];
+/** an expense opens in its own window; a cash / bank book entry ("Book") also has its details window */
+const EX_ACT: RowAction[] = [['edit', 'Edit']];
+const BT_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View']];
 const BOOK_CAT = Object.fromEntries(Object.entries(BOOK_EXPENSE_CATEGORY).map(([k, v]) => [v, k]));
 
 export const useExpenses = () => useQuery({ queryKey: ['expenses'], queryFn: () => api<ExpenseRow[]>('/expenses') });
@@ -56,6 +62,8 @@ export function ExpensesPage() {
   const setXp = (v: { row?: ExpenseRow; cat?: string } | null) => { if (v) setXpN((n) => n + 1); setXp0(v); };
   const [xc, setXc] = useState<{ back: boolean } | null>(null);
   const [modal, setModal] = useState<SlModalProps | null>(null);
+  const [menu, setMenu] = useState<RowMenuAt<ExpenseRow> | null>(null);
+  const [move, setMove] = useState<Move | null>(null);
   const ev = useEntryView(accts.data ?? []);
   const loc = useLocation(), nav = useNavigate();
   const [want, setWant] = useState<string | null>((loc.state as { open?: string } | null)?.open ?? null);
@@ -85,6 +93,17 @@ export function ExpensesPage() {
   };
   // from the Expense report: open that entry (prototype xpOpen / bkView)
   if (want) { const x = all.data.find((y) => y.key === want); setWant(null); if (x) queueMicrotask(() => open(x)); }
+  /** Edit from the row menu: an expense in its window, a book entry in Move money (passcode when it is on). */
+  const edit = async (x: ExpenseRow) => {
+    if (x.src === 'ex') return setXp({ row: x });
+    try {
+      const t = await api<EntryDoc>(`/banking/entries/${x.id}`);
+      if (t.locked) return useShell.getState().showToast(t.locked);
+      setMove({ kind: t.kind, edit: t });
+    } catch (e) { useShell.getState().showToast(e instanceof ApiError ? e.message : 'Could not open the entry.'); }
+  };
+  const rm = rowMenuHandlers('tr[data-exk]', (tr) => L.find((x) => x.key === tr.dataset.exk), setMenu);
+  const m = menu?.row;
   return (
     <section id="vExp">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Expenses</h1><span className="pttot" id="exTotTxt">Money spent running the shop</span><div className="sp"></div><button className="btn" id="exCats" onClick={() => setXc({ back: false })}><Icon name="gear" />Categories</button><button className="btn p" id="exNew" onClick={() => setXp({ cat: cat !== 'all' ? cat : undefined })}><RawIcon d={PLUS} />Add expense <kbd className="kh" style={KBD}>Alt+E</kbd></button></div>
@@ -93,16 +112,17 @@ export function ExpensesPage() {
         <div className="seg2 sm" id="exPer">{(['all', 'oct', 'sep'] as const).map((k) => <button data-per={k} className={per === k ? 'on' : ''} key={k} onClick={() => setPer(k)}>{k === 'all' ? 'All' : k === 'oct' ? 'This month' : 'Last month'}</button>)}</div>
         <select className="fi" id="exCat" aria-label="Category" style={{ width: 'auto' }} value={cat} onChange={(e) => setCat(e.target.value)}><option value="all">All categories</option>{cats.data.map((c) => <option key={c.id}>{c.name}</option>)}</select>
         <select className="fi" id="exAcct" aria-label="Paid from" style={{ width: 'auto' }} value={acct} onChange={(e) => setAcct(e.target.value)}><option value="all">Paid from: any</option>{accts.data.map((a) => <option value={a.id} key={a.id}>{a.name}</option>)}</select></div>
-        <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr><th>Date</th><th>Exp. no.</th><th>Category</th><th>Paid to · details</th><th>Paid from</th><th className="n">Amount</th></tr></thead>
-          <tbody id="exRows" onKeyDown={(e) => { const tr = (e.target as HTMLElement).closest<HTMLElement>('tr[data-exk]'); if (tr && e.key === 'Enter' && e.target === tr) { e.preventDefault(); tr.click(); } }}>
+        <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr><th>Date</th><th>Exp. no.</th><th>Category</th><th>Paid to · details</th><th>Paid from</th><th className="n">Amount</th><th className="slact"><span className="vh">Actions</span></th></tr></thead>
+          <tbody id="exRows" onContextMenu={rm.onContextMenu} onKeyDown={(e) => { if (rm.menuKey(e)) return; const tr = (e.target as HTMLElement).closest<HTMLElement>('tr[data-exk]'); if (tr && e.key === 'Enter' && e.target === tr) { e.preventDefault(); tr.click(); } }}>
             {L.length ? L.map((x) => {
               const d = x.lines.map((l) => l.name).filter(Boolean).join(', ');
               return (
-                <tr tabIndex={0} data-exk={x.key} data-exa={x.accountId ?? ''} key={x.key} onClick={() => open(x)}><td>{dmy(x.date)}</td><td className="mono">{x.number}{x.src === 'bt' ? <span className="st b exsrc" title="Entered in the cash / bank book">Book</span> : null}</td><td>{x.category}</td>
+                <tr tabIndex={0} data-exk={x.key} data-exa={x.accountId ?? ''} key={x.key} className={m?.key === x.key ? 'ctxon' : undefined} onClick={() => open(x)}><td>{dmy(x.date)}</td><td className="mono">{x.number}{x.src === 'bt' ? <span className="st b exsrc" title="Entered in the cash / bank book">Book</span> : null}</td><td>{x.category}</td>
                   <td><div className="expd"><b style={{ fontWeight: 600 }}>{x.payee || x.category}</b></div>{d && d !== x.payee ? <small className="mu expd">{d}</small> : null}</td>
-                  <td>{aName(x.accountId)}{x.mode && x.mode !== 'Bank' ? <small className="mu">{x.mode}</small> : null}</td><td className="n"><b>{inr2f(x.total)}</b>{Number(x.gst) ? <small className="mu needs-gst">GST {inr2f(x.gst)}</small> : null}</td></tr>
+                  <td>{aName(x.accountId)}{x.mode && x.mode !== 'Bank' ? <small className="mu">{x.mode}</small> : null}</td><td className="n"><b>{inr2f(x.total)}</b>{Number(x.gst) ? <small className="mu needs-gst">GST {inr2f(x.gst)}</small> : null}</td>
+                  <td className="slact"><RowMenuButton no={x.key} label={`Actions for ${x.number}`} onOpen={(b) => setMenu({ row: x, ...atButton(b), tr: b.closest('tr') })} /></td></tr>
               );
-            }) : <tr><td colSpan={6}><div className="ptempty pue"><b>{all.data.length ? 'No expenses match' : 'No expenses yet'}</b><span>Record rent, salaries, bills and other spending. Each entry also comes out of your cash or bank book.</span><button className="btn p sm" id="exNew2" onClick={() => setXp({})}>Add expense</button></div></td></tr>}
+            }) : <tr><td colSpan={7}><div className="ptempty pue"><b>{all.data.length ? 'No expenses match' : 'No expenses yet'}</b><span>Record rent, salaries, bills and other spending. Each entry also comes out of your cash or bank book.</span><button className="btn p sm" id="exNew2" onClick={() => setXp({})}>Add expense</button></div></td></tr>}
           </tbody></table></div></div>
         <aside className="card excat"><h3>By category</h3><small className="mu" id="exCatSub">{`${inr(ptot.toFixed(2))} across ${C.length} categor${C.length === 1 ? 'y' : 'ies'} · ${PER_TXT[per]}`}</small>
           <div className="excl" id="exCatList"><button type="button" className={`excb${cat === 'all' ? ' on' : ''}`} data-excat="all" onClick={() => setCat('all')}><span>All categories</span><b>{inr(ptot.toFixed(2))}</b></button>
@@ -110,6 +130,10 @@ export function ExpensesPage() {
               : <p className="mu" style={{ fontSize: 13, margin: '8px 10px' }}>Nothing spent in this period.</p>}</div></aside></div>
       <ExpenseDialog key={xpN} open={xp} all={all.data} cats={cats.data} accounts={accts.data} gst={gst} onClose={() => setXp(null)} onNewCat={() => { setXp(null); setXc({ back: true }); }} onAgain={(c) => setXp({ cat: c })}
         onCancel={(x) => { setXp(null); setModal({ title: `Cancel ${x.number}?`, sub: `${x.category} · ${dmy(x.date)} · ${inr2f(x.total)}`, body: <p style={{ margin: 0 }}>The amount goes back into {aName(x.accountId)}.</p>, ok: 'Cancel expense', danger: true, cancel: 'Keep it', onOk: () => void cancelX(x) }); }} />
+      <RowMenu id="exCtx" label="Expense actions" rows="#exRows tr[data-exk]" menu={menu} head={m ? <><b>{m.number}</b> · {m.payee || m.category}</> : null} actions={m?.src === 'bt' ? BT_ACT : EX_ACT}
+        off={m ? { edit: m.locked } : undefined} onClose={() => { const tr = menu?.tr; setMenu(null); return tr; }}
+        onPick={(k) => { const x = menu?.row; setMenu(null); if (!x) return; if (k === 'edit') void edit(x); else open(x); }} />
+      <MoveMoney open={move} accounts={accts.data} onClose={() => setMove(null)} />
       <CategoriesDialog open={xc} all={all.data} cats={cats.data} onClose={(added) => { const back = xc?.back; setXc(null); if (back && added) setXp({ cat: added }); }} />
       <SlModal m={modal ?? ev.modal} onClose={() => { setModal(null); ev.setModal(null); }} />
     </section>
@@ -164,7 +188,7 @@ function ExpenseDialog({ open, all, cats, accounts, gst, onClose, onNewCat, onAg
     if (!open) return;
     setCat(x ? x.category : open.cat ?? ''); setDate(x ? x.date : today()); setPayee(x?.payee ?? ''); setRefNo(x?.reference ?? ''); setNote(x?.notes ?? '');
     setMode(x ? x.mode : 'Cash'); setAcct(x ? x.accountId ?? cashId : cashId);
-    setLines(x ? x.lines.map((l) => ({ name: l.name, qty: l.qty, rate: String(Number(l.rate)), gst: String(l.gst), amt: String(Number(l.amt)) })) : [blank()]); setErr('');
+    setLines(x ? x.lines.map((l) => ({ name: l.name, qty: l.qty, rate: String(Number(l.rate)), gst: String(l.gst), amt: String(Number(l.amt)) })) : [blank()]); setErr(x?.locked ?? '');
     setTimeout(() => ((x || open.cat ? document.querySelector('#xpLines input') : document.getElementById('xpCat')) as HTMLElement | null)?.focus(), 30);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -188,7 +212,7 @@ function ExpenseDialog({ open, all, cats, accounts, gst, onClose, onNewCat, onAg
     if (!date) return fail('Pick the date.');
     setBusy(true);
     try {
-      const call = (h?: Record<string, string>) => api<{ number: string; total: string; account: string | null }>(x ? `/expenses/${x.id}` : '/expenses', { method: x ? 'PUT' : 'POST', body: { categoryId: c.id, date, payee: payee.trim(), reference: refNo.trim(), notes: note.trim(), mode, accountId: acct || null, lines }, headers: h });
+      const call = (h?: Record<string, string>) => api<{ number: string; total: string; account: string | null }>(x ? `/expenses/${x.id}` : '/expenses', { method: x ? 'PUT' : 'POST', body: { categoryId: c.id, date, payee: payee.trim(), reference: refNo.trim(), notes: note.trim(), mode, accountId: acct || null, lines, ...(x && { number: x.number }) }, headers: h });
       const res = x ? await withPasscode(qc, editAsk(x.number), call) : { value: await call() };
       if (!res) return;
       await Promise.all(EX_KEYS.map((k) => qc.invalidateQueries({ queryKey: [k] })));

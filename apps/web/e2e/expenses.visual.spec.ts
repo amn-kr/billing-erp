@@ -3,6 +3,7 @@
  * expenses and a new category made in the prototype's own windows, plus cash-book entries).
  */
 import { test, type Page } from '@playwright/test';
+import { withDotsAll } from './row-dots';
 import { sameShot } from './shots';
 import { APP, BANK, WIDTHS, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
 
@@ -19,11 +20,13 @@ for (const width of WIDTHS) {
       await signInAs(app, BANK);
       await app.goto(APP + '/expenses');
       await app.waitForSelector('#exRows tr[data-exk]');
+      await withDotsAll(proto, app, '#exRows');
       await sameShot(`exp-${width}`, proto, app, '#vExp');
 
       // a category picked in the side list
       await both(proto, app, (p) => p.click('#exCatList [data-excat="Rent"]'));
       await both(proto, app, (p) => p.mouse.move(0, 0));
+      await withDotsAll(proto, app, '#exRows');
       await sameShot(`exp-rent-${width}`, proto, app, '#vExp');
       await both(proto, app, (p) => p.click('#exCatList [data-excat="all"]'));
 

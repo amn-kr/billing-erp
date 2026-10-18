@@ -5,6 +5,7 @@
  * all made through the prototype's own windows).
  */
 import { test, type Page } from '@playwright/test';
+import { withDotsAll } from './row-dots';
 import { sameShot } from './shots';
 import { APP, BANK, WIDTHS, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
 
@@ -25,10 +26,12 @@ for (const width of WIDTHS) {
     test('Bank accounts: cards, bank book, second bank, edit account, transfer money', async ({ browser }) => {
       test.setTimeout(120_000);
       const { proto, app } = await pages(browser, width, 'bks', '/bank-accounts', '#bkRows tr[data-bke]');
+      await withDotsAll(proto, app, '#bkRows');
       await sameShot(`bks-${width}`, proto, app, '#vBks');
       await both(proto, app, (p) => p.click('#bkCards .bkc:nth-child(2)'));
       await app.waitForSelector('#bkHd h2:has-text("State Bank of India")');
       await both(proto, app, (p) => p.mouse.move(0, 0));
+      await withDotsAll(proto, app, '#bkRows');
       await sameShot(`bks-sbi-${width}`, proto, app, '#vBks');
       await both(proto, app, (p) => p.click('#bkHd [data-bkedit]'));
       await sameShot(`bks-edit-${width}`, proto, app, '#bam .mdl');
@@ -42,9 +45,11 @@ for (const width of WIDTHS) {
     test('Cash in hand: cash book, this month, add / take out, count cash', async ({ browser }) => {
       test.setTimeout(120_000);
       const { proto, app } = await pages(browser, width, 'cash', '/cash-in-hand', '#caRows tr[data-bke]');
+      await withDotsAll(proto, app, '#caRows');
       await sameShot(`cash-${width}`, proto, app, '#vCash');
       await both(proto, app, (p) => p.click('#caPer [data-per="oct"]'));
       await both(proto, app, (p) => p.mouse.move(0, 0));
+      await withDotsAll(proto, app, '#caRows');
       await sameShot(`cash-oct-${width}`, proto, app, '#vCash');
       await both(proto, app, (p) => p.click('#caMove'));
       await sameShot(`cash-move-${width}`, proto, app, '#bmm .mdl');
