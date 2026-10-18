@@ -117,6 +117,8 @@ export class QuotesController {
     if (before?.deletedAt) throw new BadRequestException({ message: `${before.number} is deleted. It can’t be changed.` });
     if (before?.cancelledAt) throw new BadRequestException({ message: `${before.number} is cancelled. It can’t be changed.` });
     if (before?.status === 'converted') throw new BadRequestException({ message: 'This quotation is locked and can’t be edited.' });
+    if (before && q.number.trim() && q.number.trim() !== before.number)
+      throw new BadRequestException({ message: `The number of a saved quotation can’t be changed. It stays ${before.number}.`, field: 'number' });
     let number = q.number.trim() || before?.number || '';
     if (number && number !== before?.number) {
       const used = await tx.salesDocument.findFirst({ where: { kind: 'quotation', number, ...(id && { id: { not: id } }) } });

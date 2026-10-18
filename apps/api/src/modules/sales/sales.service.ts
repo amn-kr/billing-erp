@@ -124,7 +124,9 @@ export class SalesService {
       if (qtyBad) throw new BadRequestException({ message: qtyMsg(qtyBad), field: 'lines' });
     }
     const docType = kind;
-    // an edit keeps its number when none is sent; a new number is never taken for a saved document
+    // a saved document keeps its number for good: an edit sent without one keeps it, a different one is refused
+    if (before && input.number.trim() && input.number.trim() !== before.number)
+      throw new BadRequestException({ message: `The number of a saved ${KIND_WORD[kind].toLowerCase()} can’t be changed. It stays ${before.number}.`, field: 'number' });
     let number = input.number.trim() || before?.number || '';
     if (number && number !== before?.number) {
       const used = await tx.salesDocument.findFirst({ where: { kind, number, ...(id && { id: { not: id } }) } });

@@ -288,6 +288,28 @@ describe('edit an item-wise quotation', () => {
   });
 });
 
+/* ───────── numbers ───────── */
+
+describe('the number of a saved document never changes', () => {
+  it('an edit with a different number is refused (invoice, item-wise and brand-wise quotation); the same number saves', async () => {
+    const { o, fan, verma } = await shop();
+    const inv = (await sale(o, { partyId: verma.id, lines: [line(fan, '1', '1890')] }).expect(201)).body;
+    const body = { date: D, dueDate: D, partyId: verma.id, lines: [line(fan, '2', '1890')] };
+    expect((await put(o, `sales/${inv.id}`, { ...body, number: 'INV-9999' }).expect(400)).body).toMatchObject({ message: 'The number of a saved invoice can’t be changed. It stays INV-0001.', field: 'number' });
+    expect(await stockOf(o, fan.id)).toBe('24.000');
+    expect((await put(o, `sales/${inv.id}`, { ...body, number: 'INV-0001' }).expect(200)).body.number).toBe('INV-0001');
+    expect(await stockOf(o, fan.id)).toBe('23.000');
+    const q = (await sale(o, { kind: 'quotation', partyId: verma.id, lines: [line(fan, '2', '1890')] }).expect(201)).body;
+    expect((await put(o, `sales/${q.id}`, { kind: 'quotation', date: D, number: 'Q-9999', partyId: verma.id, lines: [line(fan, '3', '1890')] }).expect(400)).body.message).toBe(`The number of a saved quotation can’t be changed. It stays ${q.number}.`);
+    const brand = { date: D, cust: 'Verma Traders', disc: 5, sel: ['s1'], qty: { r5: 30 }, items: 1, pcs: 30, low: { name: 'Havells Coral White', total: 5230.5 } };
+    const bq = (await http().post('/api/quotations/brand').set(auth(o)).send(brand).expect(201)).body;
+    expect((await put(o, `quotations/brand/${bq.id}`, { ...brand, number: 'Q-9998' }).expect(400)).body.message).toBe(`The number of a saved quotation can’t be changed. It stays ${bq.number}.`);
+    expect((await put(o, `quotations/brand/${bq.id}`, { ...brand, number: bq.number, disc: 7 }).expect(200)).body.number).toBe(bq.number);
+    // nothing was renumbered: the refused numbers are still free and never taken
+    expect((await http().get('/api/sales?kind=invoice').set(auth(o)).expect(200)).body.map((x: { number: string }) => x.number)).toEqual(['INV-0001']);
+  });
+});
+
 /* ───────── opening values ───────── */
 
 describe('opening values are never changed by an edit', () => {

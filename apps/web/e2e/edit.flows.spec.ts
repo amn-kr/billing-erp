@@ -175,4 +175,15 @@ test('with the passcode off an edit saves straight away; a cancelled document’
   await page.locator(`[data-slm="${b.dc.number}"]`).click();
   await expect(page.locator('#dcCtx [data-sla="edit"]')).toBeDisabled();
   await expect(page.locator('#dcCtx [data-sla="edit"]')).toHaveAttribute('title', 'Cancelled document');
+  await page.keyboard.press('Escape');
+
+  // an invoice opened for editing shows its number read-only; a new one can still be typed
+  await page.goto(APP + `/sales/new?edit=${b.inv.id}`);
+  await expect(page.locator('#siNo')).toHaveValue(b.inv.number);
+  await expect(page.locator('#siNo')).toHaveAttribute('readonly', '');
+  await page.locator('#siNo').press('End');
+  await page.keyboard.type('9');
+  await expect(page.locator('#siNo')).toHaveValue(b.inv.number);
+  await page.goto(APP + '/sales/new');
+  await expect(page.locator('#siNo')).not.toHaveAttribute('readonly', '');
 });
