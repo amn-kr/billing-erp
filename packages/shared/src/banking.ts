@@ -37,5 +37,7 @@ export const bankEntrySchema = z.object({
   toId: z.string().uuid().nullable().optional(),
   accountId: z.string().uuid().nullable().optional(),
   category: opt(60), reference: opt(80), note: opt(200),
+  /** sent back unchanged when a saved one is edited: the server refuses a different number */
+  number: z.string().trim().max(40).optional(),
 });
 export type BankEntryInput = z.infer<typeof bankEntrySchema>;

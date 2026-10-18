@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Put } from '@nestjs/common';
 import { godownSchema, stockAdjustmentSchema, stockTransferSchema, type GodownInput, type StockAdjustmentInput, type StockTransferInput } from '@billing/shared';
 import { z } from 'zod';
 import { Ctx, RequirePermission } from '../../common/decorators';
@@ -63,6 +63,13 @@ export class StockController {
   }
 
   @RequirePermission('masters.manage')
+  @NeedsPasscode('edit', 'stock_adjustment')
+  @Put('stock-adjustments/:id')
+  editAdjustment(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(stockAdjustmentSchema)) body: StockAdjustmentInput) {
+    return this.stock.editAdjustment(ctx, id, body);
+  }
+
+  @RequirePermission('masters.manage')
   @HttpCode(204)
   @NeedsPasscode('cancel', 'stock_adjustment')
   @Post('stock-adjustments/:id/cancel')
@@ -74,6 +81,13 @@ export class StockController {
   @Post('stock-transfers')
   transfer(@Ctx() ctx: RequestContext, @Body(new ZodPipe(stockTransferSchema)) body: StockTransferInput) {
     return this.stock.transfer(ctx, body);
+  }
+
+  @RequirePermission('masters.manage')
+  @NeedsPasscode('edit', 'stock_transfer')
+  @Put('stock-transfers/:id')
+  editTransfer(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(stockTransferSchema)) body: StockTransferInput) {
+    return this.stock.editTransfer(ctx, id, body);
   }
 
   @RequirePermission('masters.manage')
