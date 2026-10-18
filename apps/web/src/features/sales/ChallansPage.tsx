@@ -19,10 +19,12 @@ import type { Party } from '../parties/PartiesPage';
 import { qfmt, type Item } from '../items/ItemsPage';
 import { useSale, useSales, type SaleDoc, type SaleRow } from './model';
 import { InvoicePreview } from './InvoicePreview';
-import { cancelAsk, withPasscode } from '../settings/passcode';
+import { cancelAsk, editAsk, withPasscode } from '../settings/passcode';
+import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const PLUS = '<path d="M12 5v14M5 12h14"/>';
+const DC_ACT: RowAction[] = [['edit', 'Edit'], ['print', 'Print'], ['conv', 'Convert to invoice']];
 const ST: Record<string, { t: string; c: string }> = { open: { t: 'Open', c: 'b' }, invoiced: { t: 'Invoiced', c: 'g' }, cancelled: { t: 'Cancelled', c: 'x' } };
 
 export function ChallansPage() {
@@ -36,6 +38,8 @@ export function ChallansPage() {
   const [open, setOpen] = useState(false);
   const [print, setPrint] = useState<string | null>(null);
   const [sure, setSure] = useState<string | null>(null);
+  const [edit, setEdit] = useState<string | null>(null);
+  const [menu, setMenu] = useState<RowMenuAt<SaleRow> | null>(null);
   const [params, setParams] = useSearchParams();
   useEffect(() => { if (params.get('new')) { setOpen(true); setParams({}, { replace: true }); } }, [params, setParams]);
   useEffect(() => { if (!sure) return; const t = setTimeout(() => setSure(null), 2500); return () => clearTimeout(t); }, [sure]);
@@ -54,6 +58,15 @@ export function ChallansPage() {
     } catch (e) { showToast(e instanceof ApiError ? e.message : 'Could not cancel the challan.'); }
     setSure(null);
   };
+  const rm = rowMenuHandlers('tr[data-dcno]', (tr) => A.find((d) => d.number === tr.dataset.dcno), setMenu);
+  const pick = (a: string, d: SaleRow) => {
+    setMenu(null);
+    if (a === 'edit') return setEdit(d.id);
+    if (a === 'print') return setPrint(d.id);
+    if (a === 'conv') return navigate(`/sales/new?challan=${d.id}`);
+  };
+  const m = menu?.row;
+  const editOff = !m ? '' : m.cancelled || m.status === 'cancelled' ? 'Cancelled document' : m.status === 'invoiced' ? `Already turned into invoice ${m.invoiceNo}. Edit the invoice instead.` : '';
   return (
     <section id="vDcs">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Delivery challans</h1><span className="pttot">Goods sent before billing</span><div className="sp"></div><button className="btn p" id="dcNew" onClick={() => setOpen(true)}><RawIcon d={PLUS} />New delivery challan</button></div>
@@ -61,15 +74,17 @@ export function ChallansPage() {
         <div className="sumrow sumin" id="dcSum"><div><small>Open challans</small><b>{openL.length}</b></div><div><small>Qty out (not billed)</small><b>{qfmt(openL.reduce((a, d) => a + Number(d.qty), 0))}</b></div><div><small>Invoiced</small><b className="pos">{A.filter((d) => d.status === 'invoiced').length}</b></div><div><small>Total challans</small><b>{A.length}</b></div></div>
         <select className="fi" id="dcSt" aria-label="Status" style={{ width: 'auto' }} value={st} onChange={(e) => setSt(e.target.value)}><option value="all">All challans</option><option value="open">Open (not billed)</option><option value="invoiced">Invoiced</option><option value="cancelled">Cancelled</option></select></div>
         <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr><th>Date</th><th>Challan no.</th><th>Party</th><th>Items</th><th className="n">Qty</th><th>Transport</th><th>Status</th><th className="n"><span className="vh">Actions</span></th></tr></thead>
-          <tbody id="dcRows" onKeyDown={(e) => { const r = (e.target as HTMLElement).closest<HTMLElement>('tr[data-dcno]'); if (r && e.key === 'Enter' && e.target === r) { e.preventDefault(); r.click(); } }}>
+          <tbody id="dcRows" onContextMenu={rm.onContextMenu} onKeyDown={(e) => { if (rm.menuKey(e)) return; const r = (e.target as HTMLElement).closest<HTMLElement>('tr[data-dcno]'); if (r && e.key === 'Enter' && e.target === r) { e.preventDefault(); r.click(); } }}>
             {L.length ? L.map((d) => (
-              <tr tabIndex={0} data-dcno={d.number} key={d.id} onClick={(e) => { if (!(e.target as HTMLElement).closest('button')) setPrint(d.id); }}><td>{dmy(d.date)}</td><td className="mono">{d.number}</td><td><b style={{ fontWeight: 600 }}>{d.partyName}</b></td>
+              <tr tabIndex={0} data-dcno={d.number} key={d.id} className={menu?.row.id === d.id ? 'ctxon' : undefined} onClick={(e) => { if (!(e.target as HTMLElement).closest('button')) setPrint(d.id); }}><td>{dmy(d.date)}</td><td className="mono">{d.number}</td><td><b style={{ fontWeight: 600 }}>{d.partyName}</b></td>
                 <td>{d.lineNames.slice(0, 2).map((n) => n.split(' · ')[0]).join(', ')}{d.items > 2 ? <> <small className="mu">+{d.items - 2} more</small></> : null}</td><td className="n">{qfmt(d.qty)}</td><td>{[d.transport, d.vehicle].filter(Boolean).join(' · ') || '—'}</td>
                 <td><span className={`stt ${ST[d.status]?.c ?? 'b'}`}>{ST[d.status]?.t ?? d.status}</span>{d.invoiceNo ? <small className="mu" style={{ display: 'block' }}>{d.invoiceNo}</small> : null}</td>
-                <td className="n" style={{ whiteSpace: 'nowrap' }}><button className="btn sm" data-dcprint={d.number} onClick={() => setPrint(d.id)}>Print</button>{d.status === 'open' ? <> <button className="btn p sm" data-dcconv={d.number} onClick={() => navigate(`/sales/new?challan=${d.id}`)}>Convert to invoice</button> <button className="btn sm" data-dccan={d.number} onClick={() => void cancel(d)}>{sure === d.id ? 'Click again to cancel' : 'Cancel'}</button></> : null}</td></tr>
+                <td className="n" style={{ whiteSpace: 'nowrap' }}><button className="btn sm" data-dcprint={d.number} onClick={() => setPrint(d.id)}>Print</button>{d.status === 'open' ? <> <button className="btn p sm" data-dcconv={d.number} onClick={() => navigate(`/sales/new?challan=${d.id}`)}>Convert to invoice</button> <button className="btn sm" data-dccan={d.number} onClick={() => void cancel(d)}>{sure === d.id ? 'Click again to cancel' : 'Cancel'}</button></> : null} <RowMenuButton no={d.number} label={`Actions for ${d.number}`} onOpen={(b) => setMenu({ row: d, ...atButton(b), tr: b.closest('tr') })} /></td></tr>
             )) : <tr><td colSpan={8}><div className="ptempty pue"><b>No delivery challans</b><span>Send goods with a challan when the bill comes later. Convert it to an invoice in one click.</span><button className="btn p sm" id="dcNew2" onClick={() => setOpen(true)}>New delivery challan</button></div></td></tr>}
           </tbody></table></div></div>
-      <ChallanDialog open={open} onClose={() => setOpen(false)} onSaved={(id, pr) => { if (pr) setPrint(id); }} />
+      <RowMenu id="dcCtx" label="Challan actions" rows="#dcRows tr[data-dcno]" menu={menu} head={m ? <><b>{m.number}</b> · {m.partyName}</> : null} actions={DC_ACT}
+        off={{ edit: editOff, conv: m && m.status !== 'open' ? (m.status === 'invoiced' ? 'Already invoiced' : 'Cancelled document') : '' }} onClose={() => { const tr = menu?.tr; setMenu(null); return tr; }} onPick={(a) => menu && pick(a, menu.row)} />
+      <ChallanDialog open={open || !!edit} editId={edit} onClose={() => { setOpen(false); setEdit(null); }} onSaved={(id, pr) => { if (pr) setPrint(id); }} />
       <ChallanPrint id={print} onClose={() => setPrint(null)} />
     </section>
   );
@@ -84,12 +99,15 @@ function ChallanPrint({ id, onClose }: { id: string | null; onClose: () => void 
   return <InvoicePreview doc={v} hsnOf={hsn} onClose={onClose} onNew={() => undefined} onLink={() => undefined} />;
 }
 
-function ChallanDialog({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved: (id: string, print: boolean) => void }) {
+/** New delivery challan; with `editId` the same window edits a saved one (same number, passcode when it is on). */
+function ChallanDialog({ open, editId, onClose, onSaved }: { open: boolean; editId: string | null; onClose: () => void; onSaved: (id: string, print: boolean) => void }) {
   const qc = useQueryClient();
   const ref = useRef<HTMLDivElement>(null);
   const parties = useQuery({ queryKey: ['parties'], queryFn: () => api<Party[]>('/parties'), enabled: open });
   const items = useQuery({ queryKey: ['items'], queryFn: () => api<Item[]>('/items'), enabled: open });
-  const no = useQuery({ queryKey: ['next-number', 'challan'], queryFn: () => api<{ number: string }>('/sales/next-number?kind=challan'), enabled: open });
+  const no = useQuery({ queryKey: ['next-number', 'challan'], queryFn: () => api<{ number: string }>('/sales/next-number?kind=challan'), enabled: open && !editId });
+  const saved = useSale(editId);
+  const doc = editId && saved.data?.id === editId ? saved.data : null;
   const [party, setParty] = useState('');
   const [lines, setLines] = useState<{ id: string; name: string; qty: string; unit: string }[]>([]);
   const [date, setDate] = useState(today());
@@ -102,11 +120,20 @@ function ChallanDialog({ open, onClose, onSaved }: { open: boolean; onClose: () 
   closeRef.current = close;
   useEffect(() => {
     if (!open) return;
-    setParty(''); setLines([]); setDate(today()); setF({ tr: '', veh: '', note: '', name: '', phone: '' }); setErr('');
+    if (!editId) { setParty(''); setLines([]); setDate(today()); setF({ tr: '', veh: '', note: '', name: '', phone: '' }); }
+    setErr('');
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape' && document.getElementById('dcf')?.hidden !== false) closeRef.current(); };
     document.addEventListener('keydown', esc);
     return () => document.removeEventListener('keydown', esc);
-  }, [open]);
+  }, [open, editId]);
+  // editing: the saved challan fills the window once it has loaded
+  useEffect(() => {
+    if (!open || !doc) return;
+    const x = doc.extra as { transport?: string; vehicle?: string };
+    setParty(doc.party?.id ?? '__walk'); setDate(doc.date);
+    setLines(doc.lines.map((l) => ({ id: l.itemId ?? '', name: l.name, qty: String(Number(l.qty)), unit: l.unit })));
+    setF({ tr: x.transport ?? '', veh: x.vehicle ?? '', note: doc.notes, name: doc.party ? '' : doc.cashName, phone: doc.party ? '' : doc.cashPhone });
+  }, [open, doc]);
   const goods = (items.data ?? []).filter((i) => i.kind === 'goods');
   const save = async (print: boolean) => {
     const fail = (m: string) => { setErr(m); toastSaveFailed(m); };
@@ -116,11 +143,15 @@ function ChallanDialog({ open, onClose, onSaved }: { open: boolean; onClose: () 
     if (!L.length) return fail('Add at least one item with a quantity.');
     setBusy(true);
     try {
-      const r = await api<{ id: string; number: string; partyName: string; items: number }>('/challans', {
-        method: 'POST', body: { partyId: party === '__walk' ? null : party, cashName: f.name, cashPhone: f.phone, date, lines: L.map((l) => ({ itemId: l.id, qty: l.qty })), transport: f.tr.trim(), vehicle: f.veh.trim(), note: f.note.trim() },
-      });
+      const body = { partyId: party === '__walk' ? null : party, cashName: f.name, cashPhone: f.phone, date, lines: L.map((l) => ({ itemId: l.id, qty: l.qty })), transport: f.tr.trim(), vehicle: f.veh.trim(), note: f.note.trim() };
+      type Out = { id: string; number: string; partyName: string; items: number };
+      const res = doc
+        ? await withPasscode(qc, editAsk(doc.number), (h) => api<Out>(`/challans/${doc.id}`, { method: 'PUT', body, headers: h }))
+        : { value: await api<Out>('/challans', { method: 'POST', body }) };
+      if (!res) return;
+      const r = res.value;
       onClose();
-      await Promise.all(['sales', 'next-number'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
+      await Promise.all(['sales', 'sale', 'next-number'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
       toastSaved('challan');
       onSaved(r.id, print);
     } catch (e) { fail(e instanceof ApiError ? e.message : 'Could not save the challan.'); }
@@ -129,7 +160,7 @@ function ChallanDialog({ open, onClose, onSaved }: { open: boolean; onClose: () 
   return (
     <div className="ov c" id="dcm" hidden={!open} ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'dcm') close(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="dcT" style={{ width: 'min(760px,100%)' }}>
-        <div className="dh"><div><h3 id="dcT" style={{ margin: 0, fontSize: 18 }}>New delivery challan</h3><small className="mu mono" id="dcNo">{no.data?.number ?? ''}</small></div><button className="ib" type="button" id="dcClose" aria-label="Close" onClick={close}><Icon name="x" /></button></div>
+        <div className="dh"><div><h3 id="dcT" style={{ margin: 0, fontSize: 18 }}>{editId ? 'Edit delivery challan' : 'New delivery challan'}</h3><small className="mu mono" id="dcNo">{editId ? (doc?.number ?? '') : (no.data?.number ?? '')}</small></div><button className="ib" type="button" id="dcClose" aria-label="Close" onClick={close}><Icon name="x" /></button></div>
         <div className="two" style={{ marginTop: 14 }}><label className="fl" htmlFor="dcParty">Deliver to<select className="fi" id="dcParty" value={party} onChange={(e) => { setParty(e.target.value); if (e.target.value === '__walk') setTimeout(() => document.getElementById('dcName')?.focus(), 0); }}>
           <option value="">Choose customer</option><option value="__walk">Walk-in / new customer</option>{(parties.data ?? []).filter((p) => p.kind !== 'supplier').map((p) => <option value={p.id} key={p.id}>{p.name}{p.billing?.city ? ' · ' + p.billing.city : ''}</option>)}</select></label>
           <label className="fl" htmlFor="dcDate">Date<input className="fi" type="date" id="dcDate" value={date} onChange={(e) => setDate(e.target.value)} /></label></div>

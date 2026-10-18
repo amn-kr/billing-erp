@@ -5,9 +5,10 @@ import { isoOf } from '../../common/lookups';
 /**
  * What is still owed on each sale invoice: total − money and credit notes settled
  * against it. Settlements from a cancelled receipt or credit note no longer count;
- * a cancelled invoice owes nothing.
+ * a cancelled invoice owes nothing. `skip` leaves out what one receipt or credit note
+ * settled (the one open in its edit window).
  */
-export async function invoiceBalances(tx: Tx, ids?: string[]): Promise<Map<string, Money>> {
+export async function invoiceBalances(tx: Tx, ids?: string[], skip?: string): Promise<Map<string, Money>> {
   const rows = await tx.$queryRaw<{ id: string; bal: string }[]>`
     SELECT d.id, CASE WHEN d.cancelled_at IS NOT NULL THEN 0 ELSE d.total - coalesce(s.used, 0) END::text AS bal
     FROM sales_documents d
@@ -17,6 +18,7 @@ export async function invoiceBalances(tx: Tx, ids?: string[]): Promise<Map<strin
       LEFT JOIN payments p ON p.id = a.payment_id
       LEFT JOIN sales_documents n ON n.id = a.note_id
       WHERE a.sales_document_id IS NOT NULL AND p.cancelled_at IS NULL AND n.cancelled_at IS NULL
+        AND (${skip ?? null}::uuid IS NULL OR coalesce(a.payment_id, a.note_id) <> ${skip ?? null}::uuid)
       GROUP BY a.sales_document_id
     ) s ON s.id = d.id
     WHERE d.kind = 'invoice' AND (${ids ?? null}::uuid[] IS NULL OR d.id = ANY(${ids ?? null}::uuid[]))`;
@@ -38,13 +40,14 @@ export async function unusedAmounts(tx: Tx, kind: 'payment' | 'note', ids: strin
 }
 
 /** The party's opening balance still unpaid ("to receive" side only). */
-export async function openingDue(tx: Tx, partyId: string): Promise<Money> {
+export async function openingDue(tx: Tx, partyId: string, skip?: string): Promise<Money> {
   const p = await tx.party.findUnique({ where: { id: partyId }, select: { openingBalance: true, openingType: true } });
   if (!p || p.openingType === 'pay') return money(0);
   const [r] = await tx.$queryRaw<{ used: string | null }[]>`
     SELECT sum(a.amount)::text AS used FROM payment_allocations a
     LEFT JOIN payments p ON p.id = a.payment_id LEFT JOIN sales_documents n ON n.id = a.note_id
-    WHERE a.kind = 'opening' AND a.party_id = ${partyId}::uuid AND p.cancelled_at IS NULL AND n.cancelled_at IS NULL`;
+    WHERE a.kind = 'opening' AND a.party_id = ${partyId}::uuid AND p.cancelled_at IS NULL AND n.cancelled_at IS NULL
+      AND (${skip ?? null}::uuid IS NULL OR coalesce(a.payment_id, a.note_id) <> ${skip ?? null}::uuid)`;
   const due = money(p.openingBalance.toString()).minus(money(r?.used ?? 0));
   return due.isNegative() ? money(0) : due;
 }
@@ -54,18 +57,18 @@ export interface Due { to: string; kind: 'opening' | 'invoice'; number: string; 
 /**
  * A customer's open dues, oldest first (prototype openDues): unpaid invoices and
  * the opening balance. `upTo` leaves out invoices dated after it; `except` leaves out
- * one invoice (the one being saved).
+ * one invoice (the one being saved); `skip` counts the dues as if one receipt had not settled them.
  */
-export async function openDues(tx: Tx, partyId: string, o: { upTo?: string; except?: string } = {}): Promise<Due[]> {
+export async function openDues(tx: Tx, partyId: string, o: { upTo?: string; except?: string; skip?: string } = {}): Promise<Due[]> {
   const docs = await tx.salesDocument.findMany({
     where: { kind: 'invoice', partyId, cancelledAt: null, ...(o.except && { id: { not: o.except } }), ...(o.upTo && { date: { lte: new Date(o.upTo + 'T00:00:00Z') } }) },
     select: { id: true, number: true, date: true, dueDate: true, total: true, createdAt: true },
     orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
   });
-  const bal = await invoiceBalances(tx, docs.map((d) => d.id));
+  const bal = await invoiceBalances(tx, docs.map((d) => d.id), o.skip);
   const out: Due[] = [];
   const party = await tx.party.findUnique({ where: { id: partyId }, select: { openingDate: true, createdAt: true } });
-  const ob = await openingDue(tx, partyId);
+  const ob = await openingDue(tx, partyId, o.skip);
   const obDate = isoOf(party?.openingDate ?? party?.createdAt ?? null)!;
   if (ob.gt(0) && (!o.upTo || obDate <= o.upTo)) {
     const date = obDate;

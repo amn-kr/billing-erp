@@ -1,7 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { auth, member, owner, startApp } from './helpers';
+import { auth, expectNoPasscode, member, owner, startApp } from './helpers';
 
 /**
  * Delete for saved sales documents and payments received: never erased. It undoes the document the
@@ -83,7 +83,7 @@ describe('delete a sale invoice', () => {
     const a = await audit(o);
     expect(a.find((e) => e.action === 'delete')).toMatchObject({ entity: 'sales_document', entityId: inv.id, after: { reason: '', wasCancelled: false, movedToAdvance: '2000.00' } });
     expect(a.find((e) => e.action === 'passcode_used')).toMatchObject({ entityId: inv.id, after: { for: 'delete', document: 'sale' } });
-    expect(JSON.stringify(a)).not.toContain(PASS);
+    expectNoPasscode(a, PASS);
   });
 
   it('5 wrong tries lock it for 60 seconds, even for the right passcode', async () => {

@@ -18,17 +18,24 @@ import { toastSaveFailed, toastSaved } from '../shell/saved';
 import type { Party } from '../parties/PartiesPage';
 import { inPeriod, type Period } from './model';
 import { SlModal, type SlModalProps } from './SlModal';
+import { useShell } from '../shell/store';
+import { editAsk, withPasscode } from '../settings/passcode';
+import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
 
 export interface Receipt {
   id: string; number: string; date: string; party: { id: string; name: string; phone: string } | null; partyName: string; counter: boolean; mode: string; reference: string;
   against: string; cancelledInvoice: string | null; amount: string; unused: string; atSale: boolean; legacy: boolean;
 }
+interface ReceiptDoc { id: string; number: string; date: string; partyId: string | null; amount: string; mode: string; ref: string; notes: string; cancelled: boolean; allocations: { to: string; amount: string }[]; locked: string }
 interface Due { to: string; kind: 'opening' | 'invoice'; number: string; date: string; dueDate: string | null; total: string; balance: string }
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const PLUS = '<path d="M12 5v14M5 12h14"/>';
 const against = (x: Receipt) => (x.number.startsWith('XP-') ? `Extra on ${x.number.slice(3)}` : x.counter ? x.against : x.against);
 const r2 = (n: number) => Math.round(n * 100) / 100;
+const RC_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View']];
+/** Why a receipt can't be edited from the list (the server says the rest, e.g. a cleared cheque). */
+const editOff = (x: Receipt) => (x.atSale ? 'Taken with an invoice. Edit the invoice instead.' : x.mode === 'Commission adjust' ? 'From a commission payout' : '');
 
 export function PaymentsReceivedPage() {
   useFitTables();
@@ -42,8 +49,9 @@ export function PaymentsReceivedPage() {
   const [q, setQ] = useState('');
   const [per, setPer] = useState<Period>('all');
   const [mode, setMode] = useState('all');
-  const [rc, setRc] = useState<{ party?: string; invoice?: string } | null>(null);
+  const [rc, setRc] = useState<{ party?: string; invoice?: string; edit?: string } | null>(null);
   const [modal, setModal] = useState<SlModalProps | null>(null);
+  const [menu, setMenu] = useState<RowMenuAt<Receipt> | null>(null);
   // from the sales list: "Receive payment" on an invoice
   useEffect(() => {
     const p = params.get('party');
@@ -59,6 +67,8 @@ export function PaymentsReceivedPage() {
   const L = A.filter((x) => (mode === 'all' || x.mode.includes(mode)) && (!s || x.number.toLowerCase().includes(s) || x.partyName.toLowerCase().includes(s) || x.reference.toLowerCase().includes(s) || against(x).toLowerCase().includes(s)));
   const view = (x: Receipt) => setModal(receiptModal(x));
   if (want) { const x = list.data.find((y) => y.number === want); setWant(null); if (x) queueMicrotask(() => view(x)); }
+  const rm = rowMenuHandlers('tr[data-rcno]', (tr) => L.find((x) => x.number === tr.dataset.rcno), setMenu);
+  const m = menu?.row;
   return (
     <section id="vPin">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Payments received</h1><span className="pttot">Money in from customers</span><div className="sp"></div><button className="btn p" id="rcNew" onClick={() => setRc({})}><RawIcon d={PLUS} />Receive payment <kbd className="kh" style={{ marginLeft: 6, background: 'transparent', color: 'inherit', borderColor: 'rgba(255,255,255,.4)' }}>Alt+R</kbd></button></div>
@@ -66,13 +76,17 @@ export function PaymentsReceivedPage() {
         <div className="sumrow sumin" id="rcSum"><div><small>Received</small><b className="pos">{inr(tot.toFixed(2))}</b></div><div><small>Receipts</small><b>{A.length}</b></div><div><small>Advance (unused)</small><b>{inr(un.toFixed(2))}</b></div><div><small>Still to collect</small><b className="neg">{inr(toCollect.toFixed(2))}</b></div></div>
         <div className="seg2 sm" id="rcPer">{(['all', 'oct', 'sep'] as const).map((k) => <button data-per={k} className={per === k ? 'on' : ''} key={k} onClick={() => setPer(k)}>{k === 'all' ? 'All' : k === 'oct' ? 'This month' : 'Last month'}</button>)}</div>
         <select className="fi" id="rcMode" aria-label="Mode" style={{ width: 'auto' }} value={mode} onChange={(e) => setMode(e.target.value)}><option value="all">All modes</option>{PAY_MODES.map((m) => <option key={m}>{m}</option>)}</select></div>
-        <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr><th>Date</th><th>Receipt no.</th><th>Party</th><th>Mode</th><th>Reference</th><th>Against</th><th className="n">Amount</th><th className="n">Unused</th></tr></thead>
-          <tbody id="rcRows" onKeyDown={(e) => { const r = (e.target as HTMLElement).closest<HTMLElement>('tr[data-rcno]'); if (r && e.key === 'Enter') { e.preventDefault(); r.click(); } }}>
+        <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr><th>Date</th><th>Receipt no.</th><th>Party</th><th>Mode</th><th>Reference</th><th>Against</th><th className="n">Amount</th><th className="n">Unused</th><th className="slact"><span className="vh">Actions</span></th></tr></thead>
+          <tbody id="rcRows" onContextMenu={rm.onContextMenu} onKeyDown={(e) => { if (rm.menuKey(e)) return; const r = (e.target as HTMLElement).closest<HTMLElement>('tr[data-rcno]'); if (r && e.key === 'Enter') { e.preventDefault(); r.click(); } }}>
             {L.length ? L.map((x) => (
-              <tr tabIndex={0} data-rcno={x.number} data-rcp={x.party?.id ?? ''} key={x.id} onClick={() => view(x)}><td>{dmy(x.date)}</td><td className="mono">{x.number}{!x.atSale ? <> <span className="st b" style={{ fontSize: 10, padding: '1px 6px' }}>New</span></> : null}</td><td><b style={{ fontWeight: 600 }}>{x.partyName}</b>{x.counter ? <> <small className="mu">counter sale</small></> : null}</td>
-                <td>{x.mode}</td><td className="mono mu">{x.reference || '—'}</td><td>{against(x) ? <span className="mono">{against(x)}</span> : Number(x.unused) > 0 ? <span className="st a">Advance</span> : <span className="mu">On account</span>}</td><td className="n"><b>{inr2f(x.amount)}</b></td><td className={`n ${Number(x.unused) > 0 ? 'lowq' : 'mu'}`}>{Number(x.unused) > 0 ? inr2f(x.unused) : '—'}</td></tr>
-            )) : <tr><td colSpan={8}><div className="ptempty pue"><b>No payments found</b><span>Record money you receive from customers. It settles their oldest invoices first.</span><button className="btn p sm" id="rcNew2" onClick={() => setRc({})}>Receive payment</button></div></td></tr>}
+              <tr tabIndex={0} data-rcno={x.number} data-rcp={x.party?.id ?? ''} key={x.id} className={menu?.row.id === x.id ? 'ctxon' : undefined} onClick={() => view(x)}><td>{dmy(x.date)}</td><td className="mono">{x.number}{!x.atSale ? <> <span className="st b" style={{ fontSize: 10, padding: '1px 6px' }}>New</span></> : null}</td><td><b style={{ fontWeight: 600 }}>{x.partyName}</b>{x.counter ? <> <small className="mu">counter sale</small></> : null}</td>
+                <td>{x.mode}</td><td className="mono mu">{x.reference || '—'}</td><td>{against(x) ? <span className="mono">{against(x)}</span> : Number(x.unused) > 0 ? <span className="st a">Advance</span> : <span className="mu">On account</span>}</td><td className="n"><b>{inr2f(x.amount)}</b></td><td className={`n ${Number(x.unused) > 0 ? 'lowq' : 'mu'}`}>{Number(x.unused) > 0 ? inr2f(x.unused) : '—'}</td>
+                <td className="slact"><RowMenuButton no={x.number} label={`Actions for ${x.number}`} onOpen={(b) => setMenu({ row: x, ...atButton(b), tr: b.closest('tr') })} /></td></tr>
+            )) : <tr><td colSpan={9}><div className="ptempty pue"><b>No payments found</b><span>Record money you receive from customers. It settles their oldest invoices first.</span><button className="btn p sm" id="rcNew2" onClick={() => setRc({})}>Receive payment</button></div></td></tr>}
           </tbody></table></div></div>
+      <RowMenu id="rcCtx" label="Receipt actions" rows="#rcRows tr[data-rcno]" menu={menu} head={m ? <><b>{m.number}</b> · {m.partyName}</> : null} actions={RC_ACT}
+        off={{ edit: m ? editOff(m) : '' }} onClose={() => { const tr = menu?.tr; setMenu(null); return tr; }}
+        onPick={(a) => { const x = menu?.row; setMenu(null); if (!x) return; if (a === 'edit') setRc({ edit: x.id }); else view(x); }} />
       <ReceiveDialog open={rc} parties={parties.data} onClose={() => setRc(null)} />
       <SlModal m={modal} onClose={() => setModal(null)} />
     </section>
@@ -89,9 +103,15 @@ export function receiptModal(x: Receipt): SlModalProps {
   };
 }
 
-/** Receive payment (#rcm). `open.party` / `open.invoice` pre-fill it from a party or an invoice. */
-export function ReceiveDialog({ open, parties, onClose }: { open: { party?: string; invoice?: string } | null; parties: Party[]; onClose: () => void }) {
+/**
+ * Receive payment (#rcm). `open.party` / `open.invoice` pre-fill it from a party or an invoice;
+ * `open.edit` edits a saved receipt (same number, passcode when it is on).
+ */
+export function ReceiveDialog({ open, parties, onClose }: { open: { party?: string; invoice?: string; edit?: string } | null; parties: Party[]; onClose: () => void }) {
   const qc = useQueryClient();
+  const { showToast } = useShell();
+  const editId = open?.edit ?? null;
+  const [doc, setDoc] = useState<ReceiptDoc | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const [party, setParty] = useState('');
   const [amount, setAmount] = useState('');
@@ -102,8 +122,9 @@ export function ReceiveDialog({ open, parties, onClose }: { open: { party?: stri
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const isOpen = !!open;
-  const no = useQuery({ queryKey: ['next-number', 'receipt'], queryFn: () => api<{ number: string }>('/sales/next-number?kind=receipt'), enabled: isOpen });
-  const dues = useQuery({ queryKey: ['dues', party], queryFn: () => api<Due[]>(`/parties/${party}/dues`), enabled: isOpen && !!party });
+  const no = useQuery({ queryKey: ['next-number', 'receipt'], queryFn: () => api<{ number: string }>('/sales/next-number?kind=receipt'), enabled: isOpen && !editId });
+  // editing: the dues as if this receipt had not settled them
+  const dues = useQuery({ queryKey: ['dues', party, editId], queryFn: () => api<Due[]>(`/parties/${party}/dues${editId ? `?payment=${editId}` : ''}`), enabled: isOpen && !!party });
   useOpenFocus(isOpen, ref);
   const close = useDiscardGuard(isOpen, ref, 'payment', onClose);
   const closeRef = useRef(close);
@@ -118,13 +139,24 @@ export function ReceiveDialog({ open, parties, onClose }: { open: { party?: stri
   // reset when opened; pick the customer and fill in their dues
   useEffect(() => {
     if (!open) return;
-    setParty(open.party ?? ''); setAmount(''); setDate(today()); setMode('UPI'); setRefNo(''); setAlloc({}); setErr('');
+    setParty(open.party ?? ''); setAmount(''); setDate(today()); setMode('UPI'); setRefNo(''); setAlloc({}); setErr(''); setDoc(null);
+    if (open.edit) {
+      void qc.fetchQuery({ queryKey: ['receipt', open.edit], queryFn: () => api<ReceiptDoc>(`/receipts/${open.edit}`), staleTime: 0 }).then((d) => {
+        if (d.locked) { showToast(d.locked); onClose(); return; }
+        filled.current = (d.partyId ?? '') + '|edit';
+        setDoc(d); setParty(d.partyId ?? ''); setAmount(String(Number(d.amount))); setDate(d.date); setMode(d.mode); setRefNo(d.ref);
+        setAlloc(Object.fromEntries(d.allocations.map((a) => [a.to, Number(a.amount)])));
+        setTimeout(() => (document.getElementById('rcAmt') as HTMLInputElement | null)?.select(), 30);
+      }, (e) => { showToast(e instanceof ApiError ? e.message : 'Could not open the payment.'); onClose(); });
+      return;
+    }
     setTimeout(() => (document.getElementById(open.party ? 'rcAmt' : 'rcParty') as HTMLElement | null)?.focus(), 30);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
   const D = party ? dues.data ?? [] : [];
   const filled = useRef('');
   useEffect(() => {
-    if (!open || !party || !dues.data || filled.current === party + (open.invoice ?? '')) return;
+    if (!open || !party || !dues.data || filled.current === party + (open.invoice ?? '') || filled.current === party + '|edit') return;
     filled.current = party + (open.invoice ?? '');
     if (open.invoice && open.party === party) { const t = dues.data.find((x) => x.to === open.invoice); if (t) { setAlloc({ [t.to]: Number(t.balance) }); setAmount(String(Number(t.balance))); } return; }
     const tot = r2(dues.data.reduce((a, t) => a + Number(t.balance), 0));
@@ -144,9 +176,11 @@ export function ReceiveDialog({ open, parties, onClose }: { open: { party?: stri
     if (A.reduce((s2, a) => s2 + Number(a.amount), 0) > amt + 0.009) return fail('The invoice amounts add up to more than the payment.');
     setBusy(true);
     try {
-      await api('/receipts', { method: 'POST', body: { partyId: party, date, amount: String(amt), mode, ref: refNo.trim(), allocations: A } });
+      const body = { partyId: party, date, amount: String(amt), mode, ref: refNo.trim(), notes: doc?.notes ?? '', allocations: A };
+      if (doc) { if (!(await withPasscode(qc, editAsk(doc.number), (h) => api(`/receipts/${doc.id}`, { method: 'PUT', body, headers: h })))) return; }
+      else await api('/receipts', { method: 'POST', body });
       onClose();
-      await Promise.all(['receipts', 'sales', 'parties', 'dues', 'next-number', 'sale'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
+      await Promise.all(['receipts', 'receipt', 'sales', 'parties', 'dues', 'next-number', 'sale', 'cheques', 'banking'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
       toastSaved('receipt');
     } catch (e) { fail(e instanceof ApiError ? e.message : 'Could not save the payment.'); }
     finally { setBusy(false); }
@@ -154,7 +188,7 @@ export function ReceiveDialog({ open, parties, onClose }: { open: { party?: stri
   return (
     <div className="ov c" id="rcm" hidden={!isOpen} ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'rcm') close(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="rcT" style={{ width: 'min(600px,100%)' }}>
-        <div className="dh"><div><h3 id="rcT" style={{ margin: 0, fontSize: 18 }}>Receive payment</h3><small className="mu mono" id="rcNo">{no.data?.number ?? ''}</small></div><button className="ib" type="button" id="rcClose" aria-label="Close" onClick={close}><Icon name="x" /></button></div>
+        <div className="dh"><div><h3 id="rcT" style={{ margin: 0, fontSize: 18 }}>{editId ? 'Edit payment' : 'Receive payment'}</h3><small className="mu mono" id="rcNo">{editId ? (doc?.number ?? '') : (no.data?.number ?? '')}</small></div><button className="ib" type="button" id="rcClose" aria-label="Close" onClick={close}><Icon name="x" /></button></div>
         <label className="fl" htmlFor="rcParty" style={{ marginTop: 14 }}>Customer<select className="fi" id="rcParty" value={party} onChange={(e) => { setParty(e.target.value); setAlloc({}); setAmount(''); filled.current = ''; setTimeout(() => (document.getElementById('rcAmt') as HTMLInputElement | null)?.select(), 50); }}>
           <option value="">Choose customer</option>{C.map((p) => { const b = Number(p.balance); return <option value={p.id} key={p.id}>{p.name}{b > 0 ? ' · ' + inr2f(b) + ' due' : b < 0 ? ' · advance ' + inr2f(-b) : ''}</option>; })}</select></label>
         <div className="two"><label className="fl" htmlFor="rcAmt">Amount received<input className="fi" id="rcAmt" inputMode="decimal" placeholder="0" autoComplete="off" value={amount} onChange={(e) => { const v = e.target.value.replace(/[^\d.]/g, ''); setAmount(v); setAlloc(auto(Number(v) || 0, D)); }} /></label><label className="fl" htmlFor="rcDate">Date<input className="fi" type="date" id="rcDate" value={date} onChange={(e) => setDate(e.target.value)} /></label></div>

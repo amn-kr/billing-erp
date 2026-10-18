@@ -13,7 +13,7 @@ import type { LedgerService } from '../../common/ledger.service';
 import type { NumberingService } from '../../common/numbering.service';
 import { day } from '../../common/lookups';
 import { autoAllocate, openDues } from './dues';
-import { moneyInLines } from './money-in';
+import { cancelPendingCheques, moneyInLines } from './money-in';
 
 export interface Part { mode: string; amount: Money; ref: string }
 export interface AtSaleDeps { businessId: string; userId: string; ledger: LedgerService; numbers: NumberingService }
@@ -43,7 +43,7 @@ export async function writeAtSale(tx: Tx, d: AtSaleDeps, o: AtSaleInput): Promis
   const who = { businessId: d.businessId, userId: d.userId };
   const old = await tx.payment.findMany({ where: { sourceId: o.docId, atSale: true } });
   for (const p of old.filter((x) => !x.cancelledAt)) {
-    await tx.cheque.updateMany({ where: { paymentId: p.id, status: 'pending' }, data: { status: 'cancelled', statusDate: day(o.date), note: `Replaced when ${o.docNumber} was edited` } });
+    await cancelPendingCheques(tx, p.id, o.date, `Replaced when ${o.docNumber} was edited`);
     await tx.paymentAllocation.deleteMany({ where: { paymentId: p.id } });
   }
   const paid = o.parts.reduce((a, p) => a.plus(p.amount), money(0));

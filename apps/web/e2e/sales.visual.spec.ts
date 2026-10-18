@@ -6,6 +6,9 @@
  * The entry windows are full screen (owner's change: no sidebar or top bar), so pictures of the
  * editor and of the pop-ups over it are compared with owner-approved pictures (e2e/approved/).
  */
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { approvedShot, sameShot } from './shots';
 import { APP, PROTO_PRINT, SALES, WIDTHS, freshShop, newPage, openPrototypeView, prototypeWithBackup, savePrint, signInAs } from './setup';
@@ -34,10 +37,31 @@ async function withTabs(proto: Page, app: Page) {
   await proto.evaluate((h) => { document.getElementById('siTabs')?.remove(); document.querySelector('#vNewInv > .sitop')!.insertAdjacentHTML('afterbegin', h); window.dispatchEvent(new Event('resize')); }, html);
 }
 
+/**
+ * Deliberate difference (owner's request, 18 Oct 2026): every document list has a ⋮ actions button
+ * in each row, drawn with the prototype's own leftover ⋮ styles (.slact / .slm; for lists other than
+ * Sales the same rules repeated in features/shell/row-menu.css). Copy the rebuild's ⋮ cells, and that
+ * small style file, into the prototype so everything else is still compared pixel for pixel.
+ */
+async function withDots(proto: Page, app: Page, tbody: string) {
+  const css = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '../src/features/shell/row-menu.css'), 'utf8');
+  const cells = await app.locator(`${tbody} tr`).evaluateAll((rows) => rows.map((r) => { const b = r.querySelector('[data-slm]'); return b ? { own: b.parentElement!.classList.contains('slact'), html: b.parentElement!.classList.contains('slact') ? b.parentElement!.outerHTML : b.outerHTML } : null; }));
+  const th = await app.locator(tbody).evaluate((b) => { const h = b.closest('table')!.querySelector('thead tr')!.lastElementChild!; return h.classList.contains('slact') ? h.outerHTML : ''; });
+  await proto.evaluate(({ tbody, cells, th, css }) => {
+    const b = document.querySelector(tbody)!;
+    const head = b.closest('table')!.querySelector('thead tr')!;
+    if (th && !head.lastElementChild!.classList.contains('slact')) head.insertAdjacentHTML('beforeend', th);
+    [...b.children].forEach((r, k) => { const c = cells[k]; if (!c || r.querySelector('[data-slm]')) return; if (c.own) r.insertAdjacentHTML('beforeend', c.html); else r.lastElementChild!.insertAdjacentHTML('beforeend', ' ' + c.html); });
+    if (!document.getElementById('rowMenuCss')) { const st = document.createElement('style'); st.id = 'rowMenuCss'; st.textContent = css; document.head.appendChild(st); }
+    window.dispatchEvent(new Event('resize'));
+  }, { tbody, cells, th, css });
+}
+
 for (const width of WIDTHS) {
   test.describe(`${width}px`, () => {
     test('Sales invoices: list, actions menu, preview, cancelled invoice, filters', async ({ browser }) => {
       const { proto, app } = await pages(browser, width, 'sales', '/sales', '#slRows tr[data-sno]');
+      await withDots(proto, app, '#slRows');
       await sameShot(`sales-${width}`, proto, app, '#vSales');
 
       // right-click actions on a partly paid invoice
@@ -65,11 +89,13 @@ for (const width of WIDTHS) {
       await sameShot(`sales-filter-${width}`, proto, app, '#thfPop');
       await both(proto, app, (p) => p.click('#thfPop [data-thv="paid"]'));
       await both(proto, app, (p) => p.mouse.move(0, 0));
+      await withDots(proto, app, '#slRows');
       await sameShot(`sales-paid-${width}`, proto, app, '#vSales');
     });
 
     test('Payments received and the Receive payment window', async ({ browser }) => {
       const { proto, app } = await pages(browser, width, 'pin', '/payments-received', '#rcRows tr[data-rcno]');
+      await withDots(proto, app, '#rcRows');
       await sameShot(`receipts-${width}`, proto, app, '#vPin');
       // a customer with an unpaid invoice and an opening balance: dues filled oldest first
       await both(proto, app, (p) => p.click('#rcNew'));
@@ -86,6 +112,7 @@ for (const width of WIDTHS) {
 
     test('Credit notes and New credit note', async ({ browser }) => {
       const { proto, app } = await pages(browser, width, 'cns', '/credit-notes', '#cnRows tr[data-cnno]');
+      await withDots(proto, app, '#cnRows');
       await sameShot(`creditnotes-${width}`, proto, app, '#vCns');
       await both(proto, app, (p) => p.click('#cnRows tr[data-cnno="CN-0001"]'));
       await sameShot(`creditnote-view-${width}`, proto, app, '#slm .mdl');
@@ -102,6 +129,7 @@ for (const width of WIDTHS) {
 
     test('Delivery challans: list, print view, New delivery challan', async ({ browser }) => {
       const { proto, app } = await pages(browser, width, 'dcs', '/delivery-challans', '#dcRows tr[data-dcno]');
+      await withDots(proto, app, '#dcRows');
       await sameShot(`challans-${width}`, proto, app, '#vDcs');
       await both(proto, app, (p) => p.click('#dcRows [data-dcprint="DC-0001"]'));
       await app.waitForSelector('#ipv:not([hidden]) .dch');
@@ -285,6 +313,7 @@ for (const width of WIDTHS) {
       // saved list: newest first in the rebuild (the prototype lists them in the order it stored them)
       await both(proto, app, (p) => p.click('#qSaved'));
       await proto.evaluate(() => { const b = document.getElementById('qlRows')!; [...b.children].reverse().forEach((r) => b.appendChild(r)); document.querySelectorAll('#qlRows [data-qdl]').forEach((x) => { x.setAttribute('title', 'Cancel quotation'); }); });
+      await withDots(proto, app, '#qlRows');
       await sameShot(`quo-saved-${width}`, proto, app, '#qlm .mdl');
       await both(proto, app, (p) => p.click('#qlClose'));
     });

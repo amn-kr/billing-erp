@@ -4,6 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router-dom';
 import { Boot } from './app/Boot';
 import { router } from './app/router';
+import { blockBrowserMenu } from './lib/browserMenu';
+
+blockBrowserMenu();
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } });
 

@@ -60,5 +60,10 @@ export function capSplits(parts: PayPart[], cap: Money) {
 export async function cancelPayment(tx: Tx, ledger: LedgerService, o: { id: string; userId: string; date: string; at?: Date }) {
   await tx.payment.update({ where: { id: o.id }, data: { cancelledAt: o.at ?? new Date(), cancelledBy: o.userId } });
   await ledger.cancel(tx, 'payment', o.id);
-  await tx.cheque.updateMany({ where: { paymentId: o.id, status: 'pending' }, data: { status: 'cancelled', statusDate: day(o.date) } });
+  await cancelPendingCheques(tx, o.id, o.date);
+}
+
+/** A payment's cheque still waiting in the register no longer counts (payment cancelled, or replaced by an edit). */
+export async function cancelPendingCheques(tx: Tx, paymentId: string, date: string, note?: string) {
+  await tx.cheque.updateMany({ where: { paymentId, status: 'pending' }, data: { status: 'cancelled', statusDate: day(date), ...(note && { note }) } });
 }
