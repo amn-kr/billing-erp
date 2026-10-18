@@ -2,7 +2,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+import { brandItems } from './brands.data';
 import { APP, freshShop, newPage, signInAs } from './setup';
 
 const FIXTURES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../packages/importer/fixtures');
@@ -34,6 +35,12 @@ test('add a party from the Parties screen; it is saved and selected', async ({ b
   await expect(page.locator('#ptList .ptr')).toHaveCount(1);
 });
 
+/** Picks a row of a searchable drop-down (components/SearchSelect) by opening its list. */
+async function pickRow(page: Page, sel: string, name: string | RegExp) {
+  await page.click(sel);
+  await page.locator(`${sel}L`).getByRole('option', { name, exact: typeof name === 'string' }).click();
+}
+
 test('add items (with opening stock, service, brands/sizes) and adjust stock', async ({ browser, request }) => {
   const page = await newPage(browser, 1366);
   await signInAs(page, await freshShop(request));
@@ -55,14 +62,14 @@ test('add items (with opening stock, service, brands/sizes) and adjust stock', a
   await page.click('#aiGen');
   await expect(page.locator('#aiCode')).toHaveValue('JE001');
   // a new category and a new brand from their popups; each is selected after Create
-  await page.selectOption('#aiCat', '__new');
+  await pickRow(page, '#aiCat', '+ Add category');
   await expect(page.locator('#aiAdd_cat')).toBeVisible();
   await expect(page.locator('#aiAdd_catN')).toHaveAttribute('placeholder', 'e.g., Grocery');
   await page.fill('#aiAdd_catN', 'Lighting');
   await page.click('#aiAdd_catGo');
   await expect(page.locator('#aiAdd_cat')).toBeHidden();
   await expect(page.locator('#aiCat')).toHaveValue('Lighting');
-  await page.selectOption('#aiBrandSel', '__new');
+  await pickRow(page, '#aiBrandSel', '+ Add new brand');
   await page.fill('#aiAdd_brandN', 'Philips');
   await page.click('#aiAdd_brandGo');
   await expect(page.locator('#aiBrandSel')).toHaveValue('Philips');
@@ -106,16 +113,23 @@ test('add items (with opening stock, service, brands/sizes) and adjust stock', a
   await page.click('#aiVar');
   await expect(page.locator('#aiVarSw .on')).toHaveText('Variant');
   // a new parent item from its popup
-  await page.selectOption('#aiName', '__new');
+  await pickRow(page, '#aiName', '+ Add new parent item');
   await expect(page.locator('#aiAdd_group')).toBeVisible();
   await page.fill('#aiAdd_groupN', 'Copper wire 1.5 sq mm');
   await page.click('#aiAdd_groupGo');
   await expect(page.locator('#aiName')).toHaveValue('Copper wire 1.5 sq mm');
-  await page.selectOption('#aiBrandSel', '__new');
+  await pickRow(page, '#aiBrandSel', '+ Add new brand');
   await page.fill('#aiAdd_brandN', 'Havells');
   await page.click('#aiAdd_brandGo');
   await expect(page.locator('#aiBrandSel')).toHaveValue('Havells');
+  // a new brand has no series yet: typing one that isn't there, Enter opens "Add series" with it
   await page.fill('#aiSeries', 'FR Red');
+  await expect(page.locator('#aiSeriesL')).toContainText('No match');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#aiAdd_seriesN')).toHaveValue('FR Red');
+  await page.click('#aiAdd_seriesGo');
+  await expect(page.locator('#toast')).toHaveText('Series “FR Red” added to Havells');
+  await expect(page.locator('#aiSeries')).toHaveValue('FR Red');
   // Select unit: base unit named from the unit popup, a secondary unit and its rate
   await page.click('#aiUnit');
   await page.selectOption('#aiUBase', '__new');
@@ -136,12 +150,17 @@ test('add items (with opening stock, service, brands/sizes) and adjust stock', a
   await expect(page.locator('#aiName')).toHaveValue('Copper wire 1.5 sq mm');
   await expect(page.locator('#aiBrandSel')).toHaveValue('Havells');
   await expect(page.locator('#aiSeries')).toHaveValue('');
-  // a series already in this parent and brand is refused, whatever the capitals
+  // a series already in this parent and brand can't be picked, nor added again whatever the capitals
+  await page.click('#aiSeries');
+  await expect(page.locator('#aiSeriesL [role="option"][aria-disabled="true"]')).toHaveText('FR Redalready added');
   await page.fill('#aiSeries', 'fr red');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#aiAdd_seriesN')).toHaveValue('fr red');
+  await page.click('#aiAdd_seriesGo');
+  await expect(page.locator('#aiAdd_series .msg')).toHaveText('Havells FR Red is already in this item. Choose a different series.');
+  await page.fill('#aiAdd_seriesN', 'FR Black');
+  await page.click('#aiAdd_seriesGo');
   await page.fill('#aiSale', '1650');
-  await page.click('#aiSave');
-  await expect(page.locator('#ai .aperr')).toHaveText('Havells fr red is already in this item. Enter a different series.');
-  await page.fill('#aiSeries', 'FR Black');
   await page.click('#aiSave');
   await expect(page.locator('#toast')).toHaveText('Copper wire 1.5 sq mm · Havells FR Black added');
   await expect(page.locator('#itHead h2')).toHaveText('Copper wire 1.5 sq mm');
@@ -166,6 +185,77 @@ test('add items (with opening stock, service, brands/sizes) and adjust stock', a
   await page.click('#aiSave');
   await expect(page.locator('#itKind')).toHaveText('Services');
   await expect(page.locator('#itHead h2')).toHaveText('Fan installation');
+});
+
+test('Add item › Variant: parent by typing, only the brand’s series, add a series, Save & new; Brands & Series shows it', async ({ browser, request }) => {
+  const page = await newPage(browser, 1366);
+  const who = await freshShop(request);
+  // 6A-10A 1WAY SWITCH in HAVELLS CORAL / PEARLZ and NORWOOD CLASSIC, and LED 12W (HAVELLS, single)
+  await brandItems(request, who);
+  await signInAs(page, who);
+  await page.goto(APP + '/items');
+  await page.click('#vItems .pthd .btn.p');
+  await page.click('#aiVar');
+  // Parent item: type to filter, Enter picks the first match
+  await page.fill('#aiName', '1way');
+  await expect(page.locator('#aiNameL [role="option"]')).toHaveText(['6A-10A 1WAY SWITCH', '+ Add new parent item “1way”']);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#aiName')).toHaveValue('6A-10A 1WAY SWITCH');
+  // Series waits for a brand
+  await expect(page.locator('#aiSeries')).toBeDisabled();
+  await expect(page.locator('#aiSeries')).toHaveAttribute('placeholder', 'Choose a brand first');
+  // Brand by typing; then the series list has only that brand's series, the ones this item has are "already added"
+  await page.fill('#aiBrandSel', 'hav');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#aiBrandSel')).toHaveValue('HAVELLS');
+  await page.click('#aiSeries');
+  await expect(page.locator('#aiSeriesL [role="option"]')).toHaveText(['CORALalready added', 'PEARLZalready added', '+ Add series']);
+  // Esc closes only the list, not Add item
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#aiSeriesL')).toBeHidden();
+  await expect(page.locator('#ai')).toBeVisible();
+  // + Add series: saved on the brand and chosen
+  await page.click('#aiSeries');
+  await page.locator('#aiSeriesL').getByRole('option', { name: '+ Add series', exact: true }).click();
+  await expect(page.locator('#aiAdd_seriesT')).toHaveText('Add series to HAVELLS');
+  await page.fill('#aiAdd_seriesN', 'Allure');
+  await page.click('#aiAdd_seriesGo');
+  await expect(page.locator('#toast')).toHaveText('Series “Allure” added to HAVELLS');
+  await expect(page.locator('#aiSeries')).toHaveValue('Allure');
+  await page.fill('#aiSale', '55');
+  await page.click('#aiSaveNew');
+  await expect(page.locator('#toast')).toHaveText('6A-10A 1WAY SWITCH · HAVELLS Allure added');
+  // Save & new keeps the parent item and brand, clears the series; Allure is now "already added"
+  await expect(page.locator('#aiName')).toHaveValue('6A-10A 1WAY SWITCH');
+  await expect(page.locator('#aiBrandSel')).toHaveValue('HAVELLS');
+  await expect(page.locator('#aiSeries')).toHaveValue('');
+  await expect(page.locator('#aiName')).toBeFocused();
+  await page.click('#aiSeries');
+  await expect(page.locator('#aiSeriesL [role="option"]')).toHaveText(['Allurealready added', 'CORALalready added', 'PEARLZalready added', '+ Add series']);
+  await page.keyboard.press('Escape');
+  // another parent item: the same brand's series can all be chosen; changing the brand clears the series
+  await page.fill('#aiName', 'Switch plate');
+  await page.keyboard.press('Enter');
+  await page.fill('#aiAdd_groupN', 'Switch plate');
+  await page.click('#aiAdd_groupGo');
+  await page.click('#aiSeries');
+  await page.locator('#aiSeriesL').getByRole('option', { name: 'CORAL', exact: true }).click();
+  await expect(page.locator('#aiSeries')).toHaveValue('CORAL');
+  await page.click('#aiBrandSel');
+  await page.locator('#aiBrandSelL').getByRole('option', { name: 'NORWOOD', exact: true }).click();
+  await expect(page.locator('#aiSeries')).toHaveValue('');
+  await page.click('#aiSeries');
+  await expect(page.locator('#aiSeriesL [role="option"]')).toHaveText(['CLASSIC', '+ Add series']);
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#ai')).toBeHidden();
+
+  // Brands & Series lists the series added from Add item
+  await page.goto(APP + '/items/brands');
+  await page.click('[data-bst="series"]');
+  await expect(page.locator('#bsRows tr', { hasText: 'Allure' }).locator('td').nth(1)).toHaveText('HAVELLS');
 });
 
 test('import upload: the old app’s backup is checked, then imported into empty books', async ({ browser, request }) => {
