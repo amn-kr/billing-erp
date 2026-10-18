@@ -6,7 +6,11 @@
  *   (pick one or add one), a brand and a series that must be new for that parent and brand;
  * - "Assign code" fills the next free own code: the shop's prefix + 3–5 digits (JE001);
  * - a Select unit window: base unit, optional secondary unit and its conversion rate;
- * - adding a brand, category, unit or parent item opens a small popup.
+ * - adding a brand, category, unit, series or parent item opens a small popup;
+ * - Parent item, Brand, Series and Category are searchable drop-downs (components/SearchSelect). Series lists
+ *   only the chosen brand's series (Brands & Series plus those typed on its items); one this parent item
+ *   already has with that brand is marked "already added": it can be chosen, but a red line under the field
+ *   says so (with "Open that item") and Save refuses it. "+ Add series" saves it on the brand at once.
  * Saves through POST /api/items.
  */
 import { useEffect, useRef, useState } from 'react';
@@ -16,6 +20,7 @@ import { inr2f } from '../../lib/format';
 import { useCur, useSettings } from '../../lib/settings';
 import { today } from '../../lib/time';
 import { Icon, RawIcon } from '../../components/Icon';
+import { SearchSelect } from '../../components/SearchSelect';
 import { useShell } from '../shell/store';
 import { qfmt } from './ItemsPage';
 
@@ -24,7 +29,10 @@ const X = '<path d="M6 6l12 12M18 6L6 18"/>';
 
 interface Unit { code: string; name: string }
 interface Rate { unit: string; secondaryUnit: string; rate: string }
-interface Catalogue { units: Unit[]; categories: { name: string }[]; brands: { name: string }[]; groups: { name: string }[]; rates: Rate[] }
+interface Brand { id: string; name: string }
+interface Catalogue { units: Unit[]; categories: { name: string }[]; brands: Brand[]; groups: { name: string }[]; rates: Rate[] }
+/** GET /brands/:id/series: taken = this parent item already has it with this brand (itemId = that item) */
+interface BrandSeries { name: string; taken: boolean; itemId?: string }
 const F0 = { name: '', group: '', hsn: '', unit: 'PCS', sec: '', rate: '', cat: '', code: '', brand: '', series: '', sale: '', mrp: '', saleTax: 'With tax', disc: '', whole: '', wholeQty: '', purch: '', purchTax: 'With tax', gst: '18', oq: '', op: '', od: '', min: '', loc: '' };
 type Form = typeof F0;
 const num = (x: string) => Number(String(x).replace(/,/g, ''));
@@ -33,11 +41,15 @@ const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLow
 /** 90.000 → 90, 2.500 → 2.5 */
 const qty = (r: string) => String(Number(r));
 
-type Pop = 'brand' | 'cat' | 'group' | 'unit' | null;
+type Pop = 'brand' | 'cat' | 'group' | 'unit' | 'series' | null;
 /** Select unit window: base, secondary ('' = None) and the chosen rate ('new' = typed in, else a saved rate). */
 interface UnitWin { base: string; sec: string; pick: string; typed: string; err: string; addFor: 'base' | 'sec' }
 
-export function AddItemDialog({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved: (id: string, svc: boolean, group?: string) => void }) {
+/**
+ * onOpenItem: "Open that item" for a variant that already exists (Items page: its detail screen). Without it
+ * (a bill being made) the button reads "Use that item" and hands the existing item to onSaved instead.
+ */
+export function AddItemDialog({ open, onClose, onSaved, onOpenItem }: { open: boolean; onClose: () => void; onSaved: (id: string, svc: boolean, group?: string) => void; onOpenItem?: (id: string) => void }) {
   const cur = useCur();
   const settings = useSettings().data;
   const qc = useQueryClient();
@@ -49,13 +61,15 @@ export function AddItemDialog({ open, onClose, onSaved }: { open: boolean; onClo
   const [f, setF] = useState<Form>({ ...F0, od: today() });
   const [err, setErr] = useState<Record<string, string>>({});
   const [pop, setPop] = useState<Pop>(null);
+  /** what was typed in the drop-down when its "+ Add" row was picked: the popup starts with it */
+  const [popText, setPopText] = useState('');
   const [uw, setUw] = useState<UnitWin | null>(null);
-  const [extraBrands, setExtraBrands] = useState<string[]>([]);
+  const [extraBrands, setExtraBrands] = useState<Brand[]>([]);
   const [extraCats, setExtraCats] = useState<string[]>([]);
   const [extraGroups, setExtraGroups] = useState<string[]>([]);
   const [extraUnits, setExtraUnits] = useState<Unit[]>([]);
   const [busy, setBusy] = useState(false);
-  const nameRef = useRef<HTMLInputElement & HTMLSelectElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
   // Escape closes the top-most window first
   const top = useRef({ pop, uw: !!uw });
   top.current = { pop, uw: !!uw };
@@ -87,7 +101,18 @@ export function AddItemDialog({ open, onClose, onSaved }: { open: boolean; onClo
   const units = [...(cat.data?.units ?? ['PCS', 'BOX', 'KG', 'MTR', 'COIL', 'BAG', 'LTR', 'NOS', 'SET', 'PAIR'].map((code) => ({ code, name: '' }))), ...extraUnits.filter((u) => !cat.data?.units.some((x) => x.code === u.code))];
   const uLabel = (code: string) => { const u = units.find((x) => x.code === code); return u?.name ? `${u.code} (${u.name})` : code; };
   const cats = [...(cat.data?.categories.map((c) => c.name) ?? []), ...extraCats.filter((c) => !cat.data?.categories.some((x) => x.name === c))];
-  const brands = [...new Set([...(cat.data?.brands.map((b) => b.name) ?? []), ...extraBrands])].sort((a, b) => a.localeCompare(b));
+  const brandRows = [...(cat.data?.brands ?? []), ...extraBrands];
+  const brands = [...new Set(brandRows.map((b) => b.name))].sort((a, b) => a.localeCompare(b));
+  const brandId = brandRows.find((b) => b.name === f.brand)?.id;
+  const seriesQ = useQuery({
+    queryKey: ['brand-series-of', brandId, f.group],
+    queryFn: () => api<BrandSeries[]>(`/brands/${brandId}/series?group=${encodeURIComponent(f.group)}`),
+    enabled: open && vary && !!brandId,
+  });
+  const seriesList = brandId ? (seriesQ.data ?? []) : [];
+  /** the chosen series is already a variant of this parent item with this brand */
+  const dup = vary && f.series ? seriesList.find((x) => x.taken && same(x.name, f.series)) : undefined;
+  const dupText = dup ? `${f.group} ${f.brand} ${dup.name} is already added.` : '';
   const groups = [...new Set([...(cat.data?.groups.map((g) => g.name) ?? []), ...extraGroups])].sort((a, b) => a.localeCompare(b));
   const gstList = (settings?.taxes ?? []).filter((t) => t.kind === 'GST');
   const pre = cur('₹') ? 'pre2' : 'pre2 ncur';
@@ -116,7 +141,8 @@ export function AddItemDialog({ open, onClose, onSaved }: { open: boolean; onClo
     if (vary) {
       if (!f.group) er.name = 'Choose the parent item.';
       if (!f.brand) er.brand = 'Choose a brand.';
-      if (!series) er.series = 'Enter the series or size.';
+      if (!series) er.series = 'Choose or add a series.';
+      else if (dup) er.series = dupText;
     } else if (!name) er.name = svc ? 'Enter the service name.' : 'Enter the item name.';
     if (f.hsn && !/^\d{4,8}$/.test(f.hsn)) er.hsn = 'HSN/SAC is 4 to 8 digits.';
     if (f.sale && Number.isNaN(num(f.sale))) er.sale = 'Enter a number.';
@@ -141,6 +167,7 @@ export function AddItemDialog({ open, onClose, onSaved }: { open: boolean; onClo
       const it = await api<{ id: string; name: string; stock: string | null; unit: string }>('/items', { body });
       await qc.invalidateQueries({ queryKey: ['items'] });
       await qc.invalidateQueries({ queryKey: ['catalogue'] });
+      if (vary) await qc.invalidateQueries({ queryKey: ['brand-series-of'] });
       showToast(`${it.name} added${it.stock && num(it.stock) ? ` with ${qfmt(it.stock)} ${it.unit} in stock` : ''}`);
       if (again) {
         reset(vary ? { group: f.group, brand: f.brand, hsn: f.hsn, unit: f.unit, sec: f.sec, rate: f.rate, cat: f.cat, gst: f.gst } : { unit: f.unit, gst: f.gst });
@@ -154,7 +181,7 @@ export function AddItemDialog({ open, onClose, onSaved }: { open: boolean; onClo
     }
   }
 
-  /** Create in a popup: brand / category / unit are saved at once; a new parent item is saved with its first variant. */
+  /** Create in a popup: brand / category / unit / series are saved at once; a new parent item is saved with its first variant. */
   async function create(kind: Exclude<Pop, null>, name: string, short = ''): Promise<string | void> {
     if (kind === 'group') {
       const n = name.replace(/\s+/g, ' ');
@@ -167,14 +194,28 @@ export function AddItemDialog({ open, onClose, onSaved }: { open: boolean; onClo
       return;
     }
     try {
+      if (kind === 'series') {
+        // the chosen brand's series, added the same way as on Items › Brands & Series (same duplicate rules)
+        const n = name.replace(/\s+/g, ' ');
+        const hit = seriesList.find((x) => same(x.name, n));
+        if (!hit) {
+          await api('/brand-series', { body: { brandId, name: n } });
+          await Promise.all(['brand-series-of', 'brand-series', 'brands'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
+        }
+        setF((x) => ({ ...x, series: hit?.name ?? n }));
+        setErr(({ series: _, ...x }) => x);
+        setPop(null);
+        showToast(hit ? `“${hit.name}” is already a ${f.brand} series — picked it` : `Series “${n}” added to ${f.brand}`);
+        return;
+      }
       if (kind === 'unit') {
         const u = await api<Unit>('/catalogue/units', { body: { code: short, name } });
         setExtraUnits((x) => [...x, u]);
         setUw((w) => (w ? { ...w, [w.addFor]: u.code, ...(w.addFor === 'base' && w.sec === u.code ? { sec: '' } : {}), pick: 'new', err: '' } : w));
         showToast(`Unit “${u.code}” added`);
       } else {
-        await api(kind === 'brand' ? '/catalogue/brands' : '/catalogue/categories', { body: { name } });
-        if (kind === 'brand') { setExtraBrands((x) => [...x, name]); setF((x) => ({ ...x, brand: name })); setErr(({ brand: _, ...x }) => x); }
+        const made = await api<Brand>(kind === 'brand' ? '/catalogue/brands' : '/catalogue/categories', { body: { name } });
+        if (kind === 'brand') { setExtraBrands((x) => [...x, made]); setF((x) => ({ ...x, brand: name, series: '' })); setErr(({ brand: _, ...x }) => x); }
         else { setExtraCats((x) => [...x, name]); setF((x) => ({ ...x, cat: name })); }
         showToast(`${kind === 'brand' ? 'Brand' : 'Category'} “${name}” added`);
       }
@@ -183,6 +224,8 @@ export function AddItemDialog({ open, onClose, onSaved }: { open: boolean; onClo
       return e instanceof ApiError ? e.message : 'Could not add it.';
     }
   }
+
+  const addNew = (kind: Exclude<Pop, null>, typed: string) => { setPopText(typed); setPop(kind); };
 
   const unitText = f.sec ? `${f.unit} · 1 ${f.unit} = ${qty(f.rate)} ${f.sec}` : uLabel(f.unit);
   const openUnits = () => setUw({ base: f.unit, sec: f.sec, pick: 'new', typed: f.sec ? qty(f.rate) : '', err: '', addFor: 'base' });
@@ -223,16 +266,18 @@ export function AddItemDialog({ open, onClose, onSaved }: { open: boolean; onClo
             <div className="aitop">
               <div className="aifields">
                 {vary ? (
-                  <label className="apf" style={{ gridColumn: 'span 2' }}>Parent item <span className="req">*</span><select className={`fi ${bad('name')}`} id="aiName" data-f="group" value={f.group} ref={nameRef} onChange={(e) => (e.target.value === '__new' ? setPop('group') : set('group')(e))}><option value="">Choose parent item</option>{groups.map((g) => <option key={g}>{g}</option>)}<option value="__new">+ Add new parent item</option></select>{E('name')}</label>
+                  <label className="apf" style={{ gridColumn: 'span 2' }}>Parent item <span className="req">*</span><SearchSelect id="aiName" dataF="group" className={bad('name')} inputRef={nameRef} value={f.group} options={groups.map((g) => ({ value: g }))} placeholder="Choose parent item" add="+ Add new parent item" onAdd={(t) => addNew('group', t)} onChange={(v) => { setF((x) => ({ ...x, group: v })); setErr(({ name: _, ...x }) => x); }} />{E('name')}</label>
                 ) : (
                   <label className="apf" style={{ gridColumn: 'span 2' }}>{svc ? 'Service name' : 'Item name'} <span className="req">*</span><input className={`fi ${bad('name')}`} id="aiName" data-f="name" value={f.name} onChange={set('name')} placeholder={svc ? 'e.g. Fan installation' : 'e.g. LED bulb 12W'} autoComplete="off" role="combobox" aria-autocomplete="list" aria-controls="aiSug" aria-expanded={false} ref={nameRef} />{E('name')}<div className="aisug" id="aiSug" hidden role="listbox"></div></label>
                 )}
                 <label className="apf needs-gst">{svc ? 'SAC' : 'HSN'} code<input className={`fi ${bad('hsn')}`} data-f="hsn" value={f.hsn} onChange={set('hsn')} placeholder={svc ? '995461' : '8536'} inputMode="numeric" maxLength={8} />{E('hsn')}</label>
                 <label className="apf">Unit<button type="button" className={`fi ${bad('unit')}`} id="aiUnit" style={{ textAlign: 'left' }} onClick={openUnits}>{unitText}</button>{E('unit')}</label>
-                <label className="apf">Category<select className="fi" data-f="cat" id="aiCat" value={f.cat} onChange={(e) => (e.target.value === '__new' ? setPop('cat') : set('cat')(e))}><option value="">No category</option>{cats.map((c) => <option key={c}>{c}</option>)}<option value="__new">+ Add category</option></select></label>
+                <label className="apf">Category<SearchSelect id="aiCat" dataF="cat" value={f.cat} options={cats.map((c) => ({ value: c }))} placeholder="No category" empty="No category" add="+ Add category" onAdd={(t) => addNew('cat', t)} onChange={(v) => setF((x) => ({ ...x, cat: v }))} /></label>
                 <label className="apf">Item code<span className="aicode"><input className={`fi ${bad('code')}`} data-f="code" id="aiCode" value={f.code} onChange={set('code')} placeholder="Maker's code" autoComplete="off" /><button type="button" className="btn sm" id="aiGen" onClick={assignCode}>Assign code</button></span>{E('code')}</label>
-                {!svc && <label className="apf">Brand{vary && <> <span className="req">*</span></>}<select className={`fi ${bad('brand')}`} data-f="brand" id="aiBrandSel" value={f.brand} onChange={(e) => (e.target.value === '__new' ? setPop('brand') : set('brand')(e))}><option value="">{vary ? 'Choose brand' : 'No brand'}</option>{brands.map((b) => <option key={b}>{b}</option>)}<option value="__new">+ Add new brand</option></select>{E('brand')}</label>}
-                {vary && <label className="apf">Series / model <span className="req">*</span><input className={`fi ${bad('series')}`} data-f="series" id="aiSeries" value={f.series} onChange={set('series')} placeholder="A new series, e.g. Coral" autoComplete="off" />{E('series')}</label>}
+                {!svc && <label className="apf">Brand{vary && <> <span className="req">*</span></>}<SearchSelect id="aiBrandSel" dataF="brand" className={bad('brand')} value={f.brand} options={brands.map((b) => ({ value: b }))} placeholder={vary ? 'Choose brand' : 'No brand'} empty={vary ? undefined : 'No brand'} add="+ Add new brand" onAdd={(t) => addNew('brand', t)} onChange={(v) => { setF((x) => (v === x.brand ? x : { ...x, brand: v, series: '' })); setErr(({ brand: _, ...x }) => x); }} />{E('brand')}</label>}
+                {vary && <label className="apf">Series / model <span className="req">*</span><SearchSelect id="aiSeries" dataF="series" className={bad('series')} value={f.series} disabled={!f.brand} options={seriesList.map((x) => ({ value: x.name, note: x.taken ? 'already added' : undefined }))} placeholder={f.brand ? 'Choose series' : 'Choose a brand first'} add="+ Add series" onAdd={(t) => addNew('series', t)} onChange={(v) => { setF((x) => ({ ...x, series: v })); setErr(({ series: _, ...x }) => x); }} />{dup ? (
+                  <div className="aperr" id="aiSeriesDup">{dupText} <button type="button" className="btn sm" id="aiOpenDup" onClick={() => (onOpenItem ? onOpenItem(dup.itemId!) : onSaved(dup.itemId!, false, f.group))}>{onOpenItem ? 'Open that item' : 'Use that item'}</button></div>
+                ) : E('series')}</label>}
               </div>
               <label className="aiimg" htmlFor="aiFile" title="Add item image"><Icon name="cam" /><span>Add image</span><small>JPG or PNG</small><input type="file" id="aiFile" accept="image/*" onChange={() => showToast('Item photos come with file storage')} /></label>
             </div>
@@ -325,17 +370,18 @@ export function AddItemDialog({ open, onClose, onSaved }: { open: boolean; onClo
         )}
       </div>
 
-      <AddPopup kind="group" open={open && pop === 'group'} title="Add parent item" label="Parent item name" ph="e.g., Modular switch 6A" onClose={() => setPop(null)} onCreate={create} />
-      <AddPopup kind="brand" open={open && pop === 'brand'} title="Add brand" label="Brand name" ph="e.g., Havells" onClose={() => setPop(null)} onCreate={create} />
-      <AddPopup kind="cat" open={open && pop === 'cat'} title="Add category" label="Category name" ph="e.g., Grocery" onClose={() => setPop(null)} onCreate={create} />
+      <AddPopup kind="group" open={open && pop === 'group'} initial={popText} title="Add parent item" label="Parent item name" ph="e.g., Modular switch 6A" onClose={() => setPop(null)} onCreate={create} />
+      <AddPopup kind="brand" open={open && pop === 'brand'} initial={popText} title="Add brand" label="Brand name" ph="e.g., Havells" onClose={() => setPop(null)} onCreate={create} />
+      <AddPopup kind="series" open={open && pop === 'series'} initial={popText} title={`Add series to ${f.brand}`} label="Series name" ph="e.g., Coral" onClose={() => setPop(null)} onCreate={create} />
+      <AddPopup kind="cat" open={open && pop === 'cat'} initial={popText} title="Add category" label="Category name" ph="e.g., Grocery" onClose={() => setPop(null)} onCreate={create} />
       <AddPopup kind="unit" open={open && pop === 'unit'} title="Add unit" label="Unit name" ph="e.g., Coil" onClose={() => setPop(null)} onCreate={create} />
     </>
   );
 }
 
-/** Small "add new" popup in the middle of the screen: title, a name (and a short name for units), × and Create. */
-function AddPopup({ kind, open, title, label, ph, onClose, onCreate }: {
-  kind: Exclude<Pop, null>; open: boolean; title: string; label: string; ph: string; onClose: () => void;
+/** Small "add new" popup in the middle of the screen: title, a name (and a short name for units), × and Create. Starts with what was typed in the drop-down. */
+function AddPopup({ kind, open, initial = '', title, label, ph, onClose, onCreate }: {
+  kind: Exclude<Pop, null>; open: boolean; initial?: string; title: string; label: string; ph: string; onClose: () => void;
   onCreate: (kind: Exclude<Pop, null>, name: string, short?: string) => Promise<string | void>;
 }) {
   const [name, setName] = useState('');
@@ -345,7 +391,7 @@ function AddPopup({ kind, open, title, label, ph, onClose, onCreate }: {
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (!open) return;
-    setName(''); setShort(''); setErr('');
+    setName(initial); setShort(''); setErr('');
     setTimeout(() => ref.current?.focus(), 0);
   }, [open]);
   const id = `aiAdd_${kind}`;
