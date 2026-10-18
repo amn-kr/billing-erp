@@ -68,8 +68,8 @@ export class ReportsService {
       invoices: inv.map((v) => ({ ...doc(v, v.lines.map((l) => line(l, l.price))), cancelled: !!v.cancelledAt, due: v.mode === 'credit' && v.dueDate ? isoOf(v.dueDate)! : '', referred: !!v.referrerId })),
       creditNotes: cns.map((c) => ({ ...doc(c, c.lines.map((l) => line(l, l.price))), refund: c.status === 'refund', refundMode: String((c.extra as Record<string, unknown>)?.refundMode ?? ''), reason: c.reason, against: [...new Set(c.lines.flatMap((l) => (l.againstId && invNo.get(l.againstId) ? [invNo.get(l.againstId)!] : [])))] })),
       pays: pays.map((p) => ({ id: p.id, no: p.number, date: isoOf(p.date)!, partyId: p.partyId, amount: Number(p.amount), dir: p.direction, mode: p.mode, ref: p.reference })),
-      bills: purch.filter((d) => d.kind === 'bill').map((d) => ({ ...doc(d, d.lines.map((l) => line(l, l.rate))), due: d.dueDate ? isoOf(d.dueDate)! : '' })),
-      debitNotes: purch.filter((d) => d.kind === 'debit_note').map((d) => doc(d, [])),
+      bills: purch.filter((d) => d.kind === 'bill').map((d) => ({ ...doc(d, d.lines.map((l) => line(l, l.rate))), due: d.dueDate ? isoOf(d.dueDate)! : '', supplierRef: d.supplierRef })),
+      debitNotes: purch.filter((d) => d.kind === 'debit_note').map((d) => ({ ...doc(d, []), supplierRef: d.supplierRef })),
       cheques: cheques.map((c) => ({ no: 'CB-' + (c.chequeNo.replace(/\D/g, '') || c.chequeNo), date: isoOf(c.statusDate ?? c.chequeDate)!, partyId: c.partyId, amount: Number(c.amount), out: c.direction === 'issued' })),
     };
   }
@@ -109,7 +109,8 @@ export class ReportsService {
    * A party's transactions for the Parties page (prototype p.tx): every sale, purchase, payment in / out,
    * credit note, debit note, cheque bounce and the opening balance, newest first, each with its total,
    * what is still open on it (unpaid, or unused for payments and notes) and its due date.
-   * Sales-side rows need sales.view and purchase-side rows purchases.view.
+   * Sales-side rows need sales.view and purchase-side rows purchases.view. Bills and debit notes also carry
+   * the supplier's own number (supplierRef) when one was entered; other rows have no such field.
    */
   partyTx(ctx: RequestContext, pid: string) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
@@ -118,8 +119,9 @@ export class ReportsService {
       if (!p) throw new NotFoundException('Party not found');
       const sales = ctx.permissions.includes('sales.view'), purch = ctx.permissions.includes('purchases.view');
       const open = (total: Money, used: Money | undefined) => { const b = total.minus(used ?? 0); return b.isNegative() ? money(0) : b; };
-      const R: { type: string; no: string; date: string; total: string; bal: string; due: string }[] = [];
-      const push = (type: string, no: string, date: string, total: Money | number, bal: Money, due = '') => R.push({ type, no, date, total: money(total).toFixed(2), bal: bal.toFixed(2), due });
+      const R: { type: string; no: string; date: string; total: string; bal: string; due: string; supplierRef?: string }[] = [];
+      const push = (type: string, no: string, date: string, total: Money | number, bal: Money, due = '', supplierRef = '') =>
+        R.push({ type, no, date, total: money(total).toFixed(2), bal: bal.toFixed(2), due, ...(supplierRef ? { supplierRef } : {}) });
 
       const ob = money(p.openingBalance.toString());
       if (!ob.isZero()) {
@@ -141,12 +143,12 @@ export class ReportsService {
       }
       if (purch) {
         const bb = await billBalances(tx, L.bills.map((b) => b.id));
-        for (const b of L.bills) push('Purchase', b.no, b.date, b.total, bb.get(b.id) ?? money(0), b.due);
+        for (const b of L.bills) push('Purchase', b.no, b.date, b.total, bb.get(b.id) ?? money(0), b.due, b.supplierRef);
         const pout = L.pays.filter((x) => x.dir !== 'in');
         const ou = await usedOut(tx, 'payment', pout.map((x) => x.id));
         for (const x of pout) push('Payment-Out', x.no, x.date, x.amount, open(money(x.amount), ou.get(x.id)));
         const du = await usedOut(tx, 'note', L.debitNotes.map((d) => d.id));
-        for (const d of L.debitNotes) push('Debit note', d.no, d.date, d.total, open(money(d.total), du.get(d.id)));
+        for (const d of L.debitNotes) push('Debit note', d.no, d.date, d.total, open(money(d.total), du.get(d.id)), '', d.supplierRef);
       }
       // a bounced cheque is owed again from its bounce date (prototype: bal = amount, due = date)
       for (const c of L.cheques) if (c.out ? purch : sales) push('Cheque bounce', c.no, c.date, c.amount, money(c.amount), c.date);

@@ -2,7 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { auth, member, owner, startApp } from './helpers';
+import { auth, expectNoPasscode, member, owner, startApp } from './helpers';
 
 /**
  * Transaction passcode: when switched on, the server refuses to change or cancel a saved document
@@ -69,9 +69,9 @@ describe('transaction passcode', () => {
     const r = (await turnOn(o)).body;
     expect(r).toEqual({ set: true, enabled: true });
     expect(await state(o)).toEqual({ set: true, enabled: true });
-    const all = JSON.stringify(await audit(o));
-    expect(all).not.toContain(PASS);
-    expect(all).not.toMatch(/argon|passcode_hash|passcodeHash/);
+    const all = await audit(o);
+    expectNoPasscode(all, PASS);
+    expect(JSON.stringify(all)).not.toMatch(/\$argon2/);
     expect((await audit(o))[0]).toMatchObject({ action: 'create', entity: 'txn_passcode', after: { enabled: true } });
   });
 
@@ -113,7 +113,7 @@ describe('transaction passcode', () => {
     ]);
     expect(a.filter((e) => e.action === 'passcode_failed')).toHaveLength(1);
     expect(a.find((e) => e.action === 'passcode_failed')).toMatchObject({ entity: 'txn_passcode', entityId: x.id, after: { for: 'edit' } });
-    expect(JSON.stringify(a)).not.toContain(PASS);
+    expectNoPasscode(a, PASS);
   });
 
   it('a saved invoice: edit and cancel need the passcode; a new invoice does not', async () => {

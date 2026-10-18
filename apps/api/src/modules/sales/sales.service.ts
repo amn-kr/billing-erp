@@ -13,6 +13,7 @@ import { invoiceBalances, openDues, unusedAmounts } from './dues';
 import { writeAtSale } from './at-sale';
 import { cancelPayment } from './money-in';
 import { ALREADY_DELETED, deleteMark } from '../../common/deleting';
+import { reverseStock } from './stock-back';
 
 const q3 = (v: { toString(): string }) => money(v.toString()).toDecimalPlaces(3).toFixed(3);
 const d2 = (v: { toString(): string } | null | undefined) => (v === null || v === undefined ? null : toDb(v.toString()));
@@ -100,6 +101,7 @@ export class SalesService {
     if (id && !before) throw new NotFoundException({ message: `That ${KIND_WORD[kind].toLowerCase()} was not found.` });
     if (before?.deletedAt) throw new BadRequestException({ message: `${before.number} is deleted. It can’t be changed.` });
     if (before?.cancelledAt) throw new BadRequestException({ message: `${before.number} is cancelled. It can’t be changed.` });
+    if (before?.kind === 'quotation' && before.status === 'converted') throw new BadRequestException({ message: linkedToInvoice(before) });
 
     /* checks, in the prototype's order and words */
     const cash = input.mode === 'cash';
@@ -122,7 +124,10 @@ export class SalesService {
       if (qtyBad) throw new BadRequestException({ message: qtyMsg(qtyBad), field: 'lines' });
     }
     const docType = kind;
-    let number = input.number.trim();
+    // a saved document keeps its number for good: an edit sent without one keeps it, a different one is refused
+    if (before && input.number.trim() && input.number.trim() !== before.number)
+      throw new BadRequestException({ message: `The number of a saved ${KIND_WORD[kind].toLowerCase()} can’t be changed. It stays ${before.number}.`, field: 'number' });
+    let number = input.number.trim() || before?.number || '';
     if (number && number !== before?.number) {
       const used = await tx.salesDocument.findFirst({ where: { kind, number, ...(id && { id: { not: id } }) } });
       if (used) throw new BadRequestException({ message: `${KIND_WORD[kind]} number ${number} is already used.`, field: 'number' });
@@ -246,17 +251,8 @@ export class SalesService {
       });
   }
 
-  /** Puts back whatever a document's movements still take out, item by item and godown by godown. */
-  private async reverseStock(tx: Tx, ctx: RequestContext, docId: string, date: string, note: string) {
-    const net = await tx.stockMovement.groupBy({ by: ['itemId', 'godownId'], where: { sourceType: 'sales_document', sourceId: docId }, _sum: { qty: true } });
-    const back = net.filter((n) => n._sum.qty && !n._sum.qty.isZero());
-    if (back.length)
-      await tx.stockMovement.createMany({
-        data: back.map((n) => ({
-          businessId: ctx.businessId!, createdBy: ctx.userId, sourceType: 'sales_document', sourceId: docId, itemId: n.itemId, godownId: n.godownId,
-          date: day(date), qty: n._sum.qty!.neg().toFixed(3), kind: 'cancel', note,
-        })),
-      });
+  private reverseStock(tx: Tx, ctx: RequestContext, docId: string, date: string, note: string) {
+    return reverseStock(tx, { businessId: ctx.businessId!, userId: ctx.userId }, docId, date, note);
   }
 
   /* ───────── cancel ───────── */
@@ -394,9 +390,9 @@ export class SalesService {
   }
 
   /** A customer's unpaid dues (Receive payment, footer "Pre. Dues"). */
-  dues(ctx: RequestContext, partyId: string, except?: string) {
+  dues(ctx: RequestContext, partyId: string, except?: string, skip?: string) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
-      const L = await openDues(tx, partyId, { except });
+      const L = await openDues(tx, partyId, { except, skip });
       return L.map((d) => ({ ...d, total: d.total.toFixed(2), balance: d.balance.toFixed(2) }));
     });
   }
@@ -405,6 +401,12 @@ export class SalesService {
   unused(tx: Tx, ids: string[]) {
     return unusedAmounts(tx, 'payment', ids);
   }
+}
+
+/** Why a quotation or challan already turned into an invoice can't be edited, and what to do instead. */
+export function linkedToInvoice(d: { number: string; extra: unknown }) {
+  const no = (d.extra as { invoiceNo?: string } | null)?.invoiceNo;
+  return `${d.number} is already turned into ${no ? 'invoice ' + no : 'an invoice'}. Edit the invoice instead.`;
 }
 
 /** A party's state for place of supply: from the GSTIN, else the party's state. */

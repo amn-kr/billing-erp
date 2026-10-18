@@ -52,6 +52,8 @@ interface Tx {
   i: number;
   type: string;
   no: string;
+  /** the supplier's own bill number (bills and debit notes), '' when none */
+  ref: string;
   date: string;
   total: string;
   bal: string;
@@ -60,7 +62,7 @@ interface Tx {
 }
 
 /** One row of GET /reports/party-tx/:id (ISO dates; bal = still unpaid, or unused for payments and notes). */
-interface PartyTxRow { type: string; no: string; date: string; total: string; bal: string; due: string }
+interface PartyTxRow { type: string; no: string; date: string; total: string; bal: string; due: string; supplierRef?: string }
 
 /** prototype txStatus */
 function txStatus(t: PartyTxRow, today: string, cur: (s: string) => string): Tx['st'] {
@@ -78,7 +80,7 @@ function txStatus(t: PartyTxRow, today: string, cur: (s: string) => string): Tx[
 /** A party's transactions (prototype p.tx): sales, purchases, payments in / out, credit and debit notes, cheque bounces and the opening balance. */
 function partyTx(rows: PartyTxRow[], cur: (s: string) => string): Tx[] {
   const today = todayIst();
-  return rows.map((t, i) => ({ i, type: t.type, no: t.no, date: dmy(t.date), total: t.total, bal: t.bal, due: t.due ? dmy(t.due) : '', st: txStatus(t, today, cur) }));
+  return rows.map((t, i) => ({ i, type: t.type, no: t.no, ref: t.supplierRef ?? '', date: dmy(t.date), total: t.total, bal: t.bal, due: t.due ? dmy(t.due) : '', st: txStatus(t, today, cur) }));
 }
 
 export function PartiesPage() {
@@ -268,7 +270,7 @@ function TxTable(props: { p: Party; tq: string; tType: string; tStat: string; so
   const all = partyTx(rows.data ?? [], cur);
   const q = tq.toLowerCase();
   const tx = all
-    .filter((t) => (tType === 'all' || t.type === tType) && (tStat === 'all' || (tStat === 'open' ? money(t.bal).gt(0) : tStat === 'over' ? t.st.t.startsWith('Overdue') : money(t.bal).isZero())) && (!q || t.no.toLowerCase().includes(q) || t.type.toLowerCase().includes(q) || t.total.includes(q)))
+    .filter((t) => (tType === 'all' || t.type === tType) && (tStat === 'all' || (tStat === 'open' ? money(t.bal).gt(0) : tStat === 'over' ? t.st.t.startsWith('Overdue') : money(t.bal).isZero())) && (!q || t.no.toLowerCase().includes(q) || t.ref.toLowerCase().includes(q) || t.type.toLowerCase().includes(q) || t.total.includes(q)))
     .sort((a, b) => (sort === 'total' ? money(b.total).cmp(a.total) : sort === 'bal' ? money(b.bal).cmp(a.bal) : 0));
   const types = [...new Set(all.map((t) => t.type))];
   const [filOpen, setFilOpen] = useState(false);
@@ -303,7 +305,7 @@ function TxTable(props: { p: Party; tq: string; tType: string; tStat: string; so
           <tbody id="ptTx">
             {tx.length ? tx.map((t) => (
               <tr key={t.i}>
-                <td>{t.type}</td><td className="mono">{t.no}</td><td>{t.date}</td><td className="n">{inr2f(t.total)}</td><td className="n">{inr2f(t.bal)}</td>
+                <td>{t.type}</td><td className="mono">{t.no}{t.ref ? <small>Supplier: {t.ref}</small> : null}</td><td>{t.date}</td><td className="n">{inr2f(t.total)}</td><td className="n">{inr2f(t.bal)}</td>
                 <td>{t.due && money(t.bal).gt(0) ? t.due : ''}</td><td><span className={`stt ${t.st.c}`}>{t.st.t}</span></td>
                 <td className="n"><div className="rel"><button className="ixs" data-tm={t.i} aria-label={`More actions for ${t.no}`} onClick={() => soon(`Open ${t.no}`)}><Icon name="dots" /></button></div></td>
               </tr>

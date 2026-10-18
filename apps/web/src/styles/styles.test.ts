@@ -76,6 +76,28 @@ describe('owner-asked searchable drop-down', () => {
   });
 });
 
+/*
+ * Owner's request, 18 Oct 2026: a ⋮ actions button on every document list. The prototype has the ⋮ rules only for the
+ * Sales list (#slRows); features/shell/row-menu.css holds exactly those rules for the other lists, and nothing else.
+ */
+describe('row actions ⋮ on the other lists', () => {
+  it('features/shell/row-menu.css = the prototype’s #slRows ⋮ and highlighted-row rules, for #dcRows, #cnRows, #rcRows and #qlRows', () => {
+    const t = fs.readFileSync(path.join(__dirname, '../features/shell/row-menu.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const L = ['dcRows', 'cnRows', 'rcRows', 'qlRows'];
+    // the prototype's own rules, as they are in app.css
+    const pad = '#slRows td.slact{padding-top:0;padding-bottom:0}';
+    const btn = '#slRows .slm{width:26px;height:26px;border-radius:7px;vertical-align:middle;border-color:transparent;background:transparent}';
+    const hov = '#slRows .slm:hover,#slRows tr:focus-within .slm{border-color:var(--bd);background:var(--sf)}';
+    const on = '#slRows tr.ctxon td{background:var(--acs)}';
+    for (const r of [pad, btn, hov, on]) expect(proto).toContain(r);
+    expect(t.split('\n').map((l) => l.trim()).filter(Boolean)).toEqual([pad, btn, hov, on].map((r) => {
+      const i = r.indexOf('{');
+      const sels = r.slice(0, i).split(',');
+      return L.flatMap((id) => sels.map((x) => x.replace('#slRows', '#' + id))).join(',') + r.slice(i);
+    }));
+  });
+});
+
 describe('icons are the prototype’s', () => {
   it('every icon path matches const P in the prototype', async () => {
     const { P } = await import('../components/icon-paths');

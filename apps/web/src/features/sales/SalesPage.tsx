@@ -13,6 +13,7 @@ import { dmy, inr, inr2f } from '../../lib/format';
 import { useFitTables } from '../../lib/useFitTables';
 import { Icon, RawIcon } from '../../components/Icon';
 import { ThfChoices, ThfPop, type ThfAnchor } from '../../components/ThfPop';
+import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction } from '../../components/RowMenu';
 import { soon, useShell } from '../shell/store';
 import { today as todayIst } from '../../lib/time';
 import { inPeriod, statusOf, useSale, useSales, type Period, type SaleDoc, type SaleRow } from './model';
@@ -31,7 +32,7 @@ const SLX = { no: { t: 'text', lab: 'Invoice no.' }, party: { t: 'text', lab: 'P
 type XKey = keyof typeof SLX;
 type NumF = { op: 'eq' | 'gt' | 'lt' | 'bt'; a: number; b: number | null } | null;
 const OPS: ['eq' | 'gt' | 'lt' | 'bt', string][] = [['eq', 'Equal to'], ['gt', 'Greater than'], ['lt', 'Less than'], ['bt', 'Between']];
-const ACTIONS: ([string, string, string?] | '-')[] = [['view', 'View / Edit'], ['einv', 'Generate e-Invoice'], ['recv', 'Receive payment'], ['plink', 'Send payment link'], ['ret', 'Convert to return'], ['dch', 'Preview delivery challan'], ['payh', 'Payment history'], '-', ['cancel', 'Cancel invoice'], ['del', 'Delete', 'dz'], ['dup', 'Duplicate'], '-', ['pdf', 'Open PDF'], ['prev', 'Preview'], ['print', 'Print'], ['hist', 'View history']];
+const ACTIONS: RowAction[] = [['view', 'View / Edit'], ['einv', 'Generate e-Invoice'], ['recv', 'Receive payment'], ['plink', 'Send payment link'], ['ret', 'Convert to return'], ['dch', 'Preview delivery challan'], ['payh', 'Payment history'], '-', ['cancel', 'Cancel invoice'], ['del', 'Delete', 'dz'], ['dup', 'Duplicate'], '-', ['pdf', 'Open PDF'], ['prev', 'Preview'], ['print', 'Print'], ['hist', 'View history']];
 const numOk = (v: number, f: NumF) => !f || (f.op === 'eq' ? Math.abs(v - f.a) < 0.005 : f.op === 'gt' ? v > f.a : f.op === 'lt' ? v < f.a : v >= Math.min(f.a, f.b ?? f.a) && v <= Math.max(f.a, f.b ?? f.a));
 const daysTo = (iso: string, today: string) => Math.round((Date.parse(iso) - Date.parse(today)) / 864e5);
 const fmShort = (x?: string) => (x ? new Date(x + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '…');
@@ -92,6 +93,7 @@ export function SalesPage() {
   });
   const refresh = () => Promise.all(['sales', 'parties', 'items', 'receipts'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
   const openRow = (s: SaleRow) => setPreview({ id: s.id });
+  const rm = rowMenuHandlers('tr[data-sno]', (tr) => list.data!.find((x) => x.id === tr.dataset.sid), setMenu);
 
   const doAction = async (a: string, s: SaleRow) => {
     setMenu(null);
@@ -199,15 +201,15 @@ export function SalesPage() {
         <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr>
           <th><span className="thw2">Date{thf('per', 'Filter by date')}</span></th><th><span className="thw2">Invoice no.{thx('no', 'Filter by invoice no')}</span></th><th><span className="thw2">Party{thx('party', 'Filter by party')}</span></th>
           <th className="n"><span className="thw2">Total{thx('total', 'Filter by total')}</span></th><th className="n"><span className="thw2">Received{thx('recv', 'Filter by received')}</span></th><th className="n"><span className="thw2">Balance{thx('bal', 'Filter by balance')}</span></th>
-          <th><span className="thw2">Due date{thf('due', 'Filter by due date')}</span></th><th><span className="thw2">Status{thf('st', 'Filter by status')}</span></th></tr></thead>
+          <th><span className="thw2">Due date{thf('due', 'Filter by due date')}</span></th><th><span className="thw2">Status{thf('st', 'Filter by status')}</span></th><th className="slact"><span className="vh">Actions</span></th></tr></thead>
           <tbody id="slRows"
-            onContextMenu={(e) => { const tr = (e.target as HTMLElement).closest<HTMLElement>('tr[data-sno]'); if (!tr) return; e.preventDefault(); const r = list.data!.find((x) => x.id === tr.dataset.sid); if (r) setMenu({ row: r, x: e.clientX, y: e.clientY, tr }); }}
+            onContextMenu={rm.onContextMenu}
             onKeyDown={(e) => {
+              // the actions menu: right-click, the menu key or Shift+F10; Enter (or a click) opens the preview (owner decision, 4 Oct 2026)
+              if (rm.menuKey(e)) return;
               const tr = (e.target as HTMLElement).closest<HTMLElement>('tr[data-sno]'); if (!tr) return;
               const r = list.data!.find((x) => x.id === tr.dataset.sid); if (!r) return;
-              // the actions menu: right-click, the menu key or Shift+F10; Enter (or a click) opens the preview (owner decision, 4 Oct 2026)
-              if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) { e.preventDefault(); const b = tr.getBoundingClientRect(); setMenu({ row: r, x: b.left + 120, y: b.bottom - 4, tr }); }
-              else if (e.key === 'Enter' && e.target === tr) { e.preventDefault(); openRow(r); }
+              if (e.key === 'Enter' && e.target === tr) { e.preventDefault(); openRow(r); }
             }}>
             {L.length ? L.map((s) => {
               const stt = statusOf(s);
@@ -215,9 +217,10 @@ export function SalesPage() {
               return (
                 <tr tabIndex={0} data-sno={s.number} data-sid={s.id} data-spid={s.party?.id ?? ''} className={[c ? 'slcan' : '', menu?.row.id === s.id ? 'ctxon' : ''].filter(Boolean).join(' ')} key={s.id} onClick={() => openRow(s)}>
                   <td>{dmy(s.date)}</td><td className="mono">{s.number}{!c ? <> <span className="st b" style={{ fontSize: 10, padding: '1px 6px' }}>New</span></> : null}</td><td><b style={{ fontWeight: 600 }}>{s.partyName}</b></td>
-                  <td className="n">{inr2f(s.total)}</td><td className="n">{inr2f(s.received)}</td><td className="n">{inr2f(s.balance)}</td><td>{!c && Number(s.balance) > 0 && s.dueDate ? dmy(s.dueDate) : ''}</td><td><span className={`stt ${stt.c}`}>{stt.t}</span></td></tr>
+                  <td className="n">{inr2f(s.total)}</td><td className="n">{inr2f(s.received)}</td><td className="n">{inr2f(s.balance)}</td><td>{!c && Number(s.balance) > 0 && s.dueDate ? dmy(s.dueDate) : ''}</td><td><span className={`stt ${stt.c}`}>{stt.t}</span></td>
+                  <td className="slact"><RowMenuButton no={s.number} label={`Actions for ${s.number}`} onOpen={(b) => setMenu({ row: s, ...atButton(b), tr: b.closest('tr') })} /></td></tr>
               );
-            }) : <tr><td colSpan={8} className="ptempty">No invoices match. <button className="lnk" onClick={() => navigate('/sales/new')}>Create an invoice</button></td></tr>}
+            }) : <tr><td colSpan={9} className="ptempty">No invoices match. <button className="lnk" onClick={() => navigate('/sales/new')}>Create an invoice</button></td></tr>}
           </tbody></table></div>
       </div>
 
@@ -235,36 +238,8 @@ export function SalesPage() {
   );
 }
 
-/** Right-click actions for an invoice (#slCtx). */
-function SaleMenu({ menu, onClose: onCloseProp, onPick }: { menu: { row: SaleRow; x: number; y: number } | null; onClose: () => HTMLElement | null | undefined; onPick: (a: string) => void }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
-  // the latest close handler, without re-running the effect on every render
-  const closeRef = useRef(onCloseProp);
-  closeRef.current = onCloseProp;
-  useEffect(() => {
-    const onClose = () => closeRef.current();
-    const m = ref.current;
-    if (!menu || !m) return setPos(null);
-    const w = m.offsetWidth, h = m.offsetHeight;
-    setPos({ left: Math.max(8, Math.min(menu.x, innerWidth - w - 8)), top: Math.max(8, menu.y + h > innerHeight - 8 ? menu.y - h : menu.y) });
-    (m.querySelector('button:not([disabled])') as HTMLElement | null)?.focus();
-    const down = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest('#slCtx')) { if (e.button === 0 && (e.target as HTMLElement).closest('#slRows tr[data-sno]')) { const eat = (ev: MouseEvent) => { ev.stopPropagation(); ev.preventDefault(); }; document.addEventListener('click', eat, { capture: true, once: true }); } onClose(); } };
-    const key = (e: KeyboardEvent) => {
-      const items = [...m.querySelectorAll('button:not([disabled])')] as HTMLElement[];
-      const i = items.indexOf(document.activeElement as HTMLElement);
-      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onClose()?.focus(); }
-      else if (e.key === 'ArrowDown') { e.preventDefault(); items[(i + 1) % items.length]?.focus(); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); items[(i - 1 + items.length) % items.length]?.focus(); }
-      else if (e.key === 'Tab') e.preventDefault();
-    };
-    const away = (e: Event) => { if (!(e.target as HTMLElement).closest?.('#slCtx')) onClose(); };
-    document.addEventListener('mousedown', down, true);
-    document.addEventListener('keydown', key, true);
-    addEventListener('scroll', away, true);
-    addEventListener('resize', away);
-    return () => { document.removeEventListener('mousedown', down, true); document.removeEventListener('keydown', key, true); removeEventListener('scroll', away, true); removeEventListener('resize', away); };
-  }, [menu]);
+/** Right-click / ⋮ actions for an invoice (#slCtx). */
+function SaleMenu({ menu, onClose, onPick }: { menu: { row: SaleRow; x: number; y: number; tr: HTMLElement | null } | null; onClose: () => HTMLElement | null | undefined; onPick: (a: string) => void }) {
   const r = menu?.row;
   const c = !!r?.cancelled;
   const bal = Number(r?.balance ?? 0);
@@ -273,10 +248,8 @@ function SaleMenu({ menu, onClose: onCloseProp, onPick }: { menu: { row: SaleRow
     plink: c ? 'Cancelled invoice' : bal <= 0 ? 'Fully paid' : '', ret: c ? 'Cancelled invoice' : '', cancel: c ? 'Already cancelled' : '',
   } : {};
   return (
-    <div className="ctxm" id="slCtx" role="menu" aria-label="Invoice actions" hidden={!menu} ref={ref} style={pos ? { left: pos.left, top: pos.top } : undefined}>
-      {r ? <><div className="cmh"><b>{r.number}</b> · {r.partyName}</div>
-        {ACTIONS.map((a, k) => (a === '-' ? <hr key={k} /> : <button type="button" role="menuitem" data-sla={a[0]} className={a[2] ?? ''} key={a[0]} disabled={!!off[a[0]]} title={off[a[0]] || undefined} onClick={() => onPick(a[0])}>{a[0] === 'view' && c ? 'View' : a[1]}</button>))}</> : null}
-    </div>
+    <RowMenu id="slCtx" label="Invoice actions" rows="#slRows tr[data-sno]" menu={menu} head={r ? <><b>{r.number}</b> · {r.partyName}</> : null}
+      actions={ACTIONS} off={off} words={c ? { view: 'View' } : undefined} onClose={onClose} onPick={onPick} />
   );
 }
 

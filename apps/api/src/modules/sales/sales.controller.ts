@@ -11,6 +11,9 @@ import { SalesService } from './sales.service';
 import { ReceiptsService } from './receipts.service';
 import { NeedsPasscode } from '../settings/passcode.interceptor';
 
+/** A query value that is a uuid, else nothing. */
+const uuid = (v?: string) => (v && /^[0-9a-f-]{36}$/i.test(v) ? v : undefined);
+
 /** Sales: invoices, item-wise quotations, challans, payments received, credit notes. */
 @Controller()
 export class SalesController {
@@ -22,7 +25,6 @@ export class SalesController {
   @RequirePermission('sales.view')
   @Get('sales/price-history')
   priceHistory(@Ctx() ctx: RequestContext, @Query('item', ParseUUIDPipe) itemId: string, @Query('party') partyId?: string, @Query('name') cashName?: string, @Query('exclude') exclude?: string) {
-    const uuid = (v?: string) => (v && /^[0-9a-f-]{36}$/i.test(v) ? v : undefined);
     return this.sales.priceHistory(ctx, { itemId, partyId: uuid(partyId), cashName, exclude: uuid(exclude) });
   }
 
@@ -46,8 +48,8 @@ export class SalesController {
 
   @RequirePermission('sales.view')
   @Get('sales/:id/returnable')
-  returnable(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
-    return this.receipts.returnable(ctx, id);
+  returnable(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Query('except') except?: string) {
+    return this.receipts.returnable(ctx, id, uuid(except));
   }
 
   @RequirePermission('sales.create')
@@ -82,8 +84,8 @@ export class SalesController {
 
   @RequirePermission('sales.view')
   @Get('parties/:id/dues')
-  dues(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Query('except') except?: string) {
-    return this.sales.dues(ctx, id, except && /^[0-9a-f-]{36}$/i.test(except) ? except : undefined);
+  dues(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Query('except') except?: string, @Query('payment') payment?: string) {
+    return this.sales.dues(ctx, id, uuid(except), uuid(payment));
   }
 
   @RequirePermission('sales.view')
@@ -96,6 +98,19 @@ export class SalesController {
   @Post('receipts')
   receive(@Ctx() ctx: RequestContext, @Body(new ZodPipe(receiptSchema)) body: ReceiptInput) {
     return this.receipts.receive(ctx, body);
+  }
+
+  @RequirePermission('sales.view')
+  @Get('receipts/:id')
+  receipt(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
+    return this.receipts.receipt(ctx, id);
+  }
+
+  @RequirePermission('sales.create')
+  @NeedsPasscode('edit', 'receipt')
+  @Put('receipts/:id')
+  editReceipt(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(receiptSchema)) body: ReceiptInput) {
+    return this.receipts.editReceipt(ctx, id, body);
   }
 
   /** Delete a payment received: cancelled in the books, then hidden from the lists (never erased). */
@@ -119,9 +134,29 @@ export class SalesController {
     return this.receipts.creditNote(ctx, body);
   }
 
+  @RequirePermission('sales.view')
+  @Get('credit-notes/:id')
+  creditNoteDoc(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
+    return this.receipts.creditNoteDoc(ctx, id);
+  }
+
+  @RequirePermission('sales.create')
+  @NeedsPasscode('edit', 'credit_note')
+  @Put('credit-notes/:id')
+  editCreditNote(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(creditNoteSchema)) body: CreditNoteInput) {
+    return this.receipts.editCreditNote(ctx, id, body);
+  }
+
   @RequirePermission('sales.create')
   @Post('challans')
   challan(@Ctx() ctx: RequestContext, @Body(new ZodPipe(challanSchema)) body: ChallanInput) {
     return this.receipts.challan(ctx, body);
+  }
+
+  @RequirePermission('sales.create')
+  @NeedsPasscode('edit', 'challan')
+  @Put('challans/:id')
+  editChallan(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(challanSchema)) body: ChallanInput) {
+    return this.receipts.editChallan(ctx, id, body);
   }
 }
