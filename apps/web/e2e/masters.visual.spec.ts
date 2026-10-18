@@ -10,6 +10,7 @@ import { approvedShot, hideHeader, sameShot, shot } from './shots';
 import { withDotsAll, withLineDots } from './row-dots';
 import { APP, RAVI, WIDTHS, freshShop, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
 import { BKP, fakeBackup } from './backup.data';
+import { brandItems } from './brands.data';
 
 for (const width of WIDTHS) {
   test.describe(`${width}px`, () => {
@@ -51,6 +52,8 @@ for (const width of WIDTHS) {
     });
 
     test('Items screen, Add item and Adjust stock', async ({ browser }) => {
+      // about 35 s when every picture matches; a changed picture is taken up to three times, so give it room
+      test.slow();
       const proto = await newPage(browser, width);
       const app = await newPage(browser, width);
       await prototypeWithBackup(proto);
@@ -105,7 +108,7 @@ for (const width of WIDTHS) {
       const look = async () => { await app.mouse.move(0, 0); await app.waitForTimeout(200); };
       await app.click('#vItems .pthd .btn.p');
       await app.waitForSelector('#ai:not([hidden]) #aiName');
-      await app.waitForSelector('#aiCat option:nth-child(3)', { state: 'attached' });
+      await app.waitForSelector('#aiCatL .aiso:nth-child(3)', { state: 'attached' });
       for (const tab of ['price', 'stock']) {
         await app.click(`#ai [data-aitab="${tab}"]`);
         await look();
@@ -134,8 +137,9 @@ for (const width of WIDTHS) {
       await app.keyboard.press('Escape');
       await app.keyboard.press('Escape');
       await app.waitForSelector('#aiUnits', { state: 'hidden' });
-      for (const [kind, sel] of [['group', '#aiName'], ['brand', '#aiBrandSel'], ['cat', '#aiCat']] as const) {
-        await app.selectOption(sel, '__new');
+      for (const [kind, sel, row] of [['group', '#aiName', '+ Add new parent item'], ['brand', '#aiBrandSel', '+ Add new brand'], ['cat', '#aiCat', '+ Add category']] as const) {
+        await app.click(sel);
+        await app.locator(`${sel}L`).getByRole('option', { name: row, exact: true }).click();
         await look();
         await approvedShot(`addpop-${kind}-${width}`, app, `#aiAdd_${kind} .mdl`);
         await app.keyboard.press('Escape');
@@ -147,6 +151,40 @@ for (const width of WIDTHS) {
       await app.locator('#aiName').blur();
       await look();
       await approvedShot(`additem-service-${width}`, app, '#ai .mdl');
+    });
+
+    test('Add item › Variant: the open Series list and Add series popup (owner-approved searchable drop-downs)', async ({ browser, request }) => {
+      const app = await newPage(browser, width);
+      const who = await freshShop(request);
+      // 6A-10A 1WAY SWITCH in HAVELLS CORAL / PEARLZ and NORWOOD CLASSIC
+      await brandItems(request, who);
+      await signInAs(app, who);
+      await app.goto(APP + '/items');
+      await app.click('#vItems .pthd .btn.p');
+      await app.click('#aiVar');
+      await app.fill('#aiName', '1way');
+      await app.keyboard.press('Enter');
+      await app.fill('#aiBrandSel', 'havells');
+      await app.keyboard.press('Enter');
+      await app.click('#aiSeries');
+      await app.locator('#aiSeriesL').getByRole('option', { name: '+ Add series', exact: true }).click();
+      await app.fill('#aiAdd_seriesN', 'Allure');
+      await app.click('#aiAdd_seriesGo');
+      await expect(app.locator('#aiSeries')).toHaveValue('Allure');
+      // the "added" message at the top would cover the window
+      await app.waitForFunction(() => !document.getElementById('toast')?.classList.contains('on'), null, { timeout: 10_000 });
+      // the list: only HAVELLS series; the two this parent item has are "already added"
+      await app.click('#aiSeries');
+      await expect(app.locator('#aiSeriesL [role="option"]')).toHaveText(['Allure', 'CORALalready added', 'PEARLZalready added', '+ Add series']);
+      await app.mouse.move(0, 0);
+      await app.waitForTimeout(200);
+      await approvedShot(`additem-serieslist-${width}`, app, '#ai .mdl');
+      await app.keyboard.press('Escape');
+      await app.click('#aiSeries');
+      await app.locator('#aiSeriesL').getByRole('option', { name: '+ Add series', exact: true }).click();
+      await app.mouse.move(0, 0);
+      await app.waitForTimeout(200);
+      await approvedShot(`addpop-series-${width}`, app, '#aiAdd_series .mdl');
     });
 
     test('Godowns screen, Add godown and Transfer stock', async ({ browser, request }) => {

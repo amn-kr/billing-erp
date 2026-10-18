@@ -1,0 +1,9 @@
+/* Searchable drop-down (SearchSelect) — owner-asked addition, not in the prototype. The field is the app's
+   .fi and the list is the prototype's own Add item suggestion list (.aisug, .aiso, .aish); these rules only
+   add what a select has and a text field does not: the down arrow, the place for the list, a locked field,
+   and a row that can't be picked. */
+.ssel{position:relative;display:block}
+.ssel>.fi{padding-right:34px;text-overflow:ellipsis;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b93a9' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:14px}
+.ssel>.fi:focus{cursor:text}
+.ssel>.fi:disabled{opacity:.5;cursor:not-allowed}
+.ssel .aiso[aria-disabled="true"]{opacity:.5;cursor:default;background:transparent}

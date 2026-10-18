@@ -62,6 +62,21 @@ describe('owner-approved toast change', () => {
 });
 
 /*
+ * Searchable drop-down (components/SearchSelect), asked for by the owner on 18 Oct 2026 for Add item. Its list
+ * is the prototype's own Add item suggestion list (.aisug / .aiso / .aish); its own small file adds only these rules.
+ */
+describe('owner-asked searchable drop-down', () => {
+  it('components/search-select.css holds only the arrow, list place, locked field and "can’t pick" row rules', () => {
+    const t = fs.readFileSync(path.join(__dirname, '../components/search-select.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(t.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => l.slice(0, l.indexOf('{')))).toEqual([
+      '.ssel', '.ssel>.fi', '.ssel>.fi:focus', '.ssel>.fi:disabled', '.ssel .aiso[aria-disabled="true"]',
+    ]);
+    // the list and its rows are the prototype's
+    for (const r of ['.aisug{position:absolute;', '.aiso{display:flex;', '.aiso.on,.aiso:hover{background:var(--acs)}', '.aish{']) expect(proto).toContain(r);
+  });
+});
+
+/*
  * Owner's request, 18 Oct 2026: a ⋮ actions button on every document list. The prototype has the ⋮ rules only for the
  * Sales list (#slRows); features/shell/row-menu.css holds exactly those rules for the other lists, and nothing else.
  */
