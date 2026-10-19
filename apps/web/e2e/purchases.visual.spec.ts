@@ -7,7 +7,7 @@
  * editor and of the pop-ups over it are compared with owner-approved pictures (e2e/approved/).
  */
 import { test, type Page } from '@playwright/test';
-import { approvedShot, sameShot } from './shots';
+import { approvedShot, sameShot, withDots } from './shots';
 import { APP, PURCHASES, WIDTHS, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
 
 async function pages(browser: Parameters<typeof newPage>[0], width: number, view: string, path: string, ready: string) {
@@ -53,12 +53,14 @@ for (const width of WIDTHS) {
   test.describe(`${width}px`, () => {
     test('Purchase bills: list, status filter, bill view, Record payment window', async ({ browser }) => {
       const { proto, app } = await pages(browser, width, 'pur', '/purchase-bills', '#puRows tr[data-bno]');
+      await withDots(proto, app, '#puRows');
       await sameShot(`pur-${width}`, proto, app, '#vPur');
 
       await both(proto, app, (p) => p.click('[data-thf="puSt"]'));
       await sameShot(`pur-filter-${width}`, proto, app, '#thfPop');
       await both(proto, app, (p) => p.click('#thfPop [data-thv="open"]'));
       await both(proto, app, (p) => p.mouse.move(0, 0));
+      await withDots(proto, app, '#puRows');
       await sameShot(`pur-unpaid-${width}`, proto, app, '#vPur');
 
       // a bill with payments and a debit note
@@ -82,6 +84,7 @@ for (const width of WIDTHS) {
     test('Purchase orders, Payments made and Debit notes', async ({ browser }) => {
       test.setTimeout(120_000);
       const { proto, app } = await pages(browser, width, 'pos', '/purchase-orders', '#poRows tr[data-pono]');
+      await withDots(proto, app, '#poRows');
       await sameShot(`pos-${width}`, proto, app, '#vPos');
       await both(proto, app, (p) => p.click('#poRows tr[data-pono="ORD-0002"] td:first-child'));
       await app.waitForSelector('#pvm:not([hidden]) .pvh');
@@ -91,6 +94,7 @@ for (const width of WIDTHS) {
       await openPrototypeView(proto, 'pmade');
       await app.goto(APP + '/payments-made');
       await app.waitForSelector('#pxRows tr td.mono');
+      await withDots(proto, app, '#pxRows');
       await sameShot(`pmade-${width}`, proto, app, '#vPmade');
       // Record payment with no supplier chosen yet
       await both(proto, app, (p) => p.click('#pxNew'));
@@ -101,6 +105,7 @@ for (const width of WIDTHS) {
       await openPrototypeView(proto, 'dns');
       await app.goto(APP + '/debit-notes');
       await app.waitForSelector('#dnRows tr[data-dnno]');
+      await withDots(proto, app, '#dnRows');
       await sameShot(`dns-${width}`, proto, app, '#vDns');
       await both(proto, app, (p) => p.click('#dnRows tr[data-dnno="DN-0001"] td:first-child'));
       await app.waitForSelector('#pvm:not([hidden]) .pvh');

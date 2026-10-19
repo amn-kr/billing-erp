@@ -12,11 +12,13 @@ import { today } from '../../lib/time';
 import { useOpenFocus } from '../../lib/useOpenFocus';
 import { Icon } from '../../components/Icon';
 import { toastSaveFailed, toastSaved } from '../shell/saved';
+import { useShell } from '../shell/store';
+import { editAsk, withPasscode } from '../settings/passcode';
 import type { Party } from '../parties/PartiesPage';
-import { PU_KEYS, statusOfBill, type UnpaidBill } from './model';
+import { PU_KEYS, statusOfBill, type PaymentMadeDoc, type UnpaidBill } from './model';
 
-/** `party` / `bill` (a bill id) pre-fill the window from a bill's Pay button. */
-export type PayOpen = { party?: string; bill?: string };
+/** `party` / `bill` (a bill id) pre-fill the window from a bill's Pay button; `edit` edits a saved payment (same number, passcode when it is on). */
+export type PayOpen = { party?: string; bill?: string; edit?: string };
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 // the prototype keeps the last mode used while the app is open
@@ -24,8 +26,11 @@ let lastMode: string = 'Bank transfer';
 
 export function PayDialog({ open, onClose }: { open: PayOpen | null; onClose: () => void }) {
   const qc = useQueryClient();
+  const { showToast } = useShell();
   const ref = useRef<HTMLDivElement>(null);
   const isOpen = !!open;
+  const editId = open?.edit ?? null;
+  const [doc, setDoc] = useState<PaymentMadeDoc | null>(null);
   const [party, setParty] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(today());
@@ -35,8 +40,9 @@ export function PayDialog({ open, onClose }: { open: PayOpen | null; onClose: ()
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const parties = useQuery({ queryKey: ['parties'], queryFn: () => api<Party[]>('/parties'), enabled: isOpen });
-  const no = useQuery({ queryKey: ['next-number', 'payment'], queryFn: () => api<{ number: string }>('/purchases/next-number?kind=payment'), enabled: isOpen });
-  const bills = useQuery({ queryKey: ['unpaid-bills', party], queryFn: () => api<UnpaidBill[]>(`/parties/${party}/unpaid-bills`), enabled: isOpen && !!party });
+  const no = useQuery({ queryKey: ['next-number', 'payment'], queryFn: () => api<{ number: string }>('/purchases/next-number?kind=payment'), enabled: isOpen && !editId });
+  // editing: the bills as if this payment had not paid them
+  const bills = useQuery({ queryKey: ['unpaid-bills', party, editId], queryFn: () => api<UnpaidBill[]>(`/parties/${party}/unpaid-bills${editId ? `?payment=${editId}` : ''}`), enabled: isOpen && !!party });
   useOpenFocus(isOpen, ref);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -52,9 +58,19 @@ export function PayDialog({ open, onClose }: { open: PayOpen | null; onClose: ()
   const want = useRef<string | null>(null);
   useEffect(() => {
     if (!open) return;
-    setParty(open.party ?? ''); setAmount(''); setDate(today()); setMode(lastMode); setRefNo(''); setAlloc({}); setErr('');
+    setParty(open.party ?? ''); setAmount(''); setDate(today()); setMode(lastMode); setRefNo(''); setAlloc({}); setErr(''); setDoc(null);
     want.current = open.bill ?? null;
+    if (open.edit) {
+      void qc.fetchQuery({ queryKey: ['payment-made', open.edit], queryFn: () => api<PaymentMadeDoc>(`/payments-made/${open.edit}`), staleTime: 0 }).then((d) => {
+        if (d.locked) { showToast(d.locked); onClose(); return; }
+        setDoc(d); setParty(d.partyId ?? ''); setAmount(String(Number(d.amount))); setDate(d.date); setMode(d.mode); setRefNo(d.ref);
+        setAlloc(Object.fromEntries(d.allocations.map((a) => [a.to, Number(a.amount)])));
+        setTimeout(() => (document.getElementById('pyAmt') as HTMLInputElement | null)?.select(), 30);
+      }, (e) => { showToast(e instanceof ApiError ? e.message : 'Could not open the payment.'); onClose(); });
+      return;
+    }
     setTimeout(() => (document.getElementById(open.party ? 'pyAmt' : 'pySup') as HTMLElement | null)?.focus(), 30);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
   // from a bill's Pay button: that bill's balance
   useEffect(() => {
@@ -67,7 +83,8 @@ export function PayDialog({ open, onClose }: { open: PayOpen | null; onClose: ()
   const pending = useRef(false);
   useEffect(() => { if (pending.current && bills.data) { pending.current = false; setAlloc(auto(Number(amount) || 0, bills.data)); } }, [bills.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const S = (parties.data ?? []).filter((p) => p.kind === 'supplier');
+  // editing a payment to a party that is not a supplier keeps that party in the list
+  const S = (parties.data ?? []).filter((p) => p.kind === 'supplier' || (!!doc && p.id === doc.partyId));
   const used = r2(Object.values(alloc).reduce((a, b) => a + (b || 0), 0));
   const amt = Number(amount) || 0;
   const save = async () => {
@@ -79,7 +96,9 @@ export function PayDialog({ open, onClose }: { open: PayOpen | null; onClose: ()
     if (mode === 'Cheque' && !refNo.trim()) { fail('Enter the cheque number.'); return document.getElementById('pyRef')?.focus(); }
     setBusy(true);
     try {
-      await api('/payments-made', { method: 'POST', body: { partyId: party, date, amount: String(amt), mode, ref: refNo.trim(), allocations: A } });
+      const body = { partyId: party, date, amount: String(amt), mode, ref: refNo.trim(), notes: doc?.notes ?? '', allocations: A };
+      if (doc) { if (!(await withPasscode(qc, editAsk(doc.number), (h) => api(`/payments-made/${doc.id}`, { method: 'PUT', body, headers: h })))) return; }
+      else await api('/payments-made', { method: 'POST', body });
       onClose();
       await Promise.all(PU_KEYS.map((k) => qc.invalidateQueries({ queryKey: [k] })));
       toastSaved('payment');
@@ -89,7 +108,7 @@ export function PayDialog({ open, onClose }: { open: PayOpen | null; onClose: ()
   return (
     <div className="ov c" id="ppm" hidden={!isOpen} ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'ppm') onClose(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="pyT" style={{ width: 'min(560px,100%)' }}>
-        <div className="dh"><div><h3 id="pyT" style={{ margin: 0, fontSize: 18 }}>Record payment made</h3><small className="mu mono" id="pyNo">{no.data?.number ?? ''}</small></div><button className="ib" type="button" id="pyCancel" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
+        <div className="dh"><div><h3 id="pyT" style={{ margin: 0, fontSize: 18 }}>{editId ? 'Edit payment made' : 'Record payment made'}</h3><small className="mu mono" id="pyNo">{editId ? (doc?.number ?? '') : (no.data?.number ?? '')}</small></div><button className="ib" type="button" id="pyCancel" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
         <label className="fl" htmlFor="pySup" style={{ marginTop: 14 }}>Supplier<select className="fi" id="pySup" value={party} onChange={(e) => { setParty(e.target.value); setAlloc({}); setErr(''); pending.current = !!Number(amount); }}>
           <option value="">Choose supplier</option>{S.map((p) => <option value={p.id} key={p.id}>{p.name} · {inr(Math.abs(Math.min(0, Number(p.balance))).toFixed(2))} to pay</option>)}</select></label>
         <div className="two"><label className="fl" htmlFor="pyAmt">Amount paid<input className="fi" id="pyAmt" inputMode="decimal" placeholder="0" value={amount} onChange={(e) => { const v = e.target.value.replace(/[^\d.]/g, ''); setAmount(v); setAlloc(auto(Number(v) || 0, B)); setErr(''); }} /></label><label className="fl" htmlFor="pyDate">Date<input className="fi" type="date" id="pyDate" value={date} onChange={(e) => setDate(e.target.value)} /></label></div>

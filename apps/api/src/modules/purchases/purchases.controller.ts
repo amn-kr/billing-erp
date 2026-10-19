@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, ParseUUIDPipe, Post, Put, Query } from '@nestjs/common';
 import { cancelSchema, paymentOutSchema, purchaseSchema, type PaymentOutInput, type PurchaseInput } from '@billing/shared';
 import type { z } from 'zod';
 import { Ctx, RequirePermission } from '../../common/decorators';
@@ -8,6 +8,8 @@ import { PurchasesService } from './purchases.service';
 import { NeedsPasscode } from '../settings/passcode.interceptor';
 
 const KINDS = ['bill', 'order', 'debit_note'] as const;
+/** A query value that is a uuid, else nothing. */
+const uuid = (v?: string) => (v && /^[0-9a-f-]{36}$/i.test(v) ? v : undefined);
 
 /** Purchases: bills, orders, debit notes and payments made. */
 @Controller()
@@ -30,7 +32,7 @@ export class PurchasesController {
   @RequirePermission('purchases.view')
   @Get('purchases/price-history')
   priceHistory(@Ctx() ctx: RequestContext, @Query('item', ParseUUIDPipe) itemId: string, @Query('party', ParseUUIDPipe) partyId: string, @Query('exclude') exclude?: string) {
-    return this.purchases.priceHistory(ctx, { itemId, partyId, exclude: exclude && /^[0-9a-f-]{36}$/i.test(exclude) ? exclude : undefined });
+    return this.purchases.priceHistory(ctx, { itemId, partyId, exclude: uuid(exclude) });
   }
 
   @RequirePermission('purchases.view')
@@ -43,6 +45,14 @@ export class PurchasesController {
   @Post('purchases')
   save(@Ctx() ctx: RequestContext, @Body(new ZodPipe(purchaseSchema)) body: PurchaseInput) {
     return this.purchases.save(ctx, body);
+  }
+
+  /** Edit a saved bill, order or debit note (same number; the passcode when it is switched on). */
+  @RequirePermission('purchases.manage')
+  @NeedsPasscode('edit', 'purchase')
+  @Put('purchases/:id')
+  edit(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(purchaseSchema)) body: PurchaseInput) {
+    return this.purchases.edit(ctx, id, body);
   }
 
   @RequirePermission('purchases.manage')
@@ -65,8 +75,21 @@ export class PurchasesController {
   }
 
   @RequirePermission('purchases.view')
+  @Get('payments-made/:id')
+  payment(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
+    return this.purchases.payment(ctx, id);
+  }
+
+  @RequirePermission('purchases.manage')
+  @NeedsPasscode('edit', 'payment')
+  @Put('payments-made/:id')
+  editPayOut(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(paymentOutSchema)) body: PaymentOutInput) {
+    return this.purchases.editPayOut(ctx, id, body);
+  }
+
+  @RequirePermission('purchases.view')
   @Get('parties/:id/unpaid-bills')
-  unpaid(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
-    return this.purchases.unpaid(ctx, id);
+  unpaid(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Query('payment') payment?: string) {
+    return this.purchases.unpaid(ctx, id, uuid(payment));
   }
 }

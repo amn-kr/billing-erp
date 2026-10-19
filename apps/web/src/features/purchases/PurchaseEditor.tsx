@@ -3,7 +3,8 @@
  * renderPE / renderPETotals / savePE with the shared editor parts it uses
  * (footer tools, payment-made pop-up, dues button, last purchase rates).
  * Routes: /purchases/new?kind=bill|order|debit_note, &order=<id> (convert an
- * order), &against=<bill id> (return goods), &party=<id>.
+ * order), &against=<bill id> (return goods), &party=<id>; /purchases/new?edit=<id>
+ * opens a saved one in the same screen (same number, passcode when it is on).
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -29,6 +30,8 @@ import { PhDrop, type PH } from '../sales/editor/PriceHistory';
 import { DGACC, DGIMG } from '../sales/editor/ToolsPop';
 import { DG_TERMS, addDaysIso, daysDiff, partyState, r2, type EItem, type EParty } from '../sales/editor/state';
 import { PE_T, PU_KEYS, usePurchases, type PKind, type PurchaseDoc } from './model';
+import { editAsk, withPasscode } from '../settings/passcode';
+import { SlModal, type SlModalProps } from '../sales/SlModal';
 
 const BACK = '<path d="M15 6l-6 6 6 6"/>';
 const WALLET = '<path d="M4 7a2 2 0 0 1 2-2h12v4M4 7v11a2 2 0 0 0 2 2h14V9H6a2 2 0 0 1-2-2zM16 14.5h1"/>';
@@ -46,6 +49,9 @@ interface PE {
   against: string; reason: string; incl: boolean; roundOff: boolean; pays: PPay[]; updPrice: boolean; fromOrderId: string | null; notes: string;
   lines: PLine[]; bdisc: string | number; bdiscP: string; chTr: string | number; chLab: string | number;
   ewb: string; transport: string; vehicle: string; delivDate: string; desc: string; attach: string[]; err: string;
+  /** editing a saved one: its id, the quantity of each item it had (already in stock), what payments made and
+   * debit notes settle on it, and what it still owed when opened (in the supplier's balance) */
+  editId: string | null; was: Record<string, number>; settled: number; owedWas: number;
 }
 const peLine = (): PLine => ({ id: '', name: '', hsn: '', qty: 1, unit: '', rate: 0, disc: 0, gst: 18 });
 const n = (v: string | number | undefined) => Number(v) || 0;
@@ -56,7 +62,29 @@ function newPE(kind: PKind, no: string): PE {
     kind, no, autoNo: true, ref: '', date: d, due: d, exp: addDaysIso(d, 5), party: null, against: '', reason: 'Damaged goods', incl: false, roundOff: true,
     pays: [{ mode: 'Bank transfer', amt: 0, ref: '' }], updPrice: kind === 'bill', fromOrderId: null, notes: kind === 'order' ? 'Please deliver within the expected date.' : '',
     lines: [peLine()], bdisc: 0, bdiscP: '', chTr: 0, chLab: 0, ewb: '', transport: '', vehicle: '', delivDate: '', desc: '', attach: [], err: '',
+    editId: null, was: {}, settled: 0, owedWas: 0,
   };
+}
+
+/** A saved bill, order or debit note in the editor, as it was saved. */
+function savedPE(d: EditorData, v: PurchaseDoc): PE {
+  const s = newPE(v.kind, v.number);
+  const p = d.PT.find((x) => x.id === v.party.id);
+  // a supplier archived since is still shown
+  s.party = p ?? { id: v.party.id, name: v.party.name, phone: v.party.phone, gstin: v.party.gstin, city: '', state: '', group: '', days: 0, limit: 0, supplier: true, balance: 0 };
+  Object.assign(s, {
+    autoNo: false, editId: v.id, ref: v.supplierRef, date: v.date, incl: v.pricesInclTax, roundOff: v.roundOff, notes: v.notes, updPrice: false,
+    bdiscP: v.billDiscPct ? String(Number(v.billDiscPct)) : '', bdisc: v.billDiscAmt ? Number(v.billDiscAmt) : 0, chTr: Number(v.transport) || 0, chLab: Number(v.labour) || 0,
+    settled: Number(v.settledElsewhere) || 0, owedWas: v.kind === 'bill' ? Number(v.balance) || 0 : 0,
+  });
+  if (v.kind === 'bill') s.due = v.dueDate ?? v.date;
+  if (v.kind === 'order') s.exp = v.dueDate ?? s.exp;
+  if (v.kind === 'debit_note') { s.against = v.sourceId ?? ''; s.reason = v.reason || s.reason; }
+  s.lines = [...v.lines.map((l) => ({ id: l.itemId, name: l.name, hsn: l.hsn, qty: Number(l.qty), unit: l.unit, rate: Number(l.rate), disc: Number(l.discPct) || 0, gst: Number(l.gstRate) })), peLine()];
+  for (const l of v.lines) s.was[l.itemId] = r2((s.was[l.itemId] ?? 0) + Number(l.qty));
+  const paid = v.settlements.filter((x) => x.atBill);
+  if (paid.length) s.pays = paid.map((x) => ({ mode: x.mode, amt: Number(x.amount), ref: x.ref }));
+  return s;
 }
 
 export function PurchaseEditor() {
@@ -64,6 +92,7 @@ export function PurchaseEditor() {
   const d = useEditorData();
   const [params] = useSearchParams();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [pe, setPe] = useState<PE | null>(null);
   const key = params.toString();
   // a new document each time the address changes (Alt+P inside the editor starts another)
@@ -71,6 +100,15 @@ export function PurchaseEditor() {
     if (!d) return;
     let live = true;
     void (async () => {
+      const edit = params.get('edit');
+      if (edit) {
+        try {
+          const v = await qc.fetchQuery({ queryKey: ['purchase', edit], queryFn: () => api<PurchaseDoc>(`/purchases/${edit}`), staleTime: 0 });
+          if (v.locked) { useShell.getState().showToast(v.locked); navigate(LIST[v.kind], { replace: true }); return; }
+          if (live) setPe(savedPE(d, v));
+        } catch (e) { useShell.getState().showToast(e instanceof ApiError ? e.message : 'Could not open the document.'); navigate(-1); }
+        return;
+      }
       const k = (['bill', 'order', 'debit_note'].includes(params.get('kind') ?? '') ? params.get('kind') : 'bill') as PKind;
       const no = (await qc.fetchQuery({ queryKey: ['next-number', 'purchase', k], queryFn: () => api<{ number: string }>(`/purchases/next-number?kind=${k}`), staleTime: 0 })).number;
       const s = newPE(k, no);
@@ -107,6 +145,7 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
   const [addItem, setAddItem] = useState<{ q: string; i: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const [ph, setPh] = useState<{ i: number; H: PH[]; who: string; anchor: HTMLElement } | null>(null);
+  const [modal, setModal] = useState<SlModalProps | null>(null);
   useEditorLayout(ref);
   const k = s.kind;
   const G = d.ctx.mode === 'gst';
@@ -155,16 +194,19 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
   const stockTxt = (l: PLine) => {
     const it = item(l);
     if (!it || it.svc) return null;
-    const st = it.stock ?? 0, diff = k === 'bill' && n(l.rate) && Math.abs(n(l.rate) - (it.purch || 0)) > 0.009;
+    // editing: the stock without this document's own quantity
+    const st = stockBefore(it), diff = k === 'bill' && n(l.rate) && Math.abs(n(l.rate) - (it.purch || 0)) > 0.009;
     return <>Stock {qfmt(st)} {l.unit}{k === 'bill' ? ` → ${qfmt(st + n(l.qty))}` : k === 'debit_note' ? ` → ${qfmt(st - n(l.qty))}` : ''}{diff ? <> · <span className="pech">last ₹{inr2f(it.purch || 0)}</span></> : null}</>;
   };
+  function stockBefore(it: EItem) { const w = s.was[it.id] ?? 0; return r2((it.stock ?? 0) - (k === 'bill' ? w : k === 'debit_note' ? -w : 0)); }
   // items whose purchase price this bill would change (net rate per unit)
   const changes = k === 'bill' ? s.lines.flatMap((l, i) => { const it = item(l); if (!it || !(n(l.qty) > 0)) return []; const nv = r2(Number(t.rows[i]!.tv) / n(l.qty)); return Math.abs(nv - (it.purch || 0)) > 0.009 ? [{ it, ov: it.purch || 0, nv }] : []; }) : [];
 
   /* payment made with the bill (prototype payRender / payTotals 'pe') */
   const paid = r2(s.pays.reduce((a, q) => a + n(q.amt), 0));
-  const bal = r2(total - paid);
-  const pre = p ? r2(-p.balance) : null;
+  // editing: payments made and debit notes already settle part of the bill, and what it still owed is in the supplier's balance
+  const bal = r2(total - paid - s.settled);
+  const pre = p ? r2(-p.balance - (p.id === init.party?.id ? s.owedWas : 0)) : null;
 
   /* last purchase rates from this supplier (prototype phPur) */
   useEffect(() => {
@@ -193,7 +235,7 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
   cur.current = s;
 
   /* ---------- save (prototype savePE) ---------- */
-  const save = async () => {
+  const save = async (sure = false) => {
     const err = (m: string, focus?: () => void) => { up((x) => { x.err = m; }); toastSaveFailed(m); focus?.(); };
     const lines = s.lines.filter((l) => l.id || l.name.trim());
     if (!p) return err('Choose the supplier.', () => document.getElementById('peParty')?.focus());
@@ -205,18 +247,34 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
     if (k !== 'order' && lines.find((l) => !(n(l.rate) > 0))) return err('Enter a rate for every item.');
     if (!s.autoNo && !s.no) return err(`Number ${s.no} is already used.`);
     up((x) => { x.err = ''; });
-    let left = total;
+    // editing a bill: goods already sold can take stock below zero, as cancelling it would; say so first
+    const short = s.editId && k === 'bill' ? [...new Set(lines.map((l) => l.id))].flatMap((id) => {
+      const it = d.IT.find((x) => x.id === id);
+      if (!it || it.svc) return [];
+      const now = it.stock ?? 0, after = r2(stockBefore(it) + lines.filter((l) => l.id === id).reduce((a, l) => a + n(l.qty), 0));
+      return after < 0 && after < now ? [{ it, after }] : [];
+    }) : [];
+    if (short.length && !sure) {
+      setModal({
+        title: 'Stock will go below zero', sub: 'Some of these goods were already sold.', ok: 'Save anyway', cancel: 'Go back',
+        body: <ul className="slcl">{short.map((x) => <li key={x.it.id}><b>{x.it.name}</b>: stock becomes {qfmt(x.after)} {x.it.unit}.</li>)}<li>Cancelling the bill would do the same. Check the quantities, or save and correct the stock later.</li></ul>,
+        onOk: () => { setModal(null); void saveRef.current(true); },
+      });
+      return;
+    }
+    let left = r2(total - s.settled);
     const pays = k === 'bill' ? s.pays.filter((q) => n(q.amt) > 0).flatMap((q) => { const a = Math.min(n(q.amt), left); if (!(a > 0)) return []; left = r2(left - a); return [{ mode: q.mode as PurchaseInput['payments'][number]['mode'], amount: String(r2(a)), ref: q.ref }]; }) : [];
     const body: PurchaseInput = {
-      kind: k, number: s.autoNo ? '' : s.no, supplierRef: s.ref.trim(), date: s.date, dueDate: k === 'bill' ? s.due : k === 'order' ? s.exp : null, partyId: p.id,
+      kind: k, number: s.autoNo && !s.editId ? '' : s.no, supplierRef: s.ref.trim(), date: s.date, dueDate: k === 'bill' ? s.due : k === 'order' ? s.exp : null, partyId: p.id,
       pricesInclTax: s.incl, roundOff: s.roundOff, billDiscPct: s.bdiscP || null, billDiscAmt: s.bdiscP ? null : n(s.bdisc) ? String(s.bdisc) : null, transport: String(n(s.chTr)), labour: String(n(s.chLab)),
       lines: lines.map((l) => ({ itemId: l.id, name: l.name, hsn: l.hsn, unit: l.unit, qty: String(n(l.qty)), rate: String(n(l.rate)), discPct: String(n(l.disc)), gstRate: String(G ? l.gst : 0) })),
-      payments: pays, updatePrices: k === 'bill' && s.updPrice, againstId: k === 'debit_note' && s.against ? s.against : null, reason: s.reason as PurchaseInput['reason'], fromOrderId: s.fromOrderId,
+      payments: pays, updatePrices: k === 'bill' && s.updPrice, againstId: k === 'debit_note' && s.against ? s.against : null, reason: s.reason as PurchaseInput['reason'], fromOrderId: s.editId ? null : s.fromOrderId,
       notes: s.notes, extra: { ewb: s.ewb, transport: s.transport, vehicle: s.vehicle, deliveryDate: s.delivDate, description: s.desc, attachments: s.attach },
     };
     setBusy(true);
     try {
-      await api('/purchases', { method: 'POST', body });
+      if (s.editId) { const id = s.editId; if (!(await withPasscode(qc, editAsk(s.no), (h) => api(`/purchases/${id}`, { method: 'PUT', body, headers: h })))) return; }
+      else await api('/purchases', { method: 'POST', body });
       await Promise.all(PU_KEYS.map((x) => qc.invalidateQueries({ queryKey: [x] })));
       toastSaved(k);
       navigate(LIST[k]);
@@ -286,7 +344,7 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
   return (
     <section id="vPEd" ref={ref}>
       <div className="sitop"><button className="ib" type="button" id="peBack" aria-label="Back" title="Back" onClick={back}><RawIcon d={BACK} /></button><h1 id="peTitle">{PE_T[k]}</h1><span className={`st ${k === 'bill' ? 'g' : k === 'debit_note' ? 'r' : ''}`} id="peKindTag">{k === 'bill' ? 'Stock in' : k === 'debit_note' ? 'Stock out' : 'No stock change'}</span><div className="sp"></div>
-        <div className="tnd" id="peND"><label className="tndf"><span>{NO_LBL[k]}</span><input className="fi mono" id="peNo" value={s.no} autoComplete="off" aria-label={NO_LBL[k]} onChange={(e) => up((x) => { x.no = e.target.value.trim(); x.autoNo = false; })} /></label>
+        <div className="tnd" id="peND"><label className="tndf"><span>{NO_LBL[k]}</span><input className="fi mono" id="peNo" value={s.no} autoComplete="off" aria-label={NO_LBL[k]} readOnly={!!s.editId} title={s.editId ? 'The number of a saved document can’t be changed' : undefined} onChange={(e) => up((x) => { x.no = e.target.value.trim(); x.autoNo = false; })} /></label>
           <label className="tndf"><span>Date</span><input className="fi" type="date" id="peDate" value={s.date} aria-label="Date" onChange={(e) => up((x) => { x.date = e.target.value; if (x.party) x.due = addDaysIso(x.date, x.party.days || 0); })} /></label></div>
         <EntryClose onBack={back} onLeave={() => navigate(LIST[cur.current.kind])} dirty={entered(s)} label={`Cancel ${PE_T[k].toLowerCase()} entry`} /></div>
 
@@ -362,7 +420,7 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
       {/* payment made with the bill (prototype payRender 'pe') */}
       <div className="dgpop dgpaypop" id="pePayPop" role="dialog" aria-label="Payment made" hidden={pop !== 'pay' || k !== 'bill'}>
         <div className="dgpay" id="pePayC" hidden={k !== 'bill'}>
-          <div className="dgpyh"><b>Payment made</b><label className="cb2"><input type="checkbox" id="pePFull" checked={total > 0 && Math.abs(bal) < 0.005} onChange={(e) => { const on = e.target.checked; up((x) => { const others = x.pays.slice(1).reduce((a, q) => a + n(q.amt), 0); x.pays[0]!.amt = on ? Math.max(0, r2(total - others)) : 0; if (!on) x.pays.forEach((q) => (q.amt = 0)); }); }} /> Fully paid</label></div>
+          <div className="dgpyh"><b>Payment made</b><label className="cb2"><input type="checkbox" id="pePFull" checked={total - s.settled > 0 && Math.abs(bal) < 0.005} onChange={(e) => { const on = e.target.checked; up((x) => { const others = x.pays.slice(1).reduce((a, q) => a + n(q.amt), 0); x.pays[0]!.amt = on ? Math.max(0, r2(total - x.settled - others)) : 0; if (!on) x.pays.forEach((q) => (q.amt = 0)); }); }} /> Fully paid</label></div>
           <div className="dgpyr dgpyl"><span>Payment type</span><span>Amount</span><span>Reference</span><span></span></div>
           {s.pays.map((q, i) => (
             <div className="dgpyr" data-pay={i} key={i}><select className="fi" data-pk="mode" aria-label={`Payment type ${i + 1}`} value={q.mode} onChange={(e) => up((x) => { x.pays[i]!.mode = e.target.value; if (e.target.value === 'Cash') x.pays[i]!.ref = ''; })}>{PU_MODES.map((m) => <option key={m}>{m}</option>)}</select>
@@ -370,7 +428,7 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
               <input className="fi" data-pk="ref" value={q.ref} placeholder={q.mode === 'Cash' ? '—' : q.mode === 'Cheque' ? 'Cheque no.' : 'Ref / UTR no.'} autoComplete="off" aria-label={`Reference ${i + 1}`} disabled={q.mode === 'Cash'} onChange={(e) => up((x) => { x.pays[i]!.ref = e.target.value; })} />
               <button type="button" className="ix" data-payrm={i} aria-label={`Remove payment ${i + 1}`} disabled={s.pays.length === 1} onClick={() => up((x) => { x.pays.splice(i, 1); })}><Icon name="x" /></button></div>
           ))}
-          <button type="button" className="btn sm dgpyadd" data-payadd="pe" onClick={() => { up((x) => { const used = x.pays.map((q) => q.mode); const m = PU_MODES.find((y) => !used.includes(y)) ?? PU_MODES[0]; const left = Math.max(0, r2(total - x.pays.reduce((a, q) => a + n(q.amt), 0))); x.pays.push({ mode: m, amt: left || '', ref: '' }); }); setTimeout(() => { const ins = [...document.querySelectorAll<HTMLInputElement>('#pePayC [data-pk="amt"]')].pop(); ins?.focus(); ins?.select(); }, 0); }}><Icon name="plus" />Add payment type</button>
+          <button type="button" className="btn sm dgpyadd" data-payadd="pe" onClick={() => { up((x) => { const used = x.pays.map((q) => q.mode); const m = PU_MODES.find((y) => !used.includes(y)) ?? PU_MODES[0]; const left = Math.max(0, r2(total - x.settled - x.pays.reduce((a, q) => a + n(q.amt), 0))); x.pays.push({ mode: m, amt: left || '', ref: '' }); }); setTimeout(() => { const ins = [...document.querySelectorAll<HTMLInputElement>('#pePayC [data-pk="amt"]')].pop(); ins?.focus(); ins?.select(); }, 0); }}><Icon name="plus" />Add payment type</button>
           <div className="dgpys"><div><span>Paid now</span><b id="pePRecv">₹{inr2f(paid)}</b></div><div><span>Balance to pay</span><b id="pePBal" className={bal > 0 ? 'neg' : bal < 0 ? 'warn' : 'pos'}>{bal < 0 ? `₹${inr2f(-bal)} extra` : '₹' + inr2f(bal)}</b></div></div>
         </div><div className="dgpf"><button type="button" className="btn p sm" data-paydone="pe" onClick={() => setPop(null)}>Done</button></div></div>
       <div className="dgpop" id="pePop" role="dialog" aria-label="Document details" hidden={!pop || pop === 'pay'}>
@@ -406,6 +464,7 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
         setTimeout(() => { const it = latestItems.IT?.find((x) => x.id === id); if (it) pickItem(at, it); }, 50);
       }} />
       <Prefill d={d} text={addParty ?? addItem?.q ?? null} kind={addParty !== null ? 'party' : addItem ? 'item' : null} />
+      <SlModal m={modal} onClose={() => setModal(null)} />
     </section>
   );
 }

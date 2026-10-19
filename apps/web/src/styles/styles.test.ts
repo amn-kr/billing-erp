@@ -81,9 +81,9 @@ describe('owner-asked searchable drop-down', () => {
  * Sales list (#slRows); features/shell/row-menu.css holds exactly those rules for the other lists, and nothing else.
  */
 describe('row actions ⋮ on the other lists', () => {
-  it('features/shell/row-menu.css = the prototype’s #slRows ⋮ and highlighted-row rules, for #dcRows, #cnRows, #rcRows, #qlRows and the group-3 lists', () => {
+  it('features/shell/row-menu.css = the prototype’s #slRows ⋮ and highlighted-row rules, for the sales, purchase and group-3 lists', () => {
     const t = fs.readFileSync(path.join(__dirname, '../features/shell/row-menu.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
-    const L = ['dcRows', 'cnRows', 'rcRows', 'qlRows', 'exRows', 'bkRows', 'caRows', 'adjRows', 'trRows'];
+    const L = ['dcRows', 'cnRows', 'rcRows', 'qlRows', 'puRows', 'poRows', 'pxRows', 'dnRows', 'exRows', 'bkRows', 'caRows', 'adjRows', 'trRows'];
     // the prototype's own rules, as they are in app.css
     const pad = '#slRows td.slact{padding-top:0;padding-bottom:0}';
     const btn = '#slRows .slm{width:26px;height:26px;border-radius:7px;vertical-align:middle;border-color:transparent;background:transparent}';

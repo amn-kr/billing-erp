@@ -1,6 +1,7 @@
 /** Purchases (prototype PDOCS / PPAYS): bills, orders, debit notes and payments made. */
 import { z } from 'zod';
 import { daysBetween } from './dates.js';
+import { money, type Money, type MoneyInput } from './money.js';
 
 const trim = z.string().trim();
 const opt = (max = 200) => trim.max(max).optional().default('');
@@ -71,6 +72,30 @@ export const paymentOutSchema = z.object({
   allocations: z.array(z.object({ to: z.string().min(1), amount: num() })).max(200).optional().default([]),
 });
 export type PaymentOutInput = z.infer<typeof paymentOutSchema>;
+
+/**
+ * Money paid with a bill (prototype savePE): the parts fill the room left on the bill in order;
+ * a part that doesn't fit is cut down, the rest is dropped. On a new bill the room is the total;
+ * on an edited one it is the total less what payments out and debit notes already settle.
+ */
+export function payPartsUpTo<T extends { amount: MoneyInput }>(parts: T[], room: MoneyInput): (T & { amt: Money })[] {
+  let left = money(room);
+  const out: (T & { amt: Money })[] = [];
+  for (const p of parts) {
+    const want = money(p.amount);
+    if (!want.gt(0)) continue;
+    const amt = want.lt(left) ? want : left;
+    if (!amt.gt(0)) break;
+    left = left.minus(amt);
+    out.push({ ...p, amt });
+  }
+  return out;
+}
+
+/** What an edited bill's total can't go below: what payments out and debit notes already settle on it. */
+export function billTotalTooLow(total: MoneyInput, settledElsewhere: MoneyInput): boolean {
+  return money(total).lt(money(settledElsewhere));
+}
 
 /** Status chip for a purchase bill (prototype billStatus). */
 export function billStatus(b: { total: number; balance: number; due?: string | null; cancelled?: boolean }, today: string): { t: string; c: string } {

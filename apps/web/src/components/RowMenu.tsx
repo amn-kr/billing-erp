@@ -43,11 +43,24 @@ export function rowMenuHandlers<R>(rows: string, find: (tr: HTMLElement) => R | 
   };
 }
 
-/** The ⋮ button in a row's last cell. Enter / Space open the menu (it is a button). */
+/**
+ * The ⋮ button in a row's last cell. Enter / Space open the menu (it is a button). A mouse press
+ * doesn't focus it; in a table wider than its card, a ⋮ partly out of sight is scrolled into view
+ * first and the menu opens after that scroll (a scroll closes an open menu).
+ */
 export function RowMenuButton({ no, label, onOpen }: { no: string; label: string; onOpen: (b: HTMLElement) => void }) {
+  const open = (b: HTMLElement) => {
+    const tw = b.closest<HTMLElement>('.tw'), box = tw?.getBoundingClientRect(), r = b.getBoundingClientRect();
+    if (!tw || !box || (r.left >= box.left && r.right <= box.right)) return onOpen(b);
+    let done = false;
+    const go = () => { if (done) return; done = true; tw.removeEventListener('scroll', go); requestAnimationFrame(() => onOpen(b)); };
+    tw.addEventListener('scroll', go);
+    setTimeout(go, 250);
+    b.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  };
   return (
-    <button type="button" className="ixs slm" data-slm={no} aria-label={label} title={label} aria-haspopup="menu"
-      onClick={(e) => { e.stopPropagation(); onOpen(e.currentTarget); }} onKeyDown={(e) => { if (e.key === 'Enter') e.stopPropagation(); }}><RawIcon d={P.dots} /></button>
+    <button type="button" className="ixs slm" data-slm={no} aria-label={label} title={label} aria-haspopup="menu" onMouseDown={(e) => e.preventDefault()}
+      onClick={(e) => { e.stopPropagation(); open(e.currentTarget); }} onKeyDown={(e) => { if (e.key === 'Enter') e.stopPropagation(); }}><RawIcon d={P.dots} /></button>
   );
 }
 
