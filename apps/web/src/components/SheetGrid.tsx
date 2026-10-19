@@ -60,6 +60,13 @@ const BUFFER = 8;
 type Cell = { row: string; col: string };
 type List = Cell & { hi: number };
 const isText = (el: Element | null): el is HTMLInputElement => el instanceof HTMLInputElement && el.type !== 'checkbox';
+/** select a text cell's value without the browser scrolling the table to "show" the selection */
+const selectAll = (inp: HTMLInputElement) => {
+  const tw = inp.closest<HTMLElement>('.tw');
+  const top = tw?.scrollTop ?? 0, left = tw?.scrollLeft ?? 0;
+  inp.select();
+  if (tw && (tw.scrollTop !== top || tw.scrollLeft !== left)) { tw.scrollTop = top; tw.scrollLeft = left; }
+};
 const printable = (e: KeyboardEvent) => e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
 
 export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lead, value, onChange, mark, selection, head, empty, handle }: Props<R>) {
@@ -77,6 +84,11 @@ export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lea
   const clickFocus = useRef(false);
   /** go() was asked for this cell (keys, or the page after Update): it takes the focus from anywhere */
   const force = useRef(false);
+  /**
+   * The scroll position go() asked for. Drawing other rows removes the focused cell for a moment, and
+   * the browser may then cut the position to the half-drawn table's height: it is put back once drawn.
+   */
+  const want = useRef<number | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewH, setViewH] = useState(600);
   const [rh, setRh] = useState(45);
@@ -97,6 +109,7 @@ export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lea
     const top = i * rh;
     if (top < tw.scrollTop) tw.scrollTop = top;
     else if (headH + top + rh > tw.scrollTop + tw.clientHeight) tw.scrollTop = headH + top + rh - tw.clientHeight;
+    want.current = tw.scrollTop;
     setScrollTop(tw.scrollTop);
   };
   const go = (row: string, col: string) => {
@@ -117,6 +130,9 @@ export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lea
     const nc = Math.max(0, Math.min(nav.length - 1, nav.indexOf(a.col) + dc));
     go(rowKey(rows[nr]!), nav[nc]!);
   };
+  /** select a cell's value again once it is drawn: only if it still has the focus (select() would take
+   * it back) and editing has not started meanwhile (Esc, then Enter at once) */
+  const reselect = (inp: HTMLInputElement) => requestAnimationFrame(() => { if (document.activeElement === inp && !editing.current) selectAll(inp); });
   const toggleRow = (row: string) => selection.onToggle(row, !selection.selected.has(row));
 
   // the active cell gets the focus (after moving, and if the focus was lost while drawing again)
@@ -124,6 +140,10 @@ export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lea
     if (!active) return;
     const td = cellEl(active);
     if (!td) return;
+    if (want.current !== null) {
+      if (twRef.current && twRef.current.scrollTop !== want.current) twRef.current.scrollTop = want.current;
+      want.current = null;
+    }
     const f = focusable(td);
     const ae = document.activeElement;
     if (ae !== f && (force.current || ae === document.body || !ae || twRef.current?.contains(ae))) f.focus({ preventScroll: true });
@@ -179,7 +199,7 @@ export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lea
       setActive(c);
     }
     if (r && colOf(c.col)) entered.current = value(r, c.col);
-    if (isText(t) && !editing.current) t.select();
+    if (isText(t) && !editing.current) selectAll(t);
   };
 
   const listOpen = (c: Cell) => {
@@ -269,18 +289,18 @@ export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lea
         stop();
         editing.current = false;
         if (inp.value !== entered.current) onChange(r, c.col, entered.current);
-        requestAnimationFrame(() => inp.select());
+        reselect(inp);
       }
       return;
     }
     if (arrows()) return;
     if (e.key === 'Enter' || e.key === 'F2') { stop(); editing.current = true; const n = inp.value.length; inp.setSelectionRange(n, n); return; }
-    if (e.key === 'Escape') { stop(); if (inp.value !== entered.current) { onChange(r, c.col, entered.current); requestAnimationFrame(() => inp.select()); } return; }
+    if (e.key === 'Escape') { stop(); if (inp.value !== entered.current) { onChange(r, c.col, entered.current); reselect(inp); } return; }
     if (e.key === ' ' && e.shiftKey) { stop(); toggleRow(c.row); return; }
     if (e.key === 'Backspace' || e.key === 'Delete') { editing.current = true; return; }
     if (printable(e)) {
       // typing replaces the whole value
-      if (inp.selectionStart !== 0 || inp.selectionEnd !== inp.value.length) inp.select();
+      if (inp.selectionStart !== 0 || inp.selectionEnd !== inp.value.length) selectAll(inp);
       editing.current = true;
     }
   };
@@ -373,7 +393,8 @@ export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lea
 
   return (
     <div className="egw egsheet" id={id}>
-      <div className="tw egfit" ref={twRef} style={{ margin: 0 }}>
+      {/* no scroll anchoring: drawing other rows must not make the browser move the scroll position */}
+      <div className="tw egfit" ref={twRef} style={{ margin: 0, overflowAnchor: 'none' }}>
         <table className="ptt2 egt" role="grid" aria-rowcount={rows.length + 1} onFocus={onFocus} onKeyDown={onKeyDown} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onDoubleClick={onDoubleClick}>
           <thead>
             <tr aria-rowindex={1}>
