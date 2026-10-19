@@ -1,0 +1,13 @@
+/* Items › Bulk update items only (SheetGrid inside #vBulk) — owner-approved addition, not in the
+   prototype. Every rule is scoped to that screen, so no other screen's look can change. The shared
+   grid look (edit-grid.css) is used as it is. Rows have one height, so rows never jump; a changed
+   cell's "was …" or its problem is one small line at the bottom of the cell; the active cell has the
+   accent outline. */
+#vBulk .egsheet .egt td.egc{position:relative;height:44px}
+#vBulk .egsheet .egc input,#vBulk .egsheet .egc select{height:44px}
+#vBulk .egsheet .egc:has(.egm) input,#vBulk .egsheet .egc:has(.egm) select{padding-bottom:13px}
+#vBulk .egsheet .egc .egm{position:absolute;left:0;right:0;bottom:4px;padding:0 10px;font-size:10.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:none;pointer-events:none}
+#vBulk .egsheet .egt td.eglead{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis}
+#vBulk .egsheet .egt td.egact{box-shadow:inset 0 0 0 2px var(--ac)}
+#vBulk .egsheet .egt td.egact:focus{outline:none}
+#vBulk .egsheet .egt tr.egsp td{padding:0!important;border:0!important}

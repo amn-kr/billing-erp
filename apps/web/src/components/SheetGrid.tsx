@@ -17,6 +17,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEvent, type MouseEvent, type MutableRefObject, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import css from './edit-grid.css?inline';
+import sheetCss from './sheet-grid.css?inline';
 import { useStyles } from '../lib/useStyles';
 import { useFitToScreen } from './EditGrid';
 
@@ -71,6 +72,8 @@ const printable = (e: KeyboardEvent) => e.key.length === 1 && !e.ctrlKey && !e.m
 
 export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lead, value, onChange, mark, selection, head, empty, handle }: Props<R>) {
   useStyles([css], 'edit-grid');
+  // this table's own rules, all under #vBulk (the shared grid look above is not changed)
+  useStyles([sheetCss], 'sheet-grid');
   const twRef = useRef<HTMLDivElement>(null);
   useFitToScreen(twRef, true);
   const [active, setActive] = useState<Cell | null>(null);
