@@ -21,6 +21,7 @@ import { SlModal, type SlModalProps } from './SlModal';
 import { useShell } from '../shell/store';
 import { editAsk, withPasscode } from '../settings/passcode';
 import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
+import { HIST_ACTION, openHistory } from '../../components/EditHistory';
 
 export interface Receipt {
   id: string; number: string; date: string; party: { id: string; name: string; phone: string } | null; partyName: string; counter: boolean; mode: string; reference: string;
@@ -33,11 +34,12 @@ const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const PLUS = '<path d="M12 5v14M5 12h14"/>';
 const against = (x: Receipt) => (x.number.startsWith('XP-') ? `Extra on ${x.number.slice(3)}` : x.counter ? x.against : x.against);
 const r2 = (n: number) => Math.round(n * 100) / 100;
-const RC_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View']];
+const RC_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View'], HIST_ACTION];
 /** Why a receipt can't be edited from the list (the server says the rest, e.g. a cleared cheque). */
 const editOff = (x: Receipt) => (x.atSale ? 'Taken with an invoice. Edit the invoice instead.' : x.mode === 'Commission adjust' ? 'From a commission payout' : '');
 
 export function PaymentsReceivedPage() {
+  const { showToast } = useShell();
   useFitTables();
   const [params, setParams] = useSearchParams();
   // from a party statement: open that document (prototype rcView / cnView)
@@ -86,7 +88,7 @@ export function PaymentsReceivedPage() {
           </tbody></table></div></div>
       <RowMenu id="rcCtx" label="Receipt actions" rows="#rcRows tr[data-rcno]" menu={menu} head={m ? <><b>{m.number}</b> · {m.partyName}</> : null} actions={RC_ACT}
         off={{ edit: m ? editOff(m) : '' }} onClose={() => { const tr = menu?.tr; setMenu(null); return tr; }}
-        onPick={(a) => { const x = menu?.row; setMenu(null); if (!x) return; if (a === 'edit') setRc({ edit: x.id }); else view(x); }} />
+        onPick={(a) => { const x = menu?.row; setMenu(null); if (!x) return; if (a === 'edit') setRc({ edit: x.id }); else if (a === 'hist') void openHistory('receipt', x.id, setModal, showToast); else view(x); }} />
       <ReceiveDialog open={rc} parties={parties.data} onClose={() => setRc(null)} />
       <SlModal m={modal} onClose={() => setModal(null)} />
     </section>

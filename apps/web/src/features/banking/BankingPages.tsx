@@ -17,6 +17,7 @@ import { Icon, RawIcon } from '../../components/Icon';
 import { useShell } from '../shell/store';
 import { inPeriod } from '../sales/model';
 import { SlModal, type SlModalProps } from '../sales/SlModal';
+import { HIST_ACTION, openHistory, type HistoryType } from '../../components/EditHistory';
 import { receiptModal, type Receipt } from '../sales/PaymentsReceivedPage';
 import { BK_KEYS, bkCol, bkMask, ledger, tint, useAccounts, useBook, type Account, type BkPer, type Book, type BookEntry } from './model';
 import { cancelAsk, editAsk, withPasscode } from '../settings/passcode';
@@ -30,7 +31,7 @@ export type Move = { kind: 'transfer' | 'deposit' | 'withdraw' | 'in' | 'out'; a
 export interface EntryDoc { id: string; number: string; date: string; kind: Move['kind']; accountId: string; toAccountId: string | null; amount: string; category: string; note: string; reference: string; cancelled: boolean; locked: string }
 /** After a hand entry is saved or changed: the books, and the Expenses page (shop expenses, salary, bank charges). */
 const ENTRY_KEYS = [...BK_KEYS, 'expenses'];
-const BOOK_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View']];
+const BOOK_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View'], HIST_ACTION];
 
 /** Why a book row is not changed from the book ('' when Edit opens it); its own page changes it. */
 export function bookEditOff(e: BookEntry): string {
@@ -41,11 +42,19 @@ export function bookEditOff(e: BookEntry): string {
   if (e.src === 'commission_payout') return 'Commission paid. It can’t be changed here.';
   return 'This entry can’t be changed here.';
 }
+/** Whose edit history a book row shows: its own document's (null: that kind of entry is never edited). */
+export function bookHistory(e: BookEntry): HistoryType | null {
+  if (e.src === 'bank_entry') return 'bank-entry';
+  if (e.src === 'expense') return 'expense';
+  if (e.src === 'payment') return Number(e.amt) > 0 ? 'receipt' : 'payment-made';
+  if (e.src === 'sales_document') return 'sales';
+  return null;
+}
 /** Rows that open a details window when clicked. */
 const viewOff = (e: BookEntry) => (e.src === 'payment' || e.src === 'bank_entry' ? '' : 'Use Edit to open it.');
 
 /* ───────── the ledger card (prototype ledCard + ledRender) ───────── */
-function LedgerCard({ p, a, book, head, onEntry, onEdit, per, setPer }: { p: 'bk' | 'ca'; a: Account; book: Book; head: (r: ReturnType<typeof ledger>) => React.ReactNode; onEntry: (e: BookEntry) => void; onEdit: (e: BookEntry) => void; per: BkPer; setPer: (p: BkPer) => void }) {
+function LedgerCard({ p, a, book, head, onEntry, onEdit, onHistory, per, setPer }: { p: 'bk' | 'ca'; a: Account; book: Book; head: (r: ReturnType<typeof ledger>) => React.ReactNode; onEntry: (e: BookEntry) => void; onEdit: (e: BookEntry) => void; onHistory: (e: BookEntry) => void; per: BkPer; setPer: (p: BkPer) => void }) {
   const [q, setQ] = useState('');
   const [menu, setMenu] = useState<RowMenuAt<BookEntry> | null>(null);
   const [ty, setTy] = useState('all');
@@ -72,8 +81,8 @@ function LedgerCard({ p, a, book, head, onEntry, onEdit, per, setPer }: { p: 'bk
           {ty === 'all' && !s ? <tr className="bkopen"><td>{r.start ? dmy(r.start) : dmy(a.openingDate)}</td><td colSpan={5}><b>Opening balance</b></td><td className="n"><b>{inr2f(r.openB)}</b></td><td className="slact"></td></tr> : null}
         </tbody></table></div>
       <RowMenu id={`${p}Ctx`} label="Entry actions" rows={`#${p}Rows tr[data-bke]`} menu={menu} head={m ? <><b>{m.doc || m.kind}</b> · {m.party || m.kind}</> : null} actions={BOOK_ACT}
-        off={m ? { edit: bookEditOff(m), view: viewOff(m) } : undefined} onClose={() => { const tr = menu?.tr; setMenu(null); return tr; }}
-        onPick={(k) => { const e = menu?.row; setMenu(null); if (!e) return; if (k === 'edit') onEdit(e); else onEntry(e); }} />
+        off={m ? { edit: bookEditOff(m), view: viewOff(m), hist: bookHistory(m) ? '' : 'This entry is never edited, so it has no history.' } : undefined} onClose={() => { const tr = menu?.tr; setMenu(null); return tr; }}
+        onPick={(k) => { const e = menu?.row; setMenu(null); if (!e) return; if (k === 'edit') onEdit(e); else if (k === 'hist') onHistory(e); else onEntry(e); }} />
     </div>
   );
 }
@@ -124,7 +133,11 @@ export function useEntryView(accounts: Account[]) {
       },
     });
   };
-  return { modal, setModal, open, edit };
+  const history = (e: BookEntry) => {
+    const t = bookHistory(e);
+    if (t) void openHistory(t, e.sourceId, setModal, showToast);
+  };
+  return { modal, setModal, open, edit, history };
 }
 
 /* ───────── Bank accounts ───────── */
@@ -151,7 +164,7 @@ export function BankAccountsPage() {
         const mi = M.filter((e) => Number(e.amt) > 0).reduce((s, e) => s + Number(e.amt), 0), mo = M.filter((e) => Number(e.amt) < 0).reduce((s, e) => s - Number(e.amt), 0);
         return <BankCard key={a.id} a={a} on={a.id === cur?.id} col={bkCol(a, B)} mi={a.id === cur?.id ? mi : null} mo={mo} onPick={() => { setSel(a.id); setPer('all'); }} />;
       })}<button type="button" className="bkc add" id="bkAdd2" onClick={() => setEdit({ id: null })}><RawIcon d={PLUS} /><b>Add bank account</b><small>Current, savings, OD or CC</small></button></div>
-      {cur && book.data ? <LedgerCard key={cur.id} p="bk" a={cur} book={book.data} per={per} setPer={setPer} onEntry={(e) => void ev.open(e, cur)} onEdit={(e) => void ev.edit(e).then((t) => t && setMove({ kind: t.kind, edit: t }))} head={(r: ReturnType<typeof ledger>) => <>
+      {cur && book.data ? <LedgerCard key={cur.id} p="bk" a={cur} book={book.data} per={per} setPer={setPer} onEntry={(e) => void ev.open(e, cur)} onEdit={(e) => void ev.edit(e).then((t) => t && setMove({ kind: t.kind, edit: t }))} onHistory={ev.history} head={(r: ReturnType<typeof ledger>) => <>
         <div><h2>{cur.name} <small className="mu">{cur.sub}</small></h2><small className="mu mono">{[cur.accountNo && 'A/c ' + cur.accountNo, cur.ifsc && 'IFSC ' + cur.ifsc, cur.branch].filter(Boolean).join(' · ')}</small></div>
         <div className="bkhs"><span>Opening <b>{inr2f(r.openB)}</b></span><span>In <b className="pos">{inr2f(r.tin)}</b></span><span>Out <b className="neg">{inr2f(r.tout)}</b></span><span>Closing <b>{inr2f(r.close)}</b></span></div>
         <div className="bkha"><button className="btn sm" data-bkin={cur.id} onClick={() => setMove({ kind: 'in', acct: cur.id })}><RawIcon d={PLUS} />Add / take out</button><button className="btn sm" data-bkedit={cur.id} onClick={() => setEdit({ id: cur.id })}><Icon name="edit" />Edit</button></div></>} />
@@ -197,7 +210,7 @@ export function CashPage() {
     <section id="vCash">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Cash in hand</h1><span className="pttot">Cash book of the shop counter</span><div className="sp"></div><button className="btn" id="caCount" onClick={() => setCount(true)}><Icon name="check" />Count cash</button><button className="btn" id="caDep" onClick={() => setMove({ kind: 'deposit' })}><Icon name="bank" />Deposit to bank</button><button className="btn p" id="caMove" onClick={() => setMove({ kind: 'out', acct: cash.id, cat: 'Shop expense' })}><RawIcon d={PLUS} />Add / take out cash</button></div>
       <div className="sumrow" id="caSum"><div><small>Opening{r.start ? ' on ' + dmy(r.start) : ''}</small><b>{inr(r.openB.toFixed(2))}</b></div><div><small>Cash in</small><b className="pos">{inr(r.tin.toFixed(2))}</b></div><div><small>Cash out</small><b className="neg">{inr(r.tout.toFixed(2))}</b></div><div><small>Cash in hand now</small><b className={c < 0 ? 'neg' : ''}>{inr(c.toFixed(2))}</b></div></div>
-      <LedgerCard p="ca" a={cash} book={book.data} per={per} setPer={setPer} onEntry={(e) => void ev.open(e, cash)} onEdit={(e) => void ev.edit(e).then((t) => t && setMove({ kind: t.kind, edit: t }))} head={() => <><div><h2>Cash book</h2><small className="mu">Cash sales, cash receipts and cash payments land here automatically.</small></div><div className="bkha"><button className="btn sm" data-bkedit="cash" onClick={() => setEdit({ id: cash.id })}><Icon name="edit" />Opening balance</button></div></>} />
+      <LedgerCard p="ca" a={cash} book={book.data} per={per} setPer={setPer} onEntry={(e) => void ev.open(e, cash)} onEdit={(e) => void ev.edit(e).then((t) => t && setMove({ kind: t.kind, edit: t }))} onHistory={ev.history} head={() => <><div><h2>Cash book</h2><small className="mu">Cash sales, cash receipts and cash payments land here automatically.</small></div><div className="bkha"><button className="btn sm" data-bkedit="cash" onClick={() => setEdit({ id: cash.id })}><Icon name="edit" />Opening balance</button></div></>} />
       <MoveMoney open={move} accounts={accts.data} onClose={() => setMove(null)} />
       <AccountDialog open={edit} accounts={accts.data} onClose={() => setEdit(null)} onSaved={() => undefined} />
       {/* one small window at a time, like the prototype's single #slm */}
