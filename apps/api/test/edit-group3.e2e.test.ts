@@ -59,7 +59,8 @@ const sell = (s: Shop, it: { id: string; name: string }, qty: string) => post(s.
 async function figures(s: Shop) {
   const { get } = s;
   const book = async (id: string) => { const b = await get(`banking/accounts/${id}/book`); return { balance: b.balance, entries: (b.entries as Record<string, unknown>[]).map(({ key: _k, sourceId: _s, ...e }) => e) }; };
-  const item = async (id: string) => { const x = await get(`items/${id}`); return { stock: x.stock, godowns: x.godowns, rateTable: x.rateTable }; };
+  // the item's godowns come in no fixed order: sorted by name
+  const item = async (id: string) => { const x = await get(`items/${id}`); return { stock: x.stock, godowns: (x.godowns as { name: string }[]).sort((a, b) => a.name.localeCompare(b.name)), rateTable: x.rateTable }; };
   return same({
     accounts: await get('banking/accounts'), cash: await book(s.cash.id), bank: await book(s.bank.id), sbi: await book(s.sbi.id),
     expenses: ((await get('expenses')) as Record<string, unknown>[]).map(({ key: _k, number: _n, ...x }) => x),
