@@ -6,7 +6,7 @@ import { NumberingService } from '../../common/numbering.service';
 import { LedgerService } from '../../common/ledger.service';
 import type { RequestContext } from '../../common/context';
 import { day, isoOf } from '../../common/lookups';
-import { keepNumber, reconciledIn, reconciledMessage } from '../../common/editing';
+import { fieldChanges, keepNumber, reconciledIn, reconciledMessage } from '../../common/editing';
 
 /** The other side of money added or taken out by hand (prototype BM_CAT). */
 const CATEGORY_ACCOUNT: Record<string, string> = {
@@ -300,7 +300,8 @@ export class BankingService {
       ? [{ account: 'cb:' + o.to, debit: o.amount }, { account: 'cb:' + o.from, credit: o.amount }]
       : o.kind === 'in' ? [{ account: 'cb:' + o.account, debit: o.amount }, { account: other, credit: o.amount }] : [{ account: other, debit: o.amount }, { account: 'cb:' + o.account, credit: o.amount }];
     await this.ledger.post(tx, { businessId, userId: ctx.userId }, { date: o.date, sourceType: 'bank_entry', sourceId: b.id, number, narration: two ? MOVE_LABEL[o.kind]! : o.category || o.kind, lines });
-    await this.audit.log(tx, { businessId, userId: ctx.userId, action: old ? 'update' : 'create', entity: 'bank_entry', entityId: b.id, before: old, after: b, ip: ctx.ip });
+    await this.audit.log(tx, { businessId, userId: ctx.userId, action: old ? 'update' : 'create', entity: 'bank_entry', entityId: b.id, before: old, ip: ctx.ip,
+      after: old ? { ...b, changes: fieldChanges(old, b, ['date', 'kind', 'accountId', 'toAccountId', 'amount', 'category', 'reference', 'note']) } : b });
     return { id: b.id, number, amount: o.amount.toFixed(2) };
   }
 

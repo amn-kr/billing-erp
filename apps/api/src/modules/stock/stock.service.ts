@@ -5,7 +5,7 @@ import { AuditService } from '../../common/audit.service';
 import { NumberingService } from '../../common/numbering.service';
 import type { RequestContext } from '../../common/context';
 import { day, isoOf, uniqueMessage } from '../../common/lookups';
-import { keepNumber } from '../../common/editing';
+import { fieldChanges, keepNumber } from '../../common/editing';
 
 const q3 = (v: { toString(): string } | number | string) => money(v.toString()).toDecimalPlaces(3).toFixed(3);
 type Who = { businessId: string; userId: string };
@@ -149,7 +149,7 @@ export class StockService {
       if (a.cancelledAt) throw new BadRequestException({ message: 'This adjustment is cancelled, so it can’t be changed.' });
       keepNumber(input.number, a.number, 'adjustment');
       const before = await this.stockIn(tx, a.itemId, a.godownId);
-      await this.undoAdjustment(tx, this.who(ctx), a, `Changed ${a.number}`);
+      await this.undoAdjustment(tx, this.who(ctx), a, `Edited ${a.number}`);
       const out = await this.writeAdjustment(tx, ctx, { ...input, godownId: input.godownId ?? a.godownId }, a);
       await this.notBelowZero(tx, a.itemId, a.godownId, before, 'Saving this would make stock negative. Some of it has been sold since.');
       return out;
@@ -175,7 +175,8 @@ export class StockService {
     await tx.stockMovement.create({
       data: { businessId: ctx.businessId!, createdBy: ctx.userId, itemId: item.id, godownId, date: day(input.date), qty: signed.toFixed(3), rate, kind: 'adjustment', sourceType: 'stock_adjustment', sourceId: a.id, note: input.reason },
     });
-    await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: old ? 'update' : 'create', entity: 'stock_adjustment', entityId: a.id, before: old, after: a, ip: ctx.ip });
+    await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: old ? 'update' : 'create', entity: 'stock_adjustment', entityId: a.id, before: old, ip: ctx.ip,
+      after: old ? { ...a, changes: fieldChanges(old, a, ['date', 'itemId', 'godownId', 'qty', 'rate', 'reason']) } : a });
     return { id: a.id, number, stock: q3(await this.stockIn(tx, item.id, godownId)) };
   }
 
@@ -231,7 +232,7 @@ export class StockService {
       if (t.cancelledAt) throw new BadRequestException({ message: 'This transfer is cancelled, so it can’t be changed.' });
       keepNumber(input.number, t.number, 'transfer');
       const before = await this.stockIn(tx, t.itemId, t.toGodownId);
-      await this.undoTransfer(tx, this.who(ctx), t, `Changed ${t.number}`);
+      await this.undoTransfer(tx, this.who(ctx), t, `Edited ${t.number}`);
       const out = await this.writeTransfer(tx, ctx, input, t);
       await this.notBelowZero(tx, t.itemId, t.toGodownId, before, 'Saving this would make stock negative in the receiving godown. Some of it has been sold or moved since.');
       return out;
@@ -256,7 +257,8 @@ export class StockService {
       : await tx.stockTransfer.create({ data: { ...data, businessId: ctx.businessId!, createdBy: ctx.userId, number } });
     const base = { businessId: ctx.businessId!, createdBy: ctx.userId, itemId: item.id, date: day(input.date), rate: item.purchasePrice, kind: 'transfer', sourceType: 'stock_transfer', sourceId: t.id, note: number };
     await tx.stockMovement.createMany({ data: [{ ...base, godownId: from.id, qty: qty.neg().toFixed(3) }, { ...base, godownId: to.id, qty: qty.toFixed(3) }] });
-    await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: old ? 'update' : 'create', entity: 'stock_transfer', entityId: t.id, before: old, after: t, ip: ctx.ip });
+    await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: old ? 'update' : 'create', entity: 'stock_transfer', entityId: t.id, before: old, ip: ctx.ip,
+      after: old ? { ...t, changes: fieldChanges(old, t, ['date', 'itemId', 'fromGodownId', 'toGodownId', 'qty', 'note']) } : t });
     return { id: t.id, number };
   }
 

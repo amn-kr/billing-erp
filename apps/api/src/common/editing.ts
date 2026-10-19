@@ -9,6 +9,29 @@ export function keepNumber(sent: string | undefined, saved: string, what: string
   if (sent && sent !== saved) throw new BadRequestException({ message: `The number of a saved ${what} can’t be changed. It stays ${saved}.`, field: 'number' });
 }
 
+/** One changed field of an edited record, as kept in its audit entry (after.changes) for the history window. */
+export interface FieldChange { field: string; old: unknown; new: unknown }
+
+/** A value as it is shown and compared: dates as YYYY-MM-DD, money and quantities as plain text. */
+const plain = (v: unknown): unknown => {
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (v && typeof v === 'object' && 'toFixed' in v && typeof (v as { toString: unknown }).toString === 'function') return String(v);
+  if (Array.isArray(v)) return v.map(plain);
+  if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, plain(x)]));
+  return v ?? null;
+};
+
+/**
+ * The fields an edit changed, old and new value of each, in the order given. Who made the edit and
+ * when are the audit entry's own user and time. An edit that changed nothing listed gives [].
+ */
+export function fieldChanges(before: Record<string, unknown>, after: Record<string, unknown>, fields: string[]): FieldChange[] {
+  return fields.flatMap((field) => {
+    const o = plain(before[field]), n = plain(after[field]);
+    return JSON.stringify(o) === JSON.stringify(n) ? [] : [{ field, old: o, new: n }];
+  });
+}
+
 /**
  * The bank account where an entry of this record is ticked in Reconciliation, or null. Such an
  * entry is not changed: its tick (and the matched statement) would no longer fit.

@@ -90,6 +90,13 @@ describe('edit an expense', () => {
     expect((await s.get('expenses/next-number')).number).toBe('EXP-0002');
     const a = await audit(s.o);
     expect(a.find((e) => e.action === 'update' && e.entity === 'expense')).toMatchObject({ entityId: x.id, before: { number: 'EXP-0001', total: '1200', mode: 'Cash' }, after: { number: 'EXP-0001', total: '1800', mode: 'UPI', category: 'Electricity' } });
+    // each changed field, old and new value (who and when are the entry's own user and time)
+    const xc = a.find((e) => e.action === 'update' && e.entity === 'expense')!.after!.changes as { field: string; old: unknown; new: unknown }[];
+    expect(xc.map((c) => c.field)).toEqual(['date', 'category', 'mode', 'accountId', 'lines', 'total']);
+    expect(xc).toContainEqual({ field: 'date', old: D, new: D2 });
+    expect(xc).toContainEqual({ field: 'category', old: 'Repairs', new: 'Electricity' });
+    expect(xc).toContainEqual({ field: 'accountId', old: s.cash.id, new: s.bank.id });
+    expect(xc).toContainEqual({ field: 'lines', old: [{ name: 'AC servicing', qty: '1.000', rate: '1200.00', gst: 0, amt: '1200.00' }], new: [{ name: 'Wiring', qty: '2.000', rate: '900.00', gst: 0, amt: '1800.00' }] });
     expect(a.find((e) => e.action === 'passcode_used')).toMatchObject({ entityId: x.id, after: { for: 'edit', document: 'expense' } });
     expectNoPasscode(a, PASS);
   });
@@ -148,6 +155,10 @@ describe('edit a cash / bank entry', () => {
     expect(await s.get(`banking/entries/${e.id}`)).toMatchObject({ number: 'BT-0001', kind: 'transfer', amount: '7000.00', reference: 'UTR 8812', locked: '' });
     const a = await audit(s.o);
     expect(a.find((x) => x.action === 'update' && x.entity === 'bank_entry')).toMatchObject({ entityId: e.id, before: { number: 'BT-0001', kind: 'deposit', amount: '5000' }, after: { number: 'BT-0001', kind: 'transfer', amount: '7000' } });
+    expect(a.find((x) => x.action === 'update' && x.entity === 'bank_entry')!.after!.changes).toEqual([
+      { field: 'date', old: D, new: D2 }, { field: 'kind', old: 'deposit', new: 'transfer' }, { field: 'accountId', old: s.cash.id, new: s.bank.id },
+      { field: 'toAccountId', old: s.bank.id, new: s.sbi.id }, { field: 'amount', old: '5000', new: '7000' }, { field: 'reference', old: '', new: 'UTR 8812' },
+    ]);
     expect(a.find((x) => x.action === 'passcode_used')).toMatchObject({ entityId: e.id, after: { for: 'edit', document: 'bank_entry' } });
     expectNoPasscode(a, PASS);
     // the next entry still gets the next number
@@ -209,6 +220,12 @@ describe('edit a stock adjustment', () => {
     expect((await s.get('stock-adjustments'))[0]).toMatchObject({ number: 'ADJ-0001', qty: '-3.000', reason: 'Damaged', date: D2, cancelled: false });
     const au = await audit(s.o);
     expect(au.find((x) => x.action === 'update' && x.entity === 'stock_adjustment')).toMatchObject({ entityId: a.id, before: { number: 'ADJ-0001', qty: '10', reason: 'Physical count correction' }, after: { number: 'ADJ-0001', qty: '-3', reason: 'Damaged' } });
+    expect(au.find((x) => x.action === 'update' && x.entity === 'stock_adjustment')!.after!.changes).toEqual([
+      { field: 'date', old: D, new: D2 }, { field: 'qty', old: '10', new: '-3' }, { field: 'reason', old: 'Physical count correction', new: 'Damaged' },
+    ]);
+    // the old quantity is put back the way a sales edit does it: kind "cancel", note "Edited <number>"
+    const mv = (await s.get(`items/${s.fan.id}`)).movements as { kind: string; qty: string; note: string; ref: string }[];
+    expect(mv.filter((m) => m.ref === 'ADJ-0001').map((m) => [m.kind, m.qty, m.note])).toEqual(expect.arrayContaining([['adjustment', '10.000', 'Physical count correction'], ['cancel', '-10.000', 'Edited ADJ-0001'], ['adjustment', '-3.000', 'Damaged']]));
     expect(au.find((x) => x.action === 'passcode_used')).toMatchObject({ entityId: a.id, after: { for: 'edit', document: 'stock_adjustment' } });
     expectNoPasscode(au, PASS);
     expect((await post(s.o, 'stock-adjustments', adj(s, { qty: 1 })).expect(201)).body.number).toBe('ADJ-0002');
@@ -273,6 +290,9 @@ describe('edit a stock transfer', () => {
     expect((await s.get('stock-transfers'))[0]).toMatchObject({ number: 'TRF-0001', qty: '4.000', date: D2, itemId: s.fan.id, fromId: s.main.id, toId: s.store.id });
     const au = await audit(s.o);
     expect(au.find((x) => x.action === 'update' && x.entity === 'stock_transfer')).toMatchObject({ entityId: t.id, before: { number: 'TRF-0001', qty: '10' }, after: { number: 'TRF-0001', qty: '4' } });
+    expect(au.find((x) => x.action === 'update' && x.entity === 'stock_transfer')!.after!.changes).toEqual([{ field: 'date', old: D, new: D2 }, { field: 'qty', old: '10', new: '4' }]);
+    const mv = (await s.get(`items/${s.fan.id}`)).movements as { kind: string; qty: string; note: string; ref: string }[];
+    expect(mv.filter((m) => m.kind === 'cancel').map((m) => [m.qty, m.note]).sort()).toEqual([['-10.000', 'Edited TRF-0001'], ['10.000', 'Edited TRF-0001']]);
     expect(au.find((x) => x.action === 'passcode_used')).toMatchObject({ entityId: t.id, after: { for: 'edit', document: 'stock_transfer' } });
   });
 

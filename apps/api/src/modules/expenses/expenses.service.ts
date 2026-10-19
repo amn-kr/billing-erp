@@ -6,7 +6,7 @@ import { NumberingService } from '../../common/numbering.service';
 import { LedgerService, type PostLine } from '../../common/ledger.service';
 import type { RequestContext } from '../../common/context';
 import { day, isoOf } from '../../common/lookups';
-import { keepNumber, reconciledMap, reconciledMessage } from '../../common/editing';
+import { fieldChanges, keepNumber, reconciledMap, reconciledMessage } from '../../common/editing';
 
 const FIXED = new Set(Object.values(BOOK_EXPENSE_CATEGORY));
 const num = (v: string, d = 0) => (v === '' || !Number.isFinite(Number(v)) ? d : Number(v));
@@ -151,7 +151,17 @@ export class ExpensesService {
       { account: src.account, credit: t.total, memo: `${input.mode}${input.reference ? ' · ' + input.reference : ''}` },
     ];
     await this.ledger.repost(tx, { businessId, userId: ctx.userId }, { date: input.date, sourceType: 'expense', sourceId: x.id, number, narration: `Expense · ${cat.name}`, lines });
-    await this.audit.log(tx, { businessId, userId: ctx.userId, action: old ? 'update' : 'create', entity: 'expense', entityId: x.id, before: old ?? undefined, after: { ...x, category: cat.name, lines: L.map((l) => ({ ...l, qty: l.qty.toString(), rate: l.rate.toFixed(2), amt: l.amt.toFixed(2) })) }, ip: ctx.ip });
+    const saved = L.map((l) => ({ name: l.name, qty: l.qty.toFixed(3), rate: l.rate.toFixed(2), gst: l.gst, amt: l.amt.toFixed(2) }));
+    const after = { ...x, category: cat.name, lines: saved };
+    // an edit: the whole expense before and after, and each field it changed (old → new) for the history window
+    const was = old && {
+      ...old, category: (await tx.expenseCategory.findFirst({ where: { id: old.lines[0]?.categoryId ?? '' } }))?.name ?? '',
+      lines: old.lines.sort((a, b) => a.position - b.position).map((l) => ({ name: l.description, qty: money(l.qty.toString()).toFixed(3), rate: money(l.rate.toString()).toFixed(2), gst: Number(l.gstRate), amt: money(l.amount.toString()).toFixed(2) })),
+    };
+    await this.audit.log(tx, {
+      businessId, userId: ctx.userId, action: old ? 'update' : 'create', entity: 'expense', entityId: x.id, before: was ?? undefined, ip: ctx.ip,
+      after: was ? { ...after, changes: fieldChanges(was, after, ['date', 'category', 'payee', 'mode', 'accountId', 'reference', 'notes', 'lines', 'total', 'tax']) } : after,
+    });
     return { id: x.id, number, total: t.total.toFixed(2), account: src.accountId };
   }
 
