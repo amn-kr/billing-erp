@@ -1,6 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { DbService } from '../src/common/db.service';
 import { auth, expectNoPasscode, owner, startApp } from './helpers';
 
 /**
@@ -53,6 +54,9 @@ const same = (v: unknown) => JSON.parse(JSON.stringify(v).replace(/[0-9a-f]{8}-[
 const balances = async (s: Shop) => Object.fromEntries(((await s.get('banking/accounts')) as Acc[]).map((a) => [a.name, a.balance]));
 const stock = async (s: Shop, it: { id: string }) => (await s.get(`items/${it.id}`)).stock as string;
 const inGodown = async (s: Shop, it: { id: string }, g: Gd) => ((await s.get(`items/${it.id}`)).godowns as { id: string; stock: string }[]).find((x) => x.id === g.id)!.stock;
+/** The stock lines a record wrote, as stored (the item page leaves out the ones an edit replaced). */
+const stockLines = (s: Shop, itemId: string, sourceId: string) => app.get(DbService).scoped({ businessId: s.o.businessId }, async (tx) =>
+  (await tx.stockMovement.findMany({ where: { itemId, sourceId }, select: { kind: true, qty: true, note: true } })).map((m) => [m.kind, m.qty.toFixed(3), m.note]));
 const sell = (s: Shop, it: { id: string; name: string }, qty: string) => post(s.o, 'sales', { date: D2, dueDate: D2, mode: 'cash', cashName: 'Ramesh', lines: [{ itemId: it.id, name: it.name, qty, price: '1890', discPct: '0', gstRate: '18' }], payments: [] });
 
 /** Everything a balance, book, stock figure or report shows for one shop (ids and times left out). */
@@ -225,8 +229,10 @@ describe('edit a stock adjustment', () => {
       { field: 'date', old: D, new: D2 }, { field: 'qty', old: '10', new: '-3' }, { field: 'reason', old: 'Physical count correction', new: 'Damaged' },
     ]);
     // the old quantity is put back the way a sales edit does it: kind "cancel", note "Edited <number>"
+    expect((await stockLines(s, s.fan.id, a.id)).sort()).toEqual([['adjustment', '-3.000', 'Damaged'], ['adjustment', '10.000', 'Physical count correction'], ['cancel', '-10.000', 'Edited ADJ-0001']]);
+    // the item's Transactions list shows the adjustment once, as it is now
     const mv = (await s.get(`items/${s.fan.id}`)).movements as { kind: string; qty: string; note: string; ref: string }[];
-    expect(mv.filter((m) => m.ref === 'ADJ-0001').map((m) => [m.kind, m.qty, m.note])).toEqual(expect.arrayContaining([['adjustment', '10.000', 'Physical count correction'], ['cancel', '-10.000', 'Edited ADJ-0001'], ['adjustment', '-3.000', 'Damaged']]));
+    expect(mv.filter((m) => m.ref === 'ADJ-0001').map((m) => [m.kind, m.qty, m.note])).toEqual([['adjustment', '-3.000', 'Damaged']]);
     expect(au.find((x) => x.action === 'passcode_used')).toMatchObject({ entityId: a.id, after: { for: 'edit', document: 'stock_adjustment' } });
     expectNoPasscode(au, PASS);
     expect((await post(s.o, 'stock-adjustments', adj(s, { qty: 1 })).expect(201)).body.number).toBe('ADJ-0002');
@@ -292,8 +298,9 @@ describe('edit a stock transfer', () => {
     const au = await audit(s.o);
     expect(au.find((x) => x.action === 'update' && x.entity === 'stock_transfer')).toMatchObject({ entityId: t.id, before: { number: 'TRF-0001', qty: '10' }, after: { number: 'TRF-0001', qty: '4' } });
     expect(au.find((x) => x.action === 'update' && x.entity === 'stock_transfer')!.after!.changes).toEqual([{ field: 'date', old: D, new: D2 }, { field: 'qty', old: '10', new: '4' }]);
+    expect((await stockLines(s, s.fan.id, t.id)).filter((m) => m[0] === 'cancel').map((m) => [m[1], m[2]]).sort()).toEqual([['-10.000', 'Edited TRF-0001'], ['10.000', 'Edited TRF-0001']]);
     const mv = (await s.get(`items/${s.fan.id}`)).movements as { kind: string; qty: string; note: string; ref: string }[];
-    expect(mv.filter((m) => m.kind === 'cancel').map((m) => [m.qty, m.note]).sort()).toEqual([['-10.000', 'Edited TRF-0001'], ['10.000', 'Edited TRF-0001']]);
+    expect(mv.filter((m) => m.ref === 'TRF-0001').map((m) => [m.kind, m.qty]).sort()).toEqual([['transfer', '-4.000'], ['transfer', '4.000']]);
     expect(au.find((x) => x.action === 'passcode_used')).toMatchObject({ entityId: t.id, after: { for: 'edit', document: 'stock_transfer' } });
   });
 
