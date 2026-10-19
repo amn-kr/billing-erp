@@ -6,6 +6,7 @@ import { NumberingService } from '../../common/numbering.service';
 import { LedgerService } from '../../common/ledger.service';
 import type { RequestContext } from '../../common/context';
 import { day, isoOf } from '../../common/lookups';
+import { fieldChanges, keepNumber, reconciledIn, reconciledMessage } from '../../common/editing';
 
 /** The other side of money added or taken out by hand (prototype BM_CAT). */
 const CATEGORY_ACCOUNT: Record<string, string> = {
@@ -14,6 +15,8 @@ const CATEGORY_ACCOUNT: Record<string, string> = {
   'Cash excess on count': 'cash_difference', 'Cash short on count': 'cash_difference', 'Commission paid': 'commission',
 };
 const MOVE_LABEL: Record<string, string> = { deposit: 'Cash deposited', withdraw: 'Cash withdrawn', transfer: 'Transfer' };
+
+type BankEntryRow = NonNullable<Awaited<ReturnType<Tx['bankEntry']['findFirst']>>>;
 
 export interface BookEntry {
   key: string; date: string; amt: string; kind: string; party: string; doc: string; mode: string; ref: string; note: string;
@@ -251,48 +254,54 @@ export class BankingService {
   /* ───────── entries typed by hand ───────── */
 
   move(ctx: RequestContext, input: BankEntryInput) {
-    return this.db.scoped(this.scope(ctx), async (tx) => {
-      const amt = money(Number(input.amount) > 0 ? input.amount : 0);
-      if (!amt.gt(0)) throw new BadRequestException({ message: 'Enter the amount.', field: 'amount' });
-      const accs = new Map((await tx.cashBankAccount.findMany({ where: { archivedAt: null } })).map((a) => [a.id, a]));
-      const k = input.kind;
-      const two = k === 'transfer' || k === 'deposit' || k === 'withdraw';
-      let from = '', to = '', acc = '';
-      if (two) {
-        from = input.fromId ?? ''; to = input.toId ?? '';
-        const f = accs.get(from), t = accs.get(to);
-        if (!f || !t || from === to) throw new BadRequestException({ message: 'Choose two different accounts.' });
-        if ((k === 'deposit' && (f.kind !== 'cash' || t.kind !== 'bank')) || (k === 'withdraw' && (f.kind !== 'bank' || t.kind !== 'cash')) || (k === 'transfer' && (f.kind !== 'bank' || t.kind !== 'bank')))
-          throw new BadRequestException({ message: 'Choose two different accounts.' });
-        if (f.kind === 'cash') {
-          const bal = (await this.ledger.cashBankBalances(tx)).get(from) ?? money(0);
-          if (amt.gt(bal.plus(0.001))) throw new BadRequestException({ message: `Only ${formatInr2(bal.toFixed(2))} cash in hand.`, field: 'amount' });
-        }
-      } else {
-        acc = input.accountId ?? '';
-        if (!accs.get(acc)) throw new BadRequestException({ message: 'Choose the account.' });
-      }
-      return this.moveIn(tx, ctx, { kind: k, date: input.date, amount: amt, from, to, account: acc, category: input.category, reference: input.reference, note: input.note });
-    });
+    return this.db.scoped(this.scope(ctx), async (tx) => this.moveIn(tx, ctx, await this.checked(tx, input)));
   }
 
-  async moveIn(tx: Tx, ctx: RequestContext, o: { kind: string; date: string; amount: Money; from: string; to: string; account: string; category: string; reference: string; note: string; legacyNo?: string }) {
+  /** A typed entry checked the way a new one is (for an edit: with the old entry already undone). */
+  private async checked(tx: Tx, input: BankEntryInput) {
+    const amt = money(Number(input.amount) > 0 ? input.amount : 0);
+    if (!amt.gt(0)) throw new BadRequestException({ message: 'Enter the amount.', field: 'amount' });
+    const accs = new Map((await tx.cashBankAccount.findMany({ where: { archivedAt: null } })).map((a) => [a.id, a]));
+    const k = input.kind;
+    const two = k === 'transfer' || k === 'deposit' || k === 'withdraw';
+    let from = '', to = '', acc = '';
+    if (two) {
+      from = input.fromId ?? ''; to = input.toId ?? '';
+      const f = accs.get(from), t = accs.get(to);
+      if (!f || !t || from === to) throw new BadRequestException({ message: 'Choose two different accounts.' });
+      if ((k === 'deposit' && (f.kind !== 'cash' || t.kind !== 'bank')) || (k === 'withdraw' && (f.kind !== 'bank' || t.kind !== 'cash')) || (k === 'transfer' && (f.kind !== 'bank' || t.kind !== 'bank')))
+        throw new BadRequestException({ message: 'Choose two different accounts.' });
+      if (f.kind === 'cash') {
+        const bal = (await this.ledger.cashBankBalances(tx)).get(from) ?? money(0);
+        if (amt.gt(bal.plus(0.001))) throw new BadRequestException({ message: `Only ${formatInr2(bal.toFixed(2))} cash in hand.`, field: 'amount' });
+      }
+    } else {
+      acc = input.accountId ?? '';
+      if (!accs.get(acc)) throw new BadRequestException({ message: 'Choose the account.' });
+    }
+    return { kind: k, date: input.date, amount: amt, from, to, account: acc, category: input.category, reference: input.reference, note: input.note };
+  }
+
+  /** Writes a typed entry and its book lines; `old` (an edit) keeps its number, its old lines already undone. */
+  async moveIn(tx: Tx, ctx: RequestContext, o: { kind: string; date: string; amount: Money; from: string; to: string; account: string; category: string; reference: string; note: string; legacyNo?: string }, old?: BankEntryRow) {
     const businessId = ctx.businessId!;
-    const number = o.legacyNo ?? (await this.numbers.next(tx, businessId, ctx.userId, 'bank_entry', o.date));
+    const number = old?.number ?? o.legacyNo ?? (await this.numbers.next(tx, businessId, ctx.userId, 'bank_entry', o.date));
     if (o.legacyNo) await this.numbers.claim(tx, businessId, ctx.userId, 'bank_entry', o.date, o.legacyNo);
     const two = !!o.from;
-    const b = await tx.bankEntry.create({
-      data: {
-        businessId, createdBy: ctx.userId, number, date: day(o.date), kind: o.kind, accountId: two ? o.from : o.account, toAccountId: two ? o.to : null,
-        amount: o.amount.toFixed(2), category: two ? '' : o.category, note: o.note, reference: o.reference, ...(o.legacyNo && { legacyId: o.legacyNo }),
-      },
-    });
+    const data = {
+      date: day(o.date), kind: o.kind, accountId: two ? o.from : o.account, toAccountId: two ? o.to : null,
+      amount: o.amount.toFixed(2), category: two ? '' : o.category, note: o.note, reference: o.reference,
+    };
+    const b = old
+      ? await tx.bankEntry.update({ where: { id: old.id }, data })
+      : await tx.bankEntry.create({ data: { ...data, businessId, createdBy: ctx.userId, number, ...(o.legacyNo && { legacyId: o.legacyNo }) } });
     const other = CATEGORY_ACCOUNT[o.category] ?? (o.kind === 'in' ? 'other_income' : 'expenses');
     const lines = two
       ? [{ account: 'cb:' + o.to, debit: o.amount }, { account: 'cb:' + o.from, credit: o.amount }]
       : o.kind === 'in' ? [{ account: 'cb:' + o.account, debit: o.amount }, { account: other, credit: o.amount }] : [{ account: other, debit: o.amount }, { account: 'cb:' + o.account, credit: o.amount }];
     await this.ledger.post(tx, { businessId, userId: ctx.userId }, { date: o.date, sourceType: 'bank_entry', sourceId: b.id, number, narration: two ? MOVE_LABEL[o.kind]! : o.category || o.kind, lines });
-    await this.audit.log(tx, { businessId, userId: ctx.userId, action: 'create', entity: 'bank_entry', entityId: b.id, after: b, ip: ctx.ip });
+    await this.audit.log(tx, { businessId, userId: ctx.userId, action: old ? 'update' : 'create', entity: 'bank_entry', entityId: b.id, before: old, ip: ctx.ip,
+      after: old ? { ...b, changes: fieldChanges(old, b, ['date', 'kind', 'accountId', 'toAccountId', 'amount', 'category', 'reference', 'note']) } : b });
     return { id: b.id, number, amount: o.amount.toFixed(2) };
   }
 
@@ -313,8 +322,34 @@ export class BankingService {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const b = await tx.bankEntry.findFirst({ where: { id } });
       if (!b) throw new NotFoundException({ message: 'That entry was not found.' });
-      return { id: b.id, number: b.number, date: isoOf(b.date), kind: b.kind, accountId: b.accountId, toAccountId: b.toAccountId, amount: money(b.amount.toString()).toFixed(2), category: b.category, note: b.note, reference: b.reference, cancelled: !!b.cancelledAt };
+      return { id: b.id, number: b.number, date: isoOf(b.date), kind: b.kind, accountId: b.accountId, toAccountId: b.toAccountId, amount: money(b.amount.toString()).toFixed(2), category: b.category, note: b.note, reference: b.reference, cancelled: !!b.cancelledAt, locked: await this.lockedReason(tx, b) };
     });
+  }
+
+  /**
+   * Edit an entry typed by hand: its old lines stop counting (as when it is cancelled) and the new
+   * ones are written under the same number, in one go. Entries made by something else, cancelled
+   * ones and ones ticked in Reconciliation are refused with what to do instead.
+   */
+  editEntry(ctx: RequestContext, id: string, input: BankEntryInput) {
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      const b = await tx.bankEntry.findFirst({ where: { id } });
+      if (!b) throw new NotFoundException({ message: 'That entry was not found.' });
+      const why = await this.lockedReason(tx, b);
+      if (why) throw new BadRequestException({ message: why });
+      keepNumber(input.number, b.number, 'entry');
+      await this.ledger.cancel(tx, 'bank_entry', id);
+      return this.moveIn(tx, ctx, await this.checked(tx, input), b);
+    });
+  }
+
+  /** Why a typed entry can't be changed, or '' (also shown greyed out in the book's row menu). */
+  private async lockedReason(tx: Tx, b: BankEntryRow) {
+    if (b.cancelledAt) return 'This entry is cancelled, so it can’t be changed.';
+    if (b.category === 'Commission paid') return `This entry was made by commission payment ${b.reference ? b.reference + ' ' : ''}on the Commission page, so it can’t be changed here.`;
+    if (b.category === 'Cash excess on count' || b.category === 'Cash short on count') return 'This is a cash count difference. Count the cash again to correct it.';
+    const bank = await reconciledIn(tx, 'bank_entry', b.id);
+    return bank ? reconciledMessage(bank) : '';
   }
 
   cancelEntry(ctx: RequestContext, id: string) {

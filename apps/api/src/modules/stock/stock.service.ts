@@ -1,12 +1,16 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { formatQty, money, toDb, type GodownInput, type StockAdjustmentInput, type StockTransferInput } from '@billing/shared';
+import { formatQty, money, toDb, type GodownInput, type Money, type StockAdjustmentInput, type StockTransferInput } from '@billing/shared';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import { NumberingService } from '../../common/numbering.service';
 import type { RequestContext } from '../../common/context';
 import { day, isoOf, uniqueMessage } from '../../common/lookups';
+import { fieldChanges, keepNumber } from '../../common/editing';
 
 const q3 = (v: { toString(): string } | number | string) => money(v.toString()).toDecimalPlaces(3).toFixed(3);
+type Who = { businessId: string; userId: string };
+type AdjustmentRow = NonNullable<Awaited<ReturnType<Tx['stockAdjustment']['findFirst']>>>;
+type TransferRow = NonNullable<Awaited<ReturnType<Tx['stockTransfer']['findFirst']>>>;
 
 /** Godowns, stock adjustments and transfers. Every change is a pair of rows in the stock ledger; cancelling adds the opposite rows. */
 @Injectable()
@@ -65,7 +69,7 @@ export class StockService {
   transfers(ctx: RequestContext) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const rows = await tx.stockTransfer.findMany({ where: { cancelledAt: null }, include: { item: { include: { unit: true } }, fromGodown: true, toGodown: true }, orderBy: [{ date: 'desc' }, { createdAt: 'desc' }], take: 50 });
-      return rows.map((t) => ({ id: t.id, number: t.number, date: isoOf(t.date), item: t.item.name, unit: t.item.unit?.code ?? '', qty: q3(t.qty), from: t.fromGodown.name, to: t.toGodown.name }));
+      return rows.map((t) => ({ id: t.id, number: t.number, date: isoOf(t.date), itemId: t.itemId, item: t.item.name, unit: t.item.unit?.code ?? '', qty: q3(t.qty), fromId: t.fromGodownId, from: t.fromGodown.name, toId: t.toGodownId, to: t.toGodown.name, note: t.note }));
     });
   }
 
@@ -130,26 +134,50 @@ export class StockService {
   }
 
   adjust(ctx: RequestContext, input: StockAdjustmentInput) {
+    return this.db.scoped(this.scope(ctx), (tx) => this.writeAdjustment(tx, ctx, input));
+  }
+
+  /**
+   * Edit a saved adjustment: its old stock movement is undone (the same rows a cancel adds) and the
+   * new one written under the same number, in one go. Refused when it is cancelled, or when it
+   * would take stock below zero because the goods were sold since (the rule cancel uses).
+   */
+  editAdjustment(ctx: RequestContext, id: string, input: StockAdjustmentInput) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
-      const item = await this.goodsItem(tx, input.itemId);
-      const godownId = input.godownId ?? (await tx.godown.findFirstOrThrow({ where: { isDefault: true, archivedAt: null } })).id;
-      const qty = money(input.qty).toDecimalPlaces(3);
-      const signed = input.mode === 'reduce' ? qty.neg() : qty;
-      if (input.mode === 'reduce') {
-        const have = await this.stockIn(tx, item.id, godownId);
-        if (have.lt(qty)) throw new BadRequestException({ message: `Only ${formatQty(have)} in stock. You can’t reduce by more than that.` });
-      }
-      const number = await this.numbers.next(tx, ctx.businessId!, ctx.userId, 'stock_adjustment', input.date);
-      const rate = toDb(input.rate ?? item.purchasePrice.toString());
-      const a = await tx.stockAdjustment.create({
-        data: { businessId: ctx.businessId!, createdBy: ctx.userId, number, date: day(input.date), itemId: item.id, godownId, qty: signed.toFixed(3), rate, reason: input.reason },
-      });
-      await tx.stockMovement.create({
-        data: { businessId: ctx.businessId!, createdBy: ctx.userId, itemId: item.id, godownId, date: day(input.date), qty: signed.toFixed(3), rate, kind: 'adjustment', sourceType: 'stock_adjustment', sourceId: a.id, note: input.reason },
-      });
-      await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'create', entity: 'stock_adjustment', entityId: a.id, after: a, ip: ctx.ip });
-      return { id: a.id, number, stock: q3(await this.stockIn(tx, item.id, godownId)) };
+      const a = await tx.stockAdjustment.findFirst({ where: { id } });
+      if (!a) throw new NotFoundException({ message: 'That adjustment was not found.' });
+      if (a.cancelledAt) throw new BadRequestException({ message: 'This adjustment is cancelled, so it can’t be changed.' });
+      keepNumber(input.number, a.number, 'adjustment');
+      const before = await this.stockIn(tx, a.itemId, a.godownId);
+      await this.undoAdjustment(tx, this.who(ctx), a, `Edited ${a.number}`);
+      const out = await this.writeAdjustment(tx, ctx, { ...input, godownId: input.godownId ?? a.godownId }, a);
+      await this.notBelowZero(tx, a.itemId, a.godownId, before, 'Saving this would make stock negative. Some of it has been sold since.');
+      return out;
     });
+  }
+
+  /** A new adjustment, or (with `old`, its movement already undone) the saved one changed. */
+  private async writeAdjustment(tx: Tx, ctx: RequestContext, input: StockAdjustmentInput, old?: AdjustmentRow) {
+    const item = await this.goodsItem(tx, input.itemId);
+    const godownId = input.godownId ?? (await tx.godown.findFirstOrThrow({ where: { isDefault: true, archivedAt: null } })).id;
+    const qty = money(input.qty).toDecimalPlaces(3);
+    const signed = input.mode === 'reduce' ? qty.neg() : qty;
+    if (input.mode === 'reduce') {
+      const have = await this.stockIn(tx, item.id, godownId);
+      if (have.lt(qty)) throw new BadRequestException({ message: `Only ${formatQty(have)} in stock. You can’t reduce by more than that.` });
+    }
+    const number = old?.number ?? (await this.numbers.next(tx, ctx.businessId!, ctx.userId, 'stock_adjustment', input.date));
+    const rate = toDb(input.rate ?? item.purchasePrice.toString());
+    const data = { date: day(input.date), itemId: item.id, godownId, qty: signed.toFixed(3), rate, reason: input.reason };
+    const a = old
+      ? await tx.stockAdjustment.update({ where: { id: old.id }, data })
+      : await tx.stockAdjustment.create({ data: { ...data, businessId: ctx.businessId!, createdBy: ctx.userId, number } });
+    await tx.stockMovement.create({
+      data: { businessId: ctx.businessId!, createdBy: ctx.userId, itemId: item.id, godownId, date: day(input.date), qty: signed.toFixed(3), rate, kind: 'adjustment', sourceType: 'stock_adjustment', sourceId: a.id, note: input.reason },
+    });
+    await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: old ? 'update' : 'create', entity: 'stock_adjustment', entityId: a.id, before: old, ip: ctx.ip,
+      after: old ? { ...a, changes: fieldChanges(old, a, ['date', 'itemId', 'godownId', 'qty', 'rate', 'reason']) } : a });
+    return { id: a.id, number, stock: q3(await this.stockIn(tx, item.id, godownId)) };
   }
 
   cancelAdjustment(ctx: RequestContext, id: string) {
@@ -161,35 +189,77 @@ export class StockService {
       if (back.lt(0) && (await this.stockIn(tx, a.itemId, a.godownId)).lt(back.abs()))
         throw new BadRequestException({ message: 'Cancelling this would make stock negative. Some of it has been sold since.' });
       await tx.stockAdjustment.update({ where: { id }, data: { cancelledAt: new Date(), cancelledBy: ctx.userId } });
-      await tx.stockMovement.create({
-        data: { businessId: ctx.businessId!, createdBy: ctx.userId, itemId: a.itemId, godownId: a.godownId, date: a.date, qty: back.toFixed(3), rate: a.rate, kind: 'cancel', sourceType: 'stock_adjustment', sourceId: a.id, note: `Cancelled ${a.number}` },
-      });
+      await this.undoAdjustment(tx, this.who(ctx), a, `Cancelled ${a.number}`);
       await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'cancel', entity: 'stock_adjustment', entityId: id, before: a, ip: ctx.ip });
     });
+  }
+
+  /** The opposite of an adjustment's movement, on its own date and rate (used by cancel and edit). */
+  private async undoAdjustment(tx: Tx, who: Who, a: AdjustmentRow, note: string) {
+    await tx.stockMovement.create({
+      data: { businessId: who.businessId, createdBy: who.userId, itemId: a.itemId, godownId: a.godownId, date: a.date, qty: money(a.qty.toString()).neg().toFixed(3), rate: a.rate, kind: 'cancel', sourceType: 'stock_adjustment', sourceId: a.id, note },
+    });
+  }
+
+  private who(ctx: RequestContext): Who {
+    return { businessId: ctx.businessId!, userId: ctx.userId };
+  }
+
+  /**
+   * After an edit: the item's stock in that godown may not end below zero, unless it already was
+   * and the edit made it no worse (e.g. only the reason changed).
+   */
+  private async notBelowZero(tx: Tx, itemId: string, godownId: string, before: Money, message: string) {
+    const now = await this.stockIn(tx, itemId, godownId);
+    if (now.lt(0) && now.lt(before)) throw new BadRequestException({ message });
   }
 
   /* ───────── transfers ───────── */
 
   transfer(ctx: RequestContext, input: StockTransferInput) {
+    return this.db.scoped(this.scope(ctx), (tx) => this.writeTransfer(tx, ctx, input));
+  }
+
+  /**
+   * Edit a saved transfer: both godowns get back what it moved (the same rows a cancel adds), then
+   * the new transfer is written under the same number, in one go. Refused when it is cancelled, or
+   * when the receiving godown no longer has the goods (sold or moved on since, the rule cancel uses).
+   */
+  editTransfer(ctx: RequestContext, id: string, input: StockTransferInput) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
-      const item = await this.goodsItem(tx, input.itemId);
-      const [from, to] = await Promise.all([
-        tx.godown.findFirst({ where: { id: input.fromGodownId, archivedAt: null } }),
-        tx.godown.findFirst({ where: { id: input.toGodownId, archivedAt: null } }),
-      ]);
-      if (!from || !to) throw new NotFoundException({ message: 'Choose both godowns.' });
-      const qty = money(input.qty).toDecimalPlaces(3);
-      const have = await this.stockIn(tx, item.id, from.id);
-      if (have.lt(qty)) throw new BadRequestException({ message: `Only ${formatQty(have)}${item.unit ? ' ' + item.unit.code : ''} available in ${from.name}.` });
-      const number = await this.numbers.next(tx, ctx.businessId!, ctx.userId, 'stock_transfer', input.date);
-      const t = await tx.stockTransfer.create({
-        data: { businessId: ctx.businessId!, createdBy: ctx.userId, number, date: day(input.date), itemId: item.id, fromGodownId: from.id, toGodownId: to.id, qty: qty.toFixed(3), note: input.note },
-      });
-      const base = { businessId: ctx.businessId!, createdBy: ctx.userId, itemId: item.id, date: day(input.date), rate: item.purchasePrice, kind: 'transfer', sourceType: 'stock_transfer', sourceId: t.id, note: number };
-      await tx.stockMovement.createMany({ data: [{ ...base, godownId: from.id, qty: qty.neg().toFixed(3) }, { ...base, godownId: to.id, qty: qty.toFixed(3) }] });
-      await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'create', entity: 'stock_transfer', entityId: t.id, after: t, ip: ctx.ip });
-      return { id: t.id, number };
+      const t = await tx.stockTransfer.findFirst({ where: { id } });
+      if (!t) throw new NotFoundException({ message: 'That transfer was not found.' });
+      if (t.cancelledAt) throw new BadRequestException({ message: 'This transfer is cancelled, so it can’t be changed.' });
+      keepNumber(input.number, t.number, 'transfer');
+      const before = await this.stockIn(tx, t.itemId, t.toGodownId);
+      await this.undoTransfer(tx, this.who(ctx), t, `Edited ${t.number}`);
+      const out = await this.writeTransfer(tx, ctx, input, t);
+      await this.notBelowZero(tx, t.itemId, t.toGodownId, before, 'Saving this would make stock negative in the receiving godown. Some of it has been sold or moved since.');
+      return out;
     });
+  }
+
+  /** A new transfer, or (with `old`, its movements already undone) the saved one changed. */
+  private async writeTransfer(tx: Tx, ctx: RequestContext, input: StockTransferInput, old?: TransferRow) {
+    const item = await this.goodsItem(tx, input.itemId);
+    const [from, to] = await Promise.all([
+      tx.godown.findFirst({ where: { id: input.fromGodownId, archivedAt: null } }),
+      tx.godown.findFirst({ where: { id: input.toGodownId, archivedAt: null } }),
+    ]);
+    if (!from || !to) throw new NotFoundException({ message: 'Choose both godowns.' });
+    const qty = money(input.qty).toDecimalPlaces(3);
+    const have = await this.stockIn(tx, item.id, from.id);
+    if (have.lt(qty)) throw new BadRequestException({ message: `Only ${formatQty(have)}${item.unit ? ' ' + item.unit.code : ''} available in ${from.name}.` });
+    const number = old?.number ?? (await this.numbers.next(tx, ctx.businessId!, ctx.userId, 'stock_transfer', input.date));
+    const data = { date: day(input.date), itemId: item.id, fromGodownId: from.id, toGodownId: to.id, qty: qty.toFixed(3), note: input.note };
+    const t = old
+      ? await tx.stockTransfer.update({ where: { id: old.id }, data })
+      : await tx.stockTransfer.create({ data: { ...data, businessId: ctx.businessId!, createdBy: ctx.userId, number } });
+    const base = { businessId: ctx.businessId!, createdBy: ctx.userId, itemId: item.id, date: day(input.date), rate: item.purchasePrice, kind: 'transfer', sourceType: 'stock_transfer', sourceId: t.id, note: number };
+    await tx.stockMovement.createMany({ data: [{ ...base, godownId: from.id, qty: qty.neg().toFixed(3) }, { ...base, godownId: to.id, qty: qty.toFixed(3) }] });
+    await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: old ? 'update' : 'create', entity: 'stock_transfer', entityId: t.id, before: old, ip: ctx.ip,
+      after: old ? { ...t, changes: fieldChanges(old, t, ['date', 'itemId', 'fromGodownId', 'toGodownId', 'qty', 'note']) } : t });
+    return { id: t.id, number };
   }
 
   cancelTransfer(ctx: RequestContext, id: string) {
@@ -197,12 +267,17 @@ export class StockService {
       const t = await tx.stockTransfer.findFirst({ where: { id } });
       if (!t) throw new NotFoundException({ message: 'That transfer was not found.' });
       if (t.cancelledAt) throw new BadRequestException({ message: 'This transfer is already cancelled.' });
-      const qty = money(t.qty.toString());
-      if ((await this.stockIn(tx, t.itemId, t.toGodownId)).lt(qty)) throw new BadRequestException({ message: 'Cancelling this would make stock negative in the receiving godown.' });
+      if ((await this.stockIn(tx, t.itemId, t.toGodownId)).lt(t.qty.toString())) throw new BadRequestException({ message: 'Cancelling this would make stock negative in the receiving godown.' });
       await tx.stockTransfer.update({ where: { id }, data: { cancelledAt: new Date(), cancelledBy: ctx.userId } });
-      const base = { businessId: ctx.businessId!, createdBy: ctx.userId, itemId: t.itemId, date: t.date, kind: 'cancel', sourceType: 'stock_transfer', sourceId: t.id, note: `Cancelled ${t.number}` };
-      await tx.stockMovement.createMany({ data: [{ ...base, godownId: t.toGodownId, qty: qty.neg().toFixed(3) }, { ...base, godownId: t.fromGodownId, qty: qty.toFixed(3) }] });
+      await this.undoTransfer(tx, this.who(ctx), t, `Cancelled ${t.number}`);
       await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'cancel', entity: 'stock_transfer', entityId: id, before: t, ip: ctx.ip });
     });
+  }
+
+  /** Both godowns get back what a transfer moved, on its own date (used by cancel and edit). */
+  private async undoTransfer(tx: Tx, who: Who, t: TransferRow, note: string) {
+    const qty = money(t.qty.toString());
+    const base = { businessId: who.businessId, createdBy: who.userId, itemId: t.itemId, date: t.date, kind: 'cancel', sourceType: 'stock_transfer', sourceId: t.id, note };
+    await tx.stockMovement.createMany({ data: [{ ...base, godownId: t.toGodownId, qty: qty.neg().toFixed(3) }, { ...base, godownId: t.fromGodownId, qty: qty.toFixed(3) }] });
   }
 }

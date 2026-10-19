@@ -20,6 +20,8 @@ export const expenseSchema = z.object({
   mode: z.enum(XP_MODES).default('Cash'),
   accountId: z.string().uuid().nullable().optional(),
   lines: z.array(expenseLineSchema).max(100).default([]),
+  /** sent back unchanged when a saved one is edited: the server refuses a different number */
+  number: z.string().trim().max(40).optional(),
 });
 export type ExpenseInput = z.infer<typeof expenseSchema>;
 

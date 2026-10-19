@@ -99,6 +99,13 @@ export class BankingController {
   }
 
   @RequirePermission('money.manage')
+  @NeedsPasscode('edit', 'bank_entry')
+  @Put('entries/:id')
+  editEntry(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(bankEntrySchema)) body: BankEntryInput) {
+    return this.banking.editEntry(ctx, id, body);
+  }
+
+  @RequirePermission('money.manage')
   @NeedsPasscode('cancel', 'bank_entry')
   @Post('entries/:id/cancel')
   cancel(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {

@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { approvedShot, hideHeader, sameShot, shot } from './shots';
+import { withDotsAll, withLineDots } from './row-dots';
 import { APP, RAVI, WIDTHS, freshShop, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
 import { BKP, fakeBackup } from './backup.data';
 import { brandItems } from './brands.data';
@@ -237,6 +238,7 @@ for (const width of WIDTHS) {
       await both((p) => p.click('#trm [type="submit"]'));
       await app.waitForSelector('#trRows .trr');
       await settle();
+      await withLineDots(proto, app);
       await sameShot(`godowns-moved-${width}`, proto, app, '#vGds');
       await expect(app.locator('#toast')).toHaveText(await proto.locator('#toast').innerText());
     });
@@ -252,6 +254,7 @@ for (const width of WIDTHS) {
       await app.waitForTimeout(300);
       const both = async (fn: (p: Page) => Promise<unknown>) => { for (const p of [proto, app]) await fn(p); };
       const settle = async () => { await both((p) => p.mouse.move(0, 0)); await app.waitForTimeout(300); await proto.waitForTimeout(100); };
+      await withDotsAll(proto, app, '#adjRows');
       await sameShot(`adjs-${width}`, proto, app, '#vAdjs');
 
       // New adjustment: item picker shown, first item chosen
@@ -274,11 +277,13 @@ for (const width of WIDTHS) {
       const ref = await app.locator('#adjRows td.mono').innerText();
       await proto.evaluate((r) => { document.querySelector('#adjRows td.mono')!.textContent = r; }, ref);
       await settle();
+      await withDotsAll(proto, app, '#adjRows');
       await sameShot(`adjs-one-${width}`, proto, app, '#vAdjs');
 
       // filters
       await both((p) => p.click('#adjKind [data-ak="add"]'));
       await settle();
+      await withDotsAll(proto, app, '#adjRows');
       await sameShot(`adjs-nomatch-${width}`, proto, app, '#vAdjs');
     });
 

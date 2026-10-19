@@ -99,6 +99,8 @@ export const stockAdjustmentSchema = z.object({
   rate: amount(),
   date: isoDate,
   reason: opt(200),
+  /** sent back unchanged when a saved one is edited: the server refuses a different number */
+  number: z.string().trim().max(40).optional(),
 });
 export type StockAdjustmentInput = z.infer<typeof stockAdjustmentSchema>;
 
@@ -110,6 +112,8 @@ export const stockTransferSchema = z
     qty: z.coerce.number({ invalid_type_error: 'Enter the quantity.' }).positive('Enter the quantity.'),
     date: isoDate,
     note: opt(200),
+    /** sent back unchanged when a saved one is edited: the server refuses a different number */
+    number: z.string().trim().max(40).optional(),
   })
   .refine((o) => o.fromGodownId !== o.toGodownId, { message: 'Choose two different godowns.', path: ['toGodownId'] });
 export type StockTransferInput = z.infer<typeof stockTransferSchema>;

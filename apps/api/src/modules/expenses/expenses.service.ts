@@ -6,6 +6,7 @@ import { NumberingService } from '../../common/numbering.service';
 import { LedgerService, type PostLine } from '../../common/ledger.service';
 import type { RequestContext } from '../../common/context';
 import { day, isoOf } from '../../common/lookups';
+import { fieldChanges, keepNumber, reconciledMap, reconciledMessage } from '../../common/editing';
 
 const FIXED = new Set(Object.values(BOOK_EXPENSE_CATEGORY));
 const num = (v: string, d = 0) => (v === '' || !Number.isFinite(Number(v)) ? d : Number(v));
@@ -126,6 +127,7 @@ export class ExpensesService {
     const old = id ? await tx.expense.findFirst({ where: { id }, include: { lines: true } }) : null;
     if (id && !old) throw new NotFoundException({ message: 'That expense was not found.' });
     if (old?.cancelledAt) throw new BadRequestException({ message: 'This expense is cancelled.' });
+    if (old) await this.editable(tx, old, input);
     const number = old?.number ?? legacyNo ?? (await this.numbers.next(tx, businessId, ctx.userId, 'expense', input.date));
     if (legacyNo) await this.numbers.claim(tx, businessId, ctx.userId, 'expense', input.date, legacyNo);
     const data = {
@@ -149,8 +151,37 @@ export class ExpensesService {
       { account: src.account, credit: t.total, memo: `${input.mode}${input.reference ? ' · ' + input.reference : ''}` },
     ];
     await this.ledger.repost(tx, { businessId, userId: ctx.userId }, { date: input.date, sourceType: 'expense', sourceId: x.id, number, narration: `Expense · ${cat.name}`, lines });
-    await this.audit.log(tx, { businessId, userId: ctx.userId, action: old ? 'update' : 'create', entity: 'expense', entityId: x.id, before: old ?? undefined, after: { ...x, category: cat.name, lines: L.map((l) => ({ ...l, qty: l.qty.toString(), rate: l.rate.toFixed(2), amt: l.amt.toFixed(2) })) }, ip: ctx.ip });
+    const saved = L.map((l) => ({ name: l.name, qty: l.qty.toFixed(3), rate: l.rate.toFixed(2), gst: l.gst, amt: l.amt.toFixed(2) }));
+    const after = { ...x, category: cat.name, lines: saved };
+    // an edit: the whole expense before and after, and each field it changed (old → new) for the history window
+    const was = old && {
+      ...old, category: (await tx.expenseCategory.findFirst({ where: { id: old.lines[0]?.categoryId ?? '' } }))?.name ?? '',
+      lines: old.lines.sort((a, b) => a.position - b.position).map((l) => ({ name: l.description, qty: money(l.qty.toString()).toFixed(3), rate: money(l.rate.toString()).toFixed(2), gst: Number(l.gstRate), amt: money(l.amount.toString()).toFixed(2) })),
+    };
+    await this.audit.log(tx, {
+      businessId, userId: ctx.userId, action: old ? 'update' : 'create', entity: 'expense', entityId: x.id, before: was ?? undefined, ip: ctx.ip,
+      after: was ? { ...after, changes: fieldChanges(was, after, ['date', 'category', 'payee', 'mode', 'accountId', 'reference', 'notes', 'lines', 'total', 'tax']) } : after,
+    });
     return { id: x.id, number, total: t.total.toFixed(2), account: src.accountId };
+  }
+
+  /**
+   * What stops a saved expense from being changed: another number, a cheque the bank already
+   * cleared or bounced (it has its own entry), or an entry ticked in Reconciliation.
+   */
+  private async editable(tx: Tx, old: { id: string; number: string }, input: ExpenseInput) {
+    keepNumber(input.number, old.number, 'expense');
+    const why = (await this.lockedReasons(tx, [old.id])).get(old.id);
+    if (why) throw new BadRequestException({ message: why });
+  }
+
+  /** Expense id → why it can't be changed now (the list shows it on a greyed-out Edit). */
+  private async lockedReasons(tx: Tx, ids: string[]) {
+    const out = new Map<string, string>();
+    const chqs = await tx.cheque.findMany({ where: { expenseId: { in: ids }, status: { in: ['cleared', 'bounced'] } }, orderBy: { createdAt: 'asc' } });
+    for (const c of chqs) out.set(c.expenseId!, `Cheque ${c.chequeNo} on this expense is already ${c.status}. Undo it on the Cheques page first.`);
+    for (const [id, bank] of await reconciledMap(tx, 'expense', ids)) if (!out.has(id)) out.set(id, reconciledMessage(bank));
+    return out;
   }
 
   cancel(ctx: RequestContext, id: string) {
@@ -174,19 +205,23 @@ export class ExpensesService {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const cats = new Map((await tx.expenseCategory.findMany()).map((c) => [c.id, c.name]));
       const xs = await tx.expense.findMany({ where: { cancelledAt: null }, include: { lines: { orderBy: { position: 'asc' } } } });
+      const locked = await this.lockedReasons(tx, xs.map((x) => x.id));
       const rows = xs.map((x) => ({
         key: 'EX:' + x.number, id: x.id, src: 'ex' as const, number: x.number, date: isoOf(x.date)!, category: cats.get(x.lines[0]?.categoryId ?? '') ?? '', categoryId: x.lines[0]?.categoryId ?? null,
         payee: x.payee, mode: x.mode, accountId: x.accountId, reference: x.reference, notes: x.notes, total: money(x.total.toString()).toFixed(2), gst: money(x.tax.toString()).toFixed(2),
         lines: x.lines.map((l): ExpenseLineOut => ({ name: l.description, qty: money(l.qty.toString()).toString(), rate: money(l.rate.toString()).toFixed(2), gst: Number(l.gstRate), amt: money(l.amount.toString()).toFixed(2) })),
+        locked: locked.get(x.id) ?? '',
       }));
       const bes = await tx.bankEntry.findMany({ where: { cancelledAt: null, kind: 'out', category: { in: Object.keys(BOOK_EXPENSE_CATEGORY) } } });
       const cash = new Set((await tx.cashBankAccount.findMany({ where: { kind: 'cash' }, select: { id: true } })).map((a) => a.id));
+      const ticked = await reconciledMap(tx, 'bank_entry', bes.map((b) => b.id));
       const book = bes.map((b) => {
         const amt: Money = money(b.amount.toString());
         return {
           key: 'BT:' + b.number, id: b.id, src: 'bt' as const, number: b.number, date: isoOf(b.date)!, category: BOOK_EXPENSE_CATEGORY[b.category]!, categoryId: null,
           payee: b.note, mode: cash.has(b.accountId) ? 'Cash' : 'Bank', accountId: b.accountId, reference: b.reference, notes: '', total: amt.toFixed(2), gst: '0.00',
           lines: [{ name: b.note || b.category, qty: '1', rate: amt.toFixed(2), gst: 0, amt: amt.toFixed(2) }],
+          locked: ticked.has(b.id) ? reconciledMessage(ticked.get(b.id)!) : '',
         };
       });
       // newest first, then by number (prototype sorts by date, then "no" descending)
