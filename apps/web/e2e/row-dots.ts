@@ -15,31 +15,32 @@ import { withDots } from './shots';
  */
 export async function withDotsAll(proto: Page, app: Page, tbody: string) {
   await withDots(proto, app, tbody);
-  // each rebuild row, known by its text (the ⋮ cell left out): its ⋮ cell, an empty ⋮ cell, or the column span of an empty-list message
+  // each rebuild row, known by its text (the ⋮ cell left out): its ⋮ cell, an empty ⋮ cell, or (an empty-list message) the whole row
   const rows = await app.locator(`${tbody} > tr`).evaluateAll((rs) => rs.map((r) => {
     const last = r.lastElementChild as HTMLTableCellElement | null;
-    const td = r.querySelector('td[colspan]') as HTMLTableCellElement | null;
     return {
       key: [...r.children].filter((c) => !c.classList.contains('slact')).map((c) => c.textContent).join('|'),
       cell: r.querySelector('[data-slm]')?.closest('td')?.outerHTML ?? '',
       empty: last?.classList.contains('slact') && !last.querySelector('[data-slm]') ? last.outerHTML : '',
-      span: r.children.length === 1 && td ? td.colSpan : 0,
+      whole: r.children.length === 1 && r.querySelector('td[colspan]') ? r.outerHTML : '',
     };
   }));
   await proto.evaluate(({ tbody, rows }) => {
     const b = document.querySelector(tbody)!;
-    // the prototype may draw the same rows again a moment later (seen on CI): put the ⋮ column back each time, on the same rows only
-    const apply = () => [...b.children].forEach((r) => {
+    [...b.children].forEach((r) => {
       const c = rows.find((x) => x.key === [...r.children].filter((y) => !y.classList.contains('slact')).map((y) => y.textContent).join('|'));
       if (!c) return;
       if (c.cell && !r.querySelector('[data-slm]')) r.insertAdjacentHTML('beforeend', c.cell);
       if (c.empty && !r.lastElementChild?.classList.contains('slact')) r.insertAdjacentHTML('beforeend', c.empty);
-      if (c.span) { const td = r.querySelector('td[colspan]') as HTMLTableCellElement | null; if (td && td.colSpan !== c.span) td.colSpan = c.span; }
+      // an empty-list message: a new row, not the old cell given a wider span (on CI at 1280 px Chromium kept drawing
+      // the changed cell over the old 8 columns, run 39213671275 adjs-1280)
+      if (c.whole) r.outerHTML = c.whole;
     });
-    const w = window as unknown as Record<string, MutationObserver | undefined>;
-    w['dots:' + tbody]?.disconnect();
-    apply();
-    (w['dots:' + tbody] = new MutationObserver(apply)).observe(b, { childList: true });
+    // and the table laid out again from scratch
+    const t = b.closest('table') as HTMLElement;
+    t.style.display = 'none';
+    void t.offsetWidth;
+    t.style.display = '';
     window.dispatchEvent(new Event('resize'));
   }, { tbody, rows });
 }
