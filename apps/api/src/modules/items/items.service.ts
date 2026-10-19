@@ -12,7 +12,7 @@ const include = { unit: true, secondaryUnit: true, category: true, brand: true, 
 type Row = Prisma.ItemGetPayload<{ include: typeof include }>;
 const q3 = (v: Prisma.Decimal | string | number) => money(v.toString()).toDecimalPlaces(3).toFixed(3);
 /** the fields of an item whose old and new values an edit's audit entry keeps */
-const ITEM_AUDIT_FIELDS = ['name', 'kind', 'code', 'hsn', 'unit', 'secondaryUnit', 'unitRate', 'category', 'brand', 'group', 'series', 'gstRate', 'sale', 'purchase', 'mrp', 'listPrice', 'wholesale', 'wholesaleMinQty', 'minStock', 'location'];
+const ITEM_AUDIT_FIELDS = ['name', 'kind', 'code', 'hsn', 'unit', 'secondaryUnit', 'unitRate', 'category', 'brand', 'group', 'series', 'gstRate', 'sale', 'purchase', 'mrp', 'listPrice', 'wholesale', 'wholesaleMinQty', 'minStock', 'location', 'description'];
 
 export function itemView(i: Row, stock: Prisma.Decimal | string | null) {
   const st = i.kind === 'service' ? null : q3(stock ?? '0');
@@ -22,7 +22,7 @@ export function itemView(i: Row, stock: Prisma.Decimal | string | null) {
     secondaryUnit: i.secondaryUnit?.code ?? '', unitRate: i.unitRate ? q3(i.unitRate) : null,
     brand: i.brand?.name ?? '', group: i.itemGroup?.name ?? '', series: i.series, gstRate: money(i.gstRate.toString()).toFixed(2),
     sale: toDb(i.salePrice.toString()), purchase: toDb(i.purchasePrice.toString()), mrp: toDb(i.mrp.toString()), listPrice: toDb(i.listPrice.toString()),
-    wholesale: toDb(i.wholesalePrice.toString()), wholesaleMinQty: q3(i.wholesaleMinQty), minStock: q3(i.minStock), location: i.location,
+    wholesale: toDb(i.wholesalePrice.toString()), wholesaleMinQty: q3(i.wholesaleMinQty), minStock: q3(i.minStock), location: i.location, description: i.description,
     stock: st,
     /** ok | low (at or below minimum) | out (none left) — prototype lvl() */
     level: st === null ? 'ok' : money(st).lte(0) ? 'out' : min.gt(0) && money(st).lt(min) ? 'low' : 'ok',
@@ -164,6 +164,7 @@ export class ItemsService {
       ...(input.wholesaleMinQty !== undefined && { wholesaleMinQty: q(input.wholesaleMinQty) }),
       ...(input.minStock !== undefined && { minStock: q(input.minStock) }),
       ...(input.location !== undefined && { location: input.location }),
+      ...(input.description !== undefined && { description: input.description }),
       // the rate belongs to the secondary unit: no secondary unit, no rate
       ...(input.secondaryUnit !== undefined && { unitRate: input.secondaryUnit && input.unitRate ? q(input.unitRate) : null }),
     };

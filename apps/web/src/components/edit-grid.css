@@ -33,3 +33,13 @@
 .egm.info{color:var(--t2);font-weight:500}
 .egpg{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:10px 16px;border-top:1px solid var(--bd);font-size:12.5px;color:var(--t2)}
 .egpg span{margin-right:auto}
+/* Bulk update items (SheetGrid): rows of one height, so rows never jump; a changed cell's "was …" or
+   its problem is one small line at the bottom of the cell; the active cell has the accent outline */
+.egsheet .egt td.egc{position:relative;height:44px}
+.egsheet .egc input,.egsheet .egc select{height:44px}
+.egsheet .egc:has(.egm) input,.egsheet .egc:has(.egm) select{padding-bottom:13px}
+.egsheet .egc .egm{position:absolute;left:0;right:0;bottom:4px;padding:0 10px;font-size:10.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:none;pointer-events:none}
+.egsheet .egt td.eglead{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis}
+.egsheet .egt td.egact{box-shadow:inset 0 0 0 2px var(--ac)}
+.egsheet .egt td.egact:focus{outline:none}
+.egsheet .egt tr.egsp td{padding:0!important;border:0!important}

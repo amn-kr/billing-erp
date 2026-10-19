@@ -1,84 +1,62 @@
 import { describe, expect, it } from 'vitest';
-import { bulkCellProblem, bulkItemsSchema, bulkSame, parseInrAmount, type BulkItemFacts } from '../src/bulk-items';
+import { bulkCellProblem, bulkItemsSchema, bulkSame } from '../src/bulk-items';
 
-const fan: BulkItemFacts = { id: '6f1c2a34-1b2c-4d5e-8f90-a1b2c3d4e5f6', name: 'Ceiling fan', code: 'CF1', mrp: '2000.00' };
 const codes = new Set(['led9', 'sw-6a']);
-
-describe('parseInrAmount', () => {
-  it('reads plain numbers and Indian grouping, at most 2 decimals', () => {
-    expect(parseInrAmount('1250')).toBe('1250');
-    expect(parseInrAmount('1,250')).toBe('1250');
-    expect(parseInrAmount('1,25,000.50')).toBe('125000.50');
-    expect(parseInrAmount('₹ 12,34,56,789')).toBe('123456789');
-    expect(parseInrAmount('')).toBe('');
-    expect(parseInrAmount('  ')).toBe('');
-  });
-  it('refuses other groupings, words and more than 2 decimals', () => {
-    expect(parseInrAmount('125,000')).toBeNull(); // Indian grouping is 1,25,000
-    expect(parseInrAmount('12,50,00')).toBeNull();
-    expect(parseInrAmount('1,2500')).toBeNull();
-    expect(parseInrAmount('12.345')).toBeNull();
-    expect(parseInrAmount('ten')).toBeNull();
-    expect(parseInrAmount('1.2.3')).toBeNull();
-  });
-});
+const rates = ['0', '5', '12', '18', '28'];
 
 describe('bulkCellProblem', () => {
-  it('prices: numbers only, never below zero, sale not above MRP', () => {
-    expect(bulkCellProblem('purchase', '1,560.50', fan, codes)).toBeNull();
-    expect(bulkCellProblem('purchase', '', fan, codes)).toBeNull();
-    expect(bulkCellProblem('purchase', '-5', fan, codes)).toBe('A price can’t be below zero.');
-    expect(bulkCellProblem('purchase', '-1,250', fan, codes)).toBe('A price can’t be below zero.');
-    expect(bulkCellProblem('sale', '12.345', fan, codes)).toBe('Use at most 2 decimals.');
-    expect(bulkCellProblem('sale', 'abc', fan, codes)).toBe('Enter a number, like 1,25,000.50.');
-    expect(bulkCellProblem('sale', '2,000', fan, codes)).toBeNull();
-    expect(bulkCellProblem('sale', '2,000.01', fan, codes, (v) => `₹${v}`)).toBe('Sale price can’t be above MRP (₹2000.00).');
-    expect(bulkCellProblem('sale', '5000', { ...fan, mrp: '0.00' }, codes)).toBeNull();
-    expect(bulkCellProblem('sale', '10,00,00,00,00,000', fan, codes)).toBe('This price is too large.');
-  });
   it('item code: unique in the shop ignoring capital letters, up to 60 characters', () => {
-    expect(bulkCellProblem('code', 'LED9', fan, codes)).toBe('This item code is already used.');
-    expect(bulkCellProblem('code', ' sw-6A ', fan, codes)).toBe('This item code is already used.');
-    expect(bulkCellProblem('code', 'CF-NEW', fan, codes)).toBeNull();
-    expect(bulkCellProblem('code', '', fan, codes)).toBeNull();
-    expect(bulkCellProblem('code', 'x'.repeat(61), fan, codes)).toBe('An item code has up to 60 characters.');
+    expect(bulkCellProblem('code', 'LED9', codes, rates)).toBe('Used by another item.');
+    expect(bulkCellProblem('code', ' sw-6A ', codes, rates)).toBe('Used by another item.');
+    expect(bulkCellProblem('code', 'CF-NEW', codes, rates)).toBeNull();
+    expect(bulkCellProblem('code', '', codes, rates)).toBeNull();
+    expect(bulkCellProblem('code', 'x'.repeat(61), codes, rates)).toBe('Up to 60 characters.');
   });
-  it('tax slab and category', () => {
-    expect(bulkCellProblem('gstRate', '18', fan, codes)).toBeNull();
-    expect(bulkCellProblem('gstRate', '0', fan, codes)).toBeNull();
-    expect(bulkCellProblem('gstRate', '', fan, codes)).toBe('Choose a tax slab.');
-    expect(bulkCellProblem('gstRate', '120', fan, codes)).toBe('Choose a tax slab.');
-    expect(bulkCellProblem('category', 'Fans', fan, codes)).toBeNull();
-    expect(bulkCellProblem('category', 'c'.repeat(81), fan, codes)).toBe('A category name has up to 80 characters.');
+  it('tax slab: one of the shop’s slabs', () => {
+    expect(bulkCellProblem('gstRate', '18', codes, rates)).toBeNull();
+    expect(bulkCellProblem('gstRate', '0', codes, rates)).toBeNull();
+    expect(bulkCellProblem('gstRate', '', codes, rates)).toBe('Choose a tax slab.');
+    expect(bulkCellProblem('gstRate', '7', codes, rates)).toBe('Choose a tax slab.');
+  });
+  it('category and description lengths', () => {
+    expect(bulkCellProblem('category', 'Fans', codes, rates)).toBeNull();
+    expect(bulkCellProblem('category', 'c'.repeat(81), codes, rates)).toBe('Up to 80 characters.');
+    expect(bulkCellProblem('description', 'd'.repeat(500), codes, rates)).toBeNull();
+    expect(bulkCellProblem('description', 'd'.repeat(501), codes, rates)).toBe('Up to 500 characters.');
   });
 });
 
 describe('bulkSame (only a real change counts)', () => {
-  it('compares money as amounts, tax slabs as numbers, text trimmed', () => {
-    expect(bulkSame('sale', '1250.00', '1,250')).toBe(true);
-    expect(bulkSame('sale', '1250.00', '1250.5')).toBe(false);
-    expect(bulkSame('purchase', '0.00', '')).toBe(true);
-    expect(bulkSame('purchase', '10.00', 'abc')).toBe(false);
+  it('compares tax slabs as numbers and text trimmed', () => {
     expect(bulkSame('gstRate', '18.00', '18')).toBe(true);
     expect(bulkSame('gstRate', '18.00', '12')).toBe(false);
     expect(bulkSame('code', 'CF1', ' CF1 ')).toBe(true);
     expect(bulkSame('code', 'CF1', 'cf1')).toBe(false);
     expect(bulkSame('category', '', 'Fans')).toBe(false);
+    expect(bulkSame('description', 'Copper', 'Copper ')).toBe(true);
   });
 });
 
 describe('bulkItemsSchema', () => {
+  const id1 = '6f1c2a34-1b2c-4d5e-8f90-a1b2c3d4e5f6';
   const id2 = '7a1c2a34-1b2c-4d5e-8f90-a1b2c3d4e5f6';
-  it('takes only changed rows with known fields', () => {
-    const r = bulkItemsSchema.parse({ rows: [{ id: fan.id, sale: '1,250.50' }, { id: id2, code: ' CF-2 ', gstRate: '12' }] });
-    expect(r.rows).toEqual([{ id: fan.id, sale: '1250.50' }, { id: id2, code: 'CF-2', gstRate: 12 }]);
+  const msg = (v: unknown) => bulkItemsSchema.safeParse(v).error?.issues.map((i) => i.message);
+  it('takes only changed rows with the four fields', () => {
+    const r = bulkItemsSchema.parse({ rows: [{ id: id1, description: ' 1200 mm sweep ' }, { id: id2, code: ' CF-2 ', gstRate: '12', category: 'Fans' }] });
+    expect(r.rows).toEqual([{ id: id1, description: '1200 mm sweep' }, { id: id2, code: 'CF-2', gstRate: 12, category: 'Fans' }]);
   });
-  it('refuses an empty list, a row without changes, a negative price, a repeated item and a bad id', () => {
-    const msg = (v: unknown) => bulkItemsSchema.safeParse(v).error?.issues.map((i) => i.message);
+  it('refuses prices and any other field', () => {
+    const no = 'Only category, item code, description and tax slab can be changed here. Prices are changed in Price manager.';
+    // the first message is the one the screen and the API answer show
+    expect(msg({ rows: [{ id: id1, sale: '100' }] })?.[0]).toBe(no);
+    expect(msg({ rows: [{ id: id1, code: 'A1', purchase: '100' }] })).toEqual([no]);
+    expect(msg({ rows: [{ id: id1, openingQty: '5' }] })?.[0]).toBe(no);
+  });
+  it('refuses an empty list, a row without changes, a repeated item, a bad tax slab and a bad id', () => {
     expect(msg({ rows: [] })).toEqual(['Nothing has changed.']);
-    expect(msg({ rows: [{ id: fan.id }] })).toEqual(['Each row needs at least one change.']);
-    expect(msg({ rows: [{ id: fan.id, purchase: '-1' }] })).toEqual(['Enter a number.']);
-    expect(msg({ rows: [{ id: fan.id, sale: '1' }, { id: fan.id, sale: '2' }] })).toEqual(['An item is listed twice.']);
-    expect(msg({ rows: [{ id: '4826', sale: '1' }] })).toEqual(['That item was not found.']);
+    expect(msg({ rows: [{ id: id1 }] })).toEqual(['Each row needs at least one change.']);
+    expect(msg({ rows: [{ id: id1, code: 'A' }, { id: id1, code: 'B' }] })).toEqual(['An item is listed twice.']);
+    expect(msg({ rows: [{ id: id1, gstRate: 120 }] })?.length).toBe(1);
+    expect(msg({ rows: [{ id: 'not-an-id', code: 'A' }] })).toEqual(['That item was not found.']);
   });
 });

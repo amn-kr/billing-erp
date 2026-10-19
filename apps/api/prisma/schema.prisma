@@ -649,6 +649,8 @@ model Item {
   wholesaleMinQty Decimal   @default(0) @map("wholesale_min_qty") @db.Decimal(14, 3)
   minStock        Decimal   @default(0) @map("min_stock") @db.Decimal(14, 3)
   location        String    @default("")
+  /// free text about the item (Items › Bulk update items)
+  description     String    @default("")
   imageUrl        String    @default("") @map("image_url")
   legacyId        String?   @map("legacy_id")
   archivedAt      DateTime? @map("archived_at") @db.Timestamptz(6)

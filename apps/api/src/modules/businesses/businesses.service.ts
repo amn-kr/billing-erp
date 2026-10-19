@@ -107,7 +107,7 @@ export class BusinessesService {
             unitId: await unitIdFor(tx, id, ctx.userId, i.unit?.code), categoryId: await namedId(tx, 'category', id, ctx.userId, i.category?.name),
             brandId: await namedId(tx, 'brand', id, ctx.userId, i.brand?.name), itemGroupId: await namedId(tx, 'itemGroup', id, ctx.userId, i.itemGroup?.name),
             gstRate: i.gstRate, salePrice: i.salePrice, purchasePrice: i.purchasePrice, mrp: i.mrp, listPrice: i.listPrice, wholesalePrice: i.wholesalePrice,
-            wholesaleMinQty: i.wholesaleMinQty, minStock: i.minStock, location: i.location,
+            wholesaleMinQty: i.wholesaleMinQty, minStock: i.minStock, location: i.location, description: i.description,
           },
         });
       }
