@@ -15,18 +15,31 @@ import { withDots } from './shots';
  */
 export async function withDotsAll(proto: Page, app: Page, tbody: string) {
   await withDots(proto, app, tbody);
+  // each rebuild row, known by its text (the ⋮ cell left out): its ⋮ cell, an empty ⋮ cell, or the column span of an empty-list message
   const rows = await app.locator(`${tbody} > tr`).evaluateAll((rs) => rs.map((r) => {
     const last = r.lastElementChild as HTMLTableCellElement | null;
-    const span = (r.querySelector('td[colspan]') as HTMLTableCellElement | null)?.colSpan ?? 0;
-    return { empty: last?.classList.contains('slact') && !last.querySelector('[data-slm]') ? last.outerHTML : '', span: r.children.length === 1 ? span : 0 };
+    const td = r.querySelector('td[colspan]') as HTMLTableCellElement | null;
+    return {
+      key: [...r.children].filter((c) => !c.classList.contains('slact')).map((c) => c.textContent).join('|'),
+      cell: r.querySelector('[data-slm]')?.closest('td')?.outerHTML ?? '',
+      empty: last?.classList.contains('slact') && !last.querySelector('[data-slm]') ? last.outerHTML : '',
+      span: r.children.length === 1 && td ? td.colSpan : 0,
+    };
   }));
   await proto.evaluate(({ tbody, rows }) => {
-    [...document.querySelector(tbody)!.children].forEach((r, k) => {
-      const c = rows[k];
+    const b = document.querySelector(tbody)!;
+    // the prototype may draw the same rows again a moment later (seen on CI): put the ⋮ column back each time, on the same rows only
+    const apply = () => [...b.children].forEach((r) => {
+      const c = rows.find((x) => x.key === [...r.children].filter((y) => !y.classList.contains('slact')).map((y) => y.textContent).join('|'));
       if (!c) return;
+      if (c.cell && !r.querySelector('[data-slm]')) r.insertAdjacentHTML('beforeend', c.cell);
       if (c.empty && !r.lastElementChild?.classList.contains('slact')) r.insertAdjacentHTML('beforeend', c.empty);
-      if (c.span) { const td = r.querySelector('td[colspan]') as HTMLTableCellElement | null; if (td) td.colSpan = c.span; }
+      if (c.span) { const td = r.querySelector('td[colspan]') as HTMLTableCellElement | null; if (td && td.colSpan !== c.span) td.colSpan = c.span; }
     });
+    const w = window as unknown as Record<string, MutationObserver | undefined>;
+    w['dots:' + tbody]?.disconnect();
+    apply();
+    (w['dots:' + tbody] = new MutationObserver(apply)).observe(b, { childList: true });
     window.dispatchEvent(new Event('resize'));
   }, { tbody, rows });
 }
