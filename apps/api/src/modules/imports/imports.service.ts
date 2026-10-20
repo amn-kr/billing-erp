@@ -18,6 +18,7 @@ import { BankingService } from '../banking/banking.service';
 import { PurchasesService } from '../purchases/purchases.service';
 import type { RequestContext } from '../../common/context';
 import { setCashOpening, shortName } from '../businesses/businesses.service';
+import { refreshPurchasePrices } from '../stock/stock-value';
 
 export interface ImportRequest extends PlanOptions {
   fileName: string;
@@ -245,6 +246,9 @@ export class ImportsService {
 
     /* purchases (bills, orders, debit notes, payments made), through the same rules as new ones */
     await writePurchases(tx, pctx, new PurchasesService(this.db, this.audit, this.numbers, this.ledger), { partyId, itemId, warnings: plan.warnings }, plan.purchases);
+    // purchase prices are automatic: the newest bill's rate, else the opening stock's (each bill above already did its items);
+    // an item with neither keeps the old app's purchase price
+    await refreshPurchasePrices(tx, { businessId, userId: actor.userId }, plan.items.filter((i) => i.kind === 'goods' && i.opening.length).map((i) => itemId.get(i.legacyId)!), 'Opening stock (imported)');
 
     /* money moved by hand between cash and bank */
     await writeEntries(tx, pctx, new BankingService(this.db, this.audit, this.numbers, this.ledger), plan.banking, acctIds);

@@ -27,7 +27,8 @@ interface Audit { action: string; entity: string; entityId: string | null; userI
 async function shop() {
   const o = await owner(app);
   const add = async (body: object) => (await http().post('/api/items').set(auth(o)).send(body).expect(201)).body as Item;
-  const fan = await add({ name: 'Ceiling fan 1200mm', code: 'CF12', category: 'Fans', sale: '1890', purchase: '1560', mrp: '2100', gstRate: 18, openingQty: '10', openingRate: '1540', openingDate: '2026-04-01' });
+  // the purchase price is automatic (owner, Oct 2026): the fan's is its opening stock's rate, 1540
+  const fan = await add({ name: 'Ceiling fan 1200mm', code: 'CF12', category: 'Fans', sale: '1890', mrp: '2100', gstRate: 18, openingQty: '10', openingRate: '1540', openingDate: '2026-04-01' });
   const bulb = await add({ name: 'LED bulb 9W', code: 'LB9', sale: '95', purchase: '62', gstRate: 12 });
   const wire = await add({ name: 'Wire 1.5 sq mm', code: 'WR15', sale: '1450', purchase: '1200', gstRate: 0 });
   return { o, fan, bulb, wire };
@@ -47,7 +48,7 @@ describe('Bulk update items', () => {
       { id: s.wire.id, category: '', gstRate: 5 },
     ]).expect(200);
     expect(r.body).toEqual({ updated: 3 });
-    expect(await get(s.o, s.fan.id)).toMatchObject({ category: 'Ceiling fans', description: '1200 mm sweep, 3 blades', code: 'CF12', gstRate: '18.00', sale: '1890.00', purchase: '1560.00' });
+    expect(await get(s.o, s.fan.id)).toMatchObject({ category: 'Ceiling fans', description: '1200 mm sweep, 3 blades', code: 'CF12', gstRate: '18.00', sale: '1890.00', purchase: '1540.00' });
     expect(await get(s.o, s.bulb.id)).toMatchObject({ code: 'LED-9W', gstRate: '18.00', description: '' });
     expect(await get(s.o, s.wire.id)).toMatchObject({ category: '', gstRate: '5.00' });
     // the new category is in the pickers, as when one item is edited
@@ -104,7 +105,7 @@ describe('Bulk update items', () => {
     expect((await bulk(s.o, [{ id: s.fan.id, code: 'X1', purchase: '1' }]).expect(400)).body.message).toBe(no);
     expect((await bulk(s.o, [{ id: s.fan.id, openingQty: '99' }]).expect(400)).body.message).toBe(no);
     const fan = await get(s.o, s.fan.id);
-    expect([fan.sale, fan.purchase, fan.code, fan.stock]).toEqual(['1890.00', '1560.00', 'CF12', '10.000']);
+    expect([fan.sale, fan.purchase, fan.code, fan.stock]).toEqual(['1890.00', '1540.00', 'CF12', '10.000']);
     expect(await itemEdits(s.o)).toEqual([]);
   });
 
@@ -121,7 +122,7 @@ describe('Bulk update items', () => {
     const before = await get(s.o, s.fan.id);
     await bulk(s.o, [{ id: s.fan.id, gstRate: 28 }]).expect(200);
     const after = await get(s.o, s.fan.id);
-    expect([after.stock, after.sale, after.purchase, after.gstRate]).toEqual(['10.000', '1890.00', '1560.00', '28.00']);
+    expect([after.stock, after.sale, after.purchase, after.gstRate]).toEqual(['10.000', '1890.00', '1540.00', '28.00']);
     expect(after.movements).toEqual(before.movements);
     expect(after.rateTable).toEqual(before.rateTable);
   });

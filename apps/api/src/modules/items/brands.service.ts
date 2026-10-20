@@ -5,6 +5,7 @@ import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import type { RequestContext } from '../../common/context';
 import { stockByItem } from './items.service';
+import { rateTables } from '../stock/stock-value';
 
 /** Item names made by Add item for a variant: "Parent · Brand Series" (AddItemDialog vname). */
 const vname = (g: string, b: string, s: string) => `${g} · ${b}${s ? ' ' + s : ''}`;
@@ -46,6 +47,7 @@ export class BrandsService {
   private async stats(tx: Tx) {
     const items = await tx.item.findMany({ where: { archivedAt: null, brandId: { not: null } }, select: { id: true, kind: true, brandId: true, series: true, purchasePrice: true, updatedAt: true } });
     const stock = await stockByItem(tx, items.map((i) => i.id));
+    const lots = await rateTables(tx, items.filter((i) => i.kind === 'goods'), items.length > 200);
     const byBrand = new Map<string, Stat>(), bySeries = new Map<string, Stat & { name: string; brandId: string }>();
     const add = (s: Stat, i: (typeof items)[number]) => {
       s.items++;
@@ -53,7 +55,7 @@ export class BrandsService {
       if (i.kind !== 'goods') return;
       const q = money((stock.get(i.id) ?? 0).toString());
       s.stock = s.stock.plus(q);
-      s.value = s.value.plus(money(Math.max(0, q.toNumber())).times(i.purchasePrice.toString()));
+      s.value = s.value.plus(lots.get(i.id)!.value);
     };
     const empty = (): Stat => ({ items: 0, stock: money(0), value: money(0), updated: new Date(0) });
     for (const i of items) {
