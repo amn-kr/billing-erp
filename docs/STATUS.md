@@ -40,7 +40,7 @@
 | **Next invoice number** must not go below invoices already made | Phase 3 (no invoices exist yet) |
 | **Cash in hand** from the old backup (kept in settings) becomes the cash book's opening balance | Phase 3 |
 | "Discard this …?" question for the Phase 3 documents (payment, credit note, challan, quick sale, bank/cheque entries) | Phase 3 |
-| **Restoring a backup made by the new app from inside the app** (Settings › Restore). Daily database backups with a restore test now run in GitHub Actions — see *Live app* | later |
+| **Restoring a backup made by the new app from inside the app** (Settings › Restore). Daily database backups with a restore test now run in GitHub Actions, in the separate private repository `amn-kr/billing-erp-backups` — see *Live app* | later |
 | **Security updates** for packages set up in Phase 1 (NestJS, React Router: about 23 advisories). Dependabot is on (owner, 5 Oct 2026); its pull requests are merged one by one when every check passes | ongoing |
 | **Mobile screens** — not to be built until the owner asks | owner: do not build yet |
 | **Staff roles / limited staff access** (screens and rules for what each staff member may do). The server's existing role check from Phase 1 stays as it is; nothing more is added | owner: do not build yet |
@@ -59,7 +59,7 @@ The app is live and the owner has created an account and signed in. Details (no 
 | GitHub: Dependency graph, Dependabot alerts, security updates and grouped security updates | on (owner) |
 | **Auto-deploy:** every change to `main` goes live, and the server's build runs the database migrations — merge carefully | ⚠️ standing rule |
 | Row-level security on the live database (one shop cannot see another's data) | check written and tested locally (`infra/db/backup/rls-live-check.sql`); it runs against the live database every night once the owner adds the backup secrets — it cannot be run from Claude's machine, whose network does not reach Render or Neon |
-| Daily backups (encrypted, kept 30 days in GitHub) with a restore test and a shop-by-shop isolation check on the restored copy | workflow ready (`.github/workflows/db-backup.yml`), tested locally; starts once the owner adds three secrets (see `docs/DEPLOY.md`) |
+| Daily backups (encrypted, kept 30 days in GitHub) with a restore test and a shop-by-shop isolation check on the restored copy | done: runs every night in the separate private repository `amn-kr/billing-erp-backups` (first run green 20 Oct 2026; workflow copy and steps in `infra/backup-repo/`, see `docs/DEPLOY.md`) |
 | Free-plan limits (server sleeps after 15 minutes, 0.5 GB database, short Neon restore window, …) | listed in `docs/DEPLOY.md` |
 
 ## Phase 2 — Masters ✅ (gate passed: the owner's real backup imports cleanly)
