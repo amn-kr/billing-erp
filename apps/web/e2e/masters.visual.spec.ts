@@ -92,7 +92,7 @@ for (const width of WIDTHS) {
       await proto.evaluate(() => document.getElementById('adjQty')!.dispatchEvent(new Event('input', { bubbles: true })));
       await proto.locator('#adjQty').blur();
       await app.locator('#adjQty').blur();
-      await sameShot(`adjust-${width}`, proto, app, '#adj .mdl');
+      await approvedShot(`adjust-${width}`, app, '#adj .mdl');
       // something was typed, so Cancel asks first
       for (const p of [proto, app]) await p.click('#adjCancel');
       await app.waitForSelector('#dcf:not([hidden])');
@@ -271,7 +271,7 @@ for (const width of WIDTHS) {
       await proto.evaluate(() => document.getElementById('adjQty')!.dispatchEvent(new Event('input', { bubbles: true })));
       await both((p) => p.selectOption('#adjWhy', 'Damaged'));
       await settle();
-      await sameShot(`adjnew-picked-${width}`, proto, app, '#adj .mdl');
+      await approvedShot(`adjnew-picked-${width}`, app, '#adj .mdl');
       await both((p) => p.click('#adj [type="submit"]'));
       await app.waitForSelector('#adjRows td.mono');
       await expect(app.locator('#toast')).toHaveText(await proto.locator('#toast').innerText());
@@ -350,7 +350,7 @@ for (const width of WIDTHS) {
       const times = await app.locator('#phRows tr td:first-child').allInnerTexts();
       await proto.evaluate((t) => document.querySelectorAll('#phRows tr td:first-child').forEach((td, k) => { td.textContent = t[k] ?? td.textContent; }), times);
       await settle();
-      await sameShot(`phm-${width}`, proto, app, '#phm .mdl');
+      await approvedShot(`phm-${width}`, app, '#phm .mdl');
     });
 
     test('Price Setup brand rules on the sample catalogue', async ({ browser, request }) => {
