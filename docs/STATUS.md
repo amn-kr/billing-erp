@@ -153,7 +153,6 @@ The app is live and the owner has created an account and signed in. Details (no 
   4. A tab with unsaved changes asks "Discard this bill?" before closing (the back arrow closes the bill on screen the same way).
 - Open bills stay while you visit other screens and come back with "New invoice"; they are kept in this browser window only (not on the server), and are cleared on sign-out or when switching shop. Saving a bill while others are open shows the saved invoice over the editor; saving the last one goes to the sales list as before.
 - **Demo customers and items used for real count only the shop's own documents** (owner, 4 Oct 2026). The old app's built-in demo history for them (made-up sales, purchases and payments) is not brought across, so their balances and stock are opening figures plus the shop's own documents. Money received above an invoice's total settles the shop's own older bills (so the owner's INV-0414 shows paid, where the old app used that money on demo bills).
-- **HDFC Bank is the owner's real bank** (owner, 4 Oct 2026). The account the old app set up as the default bank is kept with its name; its balance is the shop's own UPI and bank money.
 
 ## Phase 4 — Reports + Home ✅ (gate passed on the owner's backup, 4 Oct 2026)
 Scope set by the owner: only the 9 reports that already work in the prototype, plus Home. GST reports, stock reports and the ~30 placeholder reports stay on hold.
