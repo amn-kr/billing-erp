@@ -7,7 +7,7 @@
 import { Fragment, useMemo, useState, type MouseEvent as RMouseEvent } from 'react';
 import { go } from '../../lib/go';
 import { useQuery } from '@tanstack/react-query';
-import { money, type RateTable as Rates } from '@billing/shared';
+import { money, sumValues, type RateTable as Rates } from '@billing/shared';
 import { api } from '../../lib/api';
 import { dmy, inr, inr2f } from '../../lib/format';
 import { useCur, useSettings } from '../../lib/settings';
@@ -37,6 +37,10 @@ export interface Item {
   minStock: string;
   location: string;
   stock: string | null;
+  /** what is left × its own purchase rate (first in, first out); null for a service */
+  value: string | null;
+  /** average purchase rate of what is left */
+  avgRate: string | null;
   level: 'ok' | 'low' | 'out';
   createdAt: string;
   /** the item's id in the old app's backup, when imported */
@@ -123,7 +127,7 @@ export function ItemsPage() {
   });
 
   const prods = IT.filter((i) => i.kind === 'goods');
-  const val = prods.reduce((a, i) => a.plus(money(Math.max(0, n(i.stock ?? '0'))).times(i.purchase)), money(0));
+  const val = sumValues(prods.map((i) => i.value ?? '0'));
   const low = prods.filter((i) => i.level === 'low').length;
   const out = prods.filter((i) => i.level === 'out').length;
   const toggle = (k: 'kind' | 'more' | 'fil') => (e: RMouseEvent) => {
@@ -339,7 +343,7 @@ function ItemHead({ i, mrpOn, onBack, onAdjust }: { i: ItemDetail; mrpOn: boolea
             <div><small>Margin</small><b className="pos">{inr2f(m)}{n(i.purchase) > 0 && <>{' '}<em>({Math.round(m.div(i.purchase).times(100).toNumber())}%)</em></>}</b></div>
             {/* with MRP switched off the prototype strips every red .neg from this header (its MRP patch), so "Out of stock" quantity isn't red */}
             <div><small>In stock</small><b className={l === 'out' ? (mrpOn ? 'neg' : '') : l === 'low' ? 'lowq' : ''}>{qfmt(s)} {i.unit}</b>{l === 'low' ? <span className="tagw">Below {qfmt(i.minStock)}</span> : l === 'out' ? <span className="tagw r">Out of stock</span> : null}</div>
-            <div><small>Stock value</small><b>{inr2f(money(Math.max(0, s)).times(i.purchase))}</b></div>
+            <div><small>Stock value</small><b>{inr2f(i.rateTable?.value ?? '0')}</b></div>
             {i.rateTable && <RateTable t={i.rateTable} unit={i.unit} />}
           </>
         )}
@@ -351,7 +355,7 @@ function ItemHead({ i, mrpOn, onBack, onAdjust }: { i: ItemDetail; mrpOn: boolea
 function GroupHead({ g, ms, mrpOn, cur, onPick }: { g: string; ms: Item[]; mrpOn: boolean; cur: (t: string) => string; onPick: (id: string) => void }) {
   const f = ms[0]!;
   const tot = ms.reduce((a, x) => a + n(x.stock ?? '0'), 0);
-  const val = ms.reduce((a, x) => a.plus(money(Math.max(0, n(x.stock ?? '0'))).times(x.purchase)), money(0));
+  const val = sumValues(ms.map((x) => x.value ?? '0'));
   return (
     <>
       <div className="pth">
