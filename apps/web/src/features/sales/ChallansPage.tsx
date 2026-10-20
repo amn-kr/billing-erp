@@ -21,10 +21,12 @@ import { useSale, useSales, type SaleDoc, type SaleRow } from './model';
 import { InvoicePreview } from './InvoicePreview';
 import { cancelAsk, editAsk, withPasscode } from '../settings/passcode';
 import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
+import { HIST_ACTION, openHistory } from '../../components/EditHistory';
+import { SlModal, type SlModalProps } from './SlModal';
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const PLUS = '<path d="M12 5v14M5 12h14"/>';
-const DC_ACT: RowAction[] = [['edit', 'Edit'], ['print', 'Print'], ['conv', 'Convert to invoice']];
+const DC_ACT: RowAction[] = [['edit', 'Edit'], ['print', 'Print'], ['conv', 'Convert to invoice'], HIST_ACTION];
 const ST: Record<string, { t: string; c: string }> = { open: { t: 'Open', c: 'b' }, invoiced: { t: 'Invoiced', c: 'g' }, cancelled: { t: 'Cancelled', c: 'x' } };
 
 export function ChallansPage() {
@@ -40,6 +42,7 @@ export function ChallansPage() {
   const [sure, setSure] = useState<string | null>(null);
   const [edit, setEdit] = useState<string | null>(null);
   const [menu, setMenu] = useState<RowMenuAt<SaleRow> | null>(null);
+  const [modal, setModal] = useState<SlModalProps | null>(null);
   const [params, setParams] = useSearchParams();
   useEffect(() => { if (params.get('new')) { setOpen(true); setParams({}, { replace: true }); } }, [params, setParams]);
   useEffect(() => { if (!sure) return; const t = setTimeout(() => setSure(null), 2500); return () => clearTimeout(t); }, [sure]);
@@ -64,6 +67,7 @@ export function ChallansPage() {
     if (a === 'edit') return setEdit(d.id);
     if (a === 'print') return setPrint(d.id);
     if (a === 'conv') return navigate(`/sales/new?challan=${d.id}`);
+    if (a === 'hist') return void openHistory('sales', d.id, setModal, showToast);
   };
   const m = menu?.row;
   const editOff = !m ? '' : m.cancelled || m.status === 'cancelled' ? 'Cancelled document' : m.status === 'invoiced' ? `Already turned into invoice ${m.invoiceNo}. Edit the invoice instead.` : '';
@@ -86,6 +90,7 @@ export function ChallansPage() {
         off={{ edit: editOff, conv: m && m.status !== 'open' ? (m.status === 'invoiced' ? 'Already invoiced' : 'Cancelled document') : '' }} onClose={() => { const tr = menu?.tr; setMenu(null); return tr; }} onPick={(a) => menu && pick(a, menu.row)} />
       <ChallanDialog open={open || !!edit} editId={edit} onClose={() => { setOpen(false); setEdit(null); }} onSaved={(id, pr) => { if (pr) setPrint(id); }} />
       <ChallanPrint id={print} onClose={() => setPrint(null)} />
+      <SlModal m={modal} onClose={() => setModal(null)} />
     </section>
   );
 }

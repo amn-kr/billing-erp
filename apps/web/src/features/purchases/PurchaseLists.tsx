@@ -20,6 +20,8 @@ import { RangeForm } from '../sales/SalesPage';
 import { PU_KEYS, statusOfBill, usePaymentsMade, usePurchases, type PaymentMade, type PurchaseRow } from './model';
 import { PayDialog, type PayOpen } from './PayDialog';
 import { PurchaseView } from './PurchaseView';
+import { SlModal, type SlModalProps } from '../sales/SlModal';
+import { HIST_ACTION, openHistory } from '../../components/EditHistory';
 import { cancelAsk, withPasscode } from '../settings/passcode';
 import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
 
@@ -41,10 +43,10 @@ function Thf({ id, label, on, title, onOpen }: { id: string; label: string; on: 
 const rowKeys = (sel: string, menuKey?: (e: React.KeyboardEvent) => boolean) => (e: React.KeyboardEvent) => { if (menuKey?.(e)) return; const r = (e.target as HTMLElement).closest<HTMLElement>(sel); if (r && e.key === 'Enter' && e.target === r) { e.preventDefault(); r.click(); } };
 
 /* row actions: Edit first, then what each list already offers (Cancel and Delete are not in these menus) */
-const PUR_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View'], ['pay', 'Record payment'], ['dn', 'Return goods (debit note)']];
-const PO_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View'], ['conv', 'Convert to bill']];
-const DN_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View']];
-const PX_ACT: RowAction[] = [['edit', 'Edit']];
+const PUR_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View'], ['pay', 'Record payment'], ['dn', 'Return goods (debit note)'], HIST_ACTION];
+const PO_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View'], ['conv', 'Convert to bill'], HIST_ACTION];
+const DN_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View'], HIST_ACTION];
+const PX_ACT: RowAction[] = [['edit', 'Edit'], HIST_ACTION];
 const CANCELLED = 'Cancelled document';
 const editPath = (id: string) => `/purchases/new?edit=${id}`;
 /** The highlighted row while its menu is open. */
@@ -70,6 +72,8 @@ export function PurchaseBillsPage() {
   useFitTables();
   const navigate = useNavigate();
   const list = usePurchases('bill');
+  const [hist, setHist] = useState<SlModalProps | null>(null);
+  const { showToast } = useShell();
   const [q, setQ] = useState('');
   const [st, setSt] = useState('all');
   const P = usePeriodPop();
@@ -119,9 +123,10 @@ export function PurchaseBillsPage() {
       </ThfPop>
       <RowMenu id="puCtx" label="Purchase bill actions" rows="#puRows tr[data-bno]" menu={menu} head={m ? <><b>{m.number}</b> · {m.partyName}</> : null} actions={PUR_ACT}
         off={{ edit: m?.cancelled ? CANCELLED : '', pay: m && !(Number(m.balance) > 0) ? 'Nothing left to pay' : '', dn: m?.cancelled ? CANCELLED : '' }} onClose={closeMenu(menu, setMenu)}
-        onPick={(a) => { const b = menu?.row; setMenu(null); if (!b) return; if (a === 'edit') navigate(editPath(b.id)); else if (a === 'pay') setPay({ party: b.party.id, bill: b.id }); else if (a === 'dn') navigate(`/purchases/new?kind=debit_note&against=${b.id}`); else setView(b.id); }} />
+        onPick={(a) => { const b = menu?.row; setMenu(null); if (!b) return; if (a === 'edit') navigate(editPath(b.id)); else if (a === 'pay') setPay({ party: b.party.id, bill: b.id }); else if (a === 'dn') navigate(`/purchases/new?kind=debit_note&against=${b.id}`); else if (a === 'hist') void openHistory('purchase', b.id, setHist, showToast); else setView(b.id); }} />
       <PurchaseView id={view} onClose={() => setView(null)} onPay={(o) => { setView(null); setPay(o); }} />
       <PayDialog open={pay} onClose={() => setPay(null)} />
+      <SlModal m={hist} onClose={() => setHist(null)} />
     </section>
   );
 }
@@ -136,6 +141,7 @@ export function PurchaseOrdersPage() {
   const qc = useQueryClient();
   const { showToast } = useShell();
   const list = usePurchases('order');
+  const [hist, setHist] = useState<SlModalProps | null>(null);
   const [q, setQ] = useState('');
   const [st, setSt] = useState('all');
   const [sure, setSure] = useState<string | null>(null);
@@ -187,8 +193,9 @@ export function PurchaseOrdersPage() {
       </ThfPop>
       <RowMenu id="poCtx" label="Purchase order actions" rows="#poRows tr[data-pono]" menu={menu} head={m ? <><b>{m.number}</b> · {m.partyName}</> : null} actions={PO_ACT}
         off={{ edit: m?.cancelled ? CANCELLED : m?.status === 'received' ? `Already turned into ${m.bill ? 'bill ' + m.bill : 'a bill'}. Edit the bill instead.` : '', conv: m && m.status !== 'open' ? 'Only an open order can be converted' : '' }}
-        onClose={closeMenu(menu, setMenu)} onPick={(a) => { const d = menu?.row; setMenu(null); if (!d) return; if (a === 'edit') navigate(editPath(d.id)); else if (a === 'conv') convert(d); else setView(d.id); }} />
+        onClose={closeMenu(menu, setMenu)} onPick={(a) => { const d = menu?.row; setMenu(null); if (!d) return; if (a === 'edit') navigate(editPath(d.id)); else if (a === 'conv') convert(d); else if (a === 'hist') void openHistory('purchase', d.id, setHist, showToast); else setView(d.id); }} />
       <PurchaseView id={view} onClose={() => setView(null)} />
+      <SlModal m={hist} onClose={() => setHist(null)} />
     </section>
   );
 }
@@ -198,6 +205,8 @@ export function PaymentsMadePage() {
   useFitTables();
   const list = usePaymentsMade();
   const bills = usePurchases('bill');
+  const [hist, setHist] = useState<SlModalProps | null>(null);
+  const { showToast } = useShell();
   const [q, setQ] = useState('');
   const P = usePeriodPop();
   const [pay, setPay] = useState<PayOpen | null>(null);
@@ -234,8 +243,9 @@ export function PaymentsMadePage() {
       <ThfPop anchor={P.pop?.anchor ?? null} onClose={P.closePop} focus={P.pop?.kind === 'range' ? '#thdFrom' : 'button.on,button'}>{P.perPop}</ThfPop>
       <RowMenu id="pxCtx" label="Payment actions" rows="#pxRows tr[data-pxno]" menu={menu} head={m ? <><b>{m.number}</b> · {m.partyName || '—'}</> : null} actions={PX_ACT}
         off={{ edit: m?.atBill ? `Paid with ${m.bills[0]?.number ?? 'a bill'}. Edit the bill instead.` : '' }} onClose={closeMenu(menu, setMenu)}
-        onPick={() => { const x = menu?.row; setMenu(null); if (x) setPay({ edit: x.id }); }} />
+        onPick={(a) => { const x = menu?.row; setMenu(null); if (!x) return; if (a === 'hist') void openHistory('payment-made', x.id, setHist, showToast); else setPay({ edit: x.id }); }} />
       <PayDialog open={pay} onClose={() => setPay(null)} />
+      <SlModal m={hist} onClose={() => setHist(null)} />
     </section>
   );
 }
@@ -245,6 +255,8 @@ export function DebitNotesPage() {
   useFitTables();
   const navigate = useNavigate();
   const list = usePurchases('debit_note');
+  const [hist, setHist] = useState<SlModalProps | null>(null);
+  const { showToast } = useShell();
   const [q, setQ] = useState('');
   const [view, setView] = useState<string | null>(null);
   const [menu, setMenu] = useState<RowMenuAt<PurchaseRow> | null>(null);
@@ -273,8 +285,9 @@ export function DebitNotesPage() {
       </div>
       <RowMenu id="dnCtx" label="Debit note actions" rows="#dnRows tr[data-dnno]" menu={menu} head={m ? <><b>{m.number}</b> · {m.partyName || '—'}</> : null} actions={DN_ACT}
         off={{ edit: m?.cancelled ? CANCELLED : '' }} onClose={closeMenu(menu, setMenu)}
-        onPick={(a) => { const d = menu?.row; setMenu(null); if (!d) return; if (a === 'edit') navigate(editPath(d.id)); else setView(d.id); }} />
+        onPick={(a) => { const d = menu?.row; setMenu(null); if (!d) return; if (a === 'edit') navigate(editPath(d.id)); else if (a === 'hist') void openHistory('purchase', d.id, setHist, showToast); else setView(d.id); }} />
       <PurchaseView id={view} onClose={() => setView(null)} />
+      <SlModal m={hist} onClose={() => setHist(null)} />
     </section>
   );
 }

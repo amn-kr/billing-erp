@@ -68,3 +68,15 @@ export function formatDmy(date: string): string {
   const { y, m, d } = parseIso(date);
   return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
 }
+
+/**
+ * A moment as the history window shows it, in India time: "19/10/2026, 03:05 pm".
+ * Built from its parts, so it reads the same on every machine (no locale differences).
+ */
+export function formatIstDateTime(at: Date | string): string {
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: BUSINESS_TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+    .formatToParts(typeof at === 'string' ? new Date(at) : at);
+  const p = (t: string) => parts.find((x) => x.type === t)?.value ?? '';
+  const h = Number(p('hour')) % 24;
+  return `${p('day')}/${p('month')}/${p('year')}, ${String(h % 12 || 12).padStart(2, '0')}:${p('minute')} ${h < 12 ? 'am' : 'pm'}`;
+}

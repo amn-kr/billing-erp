@@ -23,7 +23,8 @@ import { InvoicePreview, useBiz } from '../sales/InvoicePreview';
 import { useSale, useSales, type SaleDoc, type SaleRow } from '../sales/model';
 import { useEditorData } from '../sales/editor/data';
 import { useElecModal } from '../sales/editor/Referral';
-import { SlModal } from '../sales/SlModal';
+import { SlModal, type SlModalProps } from '../sales/SlModal';
+import { openHistory } from '../../components/EditHistory';
 import { addDaysIso, blankLine, lineFor, newSI, partyState, useSI, type Line } from '../sales/editor/state';
 import { qComm, qCols, qRanked, qRate, qTotals, type QCtx, type QDraft } from './model';
 import { quoteExcel, quotePdf, quoteWhatsApp, qUsed } from './exports';
@@ -56,6 +57,7 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useShell((s) => s.showToast);
+  const [hist, setHist] = useState<SlModalProps | null>(null);
   const settings = useSettings();
   const biz = useBiz();
   const saved = useSales('quotation');
@@ -373,11 +375,11 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
           </tfoot></table></div>
       </div>
       )}
-      <SavedList open={savedOpen} rows={rows} onClose={() => setSavedOpen(false)} onOpen={onOpen} onConvert={onConvertRow} onCancel={(r) => void onCancel(r)} />
+      <SavedList open={savedOpen} rows={rows} onClose={() => setSavedOpen(false)} onOpen={onOpen} onConvert={onConvertRow} onCancel={(r) => void onCancel(r)} onHistory={(r) => void openHistory('sales', r.id, setHist, toast)} />
       <ConvertDialog open={conv} no={q.no} cust={q.cust} n={Object.keys(q.qty).length} ranked={qRanked(T)} onGo={convertBrand} onClose={() => setConv(false)} />
       <AddDialog mode={add} brands={brands} gstOn={gstOn} onClose={() => setAdd(null)} onSer={onSer} onRow={onRow} onItem={onItem} />
       <PinDialog open={pin} onClose={() => setPin(false)} onUnlocked={() => setPin(false)} />
-      <SlModal m={elec.modal} onClose={elec.close} />
+      <SlModal m={elec.modal ?? hist} onClose={() => { if (elec.modal) elec.close(); else setHist(null); }} />
       <InvoicePreview doc={preview && shown.data?.id === preview ? shown.data : null} onClose={() => setPreview(null)} onNew={() => { const id = preview; setPreview(null); if (id && shown.data?.status !== 'converted') void convertItems(id); else navigate('/sales/new'); }} onLink={() => toast('Payment link is coming next')} />
     </section>
   );

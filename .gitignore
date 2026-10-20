@@ -2,6 +2,10 @@ node_modules/
 .env
 .env.*
 !.env.example
+# database backups must never be committed (the repository is public)
+*.dump
+*.gpg
+backup-out/
 dist/
 build/
 coverage/

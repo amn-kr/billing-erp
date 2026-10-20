@@ -40,7 +40,7 @@
 | **Next invoice number** must not go below invoices already made | Phase 3 (no invoices exist yet) |
 | **Cash in hand** from the old backup (kept in settings) becomes the cash book's opening balance | Phase 3 |
 | "Discard this …?" question for the Phase 3 documents (payment, credit note, challan, quick sale, bank/cheque entries) | Phase 3 |
-| **Restoring a backup made by the new app from inside the app** (Settings › Restore). Daily database backups with a restore test now run in GitHub Actions — see *Live app* | later |
+| **Restoring a backup made by the new app from inside the app** (Settings › Restore). Daily database backups with a restore test now run in GitHub Actions, in the separate private repository `amn-kr/billing-erp-backups` — see *Live app* | later |
 | **Security updates** for packages set up in Phase 1 (NestJS, React Router: about 23 advisories). Dependabot is on (owner, 5 Oct 2026); its pull requests are merged one by one when every check passes | ongoing |
 | **Mobile screens** — not to be built until the owner asks | owner: do not build yet |
 | **Staff roles / limited staff access** (screens and rules for what each staff member may do). The server's existing role check from Phase 1 stays as it is; nothing more is added | owner: do not build yet |
@@ -59,7 +59,7 @@ The app is live and the owner has created an account and signed in. Details (no 
 | GitHub: Dependency graph, Dependabot alerts, security updates and grouped security updates | on (owner) |
 | **Auto-deploy:** every change to `main` goes live, and the server's build runs the database migrations — merge carefully | ⚠️ standing rule |
 | Row-level security on the live database (one shop cannot see another's data) | check written and tested locally (`infra/db/backup/rls-live-check.sql`); it runs against the live database every night once the owner adds the backup secrets — it cannot be run from Claude's machine, whose network does not reach Render or Neon |
-| Daily backups (encrypted, kept 30 days in GitHub) with a restore test and a shop-by-shop isolation check on the restored copy | workflow ready (`.github/workflows/db-backup.yml`), tested locally; starts once the owner adds three secrets (see `docs/DEPLOY.md`) |
+| Daily backups (encrypted, kept 30 days in GitHub) with a restore test and a shop-by-shop isolation check on the restored copy | done: runs every night in the separate private repository `amn-kr/billing-erp-backups` (first run green 20 Oct 2026; workflow copy and steps in `infra/backup-repo/`, see `docs/DEPLOY.md`) |
 | Free-plan limits (server sleeps after 15 minutes, 0.5 GB database, short Neon restore window, …) | listed in `docs/DEPLOY.md` |
 
 ## Phase 2 — Masters ✅ (gate passed: the owner's real backup imports cleanly)
@@ -153,7 +153,6 @@ The app is live and the owner has created an account and signed in. Details (no 
   4. A tab with unsaved changes asks "Discard this bill?" before closing (the back arrow closes the bill on screen the same way).
 - Open bills stay while you visit other screens and come back with "New invoice"; they are kept in this browser window only (not on the server), and are cleared on sign-out or when switching shop. Saving a bill while others are open shows the saved invoice over the editor; saving the last one goes to the sales list as before.
 - **Demo customers and items used for real count only the shop's own documents** (owner, 4 Oct 2026). The old app's built-in demo history for them (made-up sales, purchases and payments) is not brought across, so their balances and stock are opening figures plus the shop's own documents. Money received above an invoice's total settles the shop's own older bills (so the owner's INV-0414 shows paid, where the old app used that money on demo bills).
-- **HDFC Bank is the owner's real bank** (owner, 4 Oct 2026). The account the old app set up as the default bank is kept with its name; its balance is the shop's own UPI and bank money.
 
 ## Phase 4 — Reports + Home ✅ (gate passed on the owner's backup, 4 Oct 2026)
 Scope set by the owner: only the 9 reports that already work in the prototype, plus Home. GST reports, stock reports and the ~30 placeholder reports stay on hold.

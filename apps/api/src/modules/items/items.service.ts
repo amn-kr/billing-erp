@@ -7,6 +7,7 @@ import { fieldChanges } from '../../common/editing';
 import type { RequestContext } from '../../common/context';
 import { day, isoOf, namedId, unitIdFor, uniqueMessage } from '../../common/lookups';
 import { invoiceBalances } from '../sales/dues';
+import { withoutEditedLines } from './item-history';
 
 const include = { unit: true, secondaryUnit: true, category: true, brand: true, itemGroup: true } satisfies Prisma.ItemInclude;
 type Row = Prisma.ItemGetPayload<{ include: typeof include }>;
@@ -129,8 +130,9 @@ export class ItemsService {
           item.purchase,
         ),
         godowns: godowns.map((g) => ({ id: g.id, name: g.name, stock: q3(byGodown.find((b) => b.godownId === g.id)?._sum.qty ?? '0') })),
-        // a deleted document's movements (taken out and put back) still count in the stock, but aren't listed
-        movements: movements.filter((m) => !(m.sourceId && sdocs.get(m.sourceId)?.deletedAt)).map((m) => ({ id: m.id, date: isoOf(m.date), kind: m.kind, qty: q3(m.qty), rate: toDb(m.rate.toString()), godown: m.godown.name, note: m.note, sourceType: m.sourceType, sourceId: m.sourceId, ref: refOf(m), party: partyOf(m), status: statusOf(m), createdAt: m.createdAt })),
+        // a deleted document's movements (taken out and put back) still count in the stock, but aren't listed;
+        // nor are the lines an edit replaced (its reversal and what that put back: see item-history.ts)
+        movements: withoutEditedLines(movements.filter((m) => !(m.sourceId && sdocs.get(m.sourceId)?.deletedAt))).map((m) => ({ id: m.id, date: isoOf(m.date), kind: m.kind, qty: q3(m.qty), rate: toDb(m.rate.toString()), godown: m.godown.name, note: m.note, sourceType: m.sourceType, sourceId: m.sourceId, ref: refOf(m), party: partyOf(m), status: statusOf(m), createdAt: m.createdAt })),
       };
     });
   }

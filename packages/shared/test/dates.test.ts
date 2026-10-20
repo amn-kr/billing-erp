@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, daysBetween, financialYearOf, formatDmy, formatLongDate, parseIso, todayIst } from '../src/dates';
+import { addDays, daysBetween, financialYearOf, formatDmy, formatIstDateTime, formatLongDate, parseIso, todayIst } from '../src/dates';
 
 describe('financial year (April–March)', () => {
   it('April starts a new year', () => {
@@ -40,5 +40,17 @@ describe('date helpers', () => {
   it('formats like the prototype', () => {
     expect(formatLongDate('2026-10-08')).toBe('8 Oct 2026');
     expect(formatDmy('2026-10-01')).toBe('01/10/2026');
+  });
+});
+
+describe('history window date and time (India time)', () => {
+  it('turns a UTC moment into dd/mm/yyyy, hh:mm am/pm in Asia/Kolkata', () => {
+    expect(formatIstDateTime('2026-10-19T09:35:00.000Z')).toBe('19/10/2026, 03:05 pm');
+    expect(formatIstDateTime(new Date('2026-10-19T04:12:00.000Z'))).toBe('19/10/2026, 09:42 am');
+  });
+  it('midnight and noon read as 12, and a late UTC evening is already the next day in India', () => {
+    expect(formatIstDateTime('2026-10-18T18:30:00.000Z')).toBe('19/10/2026, 12:00 am');
+    expect(formatIstDateTime('2026-10-19T06:30:00.000Z')).toBe('19/10/2026, 12:00 pm');
+    expect(formatIstDateTime('2027-03-31T20:00:00.000Z')).toBe('01/04/2027, 01:30 am');
   });
 });

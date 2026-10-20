@@ -2,7 +2,7 @@
  * Sales invoices (#vSales) — the prototype's renderSales with its later changes:
  * collapsible search, column-header filters (date, number, party, amounts, due
  * date, status), right-click / ⋮ actions (#slCtx) and the small window (#slm)
- * for cancel, delete, history and payment history. A row opens the invoice preview.
+ * for cancel, delete, edit history and payment history. A row opens the invoice preview.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -19,6 +19,7 @@ import { today as todayIst } from '../../lib/time';
 import { inPeriod, statusOf, useSale, useSales, type Period, type SaleDoc, type SaleRow } from './model';
 import { InvoicePreview } from './InvoicePreview';
 import { SlModal, type SlModalProps } from './SlModal';
+import { openHistory } from '../../components/EditHistory';
 import { printNow } from '../print/printer';
 import { cancelAsk, deleteAsk, withPasscode } from '../settings/passcode';
 
@@ -108,10 +109,10 @@ export function SalesPage() {
     // Open PDF and Print: the same paper through the browser's print window (choose "Save as PDF"; the file is named e.g. "Tax Invoice INV-0101")
     if (a === 'pdf' || a === 'print') { setPreview({ id: s.id }); printNow(); return; }
     if (a === 'del') return askDelete(s);
+    if (a === 'hist') return openHistory('sales', s.id, setModal, showToast);
     const d = await qc.fetchQuery({ queryKey: ['sale', s.id], queryFn: () => api<SaleDoc>(`/sales/${s.id}`) });
     if (a === 'cancel') return askCancel(s, d);
     if (a === 'payh') return payHistory(s, d);
-    if (a === 'hist') return history(d);
   };
   const askCancel = (s: SaleRow, d: SaleDoc) => {
     const recv = money(s.total).minus(s.balance);
@@ -153,15 +154,6 @@ export function SalesPage() {
         <><div className="tw" style={{ margin: 0 }}><table className="slht"><thead><tr><th>Date</th><th>Entry</th><th>Mode</th><th className="n">Amount</th></tr></thead><tbody>{rows.map((r, k) => <tr key={k}><td>{r[0]}</td><td>{r[1]}</td><td>{r[2]}</td><td className="n">₹{inr2f(r[3])}</td></tr>)}</tbody></table></div>
           <div className="slhs"><span>Received <b className="pos">₹{inr2f(recvNow)}</b></span><span>{s.cancelled ? 'Cancelled — balance cleared' : <>Balance <b className={Number(s.balance) > 0 ? 'neg' : ''}>₹{inr2f(s.balance)}</b></>}</span></div></>
       ) : <div className="ptempty">No payment received yet. Balance ₹{inr2f(s.balance)}.</div>,
-    });
-  };
-  const history = (d: SaleDoc) => {
-    const word: Record<string, string> = { create: 'Created', update: 'Edited', cancel: 'Invoice cancelled' };
-    const at = (t: string) => new Date(t).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    const L2 = d.history.filter((h) => h.action !== 'create');
-    setModal({
-      title: `History · ${d.number}`, sub: `${d.partyName} · ₹${inr2f(d.total)}`,
-      body: <ol className="slhl"><li><b>Created</b><small>{dmy(d.date)}{d.legacy ? ' · imported from the old app' : ''}</small></li>{L2.map((h, k) => <li key={k}><b>{word[h.action] ?? h.action}</b><small>{at(h.at)}</small></li>)}</ol>,
     });
   };
 

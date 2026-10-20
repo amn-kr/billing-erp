@@ -15,7 +15,7 @@ connection strings live only in Render, Neon and GitHub settings.
 | Screens (web app) | Render **Static Site** | `billing-erp` — https://billing-erp-ynqf.onrender.com | — (CDN) |
 | Server (API) | Render **Web Service** | `billing-erp-api` — https://billing-erp-api.onrender.com | Singapore |
 | Database | **Neon** Postgres 16 | project `billing-erp`, database `neondb` | AWS Singapore |
-| Backups | **GitHub Actions** (this private repository) | workflow *Daily database backup* | — |
+| Backups | **GitHub Actions** (separate private repository `amn-kr/billing-erp-backups`) | workflow *Daily database backup* | — |
 
 The screens and the server are reached through **one address** (the static site): requests to `/api/*` are
 passed on to the server, so the sign-in cookie works. (Cloudflare was not used; the owner's Cloudflare
@@ -45,16 +45,23 @@ account is unused for now.)
 - CI (`.github/workflows/ci.yml`) runs every test on each pull request (about 45 minutes); merge only when it is green.
 
 ## Backups
-The workflow **Daily database backup** (`.github/workflows/db-backup.yml`) runs every night at 03:00 India
-time, and whenever started by hand (GitHub › Actions › *Daily database backup* › *Run workflow*). Each run:
+The workflow **Daily database backup** runs in the separate **private** repository
+`amn-kr/billing-erp-backups`, every night at 03:00 India time, and whenever started by hand (that
+repository › Actions › *Daily database backup* › *Run workflow*). It uses the scripts in
+`infra/db/backup/` on this repository's `main`. Each run:
 1. checks row-level security on the live database as `erp_app` (read-only: no shop's rows are visible without choosing that shop);
 2. takes a full backup with `pg_dump` as `neondb_owner`, **encrypted with a passphrase** (AES-256), and keeps it in the run for **30 days**;
 3. restores that backup into an empty throwaway database on GitHub's machine and checks it: every migration and table is there, row-level security is still on, and shop by shop no shop can see another shop's rows. The live database is never written to.
 
 If a run fails, GitHub emails the owner and the run shows red under Actions.
 
-### One-time setup (owner)
-Add three repository secrets in GitHub › the repository › Settings › Secrets and variables › Actions › *New repository secret*:
+**Only in a private repository.** This code repository is public, and anyone can download the files a
+public repository's runs keep, so backups never run here. The backup workflow itself stops (red, before
+it reads the database) if its repository is ever made public.
+
+### One-time setup (owner, done 20 Oct 2026)
+Steps: `infra/backup-repo/README.md` (the workflow to paste is `infra/backup-repo/db-backup.yml`).
+The private repository has three secrets (*its* Settings › Secrets and variables › Actions):
 
 | Secret | Value |
 |---|---|
@@ -65,7 +72,7 @@ Add three repository secrets in GitHub › the repository › Settings › Secre
 Then run the workflow once by hand and check it goes green.
 
 ### Restoring (in an emergency)
-1. GitHub › Actions › *Daily database backup* › pick a green run › download the `db-backup-…` file and unzip it (`billing-erp-YYYY-MM-DD-HHMM.dump.gpg`).
+1. `amn-kr/billing-erp-backups` › Actions › *Daily database backup* › pick a green run › download the `db-backup-…` file and unzip it (`billing-erp-YYYY-MM-DD-HHMM.dump.gpg`).
 2. Decrypt: `gpg --decrypt --output db.dump billing-erp-….dump.gpg` (asks for the passphrase).
 3. In Neon, create a **new branch** (or a new project) to restore into — never restore over the live branch while the app is running.
 4. Restore: `pg_restore --no-owner --dbname="<connection string of the new branch, neondb_owner>" db.dump`, then create the `erp_app` role there if it is a new project, and point Render's `DATABASE_URL` / `MIGRATE_DATABASE_URL` at it.

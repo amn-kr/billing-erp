@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { qSerName, type QuoteRow, type QuoteSeries } from '@billing/shared';
 import { RawIcon } from '../../components/Icon';
 import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
+import { HIST_ACTION } from '../../components/EditHistory';
 import { dmy, inr2f } from '../../lib/format';
 import { useEscape } from '../../lib/useEscape';
 import { useOpenFocus } from '../../lib/useOpenFocus';
@@ -11,7 +12,7 @@ import type { SaleRow } from '../sales/model';
 import type { QTotal } from './model';
 
 const X = '<path d="M6 6l12 12M18 6L6 18"/>';
-const QL_ACT: RowAction[] = [['edit', 'Edit'], ['open', 'Open'], ['conv', 'Convert to invoice']];
+const QL_ACT: RowAction[] = [['edit', 'Edit'], ['open', 'Open'], ['conv', 'Convert to invoice'], HIST_ACTION];
 
 /** a button that asks once more before acting (prototype confirmTwice) */
 function SureBtn({ label, ask, title, onSure, ...rest }: { label: string; ask: string; title: string; onSure: () => void; 'data-qdl': string; 'aria-label': string }) {
@@ -20,7 +21,7 @@ function SureBtn({ label, ask, title, onSure, ...rest }: { label: string; ask: s
   return <button className={`btn sm qdl${sure ? ' sure' : ''}`} title={title} {...rest} onClick={() => { if (sure) onSure(); else setSure(true); }}>{sure ? ask : label}</button>;
 }
 
-export function SavedList({ open, rows, onClose, onOpen, onConvert, onCancel }: { open: boolean; rows: SaleRow[]; onClose: () => void; onOpen: (r: SaleRow) => void; onConvert: (r: SaleRow) => void; onCancel: (r: SaleRow) => void }) {
+export function SavedList({ open, rows, onClose, onOpen, onConvert, onCancel, onHistory }: { open: boolean; rows: SaleRow[]; onClose: () => void; onOpen: (r: SaleRow) => void; onConvert: (r: SaleRow) => void; onCancel: (r: SaleRow) => void; onHistory: (r: SaleRow) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const [menu, setMenu] = useState<RowMenuAt<SaleRow> | null>(null);
   useOpenFocus(open, ref);
@@ -48,7 +49,7 @@ export function SavedList({ open, rows, onClose, onOpen, onConvert, onCancel }: 
       </div>
       <RowMenu id="qlCtx" label="Quotation actions" rows="#qlRows tr[data-qno]" menu={menu} head={m ? <><b>{m.number}</b> · {m.partyName || '—'}</> : null} actions={QL_ACT}
         off={{ edit: done, conv: done ? 'Already converted' : '' }} onClose={() => { const tr = menu?.tr; setMenu(null); return tr; }}
-        onPick={(a) => { const q = menu?.row; setMenu(null); if (!q) return; if (a === 'conv') onConvert(q); else onOpen(q); }} />
+        onPick={(a) => { const q = menu?.row; setMenu(null); if (!q) return; if (a === 'conv') onConvert(q); else if (a === 'hist') onHistory(q); else onOpen(q); }} />
     </div>
   );
 }

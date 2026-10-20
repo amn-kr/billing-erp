@@ -23,6 +23,7 @@ import { useSales, type SaleRow } from './model';
 import { SlModal, type SlModalProps } from './SlModal';
 import { editAsk, withPasscode } from '../settings/passcode';
 import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
+import { HIST_ACTION, openHistory } from '../../components/EditHistory';
 
 interface CreditNote {
   id: string; number: string; date: string; party: { id: string; name: string } | null; partyName: string; reason: string; settle: 'adjust' | 'refund'; refundMode: string;
@@ -39,9 +40,10 @@ interface CnLine { inv: string; invNo: string; id: string; name: string; sold?: 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const PLUS = '<path d="M12 5v14M5 12h14"/>';
 const r2 = (n: number) => Math.round(n * 100) / 100;
-const CN_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View']];
+const CN_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View'], HIST_ACTION];
 
 export function CreditNotesPage() {
+  const { showToast } = useShell();
   useFitTables();
   const [params, setParams] = useSearchParams();
   // from a party statement: open that document (prototype rcView / cnView)
@@ -91,7 +93,7 @@ export function CreditNotesPage() {
           </tbody></table></div></div>
       <RowMenu id="cnCtx" label="Credit note actions" rows="#cnRows tr[data-cnno]" menu={menu} head={m ? <><b>{m.number}</b> · {m.partyName}</> : null} actions={CN_ACT}
         off={{ edit: m?.cancelled ? 'Cancelled document' : '' }} onClose={() => { const tr = menu?.tr; setMenu(null); return tr; }}
-        onPick={(a) => { const c = menu?.row; setMenu(null); if (!c) return; if (a === 'edit') setOpen({ edit: c.id }); else view(c); }} />
+        onPick={(a) => { const c = menu?.row; setMenu(null); if (!c) return; if (a === 'edit') setOpen({ edit: c.id }); else if (a === 'hist') void openHistory('sales', c.id, setModal, showToast); else view(c); }} />
       <CreditNoteDialog open={open} onClose={() => setOpen(null)} />
       <SlModal m={modal} onClose={() => setModal(null)} />
     </section>

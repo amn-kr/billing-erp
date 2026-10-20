@@ -11,12 +11,14 @@ import { useShell } from '../shell/store';
 import { qfmt, type Item } from '../items/ItemsPage';
 import { availableForTransfer } from '@billing/shared';
 import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
+import { HIST_ACTION, openHistory } from '../../components/EditHistory';
+import { SlModal, type SlModalProps } from '../sales/SlModal';
 import { editAsk, withPasscode } from '../settings/passcode';
 
 export interface Godown { id: string; name: string; address: string; manager: string; phone: string; isDefault: boolean; items: number; value: string }
 interface GodownRow { itemId: string; name: string; category: string; unit: string; inGodown: string; total: string; value: string }
 interface Transfer { id: string; number: string; date: string; itemId: string; item: string; unit: string; qty: string; fromId: string; from: string; toId: string; to: string; note: string }
-const TR_ACT: RowAction[] = [['edit', 'Edit']];
+const TR_ACT: RowAction[] = [['edit', 'Edit'], HIST_ACTION];
 
 const SWAP = '<path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/>';
 const addr = (g: Godown) => g.address || 'Address not added';
@@ -32,6 +34,7 @@ export function GodownsPage() {
   const [adding, setAdding] = useState(false);
   const [moving, setMoving] = useState<{ itemId?: string; edit?: Transfer } | null>(null);
   const [menu, setMenu] = useState<RowMenuAt<Transfer> | null>(null);
+  const [hist, setHist] = useState<SlModalProps | null>(null);
 
   const GD = gds.data ?? [];
   const g = GD.find((x) => x.id === sel) ?? GD[0];
@@ -84,10 +87,11 @@ export function GodownsPage() {
           )) : trf.data ? <div className="ptempty">No transfers yet.</div> : null}
         </div></div>
         <RowMenu id="trCtx" label="Transfer actions" rows="#trRows div[data-trno]" menu={menu} head={m ? <><b>{m.number}</b> · {m.item}</> : null} actions={TR_ACT}
-          onClose={() => { const el = menu?.tr; setMenu(null); return el; }} onPick={() => { const t = menu?.row; setMenu(null); if (t) editTr(t); }} />
+          onClose={() => { const el = menu?.tr; setMenu(null); return el; }} onPick={(k) => { const t = menu?.row; setMenu(null); if (!t) return; if (k === 'hist') void openHistory('stock-transfer', t.id, setHist, showToast); else editTr(t); }} />
       </div>
       <AddGodownDialog open={adding} onClose={() => setAdding(false)} onAdded={(id) => setSel(id)} />
       <TransferDialog open={moving} godowns={GD} items={prods} from={g.id} onClose={() => setMoving(null)} />
+      <SlModal m={hist} onClose={() => setHist(null)} />
     </section>
   );
 }
