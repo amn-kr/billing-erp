@@ -1,11 +1,12 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
-import { importRowsSchema, itemSchema, itemUpdateSchema, nameSchema, unitSchema, type ImportRowsInput, type ItemInput } from '@billing/shared';
+import { bulkItemsSchema, importRowsSchema, itemSchema, itemUpdateSchema, nameSchema, unitSchema, type BulkItemsInput, type ImportRowsInput, type ItemInput } from '@billing/shared';
 import type { z } from 'zod';
 import { Ctx, RequirePermission } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
 import type { RequestContext } from '../../common/context';
 import { ItemsService } from './items.service';
 import { ItemImportService } from './item-import.service';
+import { NeedsPasscode } from '../settings/passcode.interceptor';
 
 @Controller()
 export class ItemsController {
@@ -39,6 +40,15 @@ export class ItemsController {
   @Post('items/import')
   importRows(@Ctx() ctx: RequestContext, @Body(new ZodPipe(importRowsSchema)) body: ImportRowsInput) {
     return this.importer.run(ctx, body);
+  }
+
+  /** Bulk update items: only the changed rows; all saved in one go (or none), with the edit passcode when it is on */
+  @RequirePermission('masters.manage')
+  @HttpCode(200)
+  @NeedsPasscode('edit', 'item')
+  @Post('items/bulk-update')
+  bulkUpdate(@Ctx() ctx: RequestContext, @Body(new ZodPipe(bulkItemsSchema)) body: BulkItemsInput) {
+    return this.items.bulkUpdate(ctx, body);
   }
 
   @RequirePermission('masters.view')

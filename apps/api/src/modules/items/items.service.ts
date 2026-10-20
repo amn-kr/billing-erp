@@ -1,8 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { ITEM_PREFIX, ITEM_PREFIX_DEFAULT, money, stockByPurchaseRate, todayIst, toDb, type ItemInput } from '@billing/shared';
+import { BadRequestException, ConflictException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
+import { ITEM_PREFIX, ITEM_PREFIX_DEFAULT, money, stockByPurchaseRate, todayIst, toDb, type BulkItemsInput, type BulkItemsResult, type ItemInput } from '@billing/shared';
 import type { Prisma } from '@prisma/client';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
+import { fieldChanges } from '../../common/editing';
 import type { RequestContext } from '../../common/context';
 import { day, isoOf, namedId, unitIdFor, uniqueMessage } from '../../common/lookups';
 import { invoiceBalances } from '../sales/dues';
@@ -11,6 +12,8 @@ import { withoutEditedLines } from './item-history';
 const include = { unit: true, secondaryUnit: true, category: true, brand: true, itemGroup: true } satisfies Prisma.ItemInclude;
 type Row = Prisma.ItemGetPayload<{ include: typeof include }>;
 const q3 = (v: Prisma.Decimal | string | number) => money(v.toString()).toDecimalPlaces(3).toFixed(3);
+/** the fields of an item whose old and new values an edit's audit entry keeps */
+const ITEM_AUDIT_FIELDS = ['name', 'kind', 'code', 'hsn', 'unit', 'secondaryUnit', 'unitRate', 'category', 'brand', 'group', 'series', 'gstRate', 'sale', 'purchase', 'mrp', 'listPrice', 'wholesale', 'wholesaleMinQty', 'minStock', 'location', 'description'];
 
 export function itemView(i: Row, stock: Prisma.Decimal | string | null) {
   const st = i.kind === 'service' ? null : q3(stock ?? '0');
@@ -20,7 +23,7 @@ export function itemView(i: Row, stock: Prisma.Decimal | string | null) {
     secondaryUnit: i.secondaryUnit?.code ?? '', unitRate: i.unitRate ? q3(i.unitRate) : null,
     brand: i.brand?.name ?? '', group: i.itemGroup?.name ?? '', series: i.series, gstRate: money(i.gstRate.toString()).toFixed(2),
     sale: toDb(i.salePrice.toString()), purchase: toDb(i.purchasePrice.toString()), mrp: toDb(i.mrp.toString()), listPrice: toDb(i.listPrice.toString()),
-    wholesale: toDb(i.wholesalePrice.toString()), wholesaleMinQty: q3(i.wholesaleMinQty), minStock: q3(i.minStock), location: i.location,
+    wholesale: toDb(i.wholesalePrice.toString()), wholesaleMinQty: q3(i.wholesaleMinQty), minStock: q3(i.minStock), location: i.location, description: i.description,
     stock: st,
     /** ok | low (at or below minimum) | out (none left) — prototype lvl() */
     level: st === null ? 'ok' : money(st).lte(0) ? 'out' : min.gt(0) && money(st).lt(min) ? 'low' : 'ok',
@@ -163,6 +166,7 @@ export class ItemsService {
       ...(input.wholesaleMinQty !== undefined && { wholesaleMinQty: q(input.wholesaleMinQty) }),
       ...(input.minStock !== undefined && { minStock: q(input.minStock) }),
       ...(input.location !== undefined && { location: input.location }),
+      ...(input.description !== undefined && { description: input.description }),
       // the rate belongs to the secondary unit: no secondary unit, no rate
       ...(input.secondaryUnit !== undefined && { unitRate: input.secondaryUnit && input.unitRate ? q(input.unitRate) : null }),
     };
@@ -241,25 +245,66 @@ export class ItemsService {
     }
   }
 
+  /**
+   * Changes one item inside the caller's transaction: the same checks, price history and audit entry
+   * for editing one item and for Bulk update items. The audit entry keeps each changed field (old and
+   * new value) in after.changes, as the edits of saved records do.
+   */
+  private async edit(tx: Tx, ctx: RequestContext, id: string, input: Partial<ItemInput>, how: string) {
+    const before = await this.view(tx, id);
+    await this.clash(tx, input, id);
+    if (input.kind === 'service' && before.kind === 'goods' && before.stock && !money(before.stock).isZero())
+      throw new BadRequestException({ message: 'This item has stock. Bring its stock to zero before making it a service.' });
+    await tx.item.update({ where: { id }, data: { ...this.fields(input), ...(await this.refs(tx, ctx, input)) } });
+    const after = await this.view(tx, id);
+    for (const [f, field] of [['sale', 'sale'], ['purchase', 'purchase'], ['mrp', 'mrp'], ['listPrice', 'list'], ['wholesale', 'wholesale']] as const) {
+      if (before[f] !== after[f])
+        await tx.priceHistory.create({ data: { businessId: ctx.businessId!, createdBy: ctx.userId, itemId: id, field, oldValue: before[f], newValue: after[f], how } });
+    }
+    const changes = fieldChanges(before, after, ITEM_AUDIT_FIELDS);
+    await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'update', entity: 'item', entityId: id, before, after: { ...after, changes }, ip: ctx.ip });
+    return after;
+  }
+
   async update(ctx: RequestContext, id: string, input: Partial<ItemInput>) {
     try {
-      return await this.db.scoped(this.scope(ctx), async (tx) => {
-        const before = await this.view(tx, id);
-        await this.clash(tx, input, id);
-        if (input.kind === 'service' && before.kind === 'goods' && before.stock && !money(before.stock).isZero())
-          throw new BadRequestException({ message: 'This item has stock. Bring its stock to zero before making it a service.' });
-        await tx.item.update({ where: { id }, data: { ...this.fields(input), ...(await this.refs(tx, ctx, input)) } });
-        const after = await this.view(tx, id);
-        for (const [f, field] of [['sale', 'sale'], ['purchase', 'purchase'], ['mrp', 'mrp'], ['listPrice', 'list'], ['wholesale', 'wholesale']] as const) {
-          if (before[f] !== after[f])
-            await tx.priceHistory.create({ data: { businessId: ctx.businessId!, createdBy: ctx.userId, itemId: id, field, oldValue: before[f], newValue: after[f], how: 'Edited item' } });
-        }
-        await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'update', entity: 'item', entityId: id, before, after, ip: ctx.ip });
-        return after;
-      });
+      return await this.db.scoped(this.scope(ctx), (tx) => this.edit(tx, ctx, id, input, 'Edited item'));
     } catch (e) {
       this.conflict(e);
     }
+  }
+
+  /**
+   * Bulk update items: every changed row with the single item edit's rules, all in one transaction.
+   * If one row can't be saved nothing is saved, and the message names the item and the reason.
+   */
+  async bulkUpdate(ctx: RequestContext, input: BulkItemsInput): Promise<BulkItemsResult> {
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      // every id must be one of this shop's items (row-level security hides other shops' items)
+      const found = await tx.item.findMany({ where: { id: { in: input.rows.map((r) => r.id) } }, select: { id: true, name: true } });
+      const names = new Map(found.map((i) => [i.id, i.name]));
+      const missing = input.rows.filter((r) => !names.has(r.id)).length;
+      if (missing) throw new NotFoundException({ message: `${missing === 1 ? 'One item was' : `${missing} items were`} not found. Nothing was saved. Reload the page and try again.` });
+      for (const { id, ...change } of input.rows) {
+        try {
+          await this.edit(tx, ctx, id, change, 'Bulk update');
+        } catch (e) {
+          throw this.rowError(e, id, names.get(id)!);
+        }
+      }
+      return { updated: input.rows.length };
+    }, { timeout: 120_000 });
+  }
+
+  /** A row's problem as "<item name>: <reason>. Nothing was saved.", with the item and field it is about. */
+  private rowError(e: unknown, itemId: string, name: string): unknown {
+    const m = uniqueMessage(e);
+    const err = m ? new ConflictException({ message: m, field: /code/.test(m) ? 'code' : 'name' }) : e;
+    if (!(err instanceof HttpException)) return err;
+    const body = err.getResponse() as { message?: string; field?: string } | string;
+    const reason = typeof body === 'string' ? body : body.message ?? 'This item could not be saved.';
+    const field = typeof body === 'string' ? undefined : body.field;
+    return new HttpException({ message: `${name}: ${reason} Nothing was saved.`, itemId, field }, err.getStatus());
   }
 
   setArchived(ctx: RequestContext, id: string, archived: boolean) {

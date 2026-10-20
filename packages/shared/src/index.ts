@@ -17,3 +17,4 @@ export * from './stock.js';
 export * from './item-import.js';
 export * from './numbering.js';
 export * from './brand.js';
+export * from './bulk-items.js';

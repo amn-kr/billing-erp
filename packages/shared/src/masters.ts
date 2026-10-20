@@ -74,6 +74,7 @@ export const itemSchema = z.object({
   wholesaleMinQty: amount(),
   minStock: amount(),
   location: opt(80),
+  description: opt(500),
   /** opening stock (goods only) */
   openingQty: amount(),
   openingRate: amount(),

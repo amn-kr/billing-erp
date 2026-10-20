@@ -56,7 +56,7 @@ const MIN_HEIGHT = 260;
  * Sets the table's greatest height to the room between its top and the bottom of the window, less
  * what comes after it on the page (the pager, the card's edge, the page's bottom padding).
  */
-function useFitToScreen(tw: RefObject<HTMLDivElement | null>, on: boolean) {
+export function useFitToScreen(tw: RefObject<HTMLDivElement | null>, on: boolean) {
   useLayoutEffect(() => {
     const el = tw.current;
     const main = el?.closest('main');
