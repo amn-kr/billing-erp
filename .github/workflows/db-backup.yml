@@ -38,6 +38,23 @@ jobs:
       NEON_APP_URL: ${{ secrets.NEON_APP_URL }}
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
     steps:
+      # Anyone can download the files a run keeps when the repository is public, and the backup
+      # holds every shop's data (encrypted, but a copy all the same). Backups must then run from a
+      # private repository instead, so this stops before reading the live database.
+      - name: Only in a private repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          private=""
+          for try in 1 2 3; do
+            private=$(gh api "repos/$GITHUB_REPOSITORY" --jq .private 2>/dev/null) && break
+            sleep 5
+          done
+          if [ "$private" != "true" ]; then
+            echo "::error::This repository is public (or its visibility could not be read): no backup is taken here, because anyone could download it. Run the backup from a private repository (see docs/DEPLOY.md)."
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
 
       - name: Secrets are set

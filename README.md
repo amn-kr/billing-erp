@@ -43,3 +43,11 @@ React + TypeScript (Vite) frontend reusing the current CSS unchanged. NestJS API
 ## Run the rebuild
 See `docs/DEVELOPMENT.md`. Short version: `pnpm install`, set up Postgres with
 `infra/db/init-ci.sql`, then `pnpm --filter @billing/api dev` and `pnpm --filter @billing/web dev`.
+
+## Copyright
+Copyright © 2026 Aman Kumar. **All rights reserved.**
+
+This repository is public so people can read the code. It is **not** open source: there is no
+licence to copy, change, share or use it, in whole or in part, without written permission.
+See `NOTICE`. To ask for permission or to report a security problem, use the contact address in
+`apps/web/privacy.html`.
