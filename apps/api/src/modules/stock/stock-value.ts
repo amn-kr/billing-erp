@@ -1,6 +1,6 @@
 import { autoPurchasePrice, stockByPurchaseRate, type LedgerMove, type RateTable } from '@billing/shared';
+import { Prisma } from '@prisma/client';
 import type { Tx } from '../../common/db.service';
-import { isoOf } from '../../common/lookups';
 
 /**
  * The stock ledger of many items in a few queries (all their movements, oldest first, and the
@@ -10,12 +10,13 @@ import { isoOf } from '../../common/lookups';
  */
 export async function ledgerOf(tx: Tx, itemIds?: string[]): Promise<Map<string, LedgerMove[]>> {
   const where = itemIds ? { itemId: { in: itemIds } } : {};
+  // plain text columns: thousands of rows read much faster than as Prisma Decimal objects (row-level security still applies)
+  const filter = itemIds ? Prisma.sql`WHERE item_id = ANY(${itemIds}::uuid[])` : Prisma.empty;
   const [moves, sLines, pLines] = await Promise.all([
-    tx.stockMovement.findMany({
-      where,
-      select: { itemId: true, date: true, createdAt: true, qty: true, rate: true, kind: true, sourceType: true, sourceId: true },
-      orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
-    }),
+    tx.$queryRaw<{ item_id: string; date: string; created_at: string; qty: string; rate: string; kind: string; source_type: string; source_id: string | null }[]>`
+      SELECT item_id::text, date::text AS date, to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS created_at,
+             qty::text, rate::text, kind, source_type, source_id::text
+      FROM stock_movements ${filter} ORDER BY date, created_at`,
     tx.salesDocumentLine.findMany({ where: { ...where, againstId: { not: null } }, select: { itemId: true, documentId: true, againstId: true } }),
     tx.purchaseDocumentLine.findMany({ where: { ...where, againstId: { not: null } }, select: { itemId: true, documentId: true, againstId: true } }),
   ]);
@@ -26,13 +27,9 @@ export async function ledgerOf(tx: Tx, itemIds?: string[]): Promise<Map<string, 
   }
   const out = new Map<string, LedgerMove[]>();
   for (const m of moves) {
-    if (!m.itemId) continue;
-    const list = out.get(m.itemId) ?? [];
-    list.push({
-      date: isoOf(m.date) ?? '', createdAt: m.createdAt.toISOString(), qty: m.qty.toString(), rate: m.rate.toString(), kind: m.kind, sourceType: m.sourceType, sourceId: m.sourceId,
-      against: m.sourceId ? against.get(`${m.itemId}|${m.sourceId}`) : undefined,
-    });
-    out.set(m.itemId, list);
+    const list = out.get(m.item_id) ?? [];
+    list.push({ date: m.date, createdAt: m.created_at, qty: m.qty, rate: m.rate, kind: m.kind, sourceType: m.source_type, sourceId: m.source_id, against: m.source_id ? against.get(`${m.item_id}|${m.source_id}`) : undefined });
+    out.set(m.item_id, list);
   }
   return out;
 }
