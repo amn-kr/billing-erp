@@ -18,10 +18,13 @@ ids=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=tested-tree-$tree&
 
 for id in $ids; do
   info=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id" \
-    --jq '[.path, .event, .status, .conclusion, .html_url, .display_title] | @tsv' 2>/dev/null) || continue
-  IFS=$'\t' read -r path ev status conclusion url title <<<"$info"
-  echo "Found run $id: $path, $ev, $status, $conclusion"
-  if [ "$path" = "$workflow" ] && [ "$ev" = "$event" ] && [ "$status" = completed ] && [ "$conclusion" = success ]; then
+    --jq '[.path, .event, .status, .conclusion, .head_repository.full_name, .html_url, .display_title] | @tsv' 2>/dev/null) || continue
+  IFS=$'\t' read -r path ev status conclusion head url title <<<"$info"
+  echo "Found run $id: $path, $ev, $status, $conclusion, from $head"
+  # A pull request from a fork runs its own copy of ci.yml, so it could leave a tested-tree artifact
+  # without testing anything: only runs of branches in this repository count.
+  if [ "$path" = "$workflow" ] && [ "$ev" = "$event" ] && [ "$status" = completed ] && [ "$conclusion" = success ] \
+    && [ "$head" = "$GITHUB_REPOSITORY" ]; then
     { echo "run=$id"; echo "url=$url"; } >> "$out"
     echo "These exact files already passed the full check on the PR \"$title\": $url"
     exit 0

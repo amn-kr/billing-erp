@@ -42,9 +42,11 @@ jobs:
     timeout-minutes: 2
     steps:
       - name: Where they passed
+        env:
+          URL: ${{ needs.already-tested.outputs.url }}
         run: |
-          echo "These exact files passed every test and picture check on the PR: ${{ needs.already-tested.outputs.url }}"
-          echo "Full check skipped: these exact files already passed on the PR: ${{ needs.already-tested.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "These exact files passed every test and picture check on the PR: $URL"
+          echo "Full check skipped: these exact files already passed on the PR: $URL" >> "$GITHUB_STEP_SUMMARY"
 
   test:
     needs: already-tested
@@ -116,9 +118,12 @@ jobs:
       # a fingerprint of the files this green PR run tested, so the run after the merge can skip
       # the same work (see the already-tested job)
       - name: Remember the tested files
-        if: success() && github.event_name == 'pull_request'
-        run: mkdir -p tested && echo "${{ steps.changes.outputs.tree }} ${{ github.event.pull_request.html_url }}" > tested/tree.txt
-      - if: success() && github.event_name == 'pull_request'
+        if: success() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          TREE: ${{ steps.changes.outputs.tree }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: mkdir -p tested && echo "$TREE $PR_URL" > tested/tree.txt
+      - if: success() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/upload-artifact@v4
         with:
           name: tested-tree-${{ steps.changes.outputs.tree }}
