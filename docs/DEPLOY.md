@@ -53,6 +53,12 @@ time, and whenever started by hand (GitHub › Actions › *Daily database backu
 
 If a run fails, GitHub emails the owner and the run shows red under Actions.
 
+**Only in a private repository.** When a repository is public, anyone can download the files its runs
+keep, so the workflow stops (red, before it reads the database) if this repository is public. Before
+making the code repository public: delete the old `db-backup-…` files under Actions, then run the backup
+from a separate **private** repository holding only this workflow, the `infra/db/backup/` scripts and
+the three secrets below.
+
 ### One-time setup (owner)
 Add three repository secrets in GitHub › the repository › Settings › Secrets and variables › Actions › *New repository secret*:
 
