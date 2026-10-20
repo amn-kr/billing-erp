@@ -164,6 +164,32 @@ export function stockByPurchaseRate(moves: LedgerMove[], fallbackRate: MoneyInpu
   };
 }
 
+/**
+ * The item's purchase price, worked out from its ledger (owner's rule, Oct 2026): the rate of the
+ * newest purchase bill by bill date (on the same date, the one entered last); with no purchase, the
+ * opening stock's rate; null when neither has a rate. Cancelled bills leave no trace and an edited
+ * bill counts at its new rate (the same netting as stockByPurchaseRate).
+ */
+export function autoPurchasePrice(moves: LedgerMove[]): string | null {
+  const eff = effective(moves).filter((m) => m.qty.gt(0) && m.rate.gt(0));
+  const last = eff.filter((m) => m.kind === 'purchase').at(-1) ?? eff.filter((m) => m.kind === 'opening').at(-1);
+  return last ? last.rate.toFixed(2) : null;
+}
+
+/**
+ * Stock value of one godown's share of an item: its quantity there (nothing below zero) at the
+ * average rate of what is left of the item — the exact average (value ÷ quantity, not the rounded
+ * "Avg rate" shown), so one godown holding all the stock shows exactly the item's value. 2 decimals.
+ */
+export function godownStockValue(qty: MoneyInput, t: Pick<RateTable, 'value' | 'totalQty'>): string {
+  const q = money(qty), all = money(t.totalQty);
+  if (q.lte(0) || all.lte(0)) return '0.00';
+  return q.times(money(t.value)).div(all).toDecimalPlaces(2).toFixed(2);
+}
+
+/** Sum of stock values (2 decimals each), e.g. a brand's or a parent item's variants. */
+export const sumValues = (values: MoneyInput[]): string => values.reduce<Money>((a, v) => a.plus(money(v)), money(0)).toDecimalPlaces(2).toFixed(2);
+
 /* ───────── editing a saved adjustment or transfer (the editor's "in stock" figures) ───────── */
 
 /**
