@@ -19,6 +19,7 @@ import { useShell } from '../shell/store';
 import { toastSaveFailed, toastSaved } from '../shell/saved';
 import { inPeriod } from '../sales/model';
 import { SlModal, type SlModalProps } from '../sales/SlModal';
+import { HIST_ACTION, openHistory } from '../../components/EditHistory';
 import type { Party } from '../parties/PartiesPage';
 import { MoveMoney, useEntryView, type EntryDoc, type Move } from '../banking/BankingPages';
 import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
@@ -39,8 +40,8 @@ const KBD = { marginLeft: 6, background: 'transparent', color: 'inherit', border
 const PER_TXT: Record<BkPer, string> = { all: 'all time', oct: 'this month', sep: 'last month' };
 const EX_KEYS = ['expenses', 'expense-categories', 'next-number', ...BK_KEYS];
 /** an expense opens in its own window; a cash / bank book entry ("Book") also has its details window */
-const EX_ACT: RowAction[] = [['edit', 'Edit']];
-const BT_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View']];
+const EX_ACT: RowAction[] = [['edit', 'Edit'], HIST_ACTION];
+const BT_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View'], HIST_ACTION];
 const BOOK_CAT = Object.fromEntries(Object.entries(BOOK_EXPENSE_CATEGORY).map(([k, v]) => [v, k]));
 
 export const useExpenses = () => useQuery({ queryKey: ['expenses'], queryFn: () => api<ExpenseRow[]>('/expenses') });
@@ -132,7 +133,7 @@ export function ExpensesPage() {
         onCancel={(x) => { setXp(null); setModal({ title: `Cancel ${x.number}?`, sub: `${x.category} · ${dmy(x.date)} · ${inr2f(x.total)}`, body: <p style={{ margin: 0 }}>The amount goes back into {aName(x.accountId)}.</p>, ok: 'Cancel expense', danger: true, cancel: 'Keep it', onOk: () => void cancelX(x) }); }} />
       <RowMenu id="exCtx" label="Expense actions" rows="#exRows tr[data-exk]" menu={menu} head={m ? <><b>{m.number}</b> · {m.payee || m.category}</> : null} actions={m?.src === 'bt' ? BT_ACT : EX_ACT}
         off={m ? { edit: m.locked } : undefined} onClose={() => { const tr = menu?.tr; setMenu(null); return tr; }}
-        onPick={(k) => { const x = menu?.row; setMenu(null); if (!x) return; if (k === 'edit') void edit(x); else open(x); }} />
+        onPick={(k) => { const x = menu?.row; setMenu(null); if (!x) return; if (k === 'edit') void edit(x); else if (k === 'hist') void openHistory(x.src === 'bt' ? 'bank-entry' : 'expense', x.id, setModal, useShell.getState().showToast); else open(x); }} />
       <MoveMoney open={move} accounts={accts.data} onClose={() => setMove(null)} />
       <CategoriesDialog open={xc} all={all.data} cats={cats.data} onClose={(added) => { const back = xc?.back; setXc(null); if (back && added) setXp({ cat: added }); }} />
       <SlModal m={modal ?? ev.modal} onClose={() => { setModal(null); ev.setModal(null); }} />

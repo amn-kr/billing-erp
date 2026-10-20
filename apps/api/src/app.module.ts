@@ -15,6 +15,8 @@ import { MeController } from './modules/me/me.controller';
 import { MembersController } from './modules/members/members.controller';
 import { MembersService } from './modules/members/members.service';
 import { AuditController } from './modules/audit/audit.controller';
+import { HistoryController } from './modules/audit/history.controller';
+import { HistoryService } from './modules/audit/history.service';
 import { HealthController } from './modules/health/health.controller';
 import { ImportsController } from './modules/imports/imports.controller';
 import { ImportsService } from './modules/imports/imports.service';
@@ -65,7 +67,7 @@ import { DriveController, DriveSender } from './modules/backup/drive';
       skipIf: () => config().NODE_ENV === 'test' && process.env.TEST_THROTTLE !== '1',
     }),
   ],
-  controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HealthController, ImportsController,
+  controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HistoryController, HealthController, ImportsController,
     PartiesController, ItemsController, BrandsController, StockController, PricingController, SettingsController, PrefixesController, PasscodeController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController, BackupController, DriveController],
   providers: [
     DbService,
@@ -73,6 +75,7 @@ import { DriveController, DriveSender } from './modules/backup/drive';
     BackupWorker,
     DriveSender,
     AuditService,
+    HistoryService,
     TokensService,
     AuthService,
     BusinessesService,

@@ -11,10 +11,12 @@ import { useShell } from '../shell/store';
 import { AdjustStockDialog } from '../items/AdjustStockDialog';
 import { qfmt, type Item } from '../items/ItemsPage';
 import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
+import { HIST_ACTION, openHistory } from '../../components/EditHistory';
+import { SlModal, type SlModalProps } from '../sales/SlModal';
 
 export interface Adjustment { id: string; number: string; date: string; itemId: string; item: string; unit: string; godown: string; qty: string; rate: string; value: string; reason: string; cancelled: boolean }
 
-const ADJ_ACT: RowAction[] = [['edit', 'Edit']];
+const ADJ_ACT: RowAction[] = [['edit', 'Edit'], HIST_ACTION];
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 
 export function AdjustmentsPage() {
@@ -29,6 +31,7 @@ export function AdjustmentsPage() {
   const [adding, setAdding] = useState<Item | null>(null);
   const [editing, setEditing] = useState<Adjustment | null>(null);
   const [menu, setMenu] = useState<RowMenuAt<Adjustment> | null>(null);
+  const [hist, setHist] = useState<SlModalProps | null>(null);
 
   if (!list.data) return <section id="vAdjs"></section>;
   const A = list.data.filter((a) => !a.cancelled);
@@ -81,8 +84,9 @@ export function AdjustmentsPage() {
       </div>
       <RowMenu id="adjCtx" label="Adjustment actions" rows="#adjRows tr[data-adj]" menu={menu} head={m ? <><b>{m.number}</b> · {m.item}</> : null} actions={ADJ_ACT}
         off={m?.cancelled ? { edit: 'Cancelled. It can’t be changed.' } : undefined} onClose={() => { const tr = menu?.tr; setMenu(null); return tr; }}
-        onPick={() => { const a = menu?.row; setMenu(null); if (a) openEdit(a); }} />
+        onPick={(k) => { const a = menu?.row; setMenu(null); if (!a) return; if (k === 'hist') void openHistory('stock-adjustment', a.id, setHist, showToast); else openEdit(a); }} />
       <AdjustStockDialog item={adding} choices={prods} edit={editing} onClose={() => { setAdding(null); setEditing(null); }} />
+      <SlModal m={hist} onClose={() => setHist(null)} />
     </section>
   );
 }
