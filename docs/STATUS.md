@@ -179,6 +179,8 @@ Scope set by the owner: only the 9 reports that already work in the prototype, p
 - **Profit uses the purchase-rate lots, not one purchase price (owner's rule, Oct 2026).** A sale's cost is what the lots it used up cost, oldest first — the same lot calculation as the stock value (`costOfGoods` in `packages/shared/src/stock.ts`, read through `goodsCosts` / `draftSaleCosts` in `apps/api/src/modules/stock/stock-value.ts`). A sale return gives back the cost of the lots its invoice used; an edit or cancel works the cost out again; a late bill can change older sales' profit. Stock that came in without a purchase rate costs 0 for profit (no fallback), and stock sold beyond what was in costs 0 until the purchase that fills it is entered. Today this is the sale editor's "Profit & loss · this bill" pop-up (one row per lot rate each line used) and Party wise Profit & Loss. **Any profit report built later must take its cost from this same calculation** — `apps/api/test/one-stock-value.test.ts` fails if a file multiplies a quantity by the purchase price on its own.
 
 ## How the GitHub check (CI) works
+**Live since 21 Oct 2026 (PR #48):** a full check now takes about 17–19 minutes (it was about 54); a PR that changes only docs takes about 5.
+
 `.github/workflows/ci.yml` runs on every pull request and on every push to main. Since Oct 2026 it runs on
 six free GitHub machines at the same time instead of one (same tests, same pictures, about 20 minutes instead of about 54):
 
