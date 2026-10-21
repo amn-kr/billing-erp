@@ -33,7 +33,7 @@ interface Brand { id: string; name: string }
 interface Catalogue { units: Unit[]; categories: { name: string }[]; brands: Brand[]; groups: { name: string }[]; rates: Rate[] }
 /** GET /brands/:id/series: taken = this parent item already has it with this brand (itemId = that item) */
 interface BrandSeries { name: string; taken: boolean; itemId?: string }
-const F0 = { name: '', group: '', hsn: '', unit: 'PCS', sec: '', rate: '', cat: '', code: '', brand: '', series: '', sale: '', mrp: '', saleTax: 'With tax', disc: '', whole: '', wholeQty: '', purch: '', purchTax: 'With tax', gst: '18', oq: '', op: '', od: '', min: '', loc: '' };
+const F0 = { name: '', group: '', hsn: '', unit: 'PCS', sec: '', rate: '', cat: '', code: '', brand: '', series: '', sale: '', mrp: '', saleTax: 'With tax', disc: '', whole: '', wholeQty: '', gst: '18', oq: '', op: '', od: '', min: '', loc: '' };
 type Form = typeof F0;
 const num = (x: string) => Number(String(x).replace(/,/g, ''));
 const vname = (g: string, b: string, s: string) => `${g} · ${b}${s ? ' ' + s : ''}`;
@@ -116,7 +116,7 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem }: { open: bo
   const groups = [...new Set([...(cat.data?.groups.map((g) => g.name) ?? []), ...extraGroups])].sort((a, b) => a.localeCompare(b));
   const gstList = (settings?.taxes ?? []).filter((t) => t.kind === 'GST');
   const pre = cur('₹') ? 'pre2' : 'pre2 ncur';
-  const s = parseFloat(f.sale), p = parseFloat(f.purch);
+  const s = parseFloat(f.sale), p = parseFloat(f.op);
   const gstSel = (
     <label className="apf needs-gst">GST rate<select className="fi" data-f="gst" value={f.gst} onChange={set('gst')}>
       {gstList.map((t) => <option key={t.id} value={String(Number(t.rate))}>{t.name}{t.isOld ? ' (older rate)' : ''}</option>)}
@@ -147,20 +147,19 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem }: { open: bo
     if (f.hsn && !/^\d{4,8}$/.test(f.hsn)) er.hsn = 'HSN/SAC is 4 to 8 digits.';
     if (f.sale && Number.isNaN(num(f.sale))) er.sale = 'Enter a number.';
     else if (f.mrp && num(f.sale) > num(f.mrp)) er.sale = `Sale price can’t be above MRP (${cur('₹')}${inr2f(num(f.mrp))}).`;
-    if (f.purch && Number.isNaN(num(f.purch))) er.purch = 'Enter a number.';
     if (f.oq && Number.isNaN(num(f.oq))) er.oq = 'Enter a number.';
     setErr(er);
     if (Object.keys(er).length) {
       if (er.oq) setTab('stock');
-      else if (er.sale || er.purch) setTab('price');
+      else if (er.sale) setTab('price');
       return;
     }
     const body = {
       name, kind: svc ? 'service' : 'goods', code, hsn: f.hsn, unit: f.unit, secondaryUnit: f.sec, unitRate: f.sec ? f.rate : null, category: f.cat,
       brand: svc ? '' : f.brand, series: vary ? series : '', ...(vary ? { group: f.group } : {}),
-      gstRate: Number(f.gst) || 0, sale: f.sale || null, mrp: f.mrp || null, purchase: svc ? null : f.purch || null, wholesale: svc ? null : f.whole || null,
+      gstRate: Number(f.gst) || 0, sale: f.sale || null, mrp: f.mrp || null, wholesale: svc ? null : f.whole || null,
       wholesaleMinQty: svc ? null : f.wholeQty || null, minStock: svc ? null : f.min || null, location: svc ? '' : f.loc,
-      ...(!svc && f.oq && num(f.oq) ? { openingQty: f.oq, openingRate: f.op || f.purch || null, openingDate: f.od || today() } : {}),
+      ...(!svc && f.oq && num(f.oq) ? { openingQty: f.oq, openingRate: f.op || null, openingDate: f.od || today() } : {}),
     };
     setBusy(true);
     try {
@@ -304,17 +303,9 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem }: { open: bo
                     </div>
                   )}
                 </div>
+                {/* no Purchase price box (owner, Oct 2026): the purchase price is automatic, from the opening stock's rate and later the newest purchase bill */}
                 <div className="aibox">
-                  {!svc && (
-                    <>
-                      <b className="aph">Purchase price</b>
-                      <div className="two">
-                        <label className="apf">Purchase price<span className={pre}><span>{cur('₹')}</span><input className={`fi ${bad('purch')}`} data-f="purch" id="aiPurch" value={f.purch} onChange={set('purch')} inputMode="decimal" placeholder="0.00" /></span>{E('purch')}</label>
-                        <label className="apf needs-gst">Price is<select className="fi" data-f="purchTax" value={f.purchTax} onChange={set('purchTax')}><option>With tax</option><option>Without tax</option></select></label>
-                      </div>
-                    </>
-                  )}
-                  <div className="needs-gst"><b className="aph" style={{ marginTop: svc ? 0 : 8 }}>Tax</b>{gstSel}</div>
+                  <div className="needs-gst"><b className="aph" style={{ marginTop: 0 }}>Tax</b>{gstSel}</div>
                   <div className="aimargin" id="aiMargin">{s > 0 && p > 0 && <>Margin per unit: <b className={s - p >= 0 ? 'pos' : 'neg'}>{inr2f(s - p)}</b> ({Math.round(((s - p) / p) * 100)}%)</>}</div>
                 </div>
               </div>

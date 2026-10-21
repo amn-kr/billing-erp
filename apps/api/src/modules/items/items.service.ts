@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
-import { ITEM_PREFIX, ITEM_PREFIX_DEFAULT, money, stockByPurchaseRate, todayIst, toDb, type BulkItemsInput, type BulkItemsResult, type ItemInput } from '@billing/shared';
+import { ITEM_PREFIX, ITEM_PREFIX_DEFAULT, money, todayIst, toDb, type BulkItemsInput, type BulkItemsResult, type ItemInput } from '@billing/shared';
 import type { Prisma } from '@prisma/client';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
@@ -8,6 +8,7 @@ import type { RequestContext } from '../../common/context';
 import { day, isoOf, namedId, unitIdFor, uniqueMessage } from '../../common/lookups';
 import { invoiceBalances } from '../sales/dues';
 import { withoutEditedLines } from './item-history';
+import { rateTables } from '../stock/stock-value';
 
 const include = { unit: true, secondaryUnit: true, category: true, brand: true, itemGroup: true } satisfies Prisma.ItemInclude;
 type Row = Prisma.ItemGetPayload<{ include: typeof include }>;
@@ -64,7 +65,13 @@ export class ItemsService {
         orderBy: [{ createdAt: 'desc' }, { name: 'asc' }],
       });
       const stock = await stockByItem(tx);
-      const out = rows.map((i) => itemView(i, stock.get(i.id) ?? null));
+      // stock value by purchase-rate lots (first in, first out): the same maths as the item card's table
+      const goods = rows.filter((i) => i.kind === 'goods');
+      const lots = await rateTables(tx, goods, goods.length > 200);
+      const out = rows.map((i) => {
+        const t = lots.get(i.id);
+        return { ...itemView(i, stock.get(i.id) ?? null), value: t ? t.value : null, avgRate: t ? t.avgRate : null };
+      });
       return q.level ? out.filter((i) => (q.level === 'low' ? i.level !== 'ok' : i.level === q.level)) : out;
     });
   }
@@ -94,13 +101,6 @@ export class ItemsService {
       const ids = (t: string) => [...new Set(movements.filter((m) => m.sourceType === t && m.sourceId).map((m) => m.sourceId!))];
       const sdocs = new Map((await tx.salesDocument.findMany({ where: { id: { in: ids('sales_document') } }, select: { id: true, number: true, kind: true, total: true, cancelledAt: true, deletedAt: true, cashName: true, billName: true, party: { select: { name: true } } } })).map((d) => [d.id, d]));
       const pdocs = new Map((await tx.purchaseDocument.findMany({ where: { id: { in: ids('purchase_document') } }, select: { id: true, number: true, party: { select: { name: true } } } })).map((d) => [d.id, d]));
-      // credit notes and debit notes: the invoices / bills their lines for this item return against
-      const lineOf = { where: { itemId: id, againstId: { not: null } }, select: { documentId: true, againstId: true } } as const;
-      const against = new Map<string, string[]>();
-      for (const l of [
-        ...(await tx.salesDocumentLine.findMany({ where: { ...lineOf.where, documentId: { in: ids('sales_document') } }, select: lineOf.select })),
-        ...(await tx.purchaseDocumentLine.findMany({ where: { ...lineOf.where, documentId: { in: ids('purchase_document') } }, select: lineOf.select })),
-      ]) against.set(l.documentId, [...(against.get(l.documentId) ?? []), l.againstId!]);
       const bal = await invoiceBalances(tx, [...sdocs.values()].filter((d) => d.kind === 'invoice').map((d) => d.id));
       const refOf = (m: (typeof movements)[number]) => (m.sourceId ? adjs.get(m.sourceId)?.number ?? trfs.get(m.sourceId)?.number ?? sdocs.get(m.sourceId)?.number ?? pdocs.get(m.sourceId)?.number ?? '' : '');
       const partyOf = (m: (typeof movements)[number]) => {
@@ -122,13 +122,7 @@ export class ItemsService {
       return {
         ...item,
         /** what is left in stock by the purchase rate it was bought at (first in, first out) */
-        rateTable: item.kind === 'service' ? null : stockByPurchaseRate(
-          [...movements].reverse().map((m) => ({
-            date: isoOf(m.date) ?? '', createdAt: m.createdAt.toISOString(), qty: m.qty.toString(), rate: m.rate.toString(), kind: m.kind, sourceType: m.sourceType, sourceId: m.sourceId,
-            against: m.sourceId ? against.get(m.sourceId) : undefined,
-          })),
-          item.purchase,
-        ),
+        rateTable: item.kind === 'service' ? null : (await rateTables(tx, [{ id, purchasePrice: item.purchase }])).get(id)!,
         godowns: godowns.map((g) => ({ id: g.id, name: g.name, stock: q3(byGodown.find((b) => b.godownId === g.id)?._sum.qty ?? '0') })),
         // a deleted document's movements (taken out and put back) still count in the stock, but aren't listed;
         // nor are the lines an edit replaced (its reversal and what that put back: see item-history.ts)
@@ -221,18 +215,20 @@ export class ItemsService {
 
   async create(ctx: RequestContext, input: ItemInput) {
     if (input.kind === 'service' && input.openingQty && money(input.openingQty).gt(0)) throw new BadRequestException({ message: 'A service has no stock.' });
+    // the purchase price is automatic (owner's rule, Oct 2026): a new item's is its opening stock's rate
+    const opening = input.kind === 'goods' && input.openingQty && money(input.openingQty).gt(0) ? { rate: toDb(input.openingRate ?? input.purchase ?? 0) } : null;
     try {
       return await this.db.scoped(this.scope(ctx), async (tx) => {
         await this.clash(tx, input);
         const it = await tx.item.create({
-          data: { businessId: ctx.businessId!, createdBy: ctx.userId, ...this.fields(input), name: input.name, kind: input.kind, ...(await this.refs(tx, ctx, { ...input, unit: input.unit || 'PCS' })) },
+          data: { businessId: ctx.businessId!, createdBy: ctx.userId, ...this.fields(input), name: input.name, kind: input.kind, ...(await this.refs(tx, ctx, { ...input, unit: input.unit || 'PCS' })), ...(opening && money(opening.rate).gt(0) && { purchasePrice: opening.rate }) },
         });
-        if (input.kind === 'goods' && input.openingQty && money(input.openingQty).gt(0)) {
+        if (opening) {
           const g = await tx.godown.findFirstOrThrow({ where: { isDefault: true, archivedAt: null } });
           await tx.stockMovement.create({
             data: {
               businessId: ctx.businessId!, createdBy: ctx.userId, itemId: it.id, godownId: g.id, date: day(input.openingDate ?? todayIst()),
-              qty: money(input.openingQty).toDecimalPlaces(3).toFixed(3), rate: toDb(input.openingRate ?? input.purchase ?? 0), kind: 'opening', note: 'Opening stock',
+              qty: money(input.openingQty!).toDecimalPlaces(3).toFixed(3), rate: opening.rate, kind: 'opening', note: 'Opening stock',
             },
           });
         }

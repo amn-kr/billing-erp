@@ -11,6 +11,7 @@ import { booksOf } from '../sales/sales.service';
 import { reverseStock } from '../sales/stock-back';
 import { cancelPayment, cancelPendingCheques } from '../sales/money-in';
 import { billBalances, settledElsewhere, usedOut } from './dues';
+import { refreshPurchasePrices } from '../stock/stock-value';
 
 const DOC_TYPE = { bill: 'bill', order: 'purchase_order', debit_note: 'debit_note' } as const;
 const d2 = (v: { toString(): string } | null | undefined) => (v === null || v === undefined ? null : toDb(v.toString()));
@@ -228,18 +229,8 @@ export class PurchasesService {
           await cancelPayment(tx, this.ledger, { id: p.id, userId: ctx.userId, date: todayIst() });
           await this.audit.log(tx, { businessId, userId: ctx.userId, action: 'cancel', entity: 'payment', entityId: p.id, before: p, after: { reason: `Removed when ${number} was edited` }, ip: ctx.ip });
         }
-        /* purchase prices in Items, with history */
-        if (input.updatePrices)
-          for (const [i, l] of input.lines.entries()) {
-            const it = items.get(l.itemId)!;
-            const nv = t.rows[i]!.tv.div(money(l.qty)).toDecimalPlaces(2);
-            const ov = money(it.purchasePrice.toString());
-            if (nv.minus(ov).abs().gt(0.009)) {
-              await tx.item.update({ where: { id: it.id }, data: { purchasePrice: nv.toFixed(2) } });
-              await tx.priceHistory.create({ data: { businessId, itemId: it.id, field: 'purchase', oldValue: ov.toFixed(2), newValue: nv.toFixed(2), how: `From purchase bill ${number}${before ? ' (edited)' : ''}`, createdBy: ctx.userId } });
-              priceChanges++;
-            }
-          }
+        /* the items' purchase prices are automatic: the newest bill's rate (owner's rule, Oct 2026), with history */
+        priceChanges = await refreshPurchasePrices(tx, { businessId, userId: ctx.userId }, [...input.lines.map((l) => l.itemId), ...(before?.lines.map((l) => l.itemId) ?? [])], `Purchase bill ${number}${before ? ' (edited)' : ''}`, { history: !legacy });
         if (input.fromOrderId && !before) await tx.purchaseDocument.updateMany({ where: { id: input.fromOrderId, kind: 'order', status: 'open' }, data: { status: 'received' } });
       }
       /* a debit note against a bill reduces what is owed on it; the rest is credit with the supplier */
@@ -267,6 +258,10 @@ export class PurchasesService {
       if (d.kind !== 'order') {
         await this.ledger.cancel(tx, 'purchase_document', d.id);
         await reverseStock(tx, { businessId: ctx.businessId!, userId: ctx.userId }, d.id, today, `Cancelled ${d.number}`, 'purchase_document');
+        if (d.kind === 'bill') {
+          const lines = await tx.purchaseDocumentLine.findMany({ where: { documentId: d.id }, select: { itemId: true } });
+          await refreshPurchasePrices(tx, { businessId: ctx.businessId!, userId: ctx.userId }, lines.map((l) => l.itemId), `Purchase bill ${d.number} cancelled`);
+        }
       }
       // money paid against a cancelled bill stays with the supplier as an advance (its allocations no longer count)
       await tx.purchaseDocument.update({ where: { id }, data: { cancelledAt: new Date(), cancelledBy: ctx.userId, cancelReason: reason, ...(d.kind === 'order' && { status: 'cancelled' }) } });

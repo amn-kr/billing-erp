@@ -1,11 +1,12 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { formatQty, money, toDb, type GodownInput, type Money, type StockAdjustmentInput, type StockTransferInput } from '@billing/shared';
+import { formatQty, godownStockValue, money, sumValues, toDb, type GodownInput, type Money, type StockAdjustmentInput, type StockTransferInput } from '@billing/shared';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import { NumberingService } from '../../common/numbering.service';
 import type { RequestContext } from '../../common/context';
 import { day, isoOf, uniqueMessage } from '../../common/lookups';
 import { fieldChanges, keepNumber } from '../../common/editing';
+import { rateTables } from './stock-value';
 
 const q3 = (v: { toString(): string } | number | string) => money(v.toString()).toDecimalPlaces(3).toFixed(3);
 type Who = { businessId: string; userId: string };
@@ -32,12 +33,12 @@ export class StockService {
       const gs = await tx.godown.findMany({ where: { archivedAt: null }, orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }] });
       const sums = await tx.stockMovement.groupBy({ by: ['godownId', 'itemId'], _sum: { qty: true } });
       const items = await tx.item.findMany({ where: { kind: 'goods' }, select: { id: true, purchasePrice: true } });
-      const price = new Map(items.map((i) => [i.id, money(i.purchasePrice.toString())]));
+      const lots = await rateTables(tx, items, true);
       return gs.map((g) => {
-        // like the prototype's cards: items with stock above zero here, valued at purchase price
-        const mine = sums.filter((s) => s.godownId === g.id && money(s._sum.qty!.toString()).gt(0));
-        const value = mine.reduce((a, s) => a.plus(money(s._sum.qty!.toString()).times(price.get(s.itemId) ?? 0)), money(0));
-        return { id: g.id, name: g.name, address: g.address, manager: g.manager, phone: g.phone, isDefault: g.isDefault, items: mine.length, value: toDb(value) };
+        // like the prototype's cards: items with stock above zero here, each at the average rate of its lots left
+        const mine = sums.filter((s) => s.godownId === g.id && lots.has(s.itemId) && money(s._sum.qty!.toString()).gt(0));
+        const value = sumValues(mine.map((s) => godownStockValue(s._sum.qty!.toString(), lots.get(s.itemId)!)));
+        return { id: g.id, name: g.name, address: g.address, manager: g.manager, phone: g.phone, isDefault: g.isDefault, items: mine.length, value };
       });
     });
   }
@@ -50,19 +51,20 @@ export class StockService {
       const here = await tx.stockMovement.groupBy({ by: ['itemId'], where: { godownId: id }, _sum: { qty: true } });
       const total = await tx.stockMovement.groupBy({ by: ['itemId'], _sum: { qty: true } });
       const items = await tx.item.findMany({ where: { id: { in: here.map((h) => h.itemId) }, kind: 'goods' }, include: { category: true, unit: true } });
+      const lots = await rateTables(tx, items);
       return here
         .map((h) => {
           const i = items.find((x) => x.id === h.itemId);
           const q = money(h._sum.qty!.toString());
           if (!i || q.isZero()) return null;
+          const value = godownStockValue(q, lots.get(i.id)!);
           return {
             itemId: i.id, name: i.name, category: i.category?.name ?? '', unit: i.unit?.code ?? '', inGodown: q3(q),
-            total: q3(total.find((t) => t.itemId === i.id)?._sum.qty ?? 0), value: toDb(q.times(i.purchasePrice.toString())), valueN: q.times(i.purchasePrice.toString()).toNumber(),
+            total: q3(total.find((t) => t.itemId === i.id)?._sum.qty ?? 0), value,
           };
         })
         .filter((r): r is NonNullable<typeof r> => !!r)
-        .sort((a, b) => b.valueN - a.valueN)
-        .map(({ valueN: _v, ...r }) => r);
+        .sort((a, b) => money(b.value).cmp(money(a.value)));
     });
   }
 

@@ -71,8 +71,9 @@ describe('item rate table', () => {
     const a = await item(o, '52');
     await bill(o, sup, a, '5', '50', '2026-04-01');
     await adjust(o, a, 'add', '3', '47', '2026-04-02');
+    // without a rate it comes in at the item's purchase price, which is automatic: the bill's 50 (owner, Oct 2026)
     await adjust(o, a, 'add', '2', null, '2026-04-03');
-    expect((await rates(o, a)).cols).toEqual([['50.00', '5.000'], ['47.00', '3.000'], ['52.00', '2.000']]);
+    expect((await rates(o, a)).cols).toEqual([['50.00', '5.000'], ['47.00', '3.000'], ['50.00', '2.000']]);
     const b = await item(o, '58');
     for (const [r, d] of [['50', '2026-04-01'], ['55', '2026-04-02'], ['58', '2026-04-03']] as const) await bill(o, sup, b, '6', r, d);
     await adjust(o, b, 'reduce', '9', null, '2026-04-04');

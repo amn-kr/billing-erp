@@ -74,15 +74,21 @@ test('add items (with opening stock, service, brands/sizes) and adjust stock', a
   await page.click('#aiAdd_brandGo');
   await expect(page.locator('#aiBrandSel')).toHaveValue('Philips');
   await page.fill('#aiSale', '95');
-  await page.fill('#aiPurch', '62');
-  await expect(page.locator('#aiMargin')).toHaveText('Margin per unit: 33.00 (53%)');
+  // no Purchase price box (owner, Oct 2026): the purchase price is the opening stock's "At price / unit"
+  await expect(page.locator('#aiPurch')).toHaveCount(0);
+  await expect(page.locator('#ai .aph', { hasText: 'Purchase price' })).toHaveCount(0);
   await page.click('#ai [data-aitab="stock"]');
   await page.fill('#ai [data-f="oq"]', '200');
+  await page.fill('#ai [data-f="op"]', '62');
   await page.fill('#ai [data-f="min"]', '50');
+  await page.click('#ai [data-aitab="price"]');
+  await expect(page.locator('#aiMargin')).toHaveText('Margin per unit: 33.00 (53%)');
   await page.click('#aiSave');
   await expect(page.locator('#toast')).toHaveText('LED bulb 9W added with 200 PCS in stock');
   await expect(page.locator('#itHead h2')).toHaveText('LED bulb 9W');
   await expect(page.locator('#itTx tr').first()).toContainText('Opening stock');
+  await expect(page.locator('#itHead .itfig > div', { hasText: 'Purchase price' }).locator('b')).toHaveText('62.00');
+  await expect(page.locator('#itHead .itfig > div', { hasText: 'Stock value' }).locator('b')).toHaveText('12,400.00');
 
   // reduce below the minimum: low stock
   await page.click('#itAdj');
