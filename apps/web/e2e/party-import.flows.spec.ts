@@ -57,7 +57,7 @@ test('Import from Excel: sample file, preview with statuses, only OK rows saved,
   await page.goto(APP + '/parties/import/excel');
   await page.waitForSelector('#pxStart');
 
-  // the sample file: the headings, one example row (it reads back as one OK row)
+  // the sample file: the headings and one example row; left in, the example row is skipped, not imported
   const sample = info.outputPath('Import parties sample.xlsx');
   const [d] = await Promise.all([page.waitForEvent('download'), page.click('#pxSample')]);
   await d.saveAs(sample);
@@ -65,7 +65,10 @@ test('Import from Excel: sample file, preview with statuses, only OK rows saved,
   await page.waitForSelector('#pxGrid tr[data-row="2"]');
   await expect(page.locator('#pxGrid tbody tr[data-row]')).toHaveCount(1);
   await expect(page.locator('#pxGrid tr[data-row="2"] td[data-col="name"]')).toHaveText('Example Traders');
-  await expect(page.locator('#pxGrid tr[data-row="2"]')).toHaveAttribute('data-st', 'ok');
+  await expect(page.locator('#pxGrid tr[data-row="2"]')).toHaveAttribute('data-st', 'example');
+  await expect(page.locator('#pxGrid tr[data-row="2"] .stt')).toHaveText('Example row - skipped');
+  await expect(page.locator('#pxCount')).toHaveText('Nothing to import: the file only has the example row. Add your own parties and upload it again.');
+  await expect(page.locator('#pxGo')).toBeDisabled();
 
   // a file without a Party name column is refused with a clear message
   const noName = info.outputPath('no name.csv');

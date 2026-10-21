@@ -6,7 +6,7 @@
  */
 import {
   BALANCE_TYPES, PARTY_IMPORT_COLUMNS, PARTY_IMPORT_KEYS, PARTY_IMPORT_MAX_BYTES, PARTY_IMPORT_MAX_ROWS, PARTY_IMPORT_PROBLEM_COLUMN,
-  PARTY_IMPORT_SHEET, PARTY_TYPES, STATES, isBlankPartyRow, partyColumnOf, splitPasted, type PartyImportKey, type PartyImportRow,
+  PARTY_EXAMPLE_ROW, PARTY_IMPORT_SHEET, PARTY_TYPES, STATES, isBlankPartyRow, partyColumnOf, splitPasted, type PartyImportKey, type PartyImportRow,
 } from '@billing/shared';
 import type { Workbook, Worksheet, CellValue, DataValidation } from 'exceljs';
 
@@ -21,12 +21,6 @@ const NUM_KEYS: PartyImportKey[] = ['opening', 'limit'];
 const col = (i: number) => String.fromCharCode(65 + i);
 const colOf = (k: PartyImportKey) => col(PARTY_IMPORT_KEYS.indexOf(k));
 const n = PARTY_IMPORT_MAX_ROWS.toLocaleString('en-IN');
-
-/** The example row on the Parties sheet (a made-up party; its GSTIN has a correct check digit). */
-export const EXAMPLE_ROW: Record<PartyImportKey, string> = {
-  name: 'Example Traders', type: 'Customer', phone: '9876500000', email: 'accounts@example.com', gstin: '27ABCDE1234F1Z0',
-  address: 'Shop 4, MG Road', city: 'Pune', state: 'Maharashtra', opening: '2500', balType: 'To receive', limit: '50000',
-};
 
 async function workbook(): Promise<Workbook> {
   const { default: ExcelJS } = await import('exceljs');
@@ -71,7 +65,7 @@ function instructionsSheet(wb: Workbook) {
     return r;
   };
   add(['Import Parties — how to fill the Parties sheet'], 'title');
-  add(['1.', 'Row 2 of the Parties sheet is an example. Replace it with your own parties, one per row.']);
+  add(['1.', 'Row 2 of the Parties sheet is an example. Replace it with your own parties, one per row (if it is left in, it is skipped).']);
   add(['2.', 'Keep the headings in row 1. Columns may be in any order; only Party name is required.']);
   add(['3.', `At most ${n} parties per file. Save as .xlsx (or .csv) and upload it on Parties › Import Parties › Import from Excel.`]);
   add(['4.', 'Every row is checked and shown before anything is saved. Rows with a mistake are not saved; parties you already have (same name or phone) are skipped.']);
@@ -93,7 +87,7 @@ const blob = async (wb: Workbook) => new Blob([await wb.xlsx.writeBuffer()], { t
 
 export async function sampleBlob(): Promise<Blob> {
   const wb = await workbook();
-  writeRows(partiesSheet(wb, false), [EXAMPLE_ROW]);
+  writeRows(partiesSheet(wb, false), [PARTY_EXAMPLE_ROW]);
   instructionsSheet(wb);
   return blob(wb);
 }

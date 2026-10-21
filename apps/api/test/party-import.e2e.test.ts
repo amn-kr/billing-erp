@@ -1,7 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { PARTY_IMPORT_KEYS, type PartyImportRow } from '@billing/shared';
+import { PARTY_EXAMPLE_ROW, PARTY_IMPORT_KEYS, type PartyImportRow } from '@billing/shared';
 import { PartiesService } from '../src/modules/parties/parties.service';
 import { auth, member, owner, startApp } from './helpers';
 
@@ -104,6 +104,16 @@ describe('Parties › Import Parties', () => {
     const now = await byName(o, 'Mehta Electricals');
     expect(now).toMatchObject({ id: old.id, email: 'old@example.com', openingBalance: '0.00', balance: '0.00' });
     expect((await parties(o)).length).toBe(1);
+  });
+
+  it('the sample file’s example row left in the file is skipped as an example row, never saved', async () => {
+    const o = await owner(app);
+    const r = await run(o, [row(2, PARTY_EXAMPLE_ROW), row(3, { name: 'Real party' })]).expect(200);
+    expect(r.body.saved.map((x: { name: string }) => x.name)).toEqual(['Real party']);
+    expect(r.body.examples).toEqual([{ line: 2, reasons: ['The example row from the sample file. Replace it with your own parties.'] }]);
+    expect(r.body.rejected).toEqual([]);
+    expect(r.body.skipped).toEqual([]);
+    expect((await parties(o)).map((p) => p.name)).toEqual(['Real party']);
   });
 
   it('an archived party’s name can be used again (as with Add party)', async () => {

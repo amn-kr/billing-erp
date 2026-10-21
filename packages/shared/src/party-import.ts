@@ -3,9 +3,9 @@
  * for an Excel / CSV file, for the Bulk entry table (typed or pasted), and again on the server
  * when the rows are saved, so all three always agree.
  *
- * A row is OK (saved), Rejected (a value is wrong; nothing is saved) or Duplicate (a party with the
+ * A row is OK (saved), Rejected (a value is wrong; nothing is saved), Duplicate (a party with the
  * same name or phone already exists, or an earlier row of the same file has it; skipped, never
- * used to change the existing party).
+ * used to change the existing party) or Example (the sample file's example row, left in; skipped).
  */
 import { z } from 'zod';
 import { D, MONEY_MAX, toDb } from './money.js';
@@ -50,7 +50,16 @@ export interface PartyImportContext {
   gst: boolean;
 }
 
-export type PartyRowStatus = 'ok' | 'rejected' | 'duplicate';
+export type PartyRowStatus = 'ok' | 'rejected' | 'duplicate' | 'example';
+
+/** The example row on the sample file's Parties sheet (a made-up party; its GSTIN has a correct check digit). */
+export const PARTY_EXAMPLE_ROW: Record<PartyImportKey, string> = {
+  name: 'Example Traders', type: 'Customer', phone: '9876500000', email: 'accounts@example.com', gstin: '27ABCDE1234F1Z0',
+  address: 'Shop 4, MG Road', city: 'Pune', state: 'Maharashtra', opening: '2500', balType: 'To receive', limit: '50000',
+};
+/** The sample's example row left in a file (same name, phone and GSTIN): it is never imported. */
+const isExample = (r: Record<PartyImportKey, string>) =>
+  low(r.name) === low(PARTY_EXAMPLE_ROW.name) && normPhone((r.phone ?? '').trim()) === PARTY_EXAMPLE_ROW.phone && (r.gstin ?? '').replace(/\s/g, '').toUpperCase() === PARTY_EXAMPLE_ROW.gstin;
 export interface PartyRowCheck {
   line: number;
   status: PartyRowStatus;
@@ -151,6 +160,10 @@ export function checkPartyRows(rows: PartyImportRow[], ctx: PartyImportContext):
   for (const r of rows) {
     if (blank(r)) continue;
     const c: PartyRowCheck = { line: r.line, status: 'ok', cells: {}, party: null };
+    if (isExample(r)) {
+      out.push({ ...c, status: 'example', cells: { row: ['The example row from the sample file. Replace it with your own parties.'] } });
+      continue;
+    }
     const bad = (k: PartyImportKey, m: string) => (c.cells[k] ??= []).push(m);
     const v = (k: PartyImportKey) => (r[k] ?? '').trim();
 
@@ -300,4 +313,6 @@ export interface PartyImportSummary {
   saved: { line: number; id: string; name: string }[];
   rejected: { line: number; reasons: string[] }[];
   skipped: { line: number; reasons: string[] }[];
+  /** the sample file's example row, left in the file */
+  examples: { line: number; reasons: string[] }[];
 }

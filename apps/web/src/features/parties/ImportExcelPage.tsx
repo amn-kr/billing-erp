@@ -36,7 +36,7 @@ export function ImportExcelPage() {
 
   const checks = useMemo(() => (rows && shop.data ? checkPartyRows(rows, shop.data) : []), [rows, shop.data]);
   const byLine = useMemo(() => new Map(checks.map((c) => [c.line, c])), [checks]);
-  const count = { all: checks.length, ok: 0, rejected: 0, duplicate: 0 };
+  const count = { all: checks.length, ok: 0, rejected: 0, duplicate: 0, example: 0 };
   for (const c of checks) count[c.status]++;
   useKeepRows(!!rows && !summary);
 
@@ -130,8 +130,8 @@ export function ImportExcelPage() {
         </div>
         <div id="pxCount" style={{ fontSize: 13, fontWeight: 600 }}>
           {count.ok
-            ? <span className="stt g">{plural(count.ok, 'party', 'parties')} ready to import{count.rejected || count.duplicate ? `; ${num(count.rejected)} rejected and ${num(count.duplicate)} skipped rows will not be saved` : ''}.</span>
-            : <span className="stt r">Nothing to import: no row is OK. Fix the file and upload it again.</span>}
+            ? <span className="stt g">{plural(count.ok, 'party', 'parties')} ready to import{count.rejected || count.duplicate + count.example ? `; ${num(count.rejected)} rejected and ${num(count.duplicate + count.example)} skipped rows will not be saved` : ''}.</span>
+            : <span className="stt r">{count.example && count.example === count.all ? 'Nothing to import: the file only has the example row. Add your own parties and upload it again.' : 'Nothing to import: no row is OK. Fix the file and upload it again.'}</span>}
         </div>
       </div>
       {serverMsg && <div className="msg bad" id="pxSrvErr" role="alert">{serverMsg}</div>}

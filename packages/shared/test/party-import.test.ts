@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  checkPartyRows, gstinProblem, headerColumns, parsePartyAmount, partyColumnOf, partyImportSchema, partyRowProblems, PARTY_IMPORT_KEYS,
+  checkPartyRows, gstinProblem, PARTY_EXAMPLE_ROW, headerColumns, parsePartyAmount, partyColumnOf, partyImportSchema, partyRowProblems, PARTY_IMPORT_KEYS,
   readPasted, splitPasted, stateCodeOf, type PartyImportContext, type PartyImportRow,
 } from '../src/party-import';
 
@@ -125,6 +125,19 @@ describe('duplicates', () => {
   });
   it('a row with a wrong value is Rejected, not Duplicate', () => {
     expect(one({ name: 'Mehta Electricals', gstin: 'BAD' }).status).toBe('rejected');
+  });
+});
+
+describe('the sample file’s example row', () => {
+  it('left in the file, it is skipped as an example row: not rejected, not a duplicate, never saved', () => {
+    const [c] = checkPartyRows([row(PARTY_EXAMPLE_ROW, 2)], ctx);
+    expect(c).toEqual({ line: 2, status: 'example', cells: { row: ['The example row from the sample file. Replace it with your own parties.'] }, party: null });
+    // even as Excel gives it back (amounts as numbers, other capital letters, spaces in the phone)
+    expect(checkPartyRows([row({ ...PARTY_EXAMPLE_ROW, name: 'EXAMPLE TRADERS', phone: '98765 00000', opening: '2500' }, 2)], ctx)[0]!.status).toBe('example');
+  });
+  it('it does not make a later row a duplicate; a real party that only shares the name is checked as usual', () => {
+    const cs = checkPartyRows([row(PARTY_EXAMPLE_ROW, 2), good({ name: 'Example Traders', phone: '9123400009', gstin: '' }, 3)], ctx);
+    expect(cs.map((c) => c.status)).toEqual(['example', 'ok']);
   });
 });
 
