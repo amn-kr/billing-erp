@@ -86,38 +86,73 @@ function effective(moves: LedgerMove[]): Move[] {
 
 const order = (a: Move, b: Move) => a.date.localeCompare(b.date) || a.at.localeCompare(b.at) || a.n - b.n;
 
-/**
- * @param moves the item's stock ledger, all godowns, any order
- * @param fallbackRate the item's purchase price, used where the ledger has no rate
- */
-export function stockByPurchaseRate(moves: LedgerMove[], fallbackRate: MoneyInput): RateTable {
-  const fb = money(fallbackRate);
-  const layers: { rate: Money; qty: Money; since: string; srcs: Set<string> }[] = [];
-  /** what sales took from which layer, newest last, so a sale return can put it back */
-  const sold: { i: number; qty: Money; src: string }[] = [];
-  let short = money(0);
+/** Part of a rate layer, oldest first: `cost` is its real purchase rate, or 0 when it came in without one. */
+interface Part { qty: Money; cost: Money; src: string }
+interface Layer { rate: Money; qty: Money; since: string; srcs: Set<string>; parts: Part[] }
+interface Goods { qty: Money; cost: Money; free: Money; short: Money }
 
-  const addLayer = (rate: Money, qty: Money, since: string, src: string) => {
+/**
+ * The one lot calculation (first in, first out) behind both the stock value and the cost of what
+ * was sold. Layers carry the rate the stock value uses (the item's purchase price where the ledger
+ * has none); their parts carry the cost a sale takes, which is 0 where there was no purchase rate
+ * (owner's rule, Oct 2026: no fallback for profit). Same order, same quantities, so both always agree.
+ */
+function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
+  const fb = money(fallbackRate), zero = money(0);
+  const layers: Layer[] = [];
+  /** what sales took from which layer and at what cost, newest last, so a sale return can put it back */
+  const sold: { i: number; qty: Money; src: string; cost: Money }[] = [];
+  /** stock that went out beyond what was in, oldest first; the next stock coming in fills it */
+  const short: { qty: Money; src: string; sale: boolean }[] = [];
+  /** per sale or sale return: its quantity and the cost of the goods it took out or put back */
+  const goods = new Map<string, Goods>();
+  const g = (src: string) => {
+    let x = goods.get(src);
+    if (!x) goods.set(src, (x = { qty: zero, cost: zero, free: zero, short: zero }));
+    return x;
+  };
+  const priced = (x: Goods, qty: Money, cost: Money) => {
+    x.cost = x.cost.plus(qty.times(cost));
+    if (cost.isZero()) x.free = x.free.plus(qty);
+  };
+
+  const addLayer = (rate: Money, qty: Money, since: string, src: string, cost: Money) => {
     const top = layers.at(-1);
     if (top && top.rate.eq(rate)) top.qty = top.qty.plus(qty);
-    else layers.push({ rate, qty, since, srcs: new Set() });
-    if (src) layers.at(-1)!.srcs.add(src);
+    else layers.push({ rate, qty, since, srcs: new Set(), parts: [] });
+    const l = layers.at(-1)!;
+    if (src) l.srcs.add(src);
+    l.parts.push({ qty, cost, src });
   };
-  const take = (i: number, want: Money, m: Move) => {
+  /** takes up to `want` from layer i, oldest part first (only the parts `pick` accepts) */
+  const take = (i: number, want: Money, m: Move, pick?: (p: Part) => boolean) => {
     const l = layers[i]!;
-    const t = want.lt(l.qty) ? want : l.qty;
-    if (t.lte(0)) return want;
-    l.qty = l.qty.minus(t);
-    if (m.kind === 'sale') sold.push({ i, qty: t, src: m.src });
-    return want.minus(t);
+    for (const p of l.parts) {
+      if (want.lte(0)) break;
+      if (pick && !pick(p)) continue;
+      const t = want.lt(p.qty) ? want : p.qty;
+      if (t.lte(0)) continue;
+      p.qty = p.qty.minus(t);
+      l.qty = l.qty.minus(t);
+      want = want.minus(t);
+      if (m.kind === 'sale') {
+        sold.push({ i, qty: t, src: m.src, cost: p.cost });
+        priced(g(m.src), t, p.cost);
+      }
+    }
+    l.parts = l.parts.filter((p) => p.qty.gt(0));
+    return want;
   };
   /** puts back up to `want` of what sales took (newest first), only those sales `pick` accepts */
-  const putBack = (want: Money, pick: (src: string) => boolean) => {
+  const putBack = (want: Money, pick: (src: string) => boolean, m: Move) => {
     for (let k = sold.length - 1; k >= 0 && want.gt(0); k--) {
       const s = sold[k]!;
       if (!pick(s.src)) continue;
       const t = want.lt(s.qty) ? want : s.qty;
-      layers[s.i]!.qty = layers[s.i]!.qty.plus(t);
+      const l = layers[s.i]!;
+      l.qty = l.qty.plus(t);
+      l.parts.unshift({ qty: t, cost: s.cost, src: s.src });
+      priced(g(m.src), t, s.cost);
       s.qty = s.qty.minus(t);
       if (s.qty.isZero()) sold.splice(k, 1);
       want = want.minus(t);
@@ -126,25 +161,48 @@ export function stockByPurchaseRate(moves: LedgerMove[], fallbackRate: MoneyInpu
   };
 
   for (const m of effective(moves)) {
+    if (m.kind === 'sale' || m.kind === 'return') g(m.src).qty = g(m.src).qty.plus(m.qty.abs());
     if (m.qty.gt(0)) {
       let q = m.qty;
-      const fill = q.lt(short) ? q : short;
-      short = short.minus(fill);
-      q = q.minus(fill);
+      // real purchase rate of what comes in (a return's rate is the sale price, not a cost)
+      const cost = m.kind !== 'return' && m.rate.gt(0) ? m.rate : zero;
+      while (q.gt(0) && short.length) {
+        const s = short[0]!;
+        const t = q.lt(s.qty) ? q : s.qty;
+        if (s.sale) { const x = g(s.src); x.short = x.short.minus(t); priced(x, t, cost); }
+        s.qty = s.qty.minus(t);
+        if (s.qty.isZero()) short.shift();
+        q = q.minus(t);
+      }
       if (m.kind === 'return') {
-        if (m.against.length) q = putBack(q, (src) => m.against.includes(src));
-        q = putBack(q, () => true);
-        if (q.gt(0)) addLayer(fb, q, m.date, m.src);
-      } else addLayer(m.rate.gt(0) ? m.rate : fb, q, m.date, m.src);
+        if (m.against.length) q = putBack(q, (src) => m.against.includes(src), m);
+        q = putBack(q, () => true, m);
+        if (q.gt(0)) { addLayer(fb, q, m.date, m.src, zero); priced(g(m.src), q, zero); }
+      } else addLayer(m.rate.gt(0) ? m.rate : fb, q, m.date, m.src, cost);
     } else {
       let q = m.qty.neg();
       if (m.kind === 'purchase_return' && m.against.length)
-        for (let i = layers.length - 1; i >= 0 && q.gt(0); i--) if (m.against.some((b) => layers[i]!.srcs.has(b))) q = take(i, q, m);
+        for (let i = layers.length - 1; i >= 0 && q.gt(0); i--)
+          if (m.against.some((b) => layers[i]!.srcs.has(b))) {
+            q = take(i, q, m, (p) => m.against.includes(p.src));
+            q = take(i, q, m);
+          }
       for (let i = 0; i < layers.length && q.gt(0); i++) q = take(i, q, m);
-      short = short.plus(q);
+      if (q.gt(0)) {
+        short.push({ qty: q, src: m.src, sale: m.kind === 'sale' });
+        if (m.kind === 'sale') g(m.src).short = g(m.src).short.plus(q);
+      }
     }
   }
+  return { layers, short: short.reduce((a, s) => a.plus(s.qty), zero), goods };
+}
 
+/**
+ * @param moves the item's stock ledger, all godowns, any order
+ * @param fallbackRate the item's purchase price, used where the ledger has no rate
+ */
+export function stockByPurchaseRate(moves: LedgerMove[], fallbackRate: MoneyInput): RateTable {
+  const { layers, short } = runLots(moves, fallbackRate);
   const lastRate = layers.length ? layers.at(-1)!.rate.toFixed(2) : null;
   const first = layers.findIndex((l) => l.qty.gt(0));
   if (first < 0) return { layers: [], hidden: layers.length, totalQty: '0.000', shortQty: short.toDecimalPlaces(3).toFixed(3), avgRate: '0.00', value: '0.00', lastRate };
@@ -162,6 +220,57 @@ export function stockByPurchaseRate(moves: LedgerMove[], fallbackRate: MoneyInpu
     value: value.toDecimalPlaces(2).toFixed(2),
     lastRate,
   };
+}
+
+/** The cost of the goods one sale took out, or one sale return (credit note) put back, for one item. */
+export interface GoodsCost {
+  /** quantity sold or returned, 3 decimals */
+  qty: string;
+  /** at the purchase rate of the lots it used (oldest first), 2 decimals */
+  cost: string;
+  /** how much of it came from stock without a purchase entry, so it costs 0 */
+  noRateQty: string;
+  /** sold beyond the stock and not bought yet: costs 0 until a purchase fills it */
+  shortQty: string;
+}
+
+/**
+ * Profit's cost side (owner's rule, Oct 2026): what each sale's goods cost, from the lots it used
+ * up oldest first, and what each sale return put back at the cost of the lots its invoice used.
+ * The same run as the stock value (runLots), keyed by the document id. No purchase entry = cost 0.
+ */
+export function costOfGoods(moves: LedgerMove[]): Map<string, GoodsCost> {
+  const out = new Map<string, GoodsCost>();
+  for (const [src, x] of runLots(moves, 0).goods)
+    out.set(src, { qty: x.qty.toDecimalPlaces(3).toFixed(3), cost: x.cost.toDecimalPlaces(2).toFixed(2), noRateQty: x.free.toDecimalPlaces(3).toFixed(3), shortQty: x.short.toDecimalPlaces(3).toFixed(3) });
+  return out;
+}
+
+/** True when the item ever came in with a purchase rate (a bill, opening stock or added stock with a rate). */
+export const hasPurchaseLot = (moves: LedgerMove[]): boolean => effective(moves).some((m) => m.qty.gt(0) && m.kind !== 'return' && m.rate.gt(0));
+
+/**
+ * One document's cost for an item, shared out over its lines of that item: the same average cost
+ * per unit on each (owner: "Cost / unit" shows the average), the last line taking the paise left
+ * over; what is still short goes to the later lines first (the earlier ones used the stock).
+ */
+export function costPerLine(c: GoodsCost | undefined, qtys: MoneyInput[]): { cost: string; shortQty: string; noRate: boolean }[] {
+  const q = qtys.map((v) => money(v).abs());
+  const all = q.reduce((a, v) => a.plus(v), money(0));
+  if (!c || all.isZero()) return q.map(() => ({ cost: '0.00', shortQty: '0.000', noRate: false }));
+  const total = money(c.cost);
+  let left = total, short = money(c.shortQty);
+  const out = q.map((v, k) => {
+    const cost = k === q.length - 1 ? left : total.times(v).div(all).toDecimalPlaces(2);
+    left = left.minus(cost);
+    return { cost: cost.toFixed(2), shortQty: '0.000', noRate: money(c.noRateQty).gt(0) };
+  });
+  for (let k = q.length - 1; k >= 0 && short.gt(0); k--) {
+    const t = short.lt(q[k]!) ? short : q[k]!;
+    out[k]!.shortQty = t.toDecimalPlaces(3).toFixed(3);
+    short = short.minus(t);
+  }
+  return out;
 }
 
 /**
