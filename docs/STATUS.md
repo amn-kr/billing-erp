@@ -195,8 +195,9 @@ every failed part, one folder each (`visual-diffs-part-1/visual/…`). Each part
 (`visual-diffs-part-1` … `-4`) is there too.
 
 **Re-running only the part that failed:** open the run on GitHub and click **Re-run jobs › Re-run failed jobs**. GitHub
-re-runs only the red part(s) and then `test`; the parts that passed are not run again. (After such a re-run, the
-`visual-diffs-part-N` download holds the new pictures.)
+re-runs only the red part(s) and then `test`; the parts that passed are not run again. After a re-run the run page
+lists **visual-diffs** more than once: the newest one belongs to the re-run. A part that passed on the re-run makes no new
+pictures, so its folder there still holds the pictures from the first try.
 
 **Approved pictures** are still made only on GitHub's Linux machine, with a temporary `quick-check.yml` on a `tmp/`
 branch; `ci.yml` does not run on `tmp/` branches.
