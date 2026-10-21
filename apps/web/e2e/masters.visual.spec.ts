@@ -350,7 +350,7 @@ for (const width of WIDTHS) {
       const times = await app.locator('#phRows tr td:first-child').allInnerTexts();
       await proto.evaluate((t) => document.querySelectorAll('#phRows tr td:first-child').forEach((td, k) => { td.textContent = t[k] ?? td.textContent; }), times);
       await settle();
-      await approvedShot(`phm-${width}`, app, '#phm .mdl');
+      await sameShot(`phm-${width}`, proto, app, '#phm .mdl');
     });
 
     test('Price Setup brand rules on the sample catalogue', async ({ browser, request }) => {
@@ -385,7 +385,10 @@ for (const width of WIDTHS) {
       await both((p) => p.click('#psGo'));
       await app.waitForSelector('#ppv:not([hidden])');
       await settle();
+      // the "Rule saved" message fades at its own pace: hidden only while this picture is taken (the screen is unchanged)
+      const noToast = await app.addStyleTag({ content: '#toast{visibility:hidden!important}' });
       await approvedShot(`prules-ppv-${width}`, app, '#ppv .mdl');
+      await noToast.evaluate((e) => (e as Element).remove());
       await both((p) => p.click('#ppvApply'));
       await app.waitForSelector('#ppv', { state: 'hidden' });
       await app.waitForTimeout(500);
