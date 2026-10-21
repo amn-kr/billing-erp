@@ -1,4 +1,4 @@
-import { autoPurchasePrice, stockByPurchaseRate, type LedgerMove, type RateTable } from '@billing/shared';
+import { autoPurchasePrice, costOfGoods, costPerLine, hasPurchaseLot, money, stockByPurchaseRate, type GoodsCost, type LedgerMove, type RateTable, type SaleCostInput } from '@billing/shared';
 import { Prisma } from '@prisma/client';
 import type { Tx } from '../../common/db.service';
 
@@ -38,6 +38,60 @@ export async function ledgerOf(tx: Tx, itemIds?: string[]): Promise<Map<string, 
 export async function rateTables(tx: Tx, items: { id: string; purchasePrice: { toString(): string } }[], all = false): Promise<Map<string, RateTable>> {
   const ledger = await ledgerOf(tx, all ? undefined : items.map((i) => i.id));
   return new Map(items.map((i) => [i.id, stockByPurchaseRate(ledger.get(i.id) ?? [], i.purchasePrice.toString())]));
+}
+
+/**
+ * One item's card: what is left by purchase rate (the stock value), and whether it ever came in with
+ * a purchase rate (a bill, opening stock or added stock with a rate); without one the card shows no
+ * latest / average purchase price.
+ */
+export async function itemLots(tx: Tx, id: string, purchasePrice: { toString(): string }): Promise<{ rateTable: RateTable; bought: boolean }> {
+  const moves = (await ledgerOf(tx, [id])).get(id) ?? [];
+  return { rateTable: stockByPurchaseRate(moves, purchasePrice.toString()), bought: hasPurchaseLot(moves) };
+}
+
+/**
+ * Profit's cost side, from the same lots as the stock value (owner's rule, Oct 2026): what each
+ * sale's goods cost and what each sale return put back, keyed `itemId|documentId`. Every place that
+ * shows a profit gets its cost from here or from draftSaleCosts, so they all agree.
+ */
+export async function goodsCosts(tx: Tx, itemIds?: string[]): Promise<Map<string, GoodsCost>> {
+  const ledger = await ledgerOf(tx, itemIds);
+  const out = new Map<string, GoodsCost>();
+  for (const [itemId, moves] of ledger) for (const [doc, c] of costOfGoods(moves)) out.set(`${itemId}|${doc}`, c);
+  return out;
+}
+
+/** A document's cost of goods: its lines' costs added up (services and lines without an item cost 0). */
+export function documentCost(costs: Map<string, GoodsCost>, docId: string, lines: { itemId: string | null }[]) {
+  return [...new Set(lines.map((l) => l.itemId).filter((i): i is string => !!i))].reduce((a, i) => a.plus(costs.get(`${i}|${docId}`)?.cost ?? 0), money(0));
+}
+
+/**
+ * The cost of each line of a bill still on screen (the sale editor's profit & loss pop-up): its
+ * goods leave the lots on its date, after what was entered before; an invoice being edited is left
+ * out and counted at the place it already has, so an unchanged saved bill shows what the reports show.
+ */
+export async function draftSaleCosts(tx: Tx, d: SaleCostInput) {
+  const ids = [...new Set(d.lines.map((l) => l.itemId).filter((i): i is string => !!i))];
+  const goods = new Set((await tx.item.findMany({ where: { id: { in: ids }, kind: { not: 'service' } }, select: { id: true } })).map((i) => i.id));
+  const ledger = await ledgerOf(tx, [...goods]);
+  const own = d.id ? (await tx.stockMovement.findMany({ where: { sourceType: 'sales_document', sourceId: d.id }, select: { createdAt: true }, orderBy: { createdAt: 'desc' }, take: 1 }))[0] : undefined;
+  // the ledger's own time format (microseconds); a new bill comes after everything entered so far
+  const at = (own?.createdAt ?? new Date()).toISOString().replace('Z', own ? '000Z' : '999Z');
+  const src = d.id ?? 'this-bill';
+  const out = d.lines.map(() => ({ cost: '0.00', shortQty: '0.000', noRate: false }));
+  for (const itemId of goods) {
+    const rows = d.lines.flatMap((l, k) => (l.itemId === itemId && money(l.qty).gt(0) ? [k] : []));
+    if (!rows.length) continue;
+    const moves: LedgerMove[] = [
+      ...(ledger.get(itemId) ?? []).filter((m) => !d.id || m.sourceId !== d.id),
+      ...rows.map((k) => ({ date: d.date, createdAt: at, qty: money(d.lines[k]!.qty).neg().toFixed(3), rate: '0', kind: 'sale', sourceType: 'sales_document', sourceId: src })),
+    ];
+    const per = costPerLine(costOfGoods(moves).get(src), rows.map((k) => d.lines[k]!.qty));
+    rows.forEach((k, j) => (out[k] = per[j]!));
+  }
+  return { lines: out };
 }
 
 /** price history entries written by refreshPurchasePrices start with this */

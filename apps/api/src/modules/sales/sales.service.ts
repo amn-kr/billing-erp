@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, type SalesDocument } from '@prisma/client';
 import {
-  amountInWords, lineCommission, money, saleTotals, taxModeOf, toDb, todayIst, type CommRule, type Money, type SaleInput, type TaxMode,
+  amountInWords, lineCommission, money, saleTotals, taxModeOf, toDb, todayIst, type CommRule, type Money, type SaleCostInput, type SaleInput, type TaxMode,
 } from '@billing/shared';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
@@ -14,6 +14,7 @@ import { writeAtSale } from './at-sale';
 import { cancelPayment } from './money-in';
 import { ALREADY_DELETED, deleteMark } from '../../common/deleting';
 import { reverseStock } from './stock-back';
+import { draftSaleCosts } from '../stock/stock-value';
 
 const q3 = (v: { toString(): string }) => money(v.toString()).toDecimalPlaces(3).toFixed(3);
 const d2 = (v: { toString(): string } | null | undefined) => (v === null || v === undefined ? null : toDb(v.toString()));
@@ -54,6 +55,11 @@ export class SalesService {
 
   private scope(ctx: RequestContext) {
     return { businessId: ctx.businessId, userId: ctx.userId, email: ctx.email };
+  }
+
+  /** The cost of each line of a bill still on screen, from the purchase-rate lots it would use. */
+  cost(ctx: RequestContext, d: SaleCostInput) {
+    return this.db.scoped(this.scope(ctx), (tx) => draftSaleCosts(tx, d));
   }
 
   /** The number the editor shows for a new document. */
