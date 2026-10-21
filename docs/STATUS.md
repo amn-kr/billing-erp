@@ -78,6 +78,7 @@ The app is live and the owner has created an account and signed in. Details (no 
 | Import upload: Settings › General › Backup & restore › Restore from file takes the old app's backup | done — flow test from file to imported parties |
 | "Discard this …?" question when closing a filled-in window (Enter twice / Esc) | done for Adjust stock, Start fresh and Restore; Phase 3 documents will use the same piece |
 | Currency symbol switch (₹ hidden by default) works on every screen | done |
+| Import Parties (Parties › ⋮, new screens, not in the prototype): choose Import from Excel (sample file, .xlsx / .csv upload, preview with OK / Rejected / Duplicate - skipped, rejected-rows file) or Bulk entry (type or paste from Excel / Google Sheets); up to 1,000 parties at once, one shared checker (GSTIN check digit, amounts with up to 2 decimals, duplicates by name or phone), saved in one transaction through Add party's own save code | built 21 Oct 2026 — unit, API and flow tests; pictures to be approved from the Linux run |
 | **Gate:** a real backup file imports cleanly | ✅ the owner's backup imports cleanly (rechecked 4 Oct 2026; the file is not stored in the repository) |
 
 ### Differences from the prototype (on purpose)
@@ -90,6 +91,13 @@ The app is live and the owner has created an account and signed in. Details (no 
 - **Restore from file** adds the old app's backup to empty books instead of replacing books. Backups made by the new app are restored with the hosting work (Phase 5).
 - "Storage on this device" says the books are kept on the server (the prototype measured the browser's storage).
 - The bell's low-stock count and the General settings button work straight away (in the prototype the count refreshed only when opened, and General needed another tab opened first).
+
+### Owner decisions — Import Parties (21 Oct 2026)
+- Party type is Customer or Supplier only; a "Both" row is rejected with a clear reason (the app has no "Both" party yet).
+- Balance type shows "To receive / To pay", like the rest of the app; "To collect" is accepted as To receive.
+- The prototype's ⋮ item "Import parties from Excel" is renamed "Import Parties" and opens the choice page.
+- Opening balances are dated today (India time); there is no date column.
+- A blank state is taken from the GSTIN; a GSTIN of another state rejects the row. Duplicates are checked against active parties only (archived names can be reused, as with Add party). Imported parties go into the General group; a blank credit limit means no limit. Existing parties are never changed.
 
 ### Owner decisions (4 Oct 2026)
 - **Sample entries:** not needed. The old app's demo entries stay out of the import (the default).

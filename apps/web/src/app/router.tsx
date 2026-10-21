@@ -2,6 +2,9 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppShell } from '../features/shell/AppShell';
 import { HomePage } from '../features/home/HomePage';
 import { PartiesPage } from '../features/parties/PartiesPage';
+import { ImportChoicePage } from '../features/parties/ImportChoicePage';
+import { ImportExcelPage } from '../features/parties/ImportExcelPage';
+import { BulkEntryPage } from '../features/parties/BulkEntryPage';
 import { ItemsPage } from '../features/items/ItemsPage';
 import { BrandsPage } from '../features/items/BrandsPage';
 import { ImportPage } from '../features/items/ImportPage';
@@ -31,6 +34,9 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: 'parties', element: <PartiesPage /> },
+      { path: 'parties/import', element: <ImportChoicePage /> },
+      { path: 'parties/import/excel', element: <ImportExcelPage /> },
+      { path: 'parties/import/bulk', element: <BulkEntryPage /> },
       { path: 'items', element: <ItemsPage /> },
       { path: 'items/brands', element: <BrandsPage /> },
       { path: 'items/import', element: <ImportPage /> },

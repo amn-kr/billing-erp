@@ -24,6 +24,7 @@ import { NumberingService } from './common/numbering.service';
 import { LedgerService } from './common/ledger.service';
 import { PartiesController } from './modules/parties/parties.controller';
 import { PartiesService } from './modules/parties/parties.service';
+import { PartyImportService } from './modules/parties/party-import.service';
 import { ItemsController } from './modules/items/items.controller';
 import { ItemsService } from './modules/items/items.service';
 import { ItemImportService } from './modules/items/item-import.service';
@@ -89,6 +90,7 @@ import { DriveController, DriveSender } from './modules/backup/drive';
     ChequesService,
     ExpensesService,
     PartiesService,
+    PartyImportService,
     ItemsService,
     ItemImportService,
     BrandsService,

@@ -1,13 +1,18 @@
-/* Items › Bulk update items only (SheetGrid inside #vBulk) — owner-approved addition, not in the
-   prototype. Every rule is scoped to that screen, so no other screen's look can change. The shared
+/* Items › Bulk update items (SheetGrid inside #vBulk) and Parties › Import Parties › Bulk entry
+   (#vPBulk) only — owner-approved additions, not in the prototype. Every rule is scoped to those
+   screens, so no other screen's look can change. The shared
    grid look (edit-grid.css) is used as it is. Rows have one height, so rows never jump; a changed
    cell's "was …" or its problem is one small line at the bottom of the cell; the active cell has the
    accent outline. */
-#vBulk .egsheet .egt td.egc{position:relative;height:44px}
-#vBulk .egsheet .egc input,#vBulk .egsheet .egc select{height:44px}
-#vBulk .egsheet .egc:has(.egm) input,#vBulk .egsheet .egc:has(.egm) select{padding-bottom:13px}
-#vBulk .egsheet .egc .egm{position:absolute;left:0;right:0;bottom:4px;padding:0 10px;font-size:10.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:none;pointer-events:none}
-#vBulk .egsheet .egt td.eglead{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis}
-#vBulk .egsheet .egt td.egact{box-shadow:inset 0 0 0 2px var(--ac)}
-#vBulk .egsheet .egt td.egact:focus{outline:none}
-#vBulk .egsheet .egt tr.egsp td{padding:0!important;border:0!important}
+#vBulk .egsheet .egt td.egc,#vPBulk .egsheet .egt td.egc{position:relative;height:44px}
+#vBulk .egsheet .egc input,#vBulk .egsheet .egc select,#vPBulk .egsheet .egc input,#vPBulk .egsheet .egc select{height:44px}
+#vBulk .egsheet .egc:has(.egm) input,#vBulk .egsheet .egc:has(.egm) select,#vPBulk .egsheet .egc:has(.egm) input,#vPBulk .egsheet .egc:has(.egm) select{padding-bottom:13px}
+#vBulk .egsheet .egc .egm,#vPBulk .egsheet .egc .egm{position:absolute;left:0;right:0;bottom:4px;padding:0 10px;font-size:10.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:none;pointer-events:none}
+#vBulk .egsheet .egt td.eglead,#vPBulk .egsheet .egt td.eglead{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis}
+#vBulk .egsheet .egt td.egact,#vPBulk .egsheet .egt td.egact{box-shadow:inset 0 0 0 2px var(--ac)}
+#vBulk .egsheet .egt td.egact:focus,#vPBulk .egsheet .egt td.egact:focus{outline:none}
+#vBulk .egsheet .egt tr.egsp td,#vPBulk .egsheet .egt tr.egsp td{padding:0!important;border:0!important}
+/* Bulk entry: the row's status and remove button stay in view at the right edge */
+#vPBulk .egsheet .egt .egtail{position:sticky;right:0;z-index:2;background:var(--sf);box-shadow:inset 1px 0 0 var(--bd)}
+#vPBulk .egsheet .egt td.egtail{padding:0 8px 0 12px!important;vertical-align:middle}
+#vPBulk .egsheet .egt thead .egtail{z-index:4;background:var(--sf2)}

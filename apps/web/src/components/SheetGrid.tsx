@@ -13,8 +13,11 @@
  * Rows have one fixed height (a changed cell's "was …" or its problem is a small line inside the
  * cell), so only the rows in view are drawn and thousands of rows stay quick. The active row is
  * always drawn, so the focus is never lost while the table is drawn again.
+ * Parties › Import Parties › Bulk entry uses it without the tick boxes and the fixed name column
+ * (`selection` and `lead` left out), with a last column of its own (`tail`) and `onPaste` for
+ * blocks of cells copied from Excel or Google Sheets.
  */
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEvent, type MouseEvent, type MutableRefObject, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ClipboardEvent, type FocusEvent, type KeyboardEvent, type MouseEvent, type MutableRefObject, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import css from './edit-grid.css?inline';
 import sheetCss from './sheet-grid.css?inline';
@@ -44,11 +47,17 @@ interface Props<R> {
   rowLabel: (r: R) => ReactNode;
   /** the row's name, for each cell's label */
   rowName: (r: R) => string;
-  lead: { title: string; width: number; cell: (r: R) => string };
+  /** a fixed, read-only first column (the item name); left out: every column can be typed in */
+  lead?: { title: string; width: number; cell: (r: R) => string };
   value: (r: R, key: string) => string;
   onChange: (r: R, key: string, value: string) => void;
   mark?: (r: R, key: string) => SheetMark | undefined;
-  selection: { selected: Set<string>; onToggle: (key: string, on: boolean) => void; onToggleAll: (on: boolean) => void };
+  /** tick boxes in front of the rows; left out: no tick box column */
+  selection?: { selected: Set<string>; onToggle: (key: string, on: boolean) => void; onToggleAll: (on: boolean) => void };
+  /** a last column that is not a cell (e.g. the row's status and a remove button); not reached by the keys */
+  tail?: { title: string; width: number; cell: (r: R) => ReactNode };
+  /** text pasted into a cell that holds more than one cell (a tab or a new line): the page fills the cells */
+  onPaste?: (row: string, col: string, text: string) => void;
   /** shown after a heading's title, e.g. a filter button; key 'lead' for the item name */
   head?: (key: string) => ReactNode;
   empty?: ReactNode;
@@ -70,7 +79,7 @@ const selectAll = (inp: HTMLInputElement) => {
 };
 const printable = (e: KeyboardEvent) => e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
 
-export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lead, value, onChange, mark, selection, head, empty, handle }: Props<R>) {
+export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lead, value, onChange, mark, selection, tail, onPaste, head, empty, handle }: Props<R>) {
   useStyles([css], 'edit-grid');
   // this table's own rules, all under #vBulk (the shared grid look above is not changed)
   useStyles([sheetCss], 'sheet-grid');
@@ -96,7 +105,7 @@ export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lea
   const [viewH, setViewH] = useState(600);
   const [rh, setRh] = useState(45);
 
-  const nav = useMemo(() => [SEL, NAME, ...columns.map((c) => c.key)], [columns]);
+  const nav = useMemo(() => [...(selection ? [SEL] : []), ...(lead ? [NAME] : []), ...columns.map((c) => c.key)], [columns, selection, lead]);
   const index = useMemo(() => new Map(rows.map((r, i) => [rowKey(r), i])), [rows, rowKey]);
   const colOf = (key: string) => columns.find((c) => c.key === key);
   const rowOf = (key: string) => { const i = index.get(key); return i === undefined ? undefined : rows[i]; };
@@ -136,7 +145,7 @@ export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lea
   /** select a cell's value again once it is drawn: only if it still has the focus (select() would take
    * it back) and editing has not started meanwhile (Esc, then Enter at once) */
   const reselect = (inp: HTMLInputElement) => requestAnimationFrame(() => { if (document.activeElement === inp && !editing.current) selectAll(inp); });
-  const toggleRow = (row: string) => selection.onToggle(row, !selection.selected.has(row));
+  const toggleRow = (row: string) => selection?.onToggle(row, !selection.selected.has(row));
 
   // the active cell gets the focus (after moving, and if the focus was lost while drawing again)
   useLayoutEffect(() => {
@@ -153,7 +162,7 @@ export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lea
     force.current = false;
     // sideways: keep it right of the columns that stay in view (tick box, #, item name)
     const tw = twRef.current!;
-    const leadTh = tw.querySelector<HTMLElement>('thead th.eglead');
+    const leadTh = tw.querySelector<HTMLElement>('thead th.eglead') ?? tw.querySelector<HTMLElement>('thead th.egn');
     const stick = leadTh ? leadTh.offsetLeft + leadTh.offsetWidth : 0;
     if (active.col !== SEL && active.col !== NAME) {
       if (td.offsetLeft < tw.scrollLeft + stick) tw.scrollLeft = td.offsetLeft - stick;
@@ -308,6 +317,21 @@ export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lea
     }
   };
 
+  /** a block of cells pasted into a cell (not while typing a single value into it) */
+  const onPasteCells = (e: ClipboardEvent<HTMLTableElement>) => {
+    if (!onPaste) return;
+    const text = e.clipboardData.getData('text/plain');
+    const t = e.target as HTMLElement;
+    const td = t.closest<HTMLElement>('td[data-col]');
+    const tr = t.closest<HTMLElement>('tr[data-row]');
+    if (!td || !tr || !colOf(td.dataset.col!)) return;
+    // one value into a text cell is typed in as usual
+    if (!/[\t\n]/.test(text.replace(/\r?\n$/, '')) && isText(t)) return;
+    e.preventDefault();
+    editing.current = false;
+    onPaste(tr.dataset.row!, td.dataset.col!, text);
+  };
+
   const onMouseDown = (e: MouseEvent<HTMLTableElement>) => {
     const t = e.target as HTMLElement;
     if (t instanceof HTMLSelectElement) {
@@ -345,13 +369,17 @@ export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lea
   const ai = active ? index.get(active.row) : undefined;
   if (ai !== undefined && (ai < start || ai >= end)) drawn.push(ai);
   drawn.sort((a, b) => a - b);
-  const span = 3 + columns.length;
+  const span = (selection ? 1 : 0) + 1 + (lead ? 1 : 0) + columns.length + (tail ? 1 : 0);
+  // left edges of the columns that stay in view
+  const numL = selection ? 36 : 0, leadL = numL + 44;
   const gap = (n: number, key: string) => <tr key={key} className="egsp" aria-hidden="true"><td colSpan={span} style={{ height: n * rh }}></td></tr>;
   const first = rows[0] ? rowKey(rows[0]) : '';
-  const tab = (row: string, col: string) => (active ? active.row === row && active.col === col : row === first && col === nav[2]) ? 0 : -1;
-  const leadW = { minWidth: lead.width, maxWidth: lead.width, width: lead.width };
+  const firstCol = nav[nav.length - columns.length];
+  const tab = (row: string, col: string) => (active ? active.row === row && active.col === col : row === first && col === firstCol) ? 0 : -1;
+  const leadW = lead && { minWidth: lead.width, maxWidth: lead.width, width: lead.width };
   const title = (key: string, t: ReactNode) => (head ? <span className="thw2">{t}{head(key)}</span> : t);
-  const allOn = rows.length > 0 && rows.every((r) => selection.selected.has(rowKey(r)));
+  const allOn = !!selection && rows.length > 0 && rows.every((r) => selection.selected.has(rowKey(r)));
+  const tailW = tail && { minWidth: tail.width, width: tail.width };
 
   const body: ReactNode[] = [];
   let prev = 0;
@@ -363,9 +391,9 @@ export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lea
     const on = (col: string) => (active && active.row === k && active.col === col ? ' egact' : '');
     body.push(
       <tr key={k} data-row={k} aria-rowindex={i + 2}>
-        <td className={`egck${on(SEL)}`} data-col={SEL} style={{ ['--egl' as string]: '0px' }}><input type="checkbox" aria-label={`Select ${name}`} tabIndex={tab(k, SEL)} checked={selection.selected.has(k)} onChange={(e) => selection.onToggle(k, e.target.checked)} /></td>
-        <td className="egn" style={{ ['--egl' as string]: '36px' }}>{rowLabel(r)}</td>
-        <td className={`eglead${on(NAME)}`} data-col={NAME} tabIndex={tab(k, NAME)} title={lead.cell(r)} style={{ ...leadW, ['--egl' as string]: '80px' }}>{lead.cell(r)}</td>
+        {selection && <td className={`egck${on(SEL)}`} data-col={SEL} style={{ ['--egl' as string]: '0px' }}><input type="checkbox" aria-label={`Select ${name}`} tabIndex={tab(k, SEL)} checked={selection.selected.has(k)} onChange={(e) => selection.onToggle(k, e.target.checked)} /></td>}
+        <td className="egn" style={{ ['--egl' as string]: `${numL}px` }}>{rowLabel(r)}</td>
+        {lead && <td className={`eglead${on(NAME)}`} data-col={NAME} tabIndex={tab(k, NAME)} title={lead.cell(r)} style={{ ...leadW, ['--egl' as string]: `${leadL}px` }}>{lead.cell(r)}</td>}
         {columns.map((c) => {
           const m = mark?.(r, c.key);
           const v = value(r, c.key);
@@ -384,6 +412,7 @@ export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lea
             </td>
           );
         })}
+        {tail && <td className="egtail" style={tailW}>{tail.cell(r)}</td>}
       </tr>,
     );
     prev = i + 1;
@@ -398,13 +427,14 @@ export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lea
     <div className="egw egsheet" id={id}>
       {/* no scroll anchoring: drawing other rows must not make the browser move the scroll position */}
       <div className="tw egfit" ref={twRef} style={{ margin: 0, overflowAnchor: 'none' }}>
-        <table className="ptt2 egt" role="grid" aria-rowcount={rows.length + 1} onFocus={onFocus} onKeyDown={onKeyDown} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onDoubleClick={onDoubleClick}>
+        <table className="ptt2 egt" role="grid" aria-rowcount={rows.length + 1} onFocus={onFocus} onKeyDown={onKeyDown} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onDoubleClick={onDoubleClick} onPaste={onPaste ? onPasteCells : undefined}>
           <thead>
             <tr aria-rowindex={1}>
-              <th className="egck" style={{ ['--egl' as string]: '0px' }}><input type="checkbox" aria-label="Select all rows" checked={allOn} onChange={(e) => selection.onToggleAll(e.target.checked)} /></th>
-              <th className="egn" style={{ ['--egl' as string]: '36px' }}>#</th>
-              <th className="eglead" style={{ ...leadW, ['--egl' as string]: '80px' }}>{title('lead', lead.title)}</th>
+              {selection && <th className="egck" style={{ ['--egl' as string]: '0px' }}><input type="checkbox" aria-label="Select all rows" checked={allOn} onChange={(e) => selection.onToggleAll(e.target.checked)} /></th>}
+              <th className="egn" style={{ ['--egl' as string]: `${numL}px` }}>#</th>
+              {lead && <th className="eglead" style={{ ...leadW, ['--egl' as string]: `${leadL}px` }}>{title('lead', lead.title)}</th>}
               {columns.map((c) => <th key={c.key} style={c.grow ? { width: '100%', minWidth: c.width ?? 200 } : { minWidth: c.width ?? 160, width: c.width ?? 160 }}>{title(c.key, c.title)}</th>)}
+              {tail && <th className="egtail" style={tailW}>{tail.title}</th>}
             </tr>
           </thead>
           <tbody>
