@@ -62,9 +62,10 @@ async function priceBeforeAuto(tx: Tx, itemId: string): Promise<string | null> {
  * Keeps the item's purchase price automatic (owner's rule, Oct 2026): the newest purchase bill's
  * rate, else the opening stock's rate. Runs after a purchase bill is saved, edited or cancelled, and
  * when an item is made with opening stock. When the ledger has no rate the stored price is kept
- * (old items keep theirs). Each change goes to the price history with `how`.
+ * (old items keep theirs). Each change goes to the price history with `how`, except when importing
+ * an old backup (`history: false`: imported prices are where the books start, not changes).
  */
-export async function refreshPurchasePrices(tx: Tx, who: { businessId: string; userId: string }, itemIds: (string | null)[], how: string): Promise<number> {
+export async function refreshPurchasePrices(tx: Tx, who: { businessId: string; userId: string }, itemIds: (string | null)[], how: string, opts: { history?: boolean } = {}): Promise<number> {
   const ids = [...new Set(itemIds.filter((i): i is string => !!i))];
   if (!ids.length) return 0;
   const [ledger, items] = await Promise.all([ledgerOf(tx, ids), tx.item.findMany({ where: { id: { in: ids } }, select: { id: true, purchasePrice: true } })]);
@@ -74,7 +75,7 @@ export async function refreshPurchasePrices(tx: Tx, who: { businessId: string; u
     const nv = autoPurchasePrice(ledger.get(it.id) ?? []) ?? (await priceBeforeAuto(tx, it.id));
     if (nv === null || nv === ov) continue;
     await tx.item.update({ where: { id: it.id }, data: { purchasePrice: nv } });
-    await tx.priceHistory.create({ data: { businessId: who.businessId, itemId: it.id, field: 'purchase', oldValue: ov, newValue: nv, how: `${AUTO}${how}`, createdBy: who.userId } });
+    if (opts.history !== false) await tx.priceHistory.create({ data: { businessId: who.businessId, itemId: it.id, field: 'purchase', oldValue: ov, newValue: nv, how: `${AUTO}${how}`, createdBy: who.userId } });
     changed++;
   }
   return changed;

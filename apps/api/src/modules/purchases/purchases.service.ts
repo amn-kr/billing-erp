@@ -230,7 +230,7 @@ export class PurchasesService {
           await this.audit.log(tx, { businessId, userId: ctx.userId, action: 'cancel', entity: 'payment', entityId: p.id, before: p, after: { reason: `Removed when ${number} was edited` }, ip: ctx.ip });
         }
         /* the items' purchase prices are automatic: the newest bill's rate (owner's rule, Oct 2026), with history */
-        priceChanges = await refreshPurchasePrices(tx, { businessId, userId: ctx.userId }, [...input.lines.map((l) => l.itemId), ...(before?.lines.map((l) => l.itemId) ?? [])], `Purchase bill ${number}${before ? ' (edited)' : ''}`);
+        priceChanges = await refreshPurchasePrices(tx, { businessId, userId: ctx.userId }, [...input.lines.map((l) => l.itemId), ...(before?.lines.map((l) => l.itemId) ?? [])], `Purchase bill ${number}${before ? ' (edited)' : ''}`, { history: !legacy });
         if (input.fromOrderId && !before) await tx.purchaseDocument.updateMany({ where: { id: input.fromOrderId, kind: 'order', status: 'open' }, data: { status: 'received' } });
       }
       /* a debit note against a bill reduces what is owed on it; the rest is credit with the supplier */

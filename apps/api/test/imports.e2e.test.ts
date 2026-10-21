@@ -250,6 +250,9 @@ describe('importing: stock value and the automatic purchase price', () => {
     // old app: purchase 1560, opening 25 at 1540 → the opening rate
     expect([by('Copper wire 1.5 sq mm (90 m)').purchase, by('Copper wire 1.5 sq mm (90 m)').value]).toEqual(['1540.00', '38500.00']);
     expect(await lotsOf(o, by('Copper wire 1.5 sq mm (90 m)').id)).toEqual([['1540.00', '25.000']]);
+    // importing sets the price but writes no price-history line (the books start here)
+    const hist = (await http().get(`/api/prices/history?itemId=${by('Copper wire 1.5 sq mm (90 m)').id}`).set(auth(o)).expect(200)).body as { how: string }[];
+    expect(hist.filter((h) => h.how.startsWith('Automatic'))).toEqual([]);
     expect([by('LED bulb 9W').purchase, by('LED bulb 9W').value]).toEqual(['62.00', '12400.00']);
     // no opening stock and no bill: the old app's price stays
     expect([by('MCB 32A double pole').purchase, by('MCB 32A double pole').value]).toEqual(['310.00', '0.00']);
@@ -262,5 +265,7 @@ describe('importing: stock value and the automatic purchase price', () => {
     expect(wire.purchase).toBe('1500.00');
     expect(await lotsOf(p, wire.id)).toEqual([['1540.00', '23.000'], ['1500.00', '10.000']]);
     expect(wire.value).toBe('50420.00');
+    const phist = (await http().get(`/api/prices/history?itemId=${wire.id}`).set(auth(p)).expect(200)).body as { how: string }[];
+    expect(phist.filter((h) => h.how.startsWith('Automatic'))).toEqual([]);
   });
 });

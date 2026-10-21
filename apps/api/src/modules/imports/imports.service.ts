@@ -247,8 +247,8 @@ export class ImportsService {
     /* purchases (bills, orders, debit notes, payments made), through the same rules as new ones */
     await writePurchases(tx, pctx, new PurchasesService(this.db, this.audit, this.numbers, this.ledger), { partyId, itemId, warnings: plan.warnings }, plan.purchases);
     // purchase prices are automatic: the newest bill's rate, else the opening stock's (each bill above already did its items);
-    // an item with neither keeps the old app's purchase price
-    await refreshPurchasePrices(tx, { businessId, userId: actor.userId }, plan.items.filter((i) => i.kind === 'goods' && i.opening.length).map((i) => itemId.get(i.legacyId)!), 'Opening stock (imported)');
+    // an item with neither keeps the old app's purchase price; no price-history line (the books start here)
+    await refreshPurchasePrices(tx, { businessId, userId: actor.userId }, plan.items.filter((i) => i.kind === 'goods' && i.opening.length).map((i) => itemId.get(i.legacyId)!), 'Opening stock (imported)', { history: false });
 
     /* money moved by hand between cash and bank */
     await writeEntries(tx, pctx, new BankingService(this.db, this.audit, this.numbers, this.ledger), plan.banking, acctIds);
