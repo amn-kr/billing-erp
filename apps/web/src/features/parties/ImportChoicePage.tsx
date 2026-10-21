@@ -3,26 +3,14 @@
  * Excel / CSV file, or by typing or pasting them into a table. Not in the prototype — built only
  * from its classes (lnk, pthd, ptkind, card, ptempty pue, btn), like Import products.
  */
-import type { ReactNode } from 'react';
 import { go } from '../../lib/go';
 import { RawIcon } from '../../components/Icon';
 import { PARTY_IMPORT_MAX_ROWS } from '@billing/shared';
+import { ImportHead } from './importParts';
 
 const XLS = '<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 12l4 5M13 12l-4 5"/>';
 const GRID = '<rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 9h18M3 14h18M9 4v16M15 4v16"/>';
 const n = PARTY_IMPORT_MAX_ROWS.toLocaleString('en-IN');
-
-/** "← Parties" and the page heading, shared by the three Import Parties screens */
-export function ImportHead({ back, children }: { back: 'parties' | 'choice'; children?: ReactNode }) {
-  return (
-    <>
-      {back === 'parties'
-        ? <button className="lnk" id="piBack" style={{ fontSize: 12, padding: 0 }} onClick={() => go('/parties')}>← Parties</button>
-        : <button className="lnk" id="piBack" style={{ fontSize: 12, padding: 0 }} onClick={() => go('/parties/import')}>← Import Parties</button>}
-      <div className="pthd">{children}</div>
-    </>
-  );
-}
 
 export function ImportChoicePage() {
   const card = (id: string, icon: string, title: string, text: string, btn: string, to: string) => (

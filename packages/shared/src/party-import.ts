@@ -233,11 +233,12 @@ export function partyRowProblems(c: PartyRowCheck): string[] {
 /**
  * Text copied from Excel or Google Sheets → rows of cells (tab between cells, a new line between
  * rows; a cell with a tab, new line or quote comes in "quotes"). Trailing empty lines are dropped.
+ * With `sep` ',' or ';' it reads a CSV file the same way.
  */
-export function splitPasted(text: string): string[][] {
+export function splitPasted(text: string, sep = '\t'): string[][] {
   const rows: string[][] = [];
   let row: string[] = [], cell = '', i = 0;
-  const t = text.replace(/\r\n?/g, '\n');
+  const t = text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
   while (i < t.length) {
     const ch = t[i]!;
     if (ch === '"' && cell === '') {
@@ -247,9 +248,9 @@ export function splitPasted(text: string): string[][] {
         if (t[j] === '"') { if (t[j + 1] === '"') { q += '"'; j += 2; continue; } break; }
         q += t[j++];
       }
-      if (j < t.length && (j + 1 === t.length || t[j + 1] === '\t' || t[j + 1] === '\n')) { cell = q; i = j + 1; continue; }
+      if (j < t.length && (j + 1 === t.length || t[j + 1] === sep || t[j + 1] === '\n')) { cell = q; i = j + 1; continue; }
     }
-    if (ch === '\t') { row.push(cell); cell = ''; }
+    if (ch === sep) { row.push(cell); cell = ''; }
     else if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
     else cell += ch;
     i++;

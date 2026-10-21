@@ -132,6 +132,8 @@ describe('pasted text and headings', () => {
   it('splits tabs and new lines, keeps quoted cells, drops trailing empty lines', () => {
     expect(splitPasted('a\tb\r\nc\t"d\te"\n"x ""y"""\t\n\n')).toEqual([['a', 'b'], ['c', 'd\te'], ['x "y"', '']]);
     expect(splitPasted('"line1\nline2"\tz')).toEqual([['line1\nline2', 'z']]);
+    // a CSV file: commas, quotes around a cell with a comma, Excel's BOM at the start
+    expect(splitPasted('\uFEFFParty name,City\r\n"Shop 4, MG Road",Pune\r\n', ',')).toEqual([['Party name', 'City'], ['Shop 4, MG Road', 'Pune']]);
   });
   it('headings match ignoring case and extra spaces (and a required star)', () => {
     expect(partyColumnOf('  PARTY   name * ')).toBe('name');
