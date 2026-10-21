@@ -108,23 +108,30 @@ export class PartiesService {
     }
   }
 
+  /**
+   * Adds one party inside the caller's transaction: the party, its opening balance, addresses,
+   * contacts and the audit entry. Add party and Import Parties both save through here.
+   * `note` is added to the audit entry (e.g. which import row it came from).
+   */
+  async insert(tx: Tx, ctx: RequestContext, input: PartyInput, note?: Record<string, unknown>) {
+    const groupId = await namedId(tx, 'partyGroup', ctx.businessId!, ctx.userId, input.group || 'General');
+    const hasOb = !!input.openingBalance && money(input.openingBalance).gt(0);
+    const p = await tx.party.create({
+      data: {
+        businessId: ctx.businessId!, createdBy: ctx.userId, groupId, ...this.fields(input), name: input.name, kind: input.kind,
+        openingType: input.openingType ?? (input.kind === 'supplier' ? 'pay' : 'receive'),
+        openingDate: hasOb ? day(input.openingDate ?? todayIst()) : null,
+      },
+    });
+    await this.writeAddresses(tx, ctx, p.id, input);
+    const full = partyView(await this.find(tx, p.id));
+    await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'create', entity: 'party', entityId: p.id, after: { ...full, ...note }, ip: ctx.ip });
+    return full;
+  }
+
   async create(ctx: RequestContext, input: PartyInput) {
     try {
-      return await this.db.scoped(this.scope(ctx), async (tx) => {
-        const groupId = await namedId(tx, 'partyGroup', ctx.businessId!, ctx.userId, input.group || 'General');
-        const hasOb = !!input.openingBalance && money(input.openingBalance).gt(0);
-        const p = await tx.party.create({
-          data: {
-            businessId: ctx.businessId!, createdBy: ctx.userId, groupId, ...this.fields(input), name: input.name, kind: input.kind,
-            openingType: input.openingType ?? (input.kind === 'supplier' ? 'pay' : 'receive'),
-            openingDate: hasOb ? day(input.openingDate ?? todayIst()) : null,
-          },
-        });
-        await this.writeAddresses(tx, ctx, p.id, input);
-        const full = await this.find(tx, p.id);
-        await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'create', entity: 'party', entityId: p.id, after: partyView(full), ip: ctx.ip });
-        return partyView(full);
-      });
+      return await this.db.scoped(this.scope(ctx), (tx) => this.insert(tx, ctx, input));
     } catch (e) {
       const m = uniqueMessage(e);
       if (m) throw new ConflictException({ message: m, field: 'name' });
