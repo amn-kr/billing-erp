@@ -13,5 +13,6 @@
 #vBulk .egsheet .egt td.egact:focus,#vPBulk .egsheet .egt td.egact:focus{outline:none}
 #vBulk .egsheet .egt tr.egsp td,#vPBulk .egsheet .egt tr.egsp td{padding:0!important;border:0!important}
 /* Bulk entry: the row's status and remove button stay in view at the right edge */
-#vPBulk .egsheet .egt .egtail{position:sticky;right:0;z-index:2;background:var(--sf);box-shadow:inset 1px 0 0 var(--bd);padding:0 8px 0 12px}
+#vPBulk .egsheet .egt .egtail{position:sticky;right:0;z-index:2;background:var(--sf);box-shadow:inset 1px 0 0 var(--bd)}
+#vPBulk .egsheet .egt td.egtail{padding:0 8px 0 12px!important;vertical-align:middle}
 #vPBulk .egsheet .egt thead .egtail{z-index:4;background:var(--sf2)}
