@@ -3,7 +3,7 @@
  * a supplier, invoices, returns, purchases, payments, expenses, a cheque and electrician commission).
  */
 import { test, type Page } from '@playwright/test';
-import { hideHeader, sameShot } from './shots';
+import { approvedShot, hideHeader, sameShot } from './shots';
 import { APP, COMMISSION, WIDTHS, newPage, openPrototypeView, prototypeWithBackup, signInAs } from './setup';
 
 const both = async (a: Page, b: Page, fn: (p: Page) => Promise<unknown>) => { await fn(a); await fn(b); };
@@ -69,7 +69,9 @@ for (const width of WIDTHS) {
       test.setTimeout(150_000);
       const { proto, app } = await pages(browser, width);
       await open(proto, app, 'ppl', '#rpMain .rpt');
-      await sameShot(`rep-ppl-${width}`, proto, app, '#rpMain');
+      // owner's change (Oct 2026): cost from the purchase-rate lots, and the note says so, so this report is
+      // compared with its approved picture; the other party reports are still compared with the prototype
+      await approvedShot(`rep-ppl-${width}`, app, '#rpMain');
       await open(proto, app, 'allp', '#rpMain .rpt tbody tr[data-rpk]');
       await sameShot(`rep-allp-${width}`, proto, app, '#rpMain');
       await both(proto, app, (p) => p.selectOption('#rpAb', 'rec'));

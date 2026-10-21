@@ -167,7 +167,7 @@ function Ppl(props: RpProps) {
     cols: [{ h: 'Party', w: 26 }, { h: 'Group', w: 16 }, { h: 'Bills', n: true, int: true, w: 7 }, { h: 'Sale value', n: true }, { h: 'Cost', n: true }, { h: 'Commission', n: true, w: 12 }, { h: 'Profit', n: true }, { h: 'Margin %', n: true, int: true, w: 10 }],
     rows: R.map((r) => ({ k: r.id, c: [r.name, r.groupName || '', r.sn, inr2f(r.tv), inr2f(r.cost), rpN(r.comm), inr2f(r.prof), r.m.toFixed(1) + '%'], h: { 6: <b className={r.prof < 0 ? 'neg' : 'pos'}>{inr2f(r.prof)}</b>, 7: <span className={r.m < 5 ? 'neg' : ''}>{r.m.toFixed(1)}%</span> } })),
     foot: ['Total', '', R.reduce((a, r) => a + r.sn, 0), inr2f(ts), inr2f(T('cost')), rpN(T('comm')), inr2f(tp), ts ? ((tp / ts) * 100).toFixed(1) + '%' : ''],
-    note: 'Sale value is before GST and after goods returned on credit notes. Cost uses each item’s purchase price. Commission is the electrician commission on referred bills. Click a party for its statement.',
+    note: 'Sale value is before GST and after goods returned on credit notes. Cost uses the purchase rate of the stock each sale used (oldest first). Commission is the electrician commission on referred bills. Click a party for its statement.',
     click: (k) => { statementOf(k); props.open('pstmt'); },
   };
   return <RpShell o={def} p={props.p} setP={props.setP} onToggle={props.onToggle} onPrint={() => props.onPrint(def)} />;
