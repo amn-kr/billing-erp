@@ -1,4 +1,4 @@
-import { autoPurchasePrice, costOfGoods, costPerLine, hasPurchaseLot, money, stockByPurchaseRate, type GoodsCost, type LedgerMove, type RateTable, type SaleCostInput } from '@billing/shared';
+import { autoPurchasePrice, costOfGoods, costRows, hasPurchaseLot, money, stockByPurchaseRate, type GoodsCost, type LedgerMove, type LineCost, type RateTable, type SaleCostInput } from '@billing/shared';
 import { Prisma } from '@prisma/client';
 import type { Tx } from '../../common/db.service';
 
@@ -68,9 +68,10 @@ export function documentCost(costs: Map<string, GoodsCost>, docId: string, lines
 }
 
 /**
- * The cost of each line of a bill still on screen (the sale editor's profit & loss pop-up): its
- * goods leave the lots on its date, after what was entered before; an invoice being edited is left
- * out and counted at the place it already has, so an unchanged saved bill shows what the reports show.
+ * The cost of each line of a bill still on screen (the sale editor's profit & loss pop-up), with a
+ * row per lot it uses: its goods leave the lots on its date, after what was entered before; an
+ * invoice being edited is left out and counted at the place it already has, so an unchanged saved
+ * bill shows what the reports show.
  */
 export async function draftSaleCosts(tx: Tx, d: SaleCostInput) {
   const ids = [...new Set(d.lines.map((l) => l.itemId).filter((i): i is string => !!i))];
@@ -80,7 +81,8 @@ export async function draftSaleCosts(tx: Tx, d: SaleCostInput) {
   // the ledger's own time format (microseconds); a new bill comes after everything entered so far
   const at = (own?.createdAt ?? new Date()).toISOString().replace('Z', own ? '000Z' : '999Z');
   const src = d.id ?? 'this-bill';
-  const out = d.lines.map(() => ({ cost: '0.00', shortQty: '0.000', noRate: false }));
+  // lines that use no stock (no item, a service): one row at 0
+  const out: LineCost[] = d.lines.map((l) => costRows(undefined, [l.qty])[0]!);
   for (const itemId of goods) {
     const rows = d.lines.flatMap((l, k) => (l.itemId === itemId && money(l.qty).gt(0) ? [k] : []));
     if (!rows.length) continue;
@@ -88,7 +90,7 @@ export async function draftSaleCosts(tx: Tx, d: SaleCostInput) {
       ...(ledger.get(itemId) ?? []).filter((m) => !d.id || m.sourceId !== d.id),
       ...rows.map((k) => ({ date: d.date, createdAt: at, qty: money(d.lines[k]!.qty).neg().toFixed(3), rate: '0', kind: 'sale', sourceType: 'sales_document', sourceId: src })),
     ];
-    const per = costPerLine(costOfGoods(moves).get(src), rows.map((k) => d.lines[k]!.qty));
+    const per = costRows(costOfGoods(moves).get(src), rows.map((k) => d.lines[k]!.qty));
     rows.forEach((k, j) => (out[k] = per[j]!));
   }
   return { lines: out };

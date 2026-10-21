@@ -89,7 +89,9 @@ const order = (a: Move, b: Move) => a.date.localeCompare(b.date) || a.at.localeC
 /** Part of a rate layer, oldest first: `cost` is its real purchase rate, or 0 when it came in without one. */
 interface Part { qty: Money; cost: Money; src: string }
 interface Layer { rate: Money; qty: Money; since: string; srcs: Set<string>; parts: Part[] }
-interface Goods { qty: Money; cost: Money; free: Money; short: Money }
+/** one piece of what a sale took: from a lot (`cost` its rate), from stock with no rate (0), or still short (0) */
+interface Slice { qty: Money; cost: Money; kind: SliceKind }
+interface Goods { qty: Money; cost: Money; free: Money; short: Money; slices: Slice[] }
 
 /**
  * The one lot calculation (first in, first out) behind both the stock value and the cost of what
@@ -108,7 +110,7 @@ function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
   const goods = new Map<string, Goods>();
   const g = (src: string) => {
     let x = goods.get(src);
-    if (!x) goods.set(src, (x = { qty: zero, cost: zero, free: zero, short: zero }));
+    if (!x) goods.set(src, (x = { qty: zero, cost: zero, free: zero, short: zero, slices: [] }));
     return x;
   };
   const priced = (x: Goods, qty: Money, cost: Money) => {
@@ -138,6 +140,7 @@ function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
       if (m.kind === 'sale') {
         sold.push({ i, qty: t, src: m.src, cost: p.cost });
         priced(g(m.src), t, p.cost);
+        g(m.src).slices.push({ qty: t, cost: p.cost, kind: p.cost.isZero() ? 'none' : 'lot' });
       }
     }
     l.parts = l.parts.filter((p) => p.qty.gt(0));
@@ -169,7 +172,15 @@ function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
       while (q.gt(0) && short.length) {
         const s = short[0]!;
         const t = q.lt(s.qty) ? q : s.qty;
-        if (s.sale) { const x = g(s.src); x.short = x.short.minus(t); priced(x, t, cost); }
+        if (s.sale) {
+          const x = g(s.src);
+          x.short = x.short.minus(t);
+          priced(x, t, cost);
+          // the filled part becomes a slice of its own, just before what is still short
+          const k = x.slices.findIndex((sl) => sl.kind === 'short');
+          x.slices[k]!.qty = x.slices[k]!.qty.minus(t);
+          x.slices.splice(k, x.slices[k]!.qty.isZero() ? 1 : 0, { qty: t, cost, kind: cost.isZero() ? 'none' : 'lot' });
+        }
         s.qty = s.qty.minus(t);
         if (s.qty.isZero()) short.shift();
         q = q.minus(t);
@@ -190,7 +201,7 @@ function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
       for (let i = 0; i < layers.length && q.gt(0); i++) q = take(i, q, m);
       if (q.gt(0)) {
         short.push({ qty: q, src: m.src, sale: m.kind === 'sale' });
-        if (m.kind === 'sale') g(m.src).short = g(m.src).short.plus(q);
+        if (m.kind === 'sale') { const x = g(m.src); x.short = x.short.plus(q); x.slices.push({ qty: q, cost: zero, kind: 'short' }); }
       }
     }
   }
@@ -232,7 +243,13 @@ export interface GoodsCost {
   noRateQty: string;
   /** sold beyond the stock and not bought yet: costs 0 until a purchase fills it */
   shortQty: string;
+  /** what it used, in the order used (a sale only): neighbouring pieces at the same rate are one */
+  slices: CostSlice[];
 }
+
+/** lot = from a lot at its purchase rate; none = stock without a purchase entry (0); short = not in stock yet (0) */
+export type SliceKind = 'lot' | 'none' | 'short';
+export interface CostSlice { qty: string; rate: string; kind: SliceKind }
 
 /**
  * Profit's cost side (owner's rule, Oct 2026): what each sale's goods cost, from the lots it used
@@ -242,35 +259,85 @@ export interface GoodsCost {
 export function costOfGoods(moves: LedgerMove[]): Map<string, GoodsCost> {
   const out = new Map<string, GoodsCost>();
   for (const [src, x] of runLots(moves, 0).goods)
-    out.set(src, { qty: x.qty.toDecimalPlaces(3).toFixed(3), cost: x.cost.toDecimalPlaces(2).toFixed(2), noRateQty: x.free.toDecimalPlaces(3).toFixed(3), shortQty: x.short.toDecimalPlaces(3).toFixed(3) });
+    out.set(src, {
+      qty: x.qty.toDecimalPlaces(3).toFixed(3), cost: x.cost.toDecimalPlaces(2).toFixed(2), noRateQty: x.free.toDecimalPlaces(3).toFixed(3), shortQty: x.short.toDecimalPlaces(3).toFixed(3),
+      slices: x.slices.reduce<Slice[]>((a, sl) => {
+        const top = a.at(-1);
+        if (top && top.kind === sl.kind && top.cost.eq(sl.cost)) top.qty = top.qty.plus(sl.qty);
+        else a.push({ ...sl });
+        return a;
+      }, []).map((sl) => ({ qty: sl.qty.toDecimalPlaces(3).toFixed(3), rate: sl.cost.toFixed(2), kind: sl.kind })),
+    });
   return out;
 }
 
 /** True when the item ever came in with a purchase rate (a bill, opening stock or added stock with a rate). */
 export const hasPurchaseLot = (moves: LedgerMove[]): boolean => effective(moves).some((m) => m.qty.gt(0) && m.kind !== 'return' && m.rate.gt(0));
 
+/** One row of a bill's profit & loss: part of a line that used one lot rate (or no rate / short stock). */
+export interface CostRow { qty: string; rate: string; cost: string; kind: SliceKind }
+export interface LineCost { cost: string; shortQty: string; noRate: boolean; rows: CostRow[] }
+
 /**
- * One document's cost for an item, shared out over its lines of that item: the same average cost
- * per unit on each (owner: "Cost / unit" shows the average), the last line taking the paise left
- * over; what is still short goes to the later lines first (the earlier ones used the stock).
+ * One document's cost for an item, over its lines of that item (owner, Oct 2026: one row per lot):
+ * the lots go to the lines in order, oldest first; within a line, pieces at the same rate are one
+ * row. Each row costs qty × rate; the last row takes the paise left over, so the rows always add up
+ * exactly to the document's cost. A line that used no stock (a service) gets one row at 0.
  */
-export function costPerLine(c: GoodsCost | undefined, qtys: MoneyInput[]): { cost: string; shortQty: string; noRate: boolean }[] {
-  const q = qtys.map((v) => money(v).abs());
-  const all = q.reduce((a, v) => a.plus(v), money(0));
-  if (!c || all.isZero()) return q.map(() => ({ cost: '0.00', shortQty: '0.000', noRate: false }));
-  const total = money(c.cost);
-  let left = total, short = money(c.shortQty);
-  const out = q.map((v, k) => {
-    const cost = k === q.length - 1 ? left : total.times(v).div(all).toDecimalPlaces(2);
-    left = left.minus(cost);
-    return { cost: cost.toFixed(2), shortQty: '0.000', noRate: money(c.noRateQty).gt(0) };
+export function costRows(c: GoodsCost | undefined, qtys: MoneyInput[]): LineCost[] {
+  const zero = money(0);
+  const queue = (c?.slices ?? []).map((sl) => ({ qty: money(sl.qty), rate: sl.rate, kind: sl.kind }));
+  const lines = qtys.map((v) => {
+    let want = money(v).abs();
+    const rows: { qty: Money; rate: string; kind: SliceKind }[] = [];
+    while (want.gt(0) && queue.length) {
+      const sl = queue[0]!;
+      const t = want.lt(sl.qty) ? want : sl.qty;
+      const same = rows.find((r) => r.kind === sl.kind && r.rate === sl.rate);
+      if (same) same.qty = same.qty.plus(t);
+      else rows.push({ qty: t, rate: sl.rate, kind: sl.kind });
+      sl.qty = sl.qty.minus(t);
+      if (sl.qty.isZero()) queue.shift();
+      want = want.minus(t);
+    }
+    if (!rows.length) rows.push({ qty: money(v).abs(), rate: '0.00', kind: 'lot' });
+    return rows.map((r) => ({ ...r, cost: r.qty.times(r.rate).toDecimalPlaces(2) }));
   });
-  for (let k = q.length - 1; k >= 0 && short.gt(0); k--) {
-    const t = short.lt(q[k]!) ? short : q[k]!;
-    out[k]!.shortQty = t.toDecimalPlaces(3).toFixed(3);
-    short = short.minus(t);
-  }
-  return out;
+  // the last row with a cost takes what rounding left over
+  const all = lines.flat();
+  const left = money(c?.cost ?? 0).minus(all.reduce((a, r) => a.plus(r.cost), zero));
+  const last = [...all].reverse().find((r) => r.kind === 'lot' && !money(r.rate).isZero());
+  if (last) last.cost = last.cost.plus(left);
+  return lines.map((rows) => ({
+    cost: rows.reduce((a, r) => a.plus(r.cost), zero).toFixed(2),
+    shortQty: rows.filter((r) => r.kind === 'short').reduce((a, r) => a.plus(r.qty), zero).toDecimalPlaces(3).toFixed(3),
+    noRate: rows.some((r) => r.kind === 'none'),
+    rows: rows.map((r) => ({ qty: r.qty.toDecimalPlaces(3).toFixed(3), rate: r.rate, cost: r.cost.toFixed(2), kind: r.kind })),
+  }));
+}
+
+/** A bill line in its profit & loss: its sale value (before GST, after discounts) and its cost rows. */
+export interface ProfitLineIn { saleValue: MoneyInput; rows: CostRow[] }
+export interface ProfitRow extends CostRow { sale: string; profit: string }
+
+/**
+ * The rows of a bill's profit & loss (owner, Oct 2026): each line's sale value shared over its rows
+ * by quantity, the last row taking the remainder, so rows add up exactly to the line and the bill.
+ */
+export function profitRows(lines: ProfitLineIn[]): { lines: ProfitRow[][]; sale: string; cost: string; profit: string } {
+  let tS = money(0), tC = money(0);
+  const out = lines.map((l) => {
+    const total = money(l.saleValue);
+    const qty = l.rows.reduce((a, r) => a.plus(r.qty), money(0));
+    let left = total;
+    return l.rows.map((r, k) => {
+      const sale = k === l.rows.length - 1 ? left : qty.isZero() ? money(0) : total.times(r.qty).div(qty).toDecimalPlaces(2);
+      left = left.minus(sale);
+      tS = tS.plus(sale); tC = tC.plus(r.cost);
+      return { ...r, sale: sale.toFixed(2), profit: sale.minus(r.cost).toFixed(2) };
+    });
+  });
+  return { lines: out, sale: tS.toFixed(2), cost: tC.toFixed(2), profit: tS.minus(tC).toFixed(2) };
 }
 
 /**

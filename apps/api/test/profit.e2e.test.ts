@@ -16,7 +16,7 @@ afterAll(async () => { await app.close(); });
 
 type S = Awaited<ReturnType<typeof owner>>;
 type It = { id: string; name: string };
-type Cost = { cost: string; shortQty: string; noRate: boolean };
+type Cost = { cost: string; shortQty: string; noRate: boolean; rows: { qty: string; rate: string; cost: string; kind: string }[] };
 
 async function shop() {
   const o = await owner(app);
@@ -56,19 +56,21 @@ describe('profit by purchase-rate lots', () => {
     const { o, sup, cust } = await shop();
     const it = await lots(o, sup);
     // before saving: the bill on screen
-    expect(await preview(o, '2026-10-04', [[it, '150']])).toEqual([{ cost: '4000.00', shortQty: '0.000', noRate: false }]);
+    expect(await preview(o, '2026-10-04', [[it, '150']])).toMatchObject([{ cost: '4000.00', shortQty: '0.000', noRate: false }]);
     const s = await sell(o, cust, '2026-10-04', [[it, '150']]);
     // the saved bill opened again shows the same
-    expect(await preview(o, '2026-10-04', [[it, '150']], s.id)).toEqual([{ cost: '4000.00', shortQty: '0.000', noRate: false }]);
+    expect(await preview(o, '2026-10-04', [[it, '150']], s.id)).toMatchObject([{ cost: '4000.00', shortQty: '0.000', noRate: false }]);
     expect(await ppl(o, cust.id)).toEqual({ tv: '6000.00', cost: '4000.00' });
     // the stored purchase price (newest bill, 25) is not used: 150 × 25 would be 3,750
     expect((await http().get(`/api/items/${it.id}`).set(auth(o)).expect(200)).body.purchase).toBe('25.00');
   });
 
-  it('two lines of the same item share the average cost per unit', async () => {
+  it('one row per lot the bill uses; two lines of the same item take the lots in line order', async () => {
     const { o, sup } = await shop();
     const it = await lots(o, sup);
-    expect((await preview(o, '2026-10-04', [[it, '100'], [it, '50']])).map((l) => l.cost)).toEqual(['2666.67', '1333.33']);
+    expect((await preview(o, '2026-10-04', [[it, '150']]))[0]!.rows).toEqual([
+      { qty: '50.000', rate: '20.00', cost: '1000.00', kind: 'lot' }, { qty: '100.000', rate: '30.00', cost: '3000.00', kind: 'lot' }]);
+    expect((await preview(o, '2026-10-04', [[it, '100'], [it, '50']])).map((l) => l.cost)).toEqual(['2500.00', '1500.00']);
   });
 
   it('an edited sale is worked out again; editing it on screen leaves its own old quantity out', async () => {
@@ -114,7 +116,7 @@ describe('profit by purchase-rate lots', () => {
     const { o, cust } = await shop();
     // opening stock without a rate, as the Add item screen sends it (no purchase price box)
     const it = await item(o, { openingQty: '10', openingDate: '2026-10-01' });
-    expect(await preview(o, '2026-10-04', [[it, '4']])).toEqual([{ cost: '0.00', shortQty: '0.000', noRate: true }]);
+    expect(await preview(o, '2026-10-04', [[it, '4']])).toMatchObject([{ cost: '0.00', shortQty: '0.000', noRate: true }]);
     await sell(o, cust, '2026-10-04', [[it, '4']]);
     expect((await ppl(o, cust.id)).cost).toBe('0.00');
     const card = (await http().get(`/api/items/${it.id}`).set(auth(o)).expect(200)).body as { bought: boolean; rateTable: { value: string } };
@@ -124,14 +126,14 @@ describe('profit by purchase-rate lots', () => {
   it('services and lines without stock: cost 0', async () => {
     const { o } = await shop();
     const svc = await item(o, { kind: 'service' });
-    expect(await preview(o, '2026-10-04', [[svc, '2']])).toEqual([{ cost: '0.00', shortQty: '0.000', noRate: false }]);
+    expect(await preview(o, '2026-10-04', [[svc, '2']])).toMatchObject([{ cost: '0.00', shortQty: '0.000', noRate: false }]);
   });
 
   it('short stock: the missing part costs 0 now, and the rate of the purchase that fills it later', async () => {
     const { o, sup, cust } = await shop();
     const it = await item(o);
     await bill(o, sup, it, '50', '20', '2026-10-01');
-    expect(await preview(o, '2026-10-02', [[it, '80']])).toEqual([{ cost: '1000.00', shortQty: '30.000', noRate: false }]);
+    expect(await preview(o, '2026-10-02', [[it, '80']])).toMatchObject([{ cost: '1000.00', shortQty: '30.000', noRate: false }]);
     await sell(o, cust, '2026-10-02', [[it, '80']]);
     expect((await ppl(o, cust.id)).cost).toBe('1000.00');
     await bill(o, sup, it, '100', '30', '2026-10-05');

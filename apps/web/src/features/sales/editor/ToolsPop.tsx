@@ -3,7 +3,7 @@
  * terms & conditions, description, attachments and profit & loss on this bill.
  */
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { formatQty, money } from '@billing/shared';
+import { formatQty, money, profitRows, type LineCost } from '@billing/shared';
 import { Icon } from '../../../components/Icon';
 import { api } from '../../../lib/api';
 import { inr2f } from '../../../lib/format';
@@ -56,12 +56,11 @@ export function ToolBody({ k, s, ctx, up, onFiles, toast }: { k: ToolKey; s: SI;
   );
 }
 
-interface LineCost { cost: string; shortQty: string; noRate: boolean }
-
 /**
- * Profit & loss on this bill (prototype plBody): before GST, after discounts. The cost of each line
- * comes from the API: the purchase-rate lots it uses, oldest first, the same calculation as the
- * stock value and the reports (owner's rule, Oct 2026). No purchase entry = cost ₹0.
+ * Profit & loss on this bill (prototype plBody): before GST, after discounts. The cost comes from
+ * the API: the purchase-rate lots each line uses, oldest first, the same calculation as the stock
+ * value and the reports (owner's rule, Oct 2026). One row per lot rate a line used (owner, Oct
+ * 2026); stock without a purchase entry and stock not bought yet have rows of their own at ₹0.
  */
 function PlBody({ s, ctx }: { s: SI; ctx: Ctx }) {
   const c = calc(ctx, s);
@@ -73,19 +72,22 @@ function PlBody({ s, ctx }: { s: SI; ctx: Ctx }) {
   const lc = q.data?.lines.length === L.length ? q.data.lines : null;
   if (!lc) return <>{head}<div className="ptempty">{q.isError ? 'Could not work out the cost. Close and open this again.' : 'Working out the cost…'}</div></>;
   const sumTv = L.reduce((a, x) => a + x.r.tv, 0), f = sumTv > 0 ? c.taxable / sumTv : 1;
-  let tS = money(0), tC = money(0);
-  const rows = L.map(({ l, r }, k) => {
-    const it = l.item!, qty = Number(l.qty) || 0, x = lc[k]!;
-    const sale = money(r2(r.tv * f)), cost = money(x.cost), pr = sale.minus(cost), m = sale.isZero() ? 0 : pr.div(sale).times(100).toNumber();
-    // no purchase entry, or sold beyond stock and not bought yet: the cost is not known yet
-    const known = !cost.isZero() || !(x.noRate || money(x.shortQty).gt(0));
-    tS = tS.plus(sale); tC = tC.plus(cost);
-    return (
-      <tr key={k}><td><b>{it.grp && it.brand ? it.grp : l.name}</b><small>{[it.brand, it.series].filter(Boolean).join(' · ')}</small></td><td className="n">{qfmt(qty)}</td><td className="n">{inr2f(r2(sale.toNumber() / (qty || 1)))}</td>
-        <td className="n">{known ? inr2f(cost.div(qty || 1).toDecimalPlaces(2)) : <span className="warn">—</span>}</td><td className="n">{inr2f(sale)}</td><td className="n">{inr2f(cost)}</td>
-        <td className={`n ${pr.isNeg() ? 'neg' : 'pos'}`}><b>{pr.isNeg() ? '−' : ''}{inr2f(pr.abs())}</b></td><td className={`n ${pr.isNeg() ? 'neg' : ''}`}>{known ? m.toFixed(1) + '%' : '—'}</td></tr>
-    );
+  const sales = L.map(({ r }) => r2(r.tv * f));
+  const P = profitRows(L.map((_, k) => ({ saleValue: sales[k]!, rows: lc[k]!.rows })));
+  const rows = L.flatMap(({ l }, k) => {
+    const it = l.item!, qty = Number(l.qty) || 0;
+    return P.lines[k]!.map((x, j) => {
+      const sale = money(x.sale), pr = money(x.profit), m = sale.isZero() ? 0 : pr.div(sale).times(100).toNumber();
+      // no purchase entry, or sold beyond stock and not bought yet: the cost is not known yet
+      const known = x.kind === 'lot';
+      return (
+        <tr key={`${k}.${j}`}><td><b>{it.grp && it.brand ? it.grp : l.name}</b><small>{[it.brand, it.series].filter(Boolean).join(' · ')}</small></td><td className="n">{qfmt(Number(x.qty))}</td><td className="n">{inr2f(r2(sales[k]! / (qty || 1)))}</td>
+          <td className="n">{known ? inr2f(x.rate) : <span className="warn">—</span>}</td><td className="n">{inr2f(sale)}</td><td className="n">{inr2f(x.cost)}</td>
+          <td className={`n ${pr.isNeg() ? 'neg' : 'pos'}`}><b>{pr.isNeg() ? '−' : ''}{inr2f(pr.abs())}</b></td><td className={`n ${pr.isNeg() ? 'neg' : ''}`}>{known ? m.toFixed(1) + '%' : '—'}</td></tr>
+      );
+    });
   });
+  const tS = money(P.sale), tC = money(P.cost);
   const tp = tS.minus(tC), tm = tS.isZero() ? 0 : tp.div(tS).times(100).toNumber();
   const miss = lc.filter((x) => x.noRate).length;
   const short = L.map(({ l }, k) => ({ l, q: money(lc[k]!.shortQty) })).filter((x) => x.q.gt(0));
