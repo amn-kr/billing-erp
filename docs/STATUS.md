@@ -177,3 +177,26 @@ Scope set by the owner: only the 9 reports that already work in the prototype, p
 - **Recent invoices on Home show how a bill was actually paid.** For a bill paid later, the prototype shows the payment choice left in the bill editor (e.g. "UPI" for a bill settled by a commission adjustment); the rebuild shows the real way it was paid ("Commission adjust", or "Cash" when it was settled by extra cash taken on another bill).
 
 - **Profit uses the purchase-rate lots, not one purchase price (owner's rule, Oct 2026).** A sale's cost is what the lots it used up cost, oldest first — the same lot calculation as the stock value (`costOfGoods` in `packages/shared/src/stock.ts`, read through `goodsCosts` / `draftSaleCosts` in `apps/api/src/modules/stock/stock-value.ts`). A sale return gives back the cost of the lots its invoice used; an edit or cancel works the cost out again; a late bill can change older sales' profit. Stock that came in without a purchase rate costs 0 for profit (no fallback), and stock sold beyond what was in costs 0 until the purchase that fills it is entered. Today this is the sale editor's "Profit & loss · this bill" pop-up (one row per lot rate each line used) and Party wise Profit & Loss. **Any profit report built later must take its cost from this same calculation** — `apps/api/test/one-stock-value.test.ts` fails if a file multiplies a quantity by the purchase price on its own.
+
+## How the GitHub check (CI) works
+`.github/workflows/ci.yml` runs on every pull request and on every push to main. Since Oct 2026 it runs on
+six free GitHub machines at the same time instead of one (same tests, same pictures, about 20 minutes instead of about 54):
+
+| Job (as GitHub lists it) | What it does |
+|---|---|
+| What changed | Lists the changed files. If only `docs/` or `.md` files changed, the browser and picture tests are skipped (everything else still runs). |
+| Quick checks (brand, typecheck, unit and API tests, build) | The fast checks, about 4 minutes, so a mistake there shows early. |
+| Browser and picture tests (part 1 of 4) … (part 4 of 4) | All Playwright tests (flows and pictures at 1280, 1366 and 1920 px), split into 4 parts by test file (`--shard`). Each part has its own machine and its own fresh database. A failing part does not stop the others. |
+| **test** | The required check of the `protect main` ruleset. It always runs, waits for all the jobs above and is green only when every one of them passed. Anything failed, cancelled or skipped by mistake makes it red (`.github/scripts/gate.sh`). |
+| Same files already tested on the PR? / Full check skipped … | After a merge to main only: if a green PR run already tested exactly these files, the other jobs are skipped and `test` is green at once. |
+
+**Pictures from a failed run:** on the run's page, under *Artifacts*, download **visual-diffs**. It holds the pictures of
+every failed part, one folder each (`visual-diffs-part-1/visual/…`). Each part's own download
+(`visual-diffs-part-1` … `-4`) is there too.
+
+**Re-running only the part that failed:** open the run on GitHub and click **Re-run jobs › Re-run failed jobs**. GitHub
+re-runs only the red part(s) and then `test`; the parts that passed are not run again. (After such a re-run, the
+`visual-diffs-part-N` download holds the new pictures.)
+
+**Approved pictures** are still made only on GitHub's Linux machine, with a temporary `quick-check.yml` on a `tmp/`
+branch; `ci.yml` does not run on `tmp/` branches.
