@@ -154,7 +154,7 @@ export function PartiesPage() {
         <div className="rel">
           <button className="ib" id="ptMoreBtn" aria-label="More options" onClick={toggle('more')}><RawIcon d={DOTS} /></button>
           <div className="pop" id="ptMorePop" hidden={pop !== 'more'}>
-            <button data-soon="Import parties from Excel" onClick={() => soon('Import parties from Excel')}>Import parties from Excel</button>
+            <button id="ptImportMenu" onClick={() => go('/parties/import')}>Import Parties</button>
             <button data-soon="Import contacts" onClick={() => soon('Import contacts')}>Import from phone contacts</button>
             <button data-soon="Party groups" onClick={() => soon('Party groups')}>Manage party groups</button>
             <button data-soon="Bulk payment reminders" onClick={() => soon('Bulk payment reminders')}>Send payment reminders</button>
