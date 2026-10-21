@@ -8,7 +8,7 @@ import type { RequestContext } from '../../common/context';
 import { day, isoOf, namedId, unitIdFor, uniqueMessage } from '../../common/lookups';
 import { invoiceBalances } from '../sales/dues';
 import { withoutEditedLines } from './item-history';
-import { rateTables } from '../stock/stock-value';
+import { itemLots, rateTables } from '../stock/stock-value';
 
 const include = { unit: true, secondaryUnit: true, category: true, brand: true, itemGroup: true } satisfies Prisma.ItemInclude;
 type Row = Prisma.ItemGetPayload<{ include: typeof include }>;
@@ -122,7 +122,7 @@ export class ItemsService {
       return {
         ...item,
         /** what is left in stock by the purchase rate it was bought at (first in, first out) */
-        rateTable: item.kind === 'service' ? null : (await rateTables(tx, [{ id, purchasePrice: item.purchase }])).get(id)!,
+        ...(item.kind === 'service' ? { rateTable: null, bought: false } : await itemLots(tx, id, item.purchase)),
         godowns: godowns.map((g) => ({ id: g.id, name: g.name, stock: q3(byGodown.find((b) => b.godownId === g.id)?._sum.qty ?? '0') })),
         // a deleted document's movements (taken out and put back) still count in the stock, but aren't listed;
         // nor are the lines an edit replaced (its reversal and what that put back: see item-history.ts)

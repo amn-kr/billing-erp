@@ -87,7 +87,8 @@ test('add items (with opening stock, service, brands/sizes) and adjust stock', a
   await expect(page.locator('#toast')).toHaveText('LED bulb 9W added with 200 PCS in stock');
   await expect(page.locator('#itHead h2')).toHaveText('LED bulb 9W');
   await expect(page.locator('#itTx tr').first()).toContainText('Opening stock');
-  await expect(page.locator('#itHead .itfig > div', { hasText: 'Purchase price' }).locator('b')).toHaveText('62.00');
+  // latest / average purchase price (owner, Oct 2026): whole rupees without .00, the average with 2 decimals
+  await expect(page.locator('#itHead .itfig > div', { hasText: 'Latest / Avg purchase price' }).locator('b')).toHaveText('62/62.00');
   await expect(page.locator('#itHead .itfig > div', { hasText: 'Stock value' }).locator('b')).toHaveText('12,400.00');
 
   // reduce below the minimum: low stock

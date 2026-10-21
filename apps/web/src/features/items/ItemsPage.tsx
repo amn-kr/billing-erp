@@ -7,7 +7,7 @@
 import { Fragment, useMemo, useState, type MouseEvent as RMouseEvent } from 'react';
 import { go } from '../../lib/go';
 import { useQuery } from '@tanstack/react-query';
-import { money, sumValues, type RateTable as Rates } from '@billing/shared';
+import { formatInr0, money, sumValues, type RateTable as Rates } from '@billing/shared';
 import { api } from '../../lib/api';
 import { dmy, inr, inr2f } from '../../lib/format';
 import { useCur, useSettings } from '../../lib/settings';
@@ -17,6 +17,8 @@ import { soon, useShell } from '../shell/store';
 import { AddItemDialog } from './AddItemDialog';
 import { AdjustStockDialog } from './AdjustStockDialog';
 import { RateTable } from './RateTable';
+import { useStyles } from '../../lib/useStyles';
+import figCss from './item-figures.css?inline';
 
 export interface Item {
   id: string;
@@ -48,7 +50,7 @@ export interface Item {
 }
 
 interface Movement { id: string; date: string; kind: string; qty: string; rate: string; note: string; ref: string; sourceType: string; party: string; status: string; createdAt: string }
-interface ItemDetail extends Item { movements: Movement[]; rateTable: Rates | null }
+interface ItemDetail extends Item { movements: Movement[]; rateTable: Rates | null; bought: boolean }
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const FILTER = '<path d="M4 5h16l-6 8v6l-4-2v-4z"/>';
@@ -305,11 +307,24 @@ export function ItemsPage() {
   );
 }
 
+/**
+ * "Latest / Avg purchase price" (owner, Oct 2026): the automatic purchase price (newest bill), whole
+ * rupees without .00, then the average rate of the stock left as the table shows it, e.g. 70/65.80.
+ * No stock left: 70/—. Never came in with a purchase rate: —.
+ */
+function latestAvg(i: ItemDetail) {
+  if (!i.bought) return '—';
+  const p = money(i.purchase);
+  const t = i.rateTable;
+  return `${p.isInteger() ? formatInr0(p) : inr2f(p)}/${t && money(t.totalQty).gt(0) ? inr2f(t.avgRate) : '—'}`;
+}
+
 function ItemHead({ i, mrpOn, onBack, onAdjust }: { i: ItemDetail; mrpOn: boolean; onBack: (g: string) => void; onAdjust: () => void }) {
   const s = n(i.stock ?? '0');
   const l = i.kind === 'service' ? '' : i.level;
   const m = n(i.purchase) ? money(i.sale).minus(i.purchase) : money(0);
   const aboveMrp = mrpOn && n(i.mrp) > 0 && n(i.sale) > n(i.mrp);
+  useStyles([figCss], 'item-figures');
   return (
     <>
       <div className="pth">
@@ -339,7 +354,7 @@ function ItemHead({ i, mrpOn, onBack, onAdjust }: { i: ItemDetail; mrpOn: boolea
         <div><small>Sale price</small><b className={aboveMrp ? 'neg' : ''}>{inr2f(i.sale)}</b>{aboveMrp && <span className="tagw r">Above MRP</span>}</div>
         {i.kind !== 'service' && (
           <>
-            <div><small>Purchase price</small><b>{inr2f(i.purchase)}</b></div>
+            <div><small>Latest / Avg purchase price</small><b>{latestAvg(i)}</b></div>
             <div><small>Margin</small><b className="pos">{inr2f(m)}{n(i.purchase) > 0 && <>{' '}<em>({Math.round(m.div(i.purchase).times(100).toNumber())}%)</em></>}</b></div>
             {/* with MRP switched off the prototype strips every red .neg from this header (its MRP patch), so "Out of stock" quantity isn't red */}
             <div><small>In stock</small><b className={l === 'out' ? (mrpOn ? 'neg' : '') : l === 'low' ? 'lowq' : ''}>{qfmt(s)} {i.unit}</b>{l === 'low' ? <span className="tagw">Below {qfmt(i.minStock)}</span> : l === 'out' ? <span className="tagw r">Out of stock</span> : null}</div>

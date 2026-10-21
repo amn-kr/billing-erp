@@ -104,6 +104,17 @@ export const saleSchema = z.object({
 });
 export type SaleInput = z.infer<typeof saleSchema>;
 
+/**
+ * The bill on screen, for its profit & loss pop-up: the cost of each line from the purchase-rate
+ * lots it would use (the saved invoice being edited is left out and this one counted in its place).
+ */
+export const saleCostSchema = z.object({
+  id: z.string().uuid().nullable().optional(),
+  date: isoDate,
+  lines: z.array(z.object({ itemId: z.string().uuid().nullable().optional(), qty: num('Enter the quantity.') })).max(500),
+});
+export type SaleCostInput = z.infer<typeof saleCostSchema>;
+
 export const receiptSchema = z.object({
   partyId: z.string().uuid({ message: 'Choose the customer.' }),
   date: isoDate,

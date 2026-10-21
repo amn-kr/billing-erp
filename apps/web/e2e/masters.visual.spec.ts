@@ -82,7 +82,9 @@ for (const width of WIDTHS) {
       await app.waitForSelector('#itTx tr td.n');
       await proto.waitForTimeout(200);
       await app.waitForTimeout(300);
-      await sameShot(`items-stock-${width}`, proto, app, '#itRight');
+      // owner's change (Oct 2026): "Latest / Avg purchase price" and the figures one size smaller, so the card
+      // is compared with its approved picture
+      await approvedShot(`items-stock-${width}`, app, '#itRight');
 
       // Adjust stock
       await proto.click('#itAdj');

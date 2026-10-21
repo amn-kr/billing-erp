@@ -2,7 +2,10 @@
  * The invoice extras pop-up (#siPop, prototype dgPopBody / plBody): transport details,
  * terms & conditions, description, attachments and profit & loss on this bill.
  */
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { formatQty, money, profitRows, type LineCost } from '@billing/shared';
 import { Icon } from '../../../components/Icon';
+import { api } from '../../../lib/api';
 import { inr2f } from '../../../lib/format';
 import { SI_TT, calc, r2, type Ctx, type SI } from './state';
 
@@ -53,29 +56,46 @@ export function ToolBody({ k, s, ctx, up, onFiles, toast }: { k: ToolKey; s: SI;
   );
 }
 
-/** Profit & loss on this bill (prototype plBody): before GST, after discounts, at each item's purchase price. */
+/**
+ * Profit & loss on this bill (prototype plBody): before GST, after discounts. The cost comes from
+ * the API: the purchase-rate lots each line uses, oldest first, the same calculation as the stock
+ * value and the reports (owner's rule, Oct 2026). One row per lot rate a line used (owner, Oct
+ * 2026); stock without a purchase entry and stock not bought yet have rows of their own at ₹0.
+ */
 function PlBody({ s, ctx }: { s: SI; ctx: Ctx }) {
   const c = calc(ctx, s);
   const L = s.lines.map((l, i) => ({ l, r: c.rows[i]! })).filter((x) => x.l.item && Number(x.l.qty) > 0);
-  if (!L.length) return <><div className="dgph"><b>Profit &amp; loss · this bill</b><small className="mu">Before GST · after discounts</small></div><div className="ptempty">Add items to see the profit on this bill.</div></>;
+  const body = { id: s.doc === 'sale' ? s.editId : null, date: s.date, lines: L.map(({ l }) => ({ itemId: l.item!.id, qty: String(l.qty) })) };
+  const q = useQuery({ queryKey: ['sale-cost', body], queryFn: () => api<{ lines: LineCost[] }>('/sales/cost', { method: 'POST', body }), enabled: L.length > 0, placeholderData: keepPreviousData });
+  const head = <div className="dgph"><b>Profit &amp; loss · this bill</b><small className="mu">Before GST · after discounts</small></div>;
+  if (!L.length) return <>{head}<div className="ptempty">Add items to see the profit on this bill.</div></>;
+  const lc = q.data?.lines.length === L.length ? q.data.lines : null;
+  if (!lc) return <>{head}<div className="ptempty">{q.isError ? 'Could not work out the cost. Close and open this again.' : 'Working out the cost…'}</div></>;
   const sumTv = L.reduce((a, x) => a + x.r.tv, 0), f = sumTv > 0 ? c.taxable / sumTv : 1;
-  let tS = 0, tC = 0;
-  const rows = L.map(({ l, r }, k) => {
+  const sales = L.map(({ r }) => r2(r.tv * f));
+  const P = profitRows(L.map((_, k) => ({ saleValue: sales[k]!, rows: lc[k]!.rows })));
+  const rows = L.flatMap(({ l }, k) => {
     const it = l.item!, qty = Number(l.qty) || 0;
-    const sale = r2(r.tv * f), cost = r2((it.purch || 0) * qty), pr = r2(sale - cost), m = sale ? (pr / sale) * 100 : 0;
-    tS += sale; tC += cost;
-    return (
-      <tr key={k}><td><b>{it.grp && it.brand ? it.grp : l.name}</b><small>{[it.brand, it.series].filter(Boolean).join(' · ')}</small></td><td className="n">{qfmt(qty)}</td><td className="n">{inr2f(r2(sale / (qty || 1)))}</td>
-        <td className="n">{it.purch ? inr2f(it.purch) : <span className="warn">—</span>}</td><td className="n">{inr2f(sale)}</td><td className="n">{inr2f(cost)}</td>
-        <td className={`n ${pr < 0 ? 'neg' : 'pos'}`}><b>{pr < 0 ? '−' : ''}{inr2f(Math.abs(pr))}</b></td><td className={`n ${pr < 0 ? 'neg' : ''}`}>{it.purch ? m.toFixed(1) + '%' : '—'}</td></tr>
-    );
+    return P.lines[k]!.map((x, j) => {
+      const sale = money(x.sale), pr = money(x.profit), m = sale.isZero() ? 0 : pr.div(sale).times(100).toNumber();
+      // no purchase entry, or sold beyond stock and not bought yet: the cost is not known yet
+      const known = x.kind === 'lot';
+      return (
+        <tr key={`${k}.${j}`}><td><b>{it.grp && it.brand ? it.grp : l.name}</b><small>{[it.brand, it.series].filter(Boolean).join(' · ')}</small></td><td className="n">{qfmt(Number(x.qty))}</td><td className="n">{inr2f(r2(sales[k]! / (qty || 1)))}</td>
+          <td className="n">{known ? inr2f(x.rate) : <span className="warn">—</span>}</td><td className="n">{inr2f(sale)}</td><td className="n">{inr2f(x.cost)}</td>
+          <td className={`n ${pr.isNeg() ? 'neg' : 'pos'}`}><b>{pr.isNeg() ? '−' : ''}{inr2f(pr.abs())}</b></td><td className={`n ${pr.isNeg() ? 'neg' : ''}`}>{known ? m.toFixed(1) + '%' : '—'}</td></tr>
+      );
+    });
   });
-  const tp = r2(tS - tC), tm = tS ? (tp / tS) * 100 : 0, miss = L.filter((x) => !x.l.item!.purch).length;
+  const tS = money(P.sale), tC = money(P.cost);
+  const tp = tS.minus(tC), tm = tS.isZero() ? 0 : tp.div(tS).times(100).toNumber();
+  const miss = lc.filter((x) => x.noRate).length;
+  const short = L.map(({ l }, k) => ({ l, q: money(lc[k]!.shortQty) })).filter((x) => x.q.gt(0));
   return (
-    <><div className="dgph"><b>Profit &amp; loss · this bill</b><small className="mu">Before GST · after discounts</small></div>
+    <>{head}
       <div className="plw"><table className="plt"><thead><tr><th>Item</th><th className="n">Qty</th><th className="n">Sale / unit</th><th className="n">Cost / unit</th><th className="n">Sale value</th><th className="n">Cost</th><th className="n">Profit</th><th className="n">Margin</th></tr></thead><tbody>{rows}</tbody>
-        <tfoot><tr><td>Total</td><td></td><td></td><td></td><td className="n">{inr2f(r2(tS))}</td><td className="n">{inr2f(r2(tC))}</td><td className={`n ${tp < 0 ? 'neg' : 'pos'}`}>{tp < 0 ? '−' : ''}{inr2f(Math.abs(tp))}</td><td className="n">{tm.toFixed(1)}%</td></tr></tfoot></table></div>
-      <div className="plsum"><span>{tp < 0 ? 'Loss' : 'Profit'} on this bill</span><b className={tp < 0 ? 'neg' : 'pos'}>{tp < 0 ? '−' : ''}₹{inr2f(Math.abs(tp))}</b><em>{tm.toFixed(1)}% margin</em></div>
-      <small className="mu">Cost uses each item’s purchase price.{c.bdisc ? ` Bill discount of ₹${inr2f(c.bdisc)} is spread across the items.` : ''}{c.chTr || c.chLab || c.chBank ? ' Transport, labour and bank charges are not counted as profit.' : ''}{miss ? <> <span className="warn">{miss} item{miss > 1 ? 's have' : ' has'} no purchase price, so cost is taken as ₹0.</span></> : null}</small></>
+        <tfoot><tr><td>Total</td><td></td><td></td><td></td><td className="n">{inr2f(tS)}</td><td className="n">{inr2f(tC)}</td><td className={`n ${tp.isNeg() ? 'neg' : 'pos'}`}>{tp.isNeg() ? '−' : ''}{inr2f(tp.abs())}</td><td className="n">{tm.toFixed(1)}%</td></tr></tfoot></table></div>
+      <div className="plsum"><span>{tp.isNeg() ? 'Loss' : 'Profit'} on this bill</span><b className={tp.isNeg() ? 'neg' : 'pos'}>{tp.isNeg() ? '−' : ''}₹{inr2f(tp.abs())}</b><em>{tm.toFixed(1)}% margin</em></div>
+      <small className="mu">Cost uses the purchase rate of the stock each sale used (oldest first).{c.bdisc ? ` Bill discount of ₹${inr2f(c.bdisc)} is spread across the items.` : ''}{c.chTr || c.chLab || c.chBank ? ' Transport, labour and bank charges are not counted as profit.' : ''}{miss ? <> <span className="warn">{miss} item{miss > 1 ? 's have' : ' has'} no purchase entry, so cost is taken as ₹0.</span></> : null}{short.length ? <> <span className="warn">{short.length === 1 ? `${formatQty(short[0]!.q)} ${short[0]!.l.unit || short[0]!.l.item!.unit}` : `${short.length} items`} sold beyond stock: their cost will be counted when the purchase is entered.</span></> : null}</small></>
   );
 }

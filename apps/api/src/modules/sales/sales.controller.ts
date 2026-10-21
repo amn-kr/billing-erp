@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Put, Query } from '@nestjs/common';
 import {
-  cancelSchema, challanSchema, creditNoteSchema, receiptSchema, saleSchema,
-  type ChallanInput, type CreditNoteInput, type ReceiptInput, type SaleInput,
+  cancelSchema, challanSchema, creditNoteSchema, receiptSchema, saleCostSchema, saleSchema,
+  type ChallanInput, type CreditNoteInput, type ReceiptInput, type SaleCostInput, type SaleInput,
 } from '@billing/shared';
 import type { z } from 'zod';
 import { Ctx, RequirePermission } from '../../common/decorators';
@@ -32,6 +32,14 @@ export class SalesController {
   @Get('sales/next-number')
   nextNumber(@Ctx() ctx: RequestContext, @Query('kind') kind = 'invoice', @Query('date') date?: string) {
     return this.sales.nextNumber(ctx, kind, date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : undefined);
+  }
+
+  /** the cost of each line of the bill on screen, for its profit & loss pop-up (nothing is saved) */
+  @RequirePermission('sales.view')
+  @Post('sales/cost')
+  @HttpCode(200)
+  cost(@Ctx() ctx: RequestContext, @Body(new ZodPipe(saleCostSchema)) body: SaleCostInput) {
+    return this.sales.cost(ctx, body);
   }
 
   @RequirePermission('sales.view')

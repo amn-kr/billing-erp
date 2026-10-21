@@ -5,16 +5,14 @@ import { describe, expect, it } from 'vitest';
 /**
  * Owner's rule (Oct 2026): every stock value comes from the one lot calculation (packages/shared
  * stockByPurchaseRate, read through apps/api/src/modules/stock/stock-value.ts). This fails when a
- * file works out a stock value on its own by multiplying a quantity by the purchase price.
+ * file works out a stock value on its own by multiplying a quantity by the purchase price. The same
+ * goes for profit: the cost of what was sold comes from the same lots (owner's rule, Oct 2026).
  */
 const ROOT = path.resolve(__dirname, '../../..');
 const DIRS = ['apps/api/src', 'apps/web/src', 'packages/shared/src', 'packages/importer/src'];
 /** lines that multiply a quantity by the purchase price for something that is not stock value */
 const ALLOWED: { file: string; why: string; has: string }[] = [
-  // Party wise Profit & Loss: the cost of what was sold, at the purchase price (prototype rule), not stock left
-  { file: 'apps/api/src/modules/reports/reports.service.ts', why: 'cost of goods sold', has: 'cost: n2(' },
-  // the sale editor's profit & loss pop-up: the cost of this bill's lines (prototype rule), not stock left
-  { file: 'apps/web/src/features/sales/editor/ToolsPop.tsx', why: 'cost of this bill', has: 'cost = r2((it.purch || 0) * qty)' },
+  // none: since Oct 2026 the cost of goods sold also comes from the lots (costOfGoods, read through goodsCosts / draftSaleCosts)
 ];
 
 const files = (dir: string): string[] =>

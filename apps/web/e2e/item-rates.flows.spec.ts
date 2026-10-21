@@ -24,6 +24,8 @@ test('Rate table: rates oldest first, sold-out rules, no stock, many rates scrol
   await expect(row(page, 'Rate')).toHaveText(['60.00', '65.00', '61.00', '55.00', '70.00', 'Avg rate64.33']);
   await expect(row(page, 'Rest qty')).toHaveText(['21', '40', '50', '100', '205', 'Total qty416 PCS']);
   await expect(inStock(page)).toHaveText('416 PCS');
+  // latest bill 70, average of the stock left 64.33 (owner, Oct 2026)
+  await expect(page.locator('#itHead .itfig > div', { has: page.locator('small:text-is("Latest / Avg purchase price")') }).locator('b')).toHaveText('70/64.33');
   await expect(row(page, 'Rate').first()).toHaveAttribute('title', /^60\.00 — bought from 01\/05\/2026\n21 PCS left, worth 1,260\.00\n5% of the stock$/);
   // the costliest rate has the strongest tint
   const tint = (i: number) => row(page, 'Rate').nth(i).evaluate((td) => getComputedStyle(td).getPropertyValue('--k'));
@@ -46,6 +48,7 @@ test('Rate table: rates oldest first, sold-out rules, no stock, many rates scrol
   await open(page, RATE_ITEMS.none);
   await expect(page.locator('#itRates table')).toHaveCount(0);
   await expect(page.locator('#itRates .itrte')).toHaveText('No stock left. Last bought at 35.00.');
+  await expect(page.locator('#itHead .itfig > div', { has: page.locator('small:text-is("Latest / Avg purchase price")') }).locator('b')).toHaveText('35/—');
 
   // many rates: the table scrolls inside its box; the card and the page never get wider
   await open(page, RATE_ITEMS.many);

@@ -7,6 +7,7 @@ import { isoOf } from '../../common/lookups';
 import { CommissionService } from '../commission/commission.service';
 import { billBalances, usedOut } from '../purchases/dues';
 import { invoiceBalances, unusedAmounts } from '../sales/dues';
+import { documentCost, goodsCosts } from '../stock/stock-value';
 
 const m = (v: { toString(): string } | null | undefined) => money(v ? v.toString() : 0);
 const n2 = (v: Money) => Number(round2(v).toFixed(2));
@@ -17,7 +18,7 @@ export interface StEntry { date: string; no: string; type: string; kind: string;
 const ORD: Record<string, number> = { 'Opening balance': 0, Sale: 1, Purchase: 1, 'Debit note': 2, 'Credit note': 2, 'Cheque bounce': 3, Refund: 3, 'Payment-In': 4, 'Payment-Out': 4 };
 
 interface PartyRow { id: string; name: string; kind: string; group: string; phone: string; city: string; gstin: string; limit: number | null; sup: boolean; type: 'Supplier' | 'Electrician' | 'Customer' }
-interface Line { itemId: string | null; name: string; unit: string; qty: number; price: number; disc: number; amt: number; tv: number; cost: number; cat: string; iunit: string; iname: string }
+interface Line { itemId: string | null; name: string; unit: string; qty: number; price: number; disc: number; amt: number; tv: number; cat: string; iunit: string; iname: string }
 interface Doc { id: string; no: string; date: string; partyId: string | null; total: number; lines: Line[] }
 
 /**
@@ -56,7 +57,7 @@ export class ReportsService {
       const qty = Number(l.qty);
       return {
         itemId: l.itemId, name: l.name, unit: l.unit, qty, price: Number(price), disc: Number(l.discPct), amt: Number(l.amount), tv: Number(l.taxable),
-        cost: n2(m(String(qty)).times(m(i?.purchasePrice))), cat: i?.category?.name ?? '', iunit: i?.unit?.code ?? '', iname: i?.name ?? '',
+        cat: i?.category?.name ?? '', iunit: i?.unit?.code ?? '', iname: i?.name ?? '',
       };
     };
     const doc = (d: { id: string; number: string; date: Date; partyId: string | null; total: unknown }, lines: Line[]): Doc => ({ id: d.id, no: d.number, date: isoOf(d.date)!, partyId: d.partyId, total: Number(d.total), lines });
@@ -211,6 +212,7 @@ export class ReportsService {
       const L = await this.load(tx);
       const inR = (d: string) => d >= from && d <= to;
       const bills = await this.commission.bills(tx);
+      const C = await goodsCosts(tx);
       const cm = new Map(bills.flatMap((e) => e.invoices.map((b) => [b.id, money(b.comm).minus(b.ret)] as const)));
       return L.P.map((p) => {
         const S = L.invoices.filter((v) => v.partyId === p.id && !v.cancelled && inR(v.date));
@@ -219,9 +221,10 @@ export class ReportsService {
         const DN = L.debitNotes.filter((d) => d.partyId === p.id && inR(d.date));
         const sum = (A: { total: number }[]) => n2(A.reduce((a, x) => a.plus(x.total), money(0)));
         const tv = n2(S.reduce((a, v) => a.plus(v.lines.reduce((s, l) => s.plus(l.tv), money(0)).isZero() ? v.total : v.lines.reduce((s, l) => s.plus(l.tv), money(0))), money(0)));
-        const cost = n2(S.reduce((a, v) => a.plus(v.lines.reduce((s, l) => s.plus(l.cost), money(0))), money(0)));
+        // cost of goods from the purchase-rate lots each sale used, less what its returns put back (owner's rule, Oct 2026)
+        const cost = n2(S.reduce((a, v) => a.plus(documentCost(C, v.id, v.lines)), money(0)));
         const rv = n2(CN.reduce((a, c) => a.plus(c.lines.reduce((s, l) => s.plus(l.tv), money(0))), money(0)));
-        const rc = n2(CN.reduce((a, c) => a.plus(c.lines.reduce((s, l) => s.plus(l.cost), money(0))), money(0)));
+        const rc = n2(CN.reduce((a, c) => a.plus(documentCost(C, c.id, c.lines)), money(0)));
         const comm = n2(S.reduce((a, v) => a.plus(cm.get(v.id) ?? 0), money(0)));
         return {
           id: p.id, name: p.name, group: p.group || 'General', groupName: p.group, type: p.type, sup: p.sup,
