@@ -51,9 +51,13 @@ export function useKeepRows(dirty: boolean) {
   }, [dirty]);
 }
 
-/** After saving: how many were saved, rejected and skipped, and why. */
-export function Summary({ s, onRejected, again, againLabel }: { s: PartyImportSummary; onRejected?: () => void; again: () => void; againLabel: string }) {
-  const problems = [...s.rejected.map((x) => ({ ...x, st: 'rejected' as const })), ...s.skipped.map((x) => ({ ...x, st: 'duplicate' as const }))].sort((a, b) => a.line - b.line);
+/**
+ * After saving: how many were saved, rejected and skipped, and why. Bulk entry leaves out the "why"
+ * table (`counts`): its rows are numbered again once the saved ones leave the table, and the list
+ * under the table already says why, with the new numbers.
+ */
+export function Summary({ s, onRejected, again, againLabel, counts }: { s: PartyImportSummary; onRejected?: () => void; again: () => void; againLabel: string; counts?: boolean }) {
+  const problems = counts ? [] : [...s.rejected.map((x) => ({ ...x, st: 'rejected' as const })), ...s.skipped.map((x) => ({ ...x, st: 'duplicate' as const }))].sort((a, b) => a.line - b.line);
   return (
     <div className="card" id="piDone" style={{ padding: '22px 24px', maxWidth: 820 }}>
       <h3 style={{ margin: '0 0 12px', fontSize: 18 }}>Import finished</h3>
