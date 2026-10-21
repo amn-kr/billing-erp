@@ -185,6 +185,8 @@ for (const width of WIDTHS) {
       await tool('at');
       await approvedShot(`editor-attachments-${width}`, app, '#siPop');
       await tool('pl');
+      // the cost comes from the purchase-rate lots, worked out by the API (owner, Oct 2026)
+      await app.waitForSelector('#siPop .plsum');
       await approvedShot(`editor-profit-${width}`, app, '#siPop');
       // the chips under the items and the tool buttons show what was added
       await both(proto, app, async (p) => { await p.click('#siPop [data-dgdone]'); await p.mouse.move(0, 0); });

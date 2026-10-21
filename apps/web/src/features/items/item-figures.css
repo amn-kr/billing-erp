@@ -1,0 +1,4 @@
+/* The item card's figures (owner-requested, Oct 2026): the numbers one step smaller than the prototype's
+   16px, still bold and larger than their labels. Only the figures' own numbers: the "Purchase rate of
+   stock left" table's numbers sit deeper and keep their size. */
+.itfig>div>b{font-size:15px}
