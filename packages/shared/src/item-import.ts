@@ -3,7 +3,7 @@
  * checks every row goes through — run in the browser as rows are edited, and again on the
  * server inside the import's transaction, so both always agree.
  *
- * Single Range = an item like Add item's "Single" (brand required here).
+ * Single Range = an item like Add item's "Single" (brand optional, as there: owner, 24 Oct 2026).
  * Multi Range  = Add item's "Variant": the product name is the parent item, and the item is
  *                saved as "Product · Brand Series".
  */
@@ -14,7 +14,7 @@ import { parseIso } from './dates.js';
 export const IMPORT_COLUMNS = [
   { key: 'type', title: 'Product type', note: 'Single Range or Multi Range (pick from the list). Required.' },
   { key: 'name', title: 'Product name', note: 'Required. Single Range: the item name, must be new. Multi Range: the parent item; it can repeat for many brands and series.' },
-  { key: 'brand', title: 'Brand name', note: 'Required. A brand that is not in Brands & Series yet is created on import.' },
+  { key: 'brand', title: 'Brand name', note: 'Required for Multi Range. Optional for Single Range (blank = no brand). A brand that is not in Brands & Series yet is created on import.' },
   { key: 'series', title: 'Series / range name', note: 'Required for Multi Range, e.g. Coral. Product + brand + series must be new. Not used for Single Range.' },
   { key: 'code', title: 'Brand code', note: "Optional. The brand's code for this item (the maker's code). When given, it must not be used by another item." },
   { key: 'qty', title: 'Opening stock', note: 'Quantity in stock today. Optional. Not negative.' },
@@ -70,6 +70,7 @@ export interface ImportItem {
   /** the item's name: Single = product name; Multi = "Product · Brand Series" */
   name: string;
   group: string;
+  /** '' = no brand (Single Range only) */
   brand: string;
   series: string;
   code: string;
@@ -219,9 +220,12 @@ export function checkImportRows(rows: ImportRow[], ctx: ImportContext): RowCheck
 
     // required columns (the brand code is optional: owner, 12 Oct 2026)
     if (!v('name')) err('name', 'Enter the product name.');
-    if (!v('brand')) err('brand', 'Enter the brand name.');
+    // Single Range may have no brand, like Add item's Single (owner, 24 Oct 2026)
+    if (!v('brand') && kind !== 'single') err('brand', 'Enter the brand name.');
     if (kind === 'multi' && !v('series')) err('series', 'Enter the series / range name (needed for Multi Range).');
-    if (kind === 'single' && v('series')) warn('series', 'Series is only used for Multi Range. It will be ignored.');
+    // a series belongs to a brand
+    if (kind === 'single' && v('series') && !v('brand')) err('series', 'Series needs a brand. Enter the brand name, or clear the series.');
+    else if (kind === 'single' && v('series')) warn('series', 'Series is only used for Multi Range. It will be ignored.');
     long('name', kind === 'multi' ? 160 : 200, 'The product name');
     long('brand', 80, 'The brand name');
     long('series', 80, 'The series name');
