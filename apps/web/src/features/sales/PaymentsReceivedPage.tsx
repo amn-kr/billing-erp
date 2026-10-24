@@ -18,6 +18,7 @@ import { toastSaveFailed, toastSaved } from '../shell/saved';
 import type { Party } from '../parties/PartiesPage';
 import { inPeriod, type Period } from './model';
 import { SlModal, type SlModalProps } from './SlModal';
+import { BankSelect, bankFor, useBankPick } from '../banking/BankPick';
 import { useShell } from '../shell/store';
 import { editAsk, withPasscode } from '../settings/passcode';
 import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
@@ -27,7 +28,7 @@ export interface Receipt {
   id: string; number: string; date: string; party: { id: string; name: string; phone: string } | null; partyName: string; counter: boolean; mode: string; reference: string;
   against: string; cancelledInvoice: string | null; amount: string; unused: string; atSale: boolean; legacy: boolean;
 }
-interface ReceiptDoc { id: string; number: string; date: string; partyId: string | null; amount: string; mode: string; ref: string; notes: string; cancelled: boolean; allocations: { to: string; amount: string }[]; locked: string }
+interface ReceiptDoc { id: string; number: string; date: string; partyId: string | null; amount: string; mode: string; accountId: string | null; ref: string; notes: string; cancelled: boolean; allocations: { to: string; amount: string }[]; locked: string }
 interface Due { to: string; kind: 'opening' | 'invoice'; number: string; date: string; dueDate: string | null; total: string; balance: string }
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
@@ -119,6 +120,8 @@ export function ReceiveDialog({ open, parties, onClose }: { open: { party?: stri
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(today());
   const [mode, setMode] = useState<string>('UPI');
+  const [acct, setAcct] = useState('');
+  const bp = useBankPick();
   const [refNo, setRefNo] = useState('');
   const [alloc, setAlloc] = useState<Record<string, number>>({});
   const [err, setErr] = useState('');
@@ -141,12 +144,12 @@ export function ReceiveDialog({ open, parties, onClose }: { open: { party?: stri
   // reset when opened; pick the customer and fill in their dues
   useEffect(() => {
     if (!open) return;
-    setParty(open.party ?? ''); setAmount(''); setDate(today()); setMode('UPI'); setRefNo(''); setAlloc({}); setErr(''); setDoc(null);
+    setParty(open.party ?? ''); setAmount(''); setDate(today()); setMode('UPI'); setAcct(''); setRefNo(''); setAlloc({}); setErr(''); setDoc(null);
     if (open.edit) {
       void qc.fetchQuery({ queryKey: ['receipt', open.edit], queryFn: () => api<ReceiptDoc>(`/receipts/${open.edit}`), staleTime: 0 }).then((d) => {
         if (d.locked) { showToast(d.locked); onClose(); return; }
         filled.current = (d.partyId ?? '') + '|edit';
-        setDoc(d); setParty(d.partyId ?? ''); setAmount(String(Number(d.amount))); setDate(d.date); setMode(d.mode); setRefNo(d.ref);
+        setDoc(d); setParty(d.partyId ?? ''); setAmount(String(Number(d.amount))); setDate(d.date); setMode(d.mode); setAcct(d.accountId ?? ''); setRefNo(d.ref);
         setAlloc(Object.fromEntries(d.allocations.map((a) => [a.to, Number(a.amount)])));
         setTimeout(() => (document.getElementById('rcAmt') as HTMLInputElement | null)?.select(), 30);
       }, (e) => { showToast(e instanceof ApiError ? e.message : 'Could not open the payment.'); onClose(); });
@@ -178,7 +181,7 @@ export function ReceiveDialog({ open, parties, onClose }: { open: { party?: stri
     if (A.reduce((s2, a) => s2 + Number(a.amount), 0) > amt + 0.009) return fail('The invoice amounts add up to more than the payment.');
     setBusy(true);
     try {
-      const body = { partyId: party, date, amount: String(amt), mode, ref: refNo.trim(), notes: doc?.notes ?? '', allocations: A };
+      const body = { partyId: party, date, amount: String(amt), mode, accountId: bankFor(bp, mode, acct), ref: refNo.trim(), notes: doc?.notes ?? '', allocations: A };
       if (doc) { if (!(await withPasscode(qc, editAsk(doc.number), (h) => api(`/receipts/${doc.id}`, { method: 'PUT', body, headers: h })))) return; }
       else await api('/receipts', { method: 'POST', body });
       onClose();
@@ -195,6 +198,7 @@ export function ReceiveDialog({ open, parties, onClose }: { open: { party?: stri
           <option value="">Choose customer</option>{C.map((p) => { const b = Number(p.balance); return <option value={p.id} key={p.id}>{p.name}{b > 0 ? ' · ' + inr2f(b) + ' due' : b < 0 ? ' · advance ' + inr2f(-b) : ''}</option>; })}</select></label>
         <div className="two"><label className="fl" htmlFor="rcAmt">Amount received<input className="fi" id="rcAmt" inputMode="decimal" placeholder="0" autoComplete="off" value={amount} onChange={(e) => { const v = e.target.value.replace(/[^\d.]/g, ''); setAmount(v); setAlloc(auto(Number(v) || 0, D)); }} /></label><label className="fl" htmlFor="rcDate">Date<input className="fi" type="date" id="rcDate" value={date} onChange={(e) => setDate(e.target.value)} /></label></div>
         <div className="two"><label className="fl" htmlFor="rcModeI">Mode<select className="fi" id="rcModeI" value={mode} onChange={(e) => setMode(e.target.value)}>{PAY_MODES.map((m) => <option key={m}>{m}</option>)}</select></label><label className="fl" htmlFor="rcRef">Reference<input className="fi" id="rcRef" placeholder="UPI ref, UTR, cheque no." autoComplete="off" value={refNo} onChange={(e) => setRefNo(e.target.value)} /></label></div>
+        <BankSelect bp={bp} mode={mode} id="rcAcct" label="Received in" value={acct} onChange={setAcct} />
         <div className="pyb"><b>Settle against invoices</b><small className="mu">Oldest invoices are filled first. Change the amounts if needed.</small>
           <div id="rcBills">{!party ? <p className="mu" style={{ margin: 0, fontSize: 13 }}>Choose a customer to see their unpaid invoices.</p> : D.length ? (
             <table className="ptt2 pyt"><thead><tr><th>Invoice</th><th>Date</th><th className="n">Balance</th><th className="n">Receive</th></tr></thead><tbody>{D.map((t) => {

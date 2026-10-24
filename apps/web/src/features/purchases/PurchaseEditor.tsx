@@ -6,10 +6,11 @@
  * order), &against=<bill id> (return goods), &party=<id>; /purchases/new?edit=<id>
  * opens a saved one in the same screen (same number, passcode when it is on).
  */
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { DN_REASONS, PU_MODES, amountInWords, purchaseTotals, type PurchaseInput } from '@billing/shared';
+import { DN_REASONS, PU_MODES, amountInWords, isBankMode, purchaseTotals, type PurchaseInput } from '@billing/shared';
+import { bankFor, bankOf, useBankPick } from '../banking/BankPick';
 import { api, ApiError } from '../../lib/api';
 import { dmy, inr, inr2f } from '../../lib/format';
 import { today } from '../../lib/time';
@@ -43,7 +44,8 @@ const LIST: Record<PKind, string> = { bill: '/purchase-bills', order: '/purchase
 const NO_LBL: Record<PKind, string> = { bill: 'Bill no.', order: 'Order no.', debit_note: 'Debit note no.' };
 
 interface PLine { id: string; name: string; hsn: string; qty: string | number; unit: string; rate: string | number; disc: string | number; gst: number }
-interface PPay { mode: string; amt: string | number; ref: string }
+/** acct: the bank account picked for UPI / bank transfer ('' = the default bank) */
+interface PPay { mode: string; amt: string | number; ref: string; acct?: string }
 interface PE {
   kind: PKind; no: string; autoNo: boolean; ref: string; date: string; due: string; exp: string; party: EParty | null;
   against: string; reason: string; incl: boolean; roundOff: boolean; pays: PPay[]; updPrice: boolean; fromOrderId: string | null; notes: string;
@@ -83,7 +85,7 @@ function savedPE(d: EditorData, v: PurchaseDoc): PE {
   s.lines = [...v.lines.map((l) => ({ id: l.itemId, name: l.name, hsn: l.hsn, qty: Number(l.qty), unit: l.unit, rate: Number(l.rate), disc: Number(l.discPct) || 0, gst: Number(l.gstRate) })), peLine()];
   for (const l of v.lines) s.was[l.itemId] = r2((s.was[l.itemId] ?? 0) + Number(l.qty));
   const paid = v.settlements.filter((x) => x.atBill);
-  if (paid.length) s.pays = paid.map((x) => ({ mode: x.mode, amt: Number(x.amount), ref: x.ref }));
+  if (paid.length) s.pays = paid.map((x) => ({ mode: x.mode, amt: Number(x.amount), ref: x.ref, acct: x.accountId ?? '' }));
   return s;
 }
 
@@ -133,6 +135,7 @@ export function PurchaseEditor() {
 }
 
 function Editor({ d, init }: { d: EditorData; init: PE }) {
+  const bp = useBankPick();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { showToast } = useShell();
@@ -263,7 +266,7 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
       return;
     }
     let left = r2(total - s.settled);
-    const pays = k === 'bill' ? s.pays.filter((q) => n(q.amt) > 0).flatMap((q) => { const a = Math.min(n(q.amt), left); if (!(a > 0)) return []; left = r2(left - a); return [{ mode: q.mode as PurchaseInput['payments'][number]['mode'], amount: String(r2(a)), ref: q.ref }]; }) : [];
+    const pays = k === 'bill' ? s.pays.filter((q) => n(q.amt) > 0).flatMap((q) => { const a = Math.min(n(q.amt), left); if (!(a > 0)) return []; left = r2(left - a); return [{ mode: q.mode as PurchaseInput['payments'][number]['mode'], amount: String(r2(a)), ref: q.ref, accountId: bankFor(bp, q.mode, q.acct) }]; }) : [];
     const body: PurchaseInput = {
       kind: k, number: s.autoNo && !s.editId ? '' : s.no, supplierRef: s.ref.trim(), date: s.date, dueDate: k === 'bill' ? s.due : k === 'order' ? s.exp : null, partyId: p.id,
       pricesInclTax: s.incl, roundOff: s.roundOff, billDiscPct: s.bdiscP || null, billDiscAmt: s.bdiscP ? null : n(s.bdisc) ? String(s.bdisc) : null, transport: String(n(s.chTr)), labour: String(n(s.chLab)),
@@ -422,12 +425,13 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
         <div className="dgpay" id="pePayC" hidden={k !== 'bill'}>
           <div className="dgpyh"><b>Payment made</b><label className="cb2"><input type="checkbox" id="pePFull" checked={total - s.settled > 0 && Math.abs(bal) < 0.005} onChange={(e) => { const on = e.target.checked; up((x) => { const others = x.pays.slice(1).reduce((a, q) => a + n(q.amt), 0); x.pays[0]!.amt = on ? Math.max(0, r2(total - x.settled - others)) : 0; if (!on) x.pays.forEach((q) => (q.amt = 0)); }); }} /> Fully paid</label></div>
           <div className="dgpyr dgpyl"><span>Payment type</span><span>Amount</span><span>Reference</span><span></span></div>
-          {s.pays.map((q, i) => (
-            <div className="dgpyr" data-pay={i} key={i}><select className="fi" data-pk="mode" aria-label={`Payment type ${i + 1}`} value={q.mode} onChange={(e) => up((x) => { x.pays[i]!.mode = e.target.value; if (e.target.value === 'Cash') x.pays[i]!.ref = ''; })}>{PU_MODES.map((m) => <option key={m}>{m}</option>)}</select>
+          {s.pays.map((q, i) => (<Fragment key={i}>
+            <div className="dgpyr" data-pay={i}><select className="fi" data-pk="mode" aria-label={`Payment type ${i + 1}`} value={q.mode} onChange={(e) => up((x) => { x.pays[i]!.mode = e.target.value; if (e.target.value === 'Cash') x.pays[i]!.ref = ''; })}>{PU_MODES.map((m) => <option key={m}>{m}</option>)}</select>
               <span className="pre3"><i>₹</i><input className="fi n" data-pk="amt" value={n(q.amt) || q.amt === '' ? String(q.amt) : ''} placeholder="0" inputMode="decimal" aria-label={`Amount ${i + 1}`} onChange={(e) => { const v = num(e.target.value); up((x) => { x.pays[i]!.amt = v; }); }} /></span>
               <input className="fi" data-pk="ref" value={q.ref} placeholder={q.mode === 'Cash' ? '—' : q.mode === 'Cheque' ? 'Cheque no.' : 'Ref / UTR no.'} autoComplete="off" aria-label={`Reference ${i + 1}`} disabled={q.mode === 'Cash'} onChange={(e) => up((x) => { x.pays[i]!.ref = e.target.value; })} />
               <button type="button" className="ix" data-payrm={i} aria-label={`Remove payment ${i + 1}`} disabled={s.pays.length === 1} onClick={() => up((x) => { x.pays.splice(i, 1); })}><Icon name="x" /></button></div>
-          ))}
+            {bp.show && isBankMode(q.mode) ? <div className="dgpyr" data-payacct={i}><select className="fi" data-pk="acct" aria-label={`Paid from ${i + 1}`} style={{ gridColumn: '1 / 3' }} value={bankOf(bp, q.acct)} onChange={(e) => up((x) => { x.pays[i]!.acct = e.target.value; })}>{bp.banks.map((a) => <option value={a.id} key={a.id}>Paid from {a.name}</option>)}</select></div> : null}
+          </Fragment>))}
           <button type="button" className="btn sm dgpyadd" data-payadd="pe" onClick={() => { up((x) => { const used = x.pays.map((q) => q.mode); const m = PU_MODES.find((y) => !used.includes(y)) ?? PU_MODES[0]; const left = Math.max(0, r2(total - x.settled - x.pays.reduce((a, q) => a + n(q.amt), 0))); x.pays.push({ mode: m, amt: left || '', ref: '' }); }); setTimeout(() => { const ins = [...document.querySelectorAll<HTMLInputElement>('#pePayC [data-pk="amt"]')].pop(); ins?.focus(); ins?.select(); }, 0); }}><Icon name="plus" />Add payment type</button>
           <div className="dgpys"><div><span>Paid now</span><b id="pePRecv">₹{inr2f(paid)}</b></div><div><span>Balance to pay</span><b id="pePBal" className={bal > 0 ? 'neg' : bal < 0 ? 'warn' : 'pos'}>{bal < 0 ? `₹${inr2f(-bal)} extra` : '₹' + inr2f(bal)}</b></div></div>
         </div><div className="dgpf"><button type="button" className="btn p sm" data-paydone="pe" onClick={() => setPop(null)}>Done</button></div></div>

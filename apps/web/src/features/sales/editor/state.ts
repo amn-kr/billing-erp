@@ -27,7 +27,8 @@ export interface Line {
   /** came from this quotation */
   fromQ?: string;
 }
-export interface Pay { mode: string; amt: string | number; ref: string }
+/** acct: the bank account picked for UPI / bank transfer / card ('' = the default bank) */
+export interface Pay { mode: string; amt: string | number; ref: string; acct?: string }
 export interface QRef { no: string; date: string; cust: string; brand: string; id?: string }
 
 export interface SI {
