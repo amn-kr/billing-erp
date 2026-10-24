@@ -88,8 +88,15 @@ test('add items (with opening stock, service, brands/sizes) and adjust stock', a
   await expect(page.locator('#itHead h2')).toHaveText('LED bulb 9W');
   await expect(page.locator('#itTx tr').first()).toContainText('Opening stock');
   // latest / average purchase price (owner, Oct 2026): whole rupees without .00, the average with 2 decimals
-  await expect(page.locator('#itHead .itfig > div', { hasText: 'Latest / Avg purchase price' }).locator('b')).toHaveText('62/62.00');
-  await expect(page.locator('#itHead .itfig > div', { hasText: 'Stock value' }).locator('b')).toHaveText('12,400.00');
+  await expect(page.locator('#itHead .itfl > div', { hasText: 'Purchase Price' }).locator('b')).toHaveText('62/62.00');
+  await expect(page.locator('#itHead .itfl > div', { hasText: 'Stock Value' }).locator('b')).toHaveText('12,400.00');
+  // the item card's layout (owner, Oct 2026): the margin percent is a green tag on the sale price, no separate Margin figure
+  await expect(page.locator('#itHead .itfl small')).toHaveText(['Sale Price', 'Purchase Price', 'In Stock', 'Stock Value']);
+  await expect(page.locator('#itMarginPct')).toHaveText('53%');
+  await expect(page.locator('#itMarginPct')).toHaveCSS('color', 'rgb(16, 185, 129)');
+  await expect(page.locator('#itHead .itfl > div', { hasText: 'Purchase Price' }).locator('.tagw')).toHaveText('Latest/Avg');
+  // a plain item has no group to go back to
+  await expect(page.locator('#itHead [data-gback]')).toHaveCount(0);
 
   // reduce below the minimum: low stock
   await page.click('#itAdj');
@@ -276,6 +283,10 @@ test('Add item › Variant: parent by typing, only the brand’s series, add a s
   await page.click('#aiOpenDup');
   await expect(page.locator('#ai')).toBeHidden();
   await expect(page.locator('#itHead h2')).toHaveText('HAVELLS Allure');
+  // a variant: a boxed back button before the name instead of the group's name
+  await expect(page.locator('#itHead [data-gback]')).toHaveAttribute('aria-label', 'Back to 6A-10A 1WAY SWITCH');
+  await expect(page.locator('#itHead [data-gback]')).toHaveText('');
+  await expect(page.locator('#itHead .ptt > *').nth(2)).toHaveAttribute('aria-label', 'Edit item');
   // still one Allure: the parent item has its four variants (CORAL, PEARLZ, NORWOOD CLASSIC, Allure)
   await page.click('#itHead [data-gback]');
   await expect(page.locator('#itHead .vtab tbody tr')).toHaveCount(4);
