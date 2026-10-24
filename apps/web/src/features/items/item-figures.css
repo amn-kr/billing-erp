@@ -5,13 +5,15 @@
 /* Owner's layout (Oct 2026): the figures as a "Label : value" list on the left, the "Purchase rate of stock
    left" table on the right behind a thin line. When both don't fit, the table wraps below the list at its
    full size and the line goes above it instead: each line sits 1px outside the box when it isn't needed,
-   and the box clips it (the 14px padding-top of .itfig is where the top line hides). */
+   and the box clips it (the 14px padding-top of .itfig is where the top line hides). The side line starts
+   14px below the box's top line (owner: the two lines must not touch). */
 .itlay{column-gap:0;row-gap:29px;overflow:hidden}
 .itfl{flex:0 0 auto;display:grid;grid-template-columns:max-content max-content;align-content:start;row-gap:6px;padding-right:57px}
 .itfl>div{display:grid;grid-column:1/-1;grid-template-columns:subgrid;align-items:baseline}
 .itfig .itfl small{display:flex;justify-content:space-between;gap:12px;margin-right:12px}
 .itfl small::after{content:':'}
-.itlay>.itrt{flex-grow:1;margin:-15px 0 0 -29px;max-width:calc(100% + 29px);padding:14px 0 0 28px;border-left:1px solid var(--bd);border-top:1px solid var(--bd)}
+.itlay>.itrt{flex-grow:1;margin:-15px 0 0 -29px;max-width:calc(100% + 29px);padding:14px 0 0 29px;border-top:1px solid var(--bd);position:relative}
+.itlay>.itrt::before{content:'';position:absolute;left:0;top:14px;bottom:0;width:1px;background:var(--bd)}
 /* small tags next to a figure, the prototype's .tagw pill: margin percent in the margin's green, Latest/Avg in grey */
 .tagw.g{color:var(--green);background:color-mix(in srgb,var(--green) 13%,transparent)}
 .tagw.n{color:var(--t2);background:var(--sf2)}
