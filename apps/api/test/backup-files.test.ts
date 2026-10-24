@@ -105,6 +105,27 @@ describe('rebuilding the books', () => {
     // the backup itself is unchanged
     expect(books.get('parties')!.get(P1)!.id).toBe(P1);
   });
+
+  it('also swaps ids inside labels ("cb:<id>", "pl:<id>") and in JSON keys, leaving other ids alone', () => {
+    const tables = [...TABLES, T('cash_bank_accounts'), T('ledger_accounts'), T('price_lists')];
+    const BANK = '66666666-6666-4666-8666-666666666666';
+    const LEDGER = '77777777-7777-4777-8777-777777777777';
+    const PL = '88888888-8888-4888-8888-888888888888';
+    const STRANGER = '99999999-9999-4999-8999-999999999999';
+    const books: Books = new Map<string, Map<string, Row>>([
+      ['businesses', new Map<string, Row>([[SHOP, { id: SHOP }]])],
+      ['cash_bank_accounts', new Map<string, Row>([[BANK, { id: BANK, business_id: SHOP }]])],
+      ['ledger_accounts', new Map<string, Row>([[LEDGER, { id: LEDGER, business_id: SHOP, key: `cb:${BANK}` }]])],
+      ['price_lists', new Map<string, Row>([[PL, { id: PL, business_id: SHOP }]])],
+      ['business_settings', new Map<string, Row>([[SHOP, { business_id: SHOP, data: { rules: { [`pl:${PL}`]: { floor: 5 }, [STRANGER]: 1 }, note: `moved to cb:${BANK.toUpperCase()}, not ${STRANGER}` } }]])],
+    ]);
+    const out = remapIds(books, tables, SHOP, OTHER);
+    const bank = [...out.get('cash_bank_accounts')!.values()][0]!.id as string;
+    const pl = [...out.get('price_lists')!.values()][0]!.id as string;
+    expect(bank).not.toBe(BANK);
+    expect([...out.get('ledger_accounts')!.values()][0]!.key).toBe(`cb:${bank}`);
+    expect(out.get('business_settings')!.get(OTHER)!.data).toEqual({ rules: { [`pl:${pl}`]: { floor: 5 }, [STRANGER]: 1 }, note: `moved to cb:${bank}, not ${STRANGER}` });
+  });
 });
 
 describe('a backup made before Settings › Transactions (14 Oct 2026)', () => {
