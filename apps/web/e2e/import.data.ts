@@ -41,7 +41,7 @@ export const SAMPLE: Cell[][] = [
   ['Single Range', 'ORIENT 6A 2PIN TOP PLUG WHITE', 'Orient', '', 'AHCSXXW061', 30, 17, '01-04-2026', 'PCS', 20, 5, '', 'Accessories', 18, '8536'],
   ['Multi Range', 'Modular switch 6A', 'Havells', 'Coral', 'AH-CORAL-NEW', 10, 42, '01-04-2026', 'PCS', 55, 5, '', 'Switches & MCBs', 18, '8536'],
   ['Multi Range', 'LED batten 20W', 'Wipro', 'Garnet Plus', 'WP-GB20', 15, 190, '01-04-2026', 'PCS', 270, 5, '', 'Lighting', 18, '9405'],
-  // 13–14 required columns missing
+  // 13 Single Range with no brand (optional there: OK); 14 required column missing (Multi Range series)
   ['Single Range', 'G.M. 20A AERO SWITCH 2WAY WH', '', '', '', 15, 35, '01-04-2026', 'PCS', 48, '', '', 'Switches & MCBs', 18, ''],
   ['Multi Range', 'Modular switch 6A', 'Havells', '', 'AH-NOSERIES', 10, 40, '01-04-2026', 'PCS', 52, '', '', '', 18, ''],
   // 15–16 bad dates: not a date, in the future

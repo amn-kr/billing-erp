@@ -113,7 +113,7 @@ export class ItemImportService {
       const items = rows.map((i) => ({
         id: randomUUID(), businessId: b, createdBy: u, kind: 'goods', name: i.name, code: i.code, hsn: i.hsn,
         unitId: unitIds.get(i.unit)!, categoryId: i.category ? ids.category.get(low(i.category))! : null,
-        brandId: ids.brand.get(low(i.brand))!, itemGroupId: i.kind === 'multi' ? ids.group.get(low(i.group))! : null,
+        brandId: i.brand ? ids.brand.get(low(i.brand))! : null, itemGroupId: i.kind === 'multi' ? ids.group.get(low(i.group))! : null,
         series: i.series, gstRate: i.gst, salePrice: i.sale, purchasePrice: i.rate ?? '0.00', minStock: i.minStock,
       }));
       for (const part of chunks(items)) await tx.item.createMany({ data: part });

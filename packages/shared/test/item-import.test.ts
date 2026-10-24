@@ -74,9 +74,36 @@ describe('import checks: errors', () => {
     expect(msgs({ type: 'Double Range' })).toEqual(['Product type: “Double Range” is not a product type. Choose Single Range or Multi Range.']);
   });
 
-  it('required columns: Single needs name and brand; Multi also the series', () => {
-    expect(msgs({ name: '', brand: '', code: '' }, 'error')).toEqual(['Product name: Enter the product name.', 'Brand name: Enter the brand name.']);
+  it('required columns: Single needs only the name; Multi also the brand and the series', () => {
+    expect(msgs({ name: '', brand: '', code: '' }, 'error')).toEqual(['Product name: Enter the product name.']);
     expect(msgs({ type: 'Multi Range', name: 'Switch', brand: 'Anchor', series: '' }, 'error')).toEqual(['Series / range name: Enter the series / range name (needed for Multi Range).']);
+    expect(msgs({ type: 'Multi Range', name: 'Switch', brand: '', series: 'Roma' }, 'error')).toEqual(['Brand name: Enter the brand name.']);
+    expect(msgs({ type: 'Multi Range', name: 'Switch', brand: '', series: '' }, 'error')).toEqual(['Brand name: Enter the brand name.', 'Series / range name: Enter the series / range name (needed for Multi Range).']);
+    // no product type: the brand is still asked for, as before
+    expect(msgs({ type: '', brand: '' }, 'error')).toEqual(['Product type: Choose Single Range or Multi Range.', 'Brand name: Enter the brand name.']);
+  });
+
+  it('Single Range without a brand: nothing marked, saved with no brand, no new brand', () => {
+    const c = one({ brand: '' });
+    expect(c.status).toBe('ok');
+    expect(c.item).toMatchObject({ kind: 'single', name: 'Ceiling fan', brand: '', series: '', newBrand: false });
+  });
+
+  it('Single Range: a series needs a brand', () => {
+    const c = one({ brand: '', series: 'Coral' });
+    expect(c.status).toBe('error');
+    expect(c.item).toBeNull();
+    expect(rowProblems(c)).toEqual(['Series / range name: Series needs a brand. Enter the brand name, or clear the series.']);
+  });
+
+  it('Single Range without a brand: the name must still be new in the shop and in the file', () => {
+    expect(msgs({ name: 'bajaj FAN', brand: '' }, 'error')).toEqual(['Product name: An item called “Bajaj fan” already exists.']);
+    const r = check([good({ brand: '', code: '' }, 2), good({ name: 'CEILING fan', brand: '', code: '' }, 3), good({ name: 'Ceiling fan', brand: 'Havells', code: '' }, 4)]);
+    expect(r.map((c) => rowProblems(c, 'error'))).toEqual([
+      ['Product name: This product name is also in row 3, 4 of the uploaded file.'],
+      ['Product name: This product name is also in row 2, 4 of the uploaded file.'],
+      ['Product name: This product name is also in row 2, 3 of the uploaded file.'],
+    ]);
   });
 
   it('Single Range name already in the shop or twice in the file (both rows marked)', () => {

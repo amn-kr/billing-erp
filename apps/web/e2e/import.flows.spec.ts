@@ -53,7 +53,13 @@ test('Import products: template, checks, editing, Discard question, error rows a
   expect(dv['A2']!.formulae).toEqual(['"Single Range,Multi Range"']);
   expect(dv['L2']!.formulae).toEqual(['Lists!$B$2:$B$3']);
   const samples = wb.getWorksheet('Samples')!;
-  expect([2, 3].map((r) => cellText(samples.getRow(r).getCell(1).value))).toEqual(['Single Range', 'Multi Range']);
+  expect([2, 3, 4].map((r) => cellText(samples.getRow(r).getCell(1).value))).toEqual(['Single Range', 'Single Range', 'Multi Range']);
+  // one Single Range sample has no brand: it is optional there
+  expect([2, 3, 4].map((r) => cellText(samples.getRow(r).getCell(3).value))).toEqual(['Indotech', '', 'Havells']);
+  const notes = wb.getWorksheet('Notes')!;
+  const noteRow = (first: string) => { let out: string[] = []; notes.eachRow((r) => { if (cellText(r.getCell(1).value) === first) out = [2, 3].map((c) => cellText(r.getCell(c).value)); }); return out; };
+  expect(noteRow('Brand name')).toEqual(['Multi Range', 'Required for Multi Range. Optional for Single Range (blank = no brand). A brand that is not in Brands & Series yet is created on import.']);
+  expect(noteRow('Single Range')[0]).toBe('One item. Its product name must be new. Brand is optional (leave it blank for no brand); a series needs a brand.');
   expect(cellText(wb.getWorksheet('Notes')!.getRow(1).getCell(1).value)).toBe('Import products — how to fill the Products sheet');
 
   // files that are not the template are refused before anything is shown
@@ -75,8 +81,8 @@ test('Import products: template, checks, editing, Discard question, error rows a
   await fillTemplate(tpl, sample);
   await page.setInputFiles('#imFile', sample);
   await expect(page.locator('#imTot')).toHaveText('sample.xlsx23 rows');
-  await expect(page.locator('#imTabs button')).toHaveText(['All23', 'Errors17', 'Warnings4', 'OK2']);
-  await expect(page.locator('#imCount')).toHaveText('Fix 17 rows with errors, or tick “Skip error rows”.');
+  await expect(page.locator('#imTabs button')).toHaveText(['All23', 'Errors16', 'Warnings4', 'OK3']);
+  await expect(page.locator('#imCount')).toHaveText('Fix 16 rows with errors, or tick “Skip error rows”.');
   await expect(page.locator('#imGo')).toBeDisabled();
   await expect(page.locator('#imNew')).toHaveText('Will be created on import: 1 parent item, 2 brands, 2 series, 1 category.');
   const status = (line: number) => page.locator(`tr[data-row="${line}"] [data-st]`);
@@ -88,7 +94,9 @@ test('Import products: template, checks, editing, Discard question, error rows a
   await expect(marks(8, 'name')).toHaveText(['This product name is also in row 9 of the uploaded file.']);
   await expect(marks(10, 'code')).toHaveText(['Brand code AHCSXXW061 is already used by “Modular switch 6A · Havells Coral”.']);
   await expect(marks(11, 'series')).toHaveText(['Havells Coral is already in Modular switch 6A (item “Modular switch 6A · Havells Coral”).']);
-  await expect(marks(13, 'brand')).toHaveText(['Enter the brand name.']);
+  // Single Range: the brand is optional (row 13 has none)
+  await expect(marks(13, 'brand')).toHaveCount(0);
+  await expect(status(13)).toHaveText('OK');
   // the brand code is optional: a blank one is not marked (rows 3 and 13)
   await expect(marks(13, 'code')).toHaveCount(0);
   await expect(marks(3, 'code')).toHaveCount(0);
@@ -122,7 +130,7 @@ test('Import products: template, checks, editing, Discard question, error rows a
 
   // filters and search
   await page.click('[data-imf="ok"]');
-  await expect(page.locator('#imGrid tbody tr')).toHaveCount(2);
+  await expect(page.locator('#imGrid tbody tr')).toHaveCount(3);
   await page.click('[data-imf="warning"]');
   await expect(page.locator('#imGrid tbody tr [data-st]')).toHaveText(['Warning', 'Warning', 'Warning', 'Warning']);
   await page.click('[data-imf="all"]');
@@ -133,10 +141,10 @@ test('Import products: template, checks, editing, Discard question, error rows a
   // an edited row is checked again straight away
   await page.selectOption('tr[data-row="19"] td[data-col="unit"] select', 'PCS');
   await expect(status(19)).toHaveText('OK');
-  await expect(page.locator('#imTabs button')).toHaveText(['All23', 'Errors16', 'Warnings4', 'OK3']);
+  await expect(page.locator('#imTabs button')).toHaveText(['All23', 'Errors15', 'Warnings4', 'OK4']);
   await page.fill('tr[data-row="17"] td[data-col="rate"] input', '107');
   await expect(status(17)).toHaveText('Warning');
-  await expect(page.locator('#imTabs button')).toHaveText(['All23', 'Errors15', 'Warnings5', 'OK3']);
+  await expect(page.locator('#imTabs button')).toHaveText(['All23', 'Errors14', 'Warnings5', 'OK4']);
 
   // leaving asks first; Keep editing stays with the rows
   await page.click('#imBack');
@@ -150,31 +158,31 @@ test('Import products: template, checks, editing, Discard question, error rows a
   expect(await download(page, () => page.click('#imErrDl'), errs)).toBe('Import products - error rows.xlsx');
   const ew = (await readBook(errs)).getWorksheet('Products')!;
   expect(cellText(ew.getRow(1).getCell(16).value)).toBe('Problem');
-  // two rows were corrected above: 15 left, under the heading
-  expect(ew.actualRowCount).toBe(16);
+  // two rows were corrected above: 14 left, under the heading
+  expect(ew.actualRowCount).toBe(15);
   expect(cellText(ew.getRow(2).getCell(2).value)).toBe('LED batten 20W');
   expect(cellText(ew.getRow(2).getCell(16).value)).toBe('Brand code: This brand code is also in row 12 of the uploaded file.');
 
   // Final import: skip the error rows, confirm, summary
   await page.check('#imSkip');
-  await expect(page.locator('#imCount')).toHaveText('8 products will be imported, 15 skipped.');
+  await expect(page.locator('#imCount')).toHaveText('9 products will be imported, 14 skipped.');
   await page.click('#imGo');
   await expect(page.locator('#imConfirm li')).toHaveText([
-    '8 products will be added, 8 with opening stock.',
+    '9 products will be added, 9 with opening stock.',
     'New: 1 parent item, 3 brands, 2 series, 1 category.',
-    '15 rows with errors will be skipped.',
+    '14 rows with errors will be skipped.',
     'Items are never deleted, only made inactive. Check the rows before you import.',
   ]);
   await page.click('#imcGo');
   await expect(page.locator('#imDone > ul > li')).toHaveText([
-    '8 products created, 8 with opening stock.',
+    '9 products created, 9 with opening stock.',
     'New parent items: LED batten 20W',
     'New brands: Philips, G2, Kelino',
     'New series: Havells Fabio, Philips Astra Line',
     'New categories: Solar',
-    '15 rows skipped because of errors:',
+    '14 rows skipped because of errors:',
   ]);
-  await expect(page.locator('#imSkipped tbody tr td:first-child')).toHaveText(['5', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '18', '20', '23', '24']);
+  await expect(page.locator('#imSkipped tbody tr td:first-child')).toHaveText(['5', '7', '8', '9', '10', '11', '12', '14', '15', '16', '18', '20', '23', '24']);
   // after the import, leaving does not ask
   await page.click('#imToItems');
   await expect(page).toHaveURL(APP + '/items');
@@ -184,7 +192,7 @@ test('Import products: template, checks, editing, Discard question, error rows a
   const r = await request.post(APP + '/api/auth/login', { data: who });
   const headers = { Authorization: `Bearer ${(await r.json()).accessToken}` };
   const list = (await (await request.get(APP + '/api/items', { headers })).json()) as { id: string; code: string; name: string; purchase: string }[];
-  expect(list.length).toBe(3 + 8);
+  expect(list.length).toBe(3 + 9);
   // imported without a brand code
   const roma = list.find((i) => i.name === 'Modular switch 6A · Anchor Roma')!;
   expect(roma.code).toBe('');
@@ -198,7 +206,7 @@ test('Import products: template, checks, editing, Discard question, error rows a
   // the error rows file can be fixed and uploaded again; leaving through the sidebar asks, Discard goes
   await page.goto(APP + '/items/import');
   await page.setInputFiles('#imFile', errs);
-  await expect(page.locator('#imTot')).toHaveText('errors.xlsx15 rows');
+  await expect(page.locator('#imTot')).toHaveText('errors.xlsx14 rows');
   // every row has an error: nothing to import, said in red (not "0 products will be imported" in green)
   await expect(page.locator('#imCount .stt.r')).toHaveText('Nothing to import yet: every row has an error. Fix the errors first.');
   await page.check('#imSkip');
@@ -209,4 +217,65 @@ test('Import products: template, checks, editing, Discard question, error rows a
   await page.click('#dcfYes');
   await expect(page).toHaveURL(APP + '/items');
   fs.rmSync(big);
+});
+
+test('Import products: a Single Range row may have no brand; a series needs a brand; names stay new; Multi Range still needs a brand', async ({ browser, request }, info) => {
+  test.setTimeout(120_000);
+  const page = await newPage(browser, 1366);
+  const who = await freshShop(request);
+  await importShop(request, who);
+  await signInAs(page, who);
+  await page.goto(APP + '/items/import');
+  const tpl = info.outputPath('template.xlsx');
+  await download(page, () => page.click('#imTpl'), tpl);
+  const file = info.outputPath('no-brand.xlsx');
+  await fillTemplate(tpl, file, [
+    ['Single Range', 'PVC INSULATION TAPE 18MM', '', '', '', 50, 12, '01-04-2026', 'PCS', 18, 10, '', '', 18, '3919'],
+    ['Single Range', 'GI WALL PLUG 6MM', '', 'Coral', '', 100, 1, '01-04-2026', 'PCS', 2, '', '', 'Accessories', 18, ''],
+    // already in the shop (with a brand): a Single Range name must be new, whatever the brand
+    ['Single Range', 'bajaj bahar hs 225m e/f', '', '', '', '', '', '', 'PCS', 1550, '', '', 'Fans', 18, ''],
+    ['Multi Range', 'Modular switch 6A', '', 'Roma', '', '', '', '', 'PCS', 26, '', '', 'Switches & MCBs', 18, ''],
+  ]);
+  await page.setInputFiles('#imFile', file);
+  await expect(page.locator('#imTabs button')).toHaveText(['All4', 'Errors3', 'Warnings0', 'OK1']);
+  const status = (line: number) => page.locator(`tr[data-row="${line}"] [data-st]`);
+  const marks = (line: number, col: string) => page.locator(`tr[data-row="${line}"] td[data-col="${col}"] .egm`);
+  await expect(status(2)).toHaveText('OK');
+  await expect(marks(2, 'brand')).toHaveCount(0);
+  await expect(marks(3, 'series')).toHaveText(['Series needs a brand. Enter the brand name, or clear the series.']);
+  await expect(page.locator('tr[data-row="3"] [data-where]')).toHaveText('Check: Series / range name');
+  await expect(marks(4, 'name')).toHaveText(['An item called “BAJAJ BAHAR HS 225M E/F” already exists.']);
+  await expect(marks(5, 'brand')).toHaveText(['Enter the brand name.']);
+  await expect(page.locator('#imNew')).toHaveCount(0);
+
+  await page.check('#imSkip');
+  await page.click('#imGo');
+  await expect(page.locator('#imConfirm li')).toHaveText([
+    '1 product will be added, 1 with opening stock.',
+    '3 rows with errors will be skipped.',
+    'Items are never deleted, only made inactive. Check the rows before you import.',
+  ]);
+  await page.click('#imcGo');
+  await expect(page.locator('#imDone > ul > li')).toHaveText(['1 product created, 1 with opening stock.', '3 rows skipped because of errors:']);
+  await expect(page.locator('#imSkipped tbody tr')).toHaveText([
+    '3Series / range name: Series needs a brand. Enter the brand name, or clear the series.',
+    '4Product name: An item called “BAJAJ BAHAR HS 225M E/F” already exists.',
+    '5Brand name: Enter the brand name.',
+  ]);
+
+  // nothing is shown for the brand: no chip on the list row or on the item, like an Add item Single without a brand
+  await page.click('#imToItems');
+  const row = page.locator('#itList .ptr', { hasText: 'PVC INSULATION TAPE 18MM' });
+  await expect(row).toHaveCount(1);
+  await expect(row.locator('.brc')).toHaveCount(0);
+  await row.click();
+  await expect(page.locator('#vItems .ptt h2')).toHaveText('PVC INSULATION TAPE 18MM');
+  await expect(page.locator('#vItems .ptt .brc')).toHaveCount(0);
+  const r = await request.post(APP + '/api/auth/login', { data: who });
+  const headers = { Authorization: `Bearer ${(await r.json()).accessToken}` };
+  const list = (await (await request.get(APP + '/api/items', { headers })).json()) as { name: string; brand: string; series: string; stock: string }[];
+  expect(list.find((i) => i.name === 'PVC INSULATION TAPE 18MM')).toMatchObject({ brand: '', series: '', stock: '50.000' });
+  // no brand was made from the blank cells
+  const brands = (await (await request.get(APP + '/api/brands', { headers })).json()) as { name: string }[];
+  expect(brands.map((b) => b.name).sort()).toEqual(['Anchor', 'Bajaj', 'Havells']);
 });

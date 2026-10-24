@@ -86,7 +86,8 @@ describe('Items › Import products', () => {
     const before = (await items(o)).length;
     const r = await run(o, [
       single(2, 'Good item', 'Bajaj', 'G1', { qty: '1', rate: '10' }),
-      single(3, 'No brand', '', 'G2'),
+      // Multi Range still needs a brand
+      multi(3, 'No brand', '', 'Coral', 'G2'),
       single(4, 'Bad date', 'Bajaj', 'G3', { qty: '1', rate: '5', date: '31-02-2026' }),
     ]).expect(200);
     expect(r.body.done).toBe(false);
@@ -95,6 +96,41 @@ describe('Items › Import products', () => {
     expect((await items(o)).length).toBe(before);
     const brands = (await http().get('/api/brands').set(auth(o)).expect(200)).body;
     expect(brands).toEqual([]);
+  });
+
+  it('Single Range without a brand: saved with no brand; a series needs a brand; the name must still be new; Multi still needs one', async () => {
+    const o = await owner(app);
+    // made on Add item without a brand
+    await http().post('/api/items').set(auth(o)).send({ name: 'Insulation tape', code: '' }).expect(201);
+    await http().post('/api/items').set(auth(o)).send({ name: 'Bajaj fan', brand: 'Bajaj', code: 'BJ1' }).expect(201);
+    const rows = [
+      single(2, 'PVC wire clip', '', '', { qty: '100', rate: '2', date: '01-04-2026', sale: '3' }),
+      single(3, 'Wall plug', '', 'WP1', { series: 'Coral' }),
+      single(4, 'INSULATION TAPE', '', ''),
+      // a Single Range name must be new in the whole shop, whatever the brand
+      single(5, 'bajaj fan', '', ''),
+      single(6, 'Insulation tape', 'Anchor', ''),
+      multi(7, 'Switch', '', 'Roma', ''),
+    ];
+    const r = await run(o, rows, true).expect(200);
+    expect(r.body.done).toBe(true);
+    expect(r.body.summary).toEqual({
+      created: 1, withStock: 1, newBrands: [], newSeries: [], newGroups: [], newCategories: [],
+      skipped: [
+        { line: 3, reasons: ['Series / range name: Series needs a brand. Enter the brand name, or clear the series.'] },
+        { line: 4, reasons: ['Product name: An item called “Insulation tape” already exists.', 'Product name: This product name is also in row 6 of the uploaded file.'] },
+        { line: 5, reasons: ['Product name: An item called “Bajaj fan” already exists.'] },
+        { line: 6, reasons: ['Product name: An item called “Insulation tape” already exists.', 'Product name: This product name is also in row 4 of the uploaded file.'] },
+        { line: 7, reasons: ['Brand name: Enter the brand name.'] },
+      ],
+    });
+    const clip = (await items(o)).find((i) => i.name === 'PVC wire clip')!;
+    expect(clip).toMatchObject({ brand: '', group: '', series: '', stock: '100.000', purchase: '2.00' });
+    // no brand made from the blank cell; the only brand is the one Add item made
+    expect(((await http().get('/api/brands').set(auth(o)).expect(200)).body as { name: string }[]).map((b) => b.name)).toEqual(['Bajaj']);
+    // audit as for every imported item, with no brand
+    const log = (await http().get('/api/audit?limit=50').set(auth(o)).expect(200)).body as { entity: string; entityId: string; after: { from?: string; brand?: string } }[];
+    expect(log.filter((a) => a.after?.from === 'import').map((a) => [a.entity, a.entityId, a.after.brand])).toEqual([['item', clip.id, '']]);
   });
 
   it('“Skip error rows” imports the rest and lists the skipped rows with reasons', async () => {
