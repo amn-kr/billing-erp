@@ -82,7 +82,8 @@ for (const width of WIDTHS) {
       await app.waitForSelector('#itTx tr td.n');
       await proto.waitForTimeout(200);
       await app.waitForTimeout(300);
-      // owner's change (Oct 2026): "Latest / Avg purchase price" and the figures one size smaller, so the card
+      // owner's changes (Oct 2026): the figures one size smaller, then the card's new layout (Label : value list,
+      // margin and Latest/Avg tags, rate table beside or below), so the card
       // is compared with its approved picture
       await approvedShot(`items-stock-${width}`, app, '#itRight');
 
