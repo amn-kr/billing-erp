@@ -90,7 +90,7 @@ describe('edit a purchase bill', () => {
     expect(await balanceOf(o, kc.id)).toBe('-3044.00'); // to pay: 7044 − 4000
     const d = await doc(o, b.id);
     expect(d).toMatchObject({ number: 'PB-0001', supplierRef: 'KC/2209-A', taxable: '5800.00', cgst: '522.00', sgst: '522.00', igst: '0.00', transport: '150.00', labour: '50.00', total: '7044.00', balance: '3044.00', locked: '' });
-    expect(d.settlements).toEqual([{ kind: 'payment', number: 'PO-0001', date: D, mode: 'Bank transfer', amount: '4000.00', ref: 'UTR 2', atBill: true }]);
+    expect(d.settlements).toEqual([{ kind: 'payment', number: 'PO-0001', date: D, mode: 'Bank transfer', amount: '4000.00', ref: 'UTR 2', accountId: expect.any(String), atBill: true }]);
     expect((await http().get('/api/payments-made').set(auth(o)).expect(200)).body.map((p: { number: string; amount: string }) => [p.number, p.amount])).toEqual([['PO-0001', '4000.00']]);
     expect((await accounts(o)).find((a) => a.name === 'HDFC Bank')?.balance).toBe('46000.00');
     expect(bank.id).toBeTruthy();

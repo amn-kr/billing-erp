@@ -44,7 +44,7 @@ describe('purchase bill', () => {
     expect(pays[0]).toMatchObject({ number: 'PO-0001', amount: '3000.00', mode: 'UPI', bills: [{ number: 'PB-0001', amount: '3000.00' }], unused: '0.00' });
     const doc = (await http().get(`/api/purchases/${r.body.id}`).set(auth(o)).expect(200)).body;
     expect(doc).toMatchObject({ taxable: '8700.00', cgst: '783.00', sgst: '783.00', igst: '0.00', balance: '7416.00' });
-    expect(doc.settlements).toEqual([{ kind: 'payment', number: 'PO-0001', date: D, mode: 'UPI', amount: '3000.00', ref: 'UPI 881', atBill: true }]);
+    expect(doc.settlements).toEqual([{ kind: 'payment', number: 'PO-0001', date: D, mode: 'UPI', amount: '3000.00', ref: 'UPI 881', accountId: expect.any(String), atBill: true }]);
   });
 
   it('remembers the last rates from each supplier', async () => {

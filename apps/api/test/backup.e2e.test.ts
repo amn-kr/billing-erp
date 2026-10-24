@@ -339,6 +339,31 @@ describe('restore', () => {
     expect((await http().get('/api/sales/next-number?kind=invoice').set(auth(n)).expect(200)).body.number).toBe('INV-0002');
   });
 
+  it('a payment into a chosen bank stays in that bank in the restored books — from the full copy and from later changes', async () => {
+    const { o, verma, inv } = await shop();
+    const bank = async (name: string) => (await http().post('/api/banking/accounts').set(auth(o)).send({ name, openingBalance: '1000' }).expect(201)).body as { id: string };
+    await bank('HDFC Bank');
+    const sbi = await bank('State Bank of India');
+    const pin = async (amount: string) => (await http().post('/api/receipts').set(auth(o)).send({ partyId: verma.id, date: D, amount, mode: 'UPI', accountId: sbi.id, ref: '', allocations: [{ to: inv.id, amount }] }).expect(201)).body as { id: string; number: string };
+    await pin('300');
+    await useDrive(o);
+    await svc.runDue();
+    await pin('200');
+    await svc.runDue();
+    const r = (await http().post('/api/backup/restore').set(auth(o)).send({ from: 'drive', confirm: true }).expect(200)).body;
+    const n = { token: (await http().post('/api/businesses/switch').set(auth(o)).send({ businessId: r.businessId }).expect(201)).body.accessToken as string };
+    const accs = (await http().get('/api/banking/accounts').set(auth(n)).expect(200)).body as { id: string; name: string; balance: string }[];
+    expect(accs.map((a) => [a.name, a.balance])).toEqual([['Cash in hand', '0.00'], ['HDFC Bank', '1000.00'], ['State Bank of India', '1500.00']]);
+    const newSbi = accs.find((a) => a.name === 'State Bank of India')!;
+    expect(newSbi.id).not.toBe(sbi.id);
+    const book = (await http().get(`/api/banking/accounts/${newSbi.id}/book`).set(auth(n)).expect(200)).body as { entries: { amt: string }[] };
+    expect(book.entries.map((e) => e.amt).sort()).toEqual(['200.00', '300.00']);
+    // each payment points at the restored bank (its edit window shows it)
+    const pays = (await http().get('/api/receipts').set(auth(n)).expect(200)).body as { id: string }[];
+    expect(pays).toHaveLength(2);
+    for (const p of pays) expect((await http().get(`/api/receipts/${p.id}`).set(auth(n)).expect(200)).body).toMatchObject({ mode: 'UPI', accountId: newSbi.id });
+  });
+
   it('restored books keep the transaction passcode switched on, with the same passcode (made-up)', async () => {
     const { o, inv } = await shop();
     await http().post('/api/settings/passcode/on').set(auth(o)).send({ passcode: '4826' }).expect(200);
