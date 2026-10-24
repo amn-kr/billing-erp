@@ -30,7 +30,7 @@ export interface SaleDoc {
   /** when the document was saved (shown with Settings › Transactions › Add time) */
   savedAt?: string;
   lines: SaleLine[];
-  payment: { id: string; number: string; amount: string; mode: string; reference: string; splits: { mode: string; amount: string; ref: string }[] } | null;
+  payment: { id: string; number: string; amount: string; mode: string; reference: string; splits: { mode: string; amount: string; ref: string; accountId?: string | null }[] } | null;
   settlements: { amount: string; kind: 'payment' | 'credit_note'; number: string; date: string | null; mode: string; atSale: boolean; cancelled: boolean }[];
   history: { action: string; at: string }[];
 }

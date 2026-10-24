@@ -8,10 +8,11 @@ import { LedgerService } from '../../common/ledger.service';
 import type { RequestContext } from '../../common/context';
 import { day, isoOf } from '../../common/lookups';
 import { invoiceBalances, openDues, unusedAmounts } from './dues';
-import { accountFor, cancelPayment, cancelPendingCheques, moneyInLines } from './money-in';
+import { accountFor, cashBankFor, cancelPayment, cancelPendingCheques, moneyInLines } from './money-in';
 import { reverseStock } from './stock-back';
 import { linkedToInvoice } from './sales.service';
 import { ALREADY_DELETED, deleteMark } from '../../common/deleting';
+import { reconciledIn, reconciledMessage } from '../../common/editing';
 import { booksOf } from './sales.service';
 
 const q3 = (v: { toString(): string }) => money(v.toString()).toDecimalPlaces(3).toFixed(3);
@@ -60,7 +61,7 @@ export class ReceiptsService {
       const p = await tx.payment.findFirst({ where: { id, direction: 'in', deletedAt: null }, include: { allocations: true } });
       if (!p) throw new NotFoundException({ message: 'That payment was not found.' });
       return {
-        id: p.id, number: p.number, date: isoOf(p.date), partyId: p.partyId, amount: toDb(p.amount.toString()), mode: p.mode, ref: p.reference, notes: p.notes,
+        id: p.id, number: p.number, date: isoOf(p.date), partyId: p.partyId, amount: toDb(p.amount.toString()), mode: p.mode, accountId: p.accountId, ref: p.reference, notes: p.notes,
         cancelled: !!p.cancelledAt, allocations: p.allocations.map((a) => ({ to: a.kind === 'opening' ? 'opening' : (a.salesDocumentId ?? ''), amount: toDb(a.amount.toString()) })),
         locked: p.cancelledAt ? `${p.number} is cancelled. It can’t be changed.` : await this.receiptLock(tx, p, 'edit'),
       };
@@ -69,8 +70,8 @@ export class ReceiptsService {
 
   /**
    * Why a payment received can't be edited or deleted here, or '' when it can: money taken on an
-   * invoice belongs to that invoice, a commission adjustment to its payout, and a cheque already
-   * cleared or bounced has its own entry.
+   * invoice belongs to that invoice, a commission adjustment to its payout, a cheque already
+   * cleared or bounced has its own entry, and an entry ticked in Reconciliation must stay as it is.
    */
   private async receiptLock(tx: Tx, p: { id: string; atSale: boolean; sourceId: string | null; mode: string }, verb: 'edit' | 'delete') {
     if (p.atSale) {
@@ -80,7 +81,8 @@ export class ReceiptsService {
     if (p.mode === 'Commission adjust') return `This payment comes from a commission payout. It can’t be ${verb === 'edit' ? 'edited' : 'deleted'} here.`;
     const chq = await tx.cheque.findFirst({ where: { paymentId: p.id, status: { in: ['cleared', 'bounced'] } } });
     if (chq) return `Cheque ${chq.chequeNo} on this payment is already ${chq.status}. Undo it on the Cheques page first.`;
-    return '';
+    const bank = await reconciledIn(tx, 'payment', p.id);
+    return bank ? reconciledMessage(bank) : '';
   }
 
   /** A new payment received, or an edited one (`before`: its old settlements are already undone). */
@@ -102,9 +104,10 @@ export class ReceiptsService {
     if (alloc.reduce((s, a) => s.plus(a.amount), money(0)).gt(amount))
       throw new BadRequestException({ message: 'The invoice amounts add up to more than the payment.' });
     const number = before?.number ?? (await this.numbers.next(tx, businessId, ctx.userId, 'receipt', input.date));
+    const accountId = await cashBankFor(tx, input.mode, input.accountId);
     const data = {
-      date: day(input.date), partyId: party.id, amount: amount.toFixed(2), mode: input.mode,
-      reference: input.ref, notes: input.notes, splits: [{ mode: input.mode, amount: amount.toFixed(2), ref: input.ref }] as Prisma.InputJsonValue,
+      date: day(input.date), partyId: party.id, amount: amount.toFixed(2), mode: input.mode, accountId,
+      reference: input.ref, notes: input.notes, splits: [{ mode: input.mode, amount: amount.toFixed(2), ref: input.ref, accountId }] as Prisma.InputJsonValue,
     };
     const pay = before
       ? await tx.payment.update({ where: { id: before.id }, data })
@@ -113,7 +116,7 @@ export class ReceiptsService {
       await tx.paymentAllocation.createMany({
         data: alloc.map((a) => ({ businessId, paymentId: pay.id, amount: a.amount.toFixed(2), partyId: party.id, ...(a.to === 'opening' ? { kind: 'opening' } : { salesDocumentId: a.to }) })),
       });
-    const debit = await moneyInLines(tx, { businessId, userId: ctx.userId }, { splits: [{ mode: input.mode, amount, ref: input.ref }], paymentId: pay.id, partyId: party.id, date: input.date, memo: number });
+    const debit = await moneyInLines(tx, { businessId, userId: ctx.userId }, { splits: [{ mode: input.mode, amount, ref: input.ref, accountId }], paymentId: pay.id, partyId: party.id, date: input.date, memo: number });
     await this.ledger.repost(tx, { businessId, userId: ctx.userId }, {
       date: input.date, sourceType: 'payment', sourceId: pay.id, number, narration: `Payment from ${party.name}`,
       lines: [...debit, { account: 'receivable', partyId: party.id, credit: amount }],

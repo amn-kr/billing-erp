@@ -13,6 +13,7 @@ import { invoiceBalances, openDues, unusedAmounts } from './dues';
 import { writeAtSale } from './at-sale';
 import { cancelPayment } from './money-in';
 import { ALREADY_DELETED, deleteMark } from '../../common/deleting';
+import { refuseIfReconciled } from '../../common/editing';
 import { reverseStock } from './stock-back';
 import { draftSaleCosts } from '../stock/stock-value';
 
@@ -213,7 +214,7 @@ export class SalesService {
       });
       const r = await writeAtSale(tx, { businessId, userId: ctx.userId, ledger: this.ledger, numbers: this.numbers }, {
         docId: doc.id, docNumber: number, date: input.date, partyId: party?.id ?? null, total: t.total,
-        parts: input.payments.map((p) => ({ mode: p.mode as string, amount: money(p.amount), ref: p.ref })),
+        parts: input.payments.map((p) => ({ mode: p.mode as string, amount: money(p.amount), ref: p.ref, accountId: p.accountId })),
       });
       settledOld = r.settledOld;
       advance = r.advance;
@@ -286,6 +287,8 @@ export class SalesService {
       if (!d.partyId) {
         // a walk-in has no account to keep an advance in: the money taken with it is refunded
         const pays = await tx.payment.findMany({ where: { sourceId: d.id, atSale: true, cancelledAt: null } });
+        // a refund ticked in Reconciliation would no longer match the bank statement
+        for (const p of pays) await refuseIfReconciled(tx, p.id);
         for (const p of pays) await cancelPayment(tx, this.ledger, { id: p.id, userId: ctx.userId, date: today, at });
         movedToAdvance = money(0);
       }

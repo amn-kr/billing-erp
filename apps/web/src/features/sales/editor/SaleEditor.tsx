@@ -5,10 +5,10 @@
  * the footer dues button, credit-limit warning, edit / duplicate / from challan.
  * Routes: /sales/new, ?edit=<id>, ?copy=<id>, ?challan=<id>.
  */
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { STATES, amountInWords, type SaleInput } from '@billing/shared';
+import { STATES, amountInWords, isBankMode, type SaleInput } from '@billing/shared';
 import { api, ApiError } from '../../../lib/api';
 import { inr, inr2f } from '../../../lib/format';
 import { today } from '../../../lib/time';
@@ -31,6 +31,7 @@ import { ImportQuote, QuoteRefs, qrefRemoveModal } from './ImportQuote';
 import type { SlModalProps } from '../SlModal';
 import { SlModal } from '../SlModal';
 import { printNow } from '../../print/printer';
+import { bankFor, bankOf, useBankPick } from '../../banking/BankPick';
 import { editAsk, withPasscode } from '../../settings/passcode';
 import {
   DG_TERMS, SI_MODES, SI_TT, addDaysIso, blankLine, calc, cmApply, daysDiff, hasContent, lineComm, lineFor, newSI, partyState, paySum, priceListFor, r2, unitPrice, useSI, useTab, TabCtx, isDirty,
@@ -201,7 +202,7 @@ function fillFrom(d: EditorData, s: SI, v: SaleDoc, how: 'edit' | 'copy' | 'chal
   s.notes = v.notes || s.notes;
   if (how === 'copy') return;
   s.no = v.number; s.autoNo = false; s.date = v.date; s.due = v.dueDate ?? v.date; s.dueTouched = true; s.incl = v.pricesInclTax; s.pos = v.placeOfSupply || s.pos; s.billName = v.billName; s.roundOff = v.roundOff;
-  s.pays = v.payment ? v.payment.splits.map((p) => ({ mode: p.mode, amt: Number(p.amount), ref: p.ref })) : [{ mode: 'UPI', amt: 0, ref: '' }];
+  s.pays = v.payment ? v.payment.splits.map((p) => ({ mode: p.mode, amt: Number(p.amount), ref: p.ref, acct: p.accountId ?? '' })) : [{ mode: 'UPI', amt: 0, ref: '' }];
   s.recvTouched = true;
   s.challan = x.challanNo ?? ''; s.poNo = x.poNo ?? ''; s.poDate = x.poDate ?? ''; s.ewb = x.ewb ?? ''; s.transport = x.transport ?? ''; s.vehicle = x.vehicle ?? ''; s.delivDate = x.deliveryDate ?? '';
   s.desc = x.description ?? ''; s.showDesc = !!x.description; s.attach = [...((x.attachments as unknown as string[]) ?? [])];
@@ -213,6 +214,7 @@ function fillFrom(d: EditorData, s: SI, v: SaleDoc, how: 'edit' | 'copy' | 'chal
 }
 
 function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
+  const bp = useBankPick();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { showToast } = useShell();
@@ -302,7 +304,7 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
       cashName: s.cashName, cashPhone: s.cashPhone, billName: s.billName, placeOfSupply: s.pos, pricesInclTax: s.incl, roundOff: s.roundOff,
       billDiscPct: s.bdiscP || null, billDiscAmt: s.bdiscP ? null : s.bdisc ? String(s.bdisc) : null, transport: String(s.chTr || 0), labour: String(s.chLab || 0), bankCharge: String(s.chBank || 0),
       lines: lines.map((l) => ({ itemId: l.item!.id, name: l.name, hsn: l.hsn, qty: String(l.qty), unit: l.unit, price: String(l.price), discPct: String(l.disc || 0), gstRate: String(l.gst || 0), basePrice: l.bp !== undefined ? String(l.bp) : null, commOverride: l.cmO ?? null })),
-      payments: quote ? [] : s.pays.filter((p) => Number(p.amt) > 0).map((p) => ({ mode: p.mode as SaleInput['payments'][number]['mode'], amount: String(p.amt), ref: p.ref })),
+      payments: quote ? [] : s.pays.filter((p) => Number(p.amt) > 0).map((p) => ({ mode: p.mode as SaleInput['payments'][number]['mode'], amount: String(p.amt), ref: p.ref, accountId: bankFor(bp, p.mode, p.acct) })),
       notes: s.notes,
       extra: { challanNo: s.challan, poNo: s.poNo, poDate: s.poDate, ewb: s.ewb, transport: s.transport, vehicle: s.vehicle, deliveryDate: s.delivDate, description: s.desc, attachments: s.attach, quoteRefs: s.qrefs.map((q) => ({ no: q.no, date: q.date, cust: q.cust, brand: q.brand })), validTill: quote ? s.valid : '', commByCategory: s.crOv ?? {} },
       referrerId: s.ref || null, fromQuotationIds: s.qrefs.flatMap((q) => (q.id ? [q.id] : [])), fromChallanId: s.fromChallanId, confirmOverLimit: s.warnOk,
@@ -437,12 +439,13 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
         <div className="dgpay" id="siPayC" hidden={quote} key={`py${rk}`}>
           <div className="dgpyh"><b>Payment received</b><label className="cb2"><input type="checkbox" id="siPFull" checked={t.total > 0 && Math.abs(bal) < 0.005} onChange={(e) => { const on = e.target.checked; up2((x) => { x.recvTouched = true; const others = x.pays.slice(1).reduce((a, q) => a + (Number(q.amt) || 0), 0); x.pays[0]!.amt = on ? Math.max(0, r2(t.total - others)) : 0; if (!on) x.pays.forEach((q) => (q.amt = 0)); }); full(); }} /> Fully received</label></div>
           <div className="dgpyr dgpyl"><span>Payment type</span><span>Amount</span><span>Reference</span><span></span></div>
-          {s.pays.map((q, i) => (
-            <div className="dgpyr" data-pay={i} key={i}><select className="fi" data-pk="mode" aria-label={`Payment type ${i + 1}`} defaultValue={q.mode} onChange={(e) => { up2((x) => { x.pays[i]!.mode = e.target.value; if (e.target.value === 'Cash') x.pays[i]!.ref = ''; }); full(); }}>{SI_MODES.map((m) => <option key={m}>{m}</option>)}</select>
+          {s.pays.map((q, i) => (<Fragment key={i}>
+            <div className="dgpyr" data-pay={i}><select className="fi" data-pk="mode" aria-label={`Payment type ${i + 1}`} defaultValue={q.mode} onChange={(e) => { up2((x) => { x.pays[i]!.mode = e.target.value; if (e.target.value === 'Cash') x.pays[i]!.ref = ''; }); full(); }}>{SI_MODES.map((m) => <option key={m}>{m}</option>)}</select>
               <span className="pre3"><i>₹</i><input className="fi n" data-pk="amt" defaultValue={Number(q.amt) ? String(q.amt) : ''} placeholder="0" inputMode="decimal" aria-label={`Amount ${i + 1}`} onInput={(e) => { const v = (e.target as HTMLInputElement).value.replace(/[^\d.]/g, ''); up2((x) => { x.pays[i]!.amt = v; x.recvTouched = true; }); }} /></span>
               <input className="fi" data-pk="ref" defaultValue={q.ref} placeholder={q.mode === 'Cash' ? '—' : q.mode === 'Cheque' ? 'Cheque no.' : 'Ref / UTR no.'} autoComplete="off" aria-label={`Reference ${i + 1}`} disabled={q.mode === 'Cash'} onInput={(e) => up((x) => { x.pays[i]!.ref = (e.target as HTMLInputElement).value; })} />
               <button type="button" className="ix" data-payrm={i} aria-label={`Remove payment ${i + 1}`} disabled={s.pays.length === 1} onClick={() => { up2((x) => { x.pays.splice(i, 1); x.recvTouched = true; }); full(); }}><Icon name="x" /></button></div>
-          ))}
+            {bp.show && isBankMode(q.mode) ? <div className="dgpyr" data-payacct={i}><select className="fi" data-pk="acct" aria-label={`Received in ${i + 1}`} style={{ gridColumn: '1 / 3' }} value={bankOf(bp, q.acct)} onChange={(e) => up2((x) => { x.pays[i]!.acct = e.target.value; })}>{bp.banks.map((a) => <option value={a.id} key={a.id}>Received in {a.name}</option>)}</select></div> : null}
+          </Fragment>))}
           <button type="button" className="btn sm dgpyadd" data-payadd="si" onClick={() => { up2((x) => { const used = x.pays.map((q) => q.mode); const m = SI_MODES.find((y) => !used.includes(y)) ?? SI_MODES[0]!; const left = Math.max(0, r2(t.total - paySum(x))); x.pays.push({ mode: m, amt: left || '', ref: '' }); x.recvTouched = true; }); full(); setTimeout(() => { const ins = [...document.querySelectorAll<HTMLInputElement>('#siPayC [data-pk="amt"]')].pop(); ins?.focus(); ins?.select(); }, 0); }}><Icon name="plus" />Add payment type</button>
           <div className="dgpys"><div><span>Received</span><b id="siPRecv">₹{inr2f(rec)}</b></div><div><span>Balance due</span><b id="siPBal" className={xp ? 'warn' : bal > 0 ? 'neg' : bal < 0 ? 'warn' : 'pos'}>{xp ? `${inr2f(xp)} extra` : bal < 0 ? `₹${inr2f(-bal)} extra` : '₹' + inr2f(bal)}</b></div></div>
           {xp ? <div id="siPXtra" className="xpnote"><Icon name="dn" /><span>{!p ? <>Walk-in sale: return <b>₹{inr2f(xp)}</b> change to the customer. Only the invoice total is recorded as received.</> : (() => { const pd = Math.max(0, pre ?? 0), set2 = r2(Math.min(xp, pd)), adv = r2(xp - set2); return <>Extra <b>₹{inr2f(xp)}</b> from {p.name}: {set2 > 0 ? <><b>₹{inr2f(set2)}</b> clears previous dues (oldest bill first)</> : null}{set2 > 0 && adv > 0 ? ' and ' : ''}{adv > 0 ? <><b>₹{inr2f(adv)}</b> is saved as advance payment</> : null}.</>; })()}</span></div> : null}

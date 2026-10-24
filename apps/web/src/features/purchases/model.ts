@@ -21,14 +21,14 @@ export interface PurchaseDoc {
   locked: string; settledElsewhere: string;
   lines: PurchaseLine[];
   /** `atBill`: paid with the bill itself (edited with the bill) */
-  settlements: { kind: 'payment' | 'debit_note'; number: string; date: string; mode: string; amount: string; ref: string; atBill: boolean }[];
+  settlements: { kind: 'payment' | 'debit_note'; number: string; date: string; mode: string; amount: string; ref: string; accountId: string | null; atBill: boolean }[];
 }
 export interface PaymentMade {
   id: string; number: string; date: string; party: { id: string; name: string } | null; partyName: string; mode: string; ref: string; amount: string; cancelled: boolean;
   bills: { number: string; amount: string }[]; unused: string; legacy: boolean; atBill: boolean;
 }
 /** A payment made for its edit window. */
-export interface PaymentMadeDoc { id: string; number: string; date: string; partyId: string | null; amount: string; mode: string; ref: string; notes: string; cancelled: boolean; allocations: { to: string; amount: string }[]; locked: string }
+export interface PaymentMadeDoc { id: string; number: string; date: string; partyId: string | null; amount: string; mode: string; accountId: string | null; ref: string; notes: string; cancelled: boolean; allocations: { to: string; amount: string }[]; locked: string }
 export interface UnpaidBill { id: string; number: string; date: string; dueDate: string | null; total: string; balance: string }
 
 export const PE_T: Record<PKind, string> = { bill: 'Purchase bill', order: 'Purchase order', debit_note: 'Debit note' };

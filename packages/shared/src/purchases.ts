@@ -2,6 +2,7 @@
 import { z } from 'zod';
 import { daysBetween } from './dates.js';
 import { money, type Money, type MoneyInput } from './money.js';
+import { payAccountId } from './sales.js';
 
 const trim = z.string().trim();
 const opt = (max = 200) => trim.max(max).optional().default('');
@@ -31,7 +32,7 @@ export const purchaseLineSchema = z.object({
   name: opt(200), hsn: opt(8), unit: opt(20),
   qty: num('Enter the quantity.'), rate: num('Enter the rate.'), discPct: num('Enter the discount.'), gstRate: num('Choose the GST rate.'),
 });
-export const puPayPartSchema = z.object({ mode: z.enum(PU_MODES), amount: num('Enter the amount.'), ref: opt(80) });
+export const puPayPartSchema = z.object({ mode: z.enum(PU_MODES), amount: num('Enter the amount.'), ref: opt(80), accountId: payAccountId });
 
 export const purchaseSchema = z.object({
   kind: z.enum(['bill', 'order', 'debit_note']),
@@ -66,6 +67,7 @@ export const paymentOutSchema = z.object({
   date: isoDate,
   amount: num('Enter the amount paid.'),
   mode: z.enum(PU_MODES),
+  accountId: payAccountId,
   ref: opt(80),
   notes: opt(500),
   /** bills paid: a bill id, or "opening" for the opening balance */

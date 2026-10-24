@@ -9,7 +9,8 @@ import type { RequestContext } from '../../common/context';
 import { day, isoOf } from '../../common/lookups';
 import { booksOf } from '../sales/sales.service';
 import { reverseStock } from '../sales/stock-back';
-import { cancelPayment, cancelPendingCheques } from '../sales/money-in';
+import { cancelPayment, cancelPendingCheques, cashBankFor } from '../sales/money-in';
+import { reconciledIn, reconciledMessage, refuseIfReconciled, repostPayment } from '../../common/editing';
 import { billBalances, settledElsewhere, usedOut } from './dues';
 import { refreshPurchasePrices } from '../stock/stock-value';
 
@@ -21,15 +22,6 @@ type PKind = keyof typeof PURCHASE_KIND;
 type Before = Prisma.PurchaseDocumentGetPayload<{ include: { lines: true; party: { select: { name: true } } } }> & { settled: { amount: Money; numbers: string[] } };
 const fmt = (v: Money) => v.toDecimalPlaces(3).toNumber().toLocaleString('en-IN', { maximumFractionDigits: 3 });
 
-/** Where money paid out comes from: cash from the cash account, cheques wait in "cheques issued" until cleared, the rest from the bank. */
-async function accountOut(tx: Tx, mode: string): Promise<string> {
-  if (mode === 'Cheque') return 'cheques_issued';
-  const accs = await tx.cashBankAccount.findMany({ where: { archivedAt: null }, orderBy: { createdAt: 'asc' } });
-  const cash = accs.find((a) => a.kind === 'cash' && a.isDefault) ?? accs.find((a) => a.kind === 'cash');
-  if (/cash/i.test(mode)) return 'cb:' + cash!.id;
-  const banks = accs.filter((a) => a.kind === 'bank');
-  return 'cb:' + (banks.find((a) => a.isDefault) ?? banks[0] ?? cash!).id;
-}
 
 /** A payment's cheque already cleared or bounced (its own entry stays, so the payment can't change), or null. */
 async function chequeDone(tx: Tx, paymentId: string) {
@@ -220,12 +212,13 @@ export class PurchasesService {
         const parts = payPartsUpTo(input.payments, t.total.minus(before?.settled.amount ?? 0));
         const old = before ? await tx.payment.findMany({ where: { direction: 'out', atSale: true, sourceId: doc.id, cancelledAt: null }, orderBy: [{ createdAt: 'asc' }, { number: 'asc' }] }) : [];
         for (const [i, p] of parts.entries()) {
-          await this.payOutIn(tx, ctx, { partyId: party.id, partyName: party.name, date: input.date, amount: p.amt, mode: p.mode, ref: p.ref, notes: '', alloc: [{ billId: doc.id, amount: p.amt }], atBill: doc.id, prev: old[i] });
+          await this.payOutIn(tx, ctx, { partyId: party.id, partyName: party.name, date: input.date, amount: p.amt, mode: p.mode, accountId: p.accountId, ref: p.ref, notes: '', alloc: [{ billId: doc.id, amount: p.amt }], atBill: doc.id, prev: old[i] });
           paidWith.push({ mode: p.mode, amount: p.amt.toFixed(2), ref: p.ref });
         }
         for (const p of old.slice(parts.length)) {
           const c = await chequeDone(tx, p.id);
           if (c) throw new BadRequestException({ message: `Cheque ${c.chequeNo} paid with ${number} is already ${c.status}. Undo it on the Cheques page first.` });
+          await refuseIfReconciled(tx, p.id);
           await cancelPayment(tx, this.ledger, { id: p.id, userId: ctx.userId, date: todayIst() });
           await this.audit.log(tx, { businessId, userId: ctx.userId, action: 'cancel', entity: 'payment', entityId: p.id, before: p, after: { reason: `Removed when ${number} was edited` }, ip: ctx.ip });
         }
@@ -298,21 +291,26 @@ export class PurchasesService {
       const p = await tx.payment.findFirst({ where: { id, direction: 'out', deletedAt: null }, include: { allocations: true } });
       if (!p) throw new NotFoundException({ message: 'That payment was not found.' });
       return {
-        id: p.id, number: p.number, date: isoOf(p.date), partyId: p.partyId, amount: toDb(p.amount.toString()), mode: p.mode, ref: p.reference, notes: p.notes, cancelled: !!p.cancelledAt,
+        id: p.id, number: p.number, date: isoOf(p.date), partyId: p.partyId, amount: toDb(p.amount.toString()), mode: p.mode, accountId: p.accountId, ref: p.reference, notes: p.notes, cancelled: !!p.cancelledAt,
         allocations: p.allocations.flatMap((a) => (a.purchaseDocumentId ? [{ to: a.purchaseDocumentId, amount: toDb(a.amount.toString()) }] : [])),
         locked: p.cancelledAt ? `${p.number} is cancelled. It can’t be changed.` : await this.payOutLock(tx, p),
       };
     });
   }
 
-  /** Why a payment made can't be edited here, or '' when it can: money paid with a bill belongs to that bill, a cleared or bounced cheque has its own entry. */
+  /**
+   * Why a payment made can't be edited here, or '' when it can: money paid with a bill belongs to that bill, a cleared or
+   * bounced cheque has its own entry, and an entry ticked in Reconciliation must stay as it is.
+   */
   private async payOutLock(tx: Tx, p: { id: string; atSale: boolean; sourceId: string | null }) {
     if (p.atSale) {
       const b = p.sourceId ? await tx.purchaseDocument.findFirst({ where: { id: p.sourceId }, select: { number: true } }) : null;
       return `This payment was made with ${b?.number ?? 'a purchase bill'}. Edit the bill instead.`;
     }
     const c = await chequeDone(tx, p.id);
-    return c ? `Cheque ${c.chequeNo} on this payment is already ${c.status}. Undo it on the Cheques page first.` : '';
+    if (c) return `Cheque ${c.chequeNo} on this payment is already ${c.status}. Undo it on the Cheques page first.`;
+    const bank = await reconciledIn(tx, 'payment', p.id);
+    return bank ? reconciledMessage(bank) : '';
   }
 
   /** A new payment made, or an edited one (`prev`). */
@@ -331,7 +329,7 @@ export class PurchasesService {
       .map((a) => { const b = bal.get(a.to) ?? money(0); const v = money(a.amount); return { billId: a.to, amount: v.lt(b) ? v : b }; })
       .filter((a) => a.amount.gt(0));
     if (alloc.reduce((s, a) => s.plus(a.amount), money(0)).gt(amt.plus(0.009))) throw new BadRequestException({ message: 'The bill amounts add up to more than the payment.' });
-    return this.payOutIn(tx, ctx, { partyId: party.id, partyName: party.name, date: input.date, amount: amt, mode: input.mode, ref: input.ref.trim(), notes: input.notes, alloc, atBill: null, prev: prev ?? undefined });
+    return this.payOutIn(tx, ctx, { partyId: party.id, partyName: party.name, date: input.date, amount: amt, mode: input.mode, accountId: input.accountId, ref: input.ref.trim(), notes: input.notes, alloc, atBill: null, prev: prev ?? undefined });
   }
 
   /**
@@ -340,7 +338,7 @@ export class PurchasesService {
    * replaced and a cheque still waiting is replaced. A cleared or bounced cheque stays, so such a
    * payment can only be written again unchanged.
    */
-  async payOutIn(tx: Tx, ctx: RequestContext, o: { partyId: string; partyName: string; date: string; amount: Money; mode: string; ref: string; notes: string; alloc: { billId: string; amount: Money }[]; atBill: string | null; legacyNo?: string; prev?: Payment }) {
+  async payOutIn(tx: Tx, ctx: RequestContext, o: { partyId: string; partyName: string; date: string; amount: Money; mode: string; accountId?: string | null; ref: string; notes: string; alloc: { billId: string; amount: Money }[]; atBill: string | null; legacyNo?: string; prev?: Payment }) {
     const businessId = ctx.businessId!;
     const prev = o.prev ?? null;
     const number = prev?.number ?? o.legacyNo ?? (await this.numbers.next(tx, businessId, ctx.userId, 'payment', o.date));
@@ -358,18 +356,19 @@ export class PurchasesService {
       was = { ...prev, alloc: old.map((a) => ({ billId: a.purchaseDocumentId, amount: toDb(a.amount.toString()) })) };
       await tx.paymentAllocation.deleteMany({ where: { paymentId: prev.id } });
     }
+    const accountId = await cashBankFor(tx, o.mode, o.accountId);
     const data = {
-      date: day(o.date), partyId: o.partyId, amount: o.amount.toFixed(2), mode: o.mode, reference: o.ref, notes: o.notes,
-      splits: [{ mode: o.mode, amount: o.amount.toFixed(2), ref: o.ref }] as Prisma.InputJsonValue,
+      date: day(o.date), partyId: o.partyId, amount: o.amount.toFixed(2), mode: o.mode, accountId, reference: o.ref, notes: o.notes,
+      splits: [{ mode: o.mode, amount: o.amount.toFixed(2), ref: o.ref, accountId }] as Prisma.InputJsonValue,
     };
     const p = prev
       ? await tx.payment.update({ where: { id: prev.id }, data })
       : await tx.payment.create({ data: { ...data, businessId, createdBy: ctx.userId, direction: 'out', number, atSale: !!o.atBill, sourceId: o.atBill, ...(o.legacyNo && { legacyId: o.legacyNo }) } });
     if (o.alloc.length) await tx.paymentAllocation.createMany({ data: o.alloc.map((a) => ({ businessId, kind: 'document', partyId: o.partyId, paymentId: p.id, purchaseDocumentId: a.billId, amount: a.amount.toFixed(2) })) });
     if (o.mode === 'Cheque' && !keepCheque) await tx.cheque.create({ data: { businessId, createdBy: ctx.userId, direction: 'issued', chequeNo: o.ref, chequeDate: day(o.date), amount: o.amount.toFixed(2), partyId: o.partyId, paymentId: p.id } });
-    await this.ledger.repost(tx, { businessId, userId: ctx.userId }, {
+    await repostPayment(tx, this.ledger, { businessId, userId: ctx.userId }, {
       date: o.date, sourceType: 'payment', sourceId: p.id, number, narration: `Paid ${o.partyName}`,
-      lines: [{ account: 'payable', partyId: o.partyId, debit: o.amount }, { account: await accountOut(tx, o.mode), credit: o.amount, memo: `${o.mode}${o.ref ? ' · ' + o.ref : ''}` }],
+      lines: [{ account: 'payable', partyId: o.partyId, debit: o.amount }, { account: accountId ? 'cb:' + accountId : 'cheques_issued', credit: o.amount, memo: `${o.mode}${o.ref ? ' · ' + o.ref : ''}` }],
     });
     const after = { ...p, alloc: o.alloc.map((a) => ({ billId: a.billId, amount: a.amount.toFixed(2) })) };
     await this.audit.log(tx, { businessId, userId: ctx.userId, action: prev ? 'update' : 'create', entity: 'payment', entityId: p.id, ...(prev && { before: was }), after, ip: ctx.ip });
@@ -425,7 +424,7 @@ export class PurchasesService {
           .filter((a) => (a.payment ? !a.payment.cancelledAt : !notes.get(a.noteId!)?.cancelledAt))
           .map((a) => ({
             kind: a.payment ? 'payment' : 'debit_note', number: a.payment?.number ?? notes.get(a.noteId!)?.number ?? '', date: isoOf(a.payment?.date ?? notes.get(a.noteId!)?.date ?? null), mode: a.payment?.mode ?? '', amount: d2(a.amount),
-            ref: a.payment?.reference ?? '', atBill: !!a.payment && a.payment.atSale && a.payment.sourceId === d.id,
+            ref: a.payment?.reference ?? '', accountId: a.payment?.accountId ?? null, atBill: !!a.payment && a.payment.atSale && a.payment.sourceId === d.id,
           })),
       };
     });

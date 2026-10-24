@@ -1,5 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
+import { money, type Money } from '@billing/shared';
 import type { Tx } from './db.service';
+import type { LedgerService, PostInput } from './ledger.service';
 
 /**
  * Checks shared by the edits of expenses, cash / bank entries, stock adjustments and transfers
@@ -60,3 +62,40 @@ export async function reconciledMap(tx: Tx, sourceType: string, sourceIds: strin
 
 /** The plain message for an entry already ticked in Reconciliation. */
 export const reconciledMessage = (bank: string) => `This entry is ticked in Reconciliation for ${bank}. Untick it there first, then change it.`;
+
+/**
+ * Writes an edited payment's entry in the books again — unless an entry of it is ticked in
+ * Reconciliation: then an edit that leaves the entry as it was (same date, accounts and amounts)
+ * keeps it, so the tick stays, and an edit that changes it is refused. Used where a payment is
+ * written again with its invoice or bill, so editing the items still works.
+ */
+export async function repostPayment(tx: Tx, ledger: LedgerService, ctx: { businessId: string; userId: string }, input: PostInput) {
+  const bank = await reconciledIn(tx, 'payment', input.sourceId);
+  if (!bank) return ledger.repost(tx, ctx, input);
+  if (!(await samePosting(tx, input))) throw new BadRequestException({ message: reconciledMessage(bank) });
+  return null;
+}
+
+/** A payment's ticked entry is cancelled too (invoice or bill edited to take less): refused while it is ticked. */
+export async function refuseIfReconciled(tx: Tx, paymentId: string) {
+  const bank = await reconciledIn(tx, 'payment', paymentId);
+  if (bank) throw new BadRequestException({ message: reconciledMessage(bank) });
+}
+
+/** One line as the books keep it: account, party and the net amount on one side (as LedgerService.post writes it). */
+const lineKey = (key: string, partyId: string | null | undefined, dr: Money, cr: Money) => {
+  const net = dr.minus(cr);
+  return net.isZero() ? '' : `${key}|${partyId ?? ''}|${net.isNegative() ? 'cr' : 'dr'}|${net.abs().toFixed(2)}`;
+};
+
+/** Whether the live entry of the source already is exactly this one (date and lines; memos don't count). */
+async function samePosting(tx: Tx, input: PostInput) {
+  const e = await tx.journalEntry.findFirst({
+    where: { sourceType: input.sourceType, sourceId: input.sourceId, cancelledAt: null },
+    include: { lines: { include: { account: { select: { key: true } } } } },
+  });
+  if (!e || e.date.toISOString().slice(0, 10) !== input.date) return false;
+  const was = e.lines.map((l) => lineKey(l.account.key, l.partyId, money(l.debit.toString()), money(l.credit.toString()))).filter(Boolean).sort();
+  const now = input.lines.map((l) => lineKey(l.account, l.partyId, money(l.debit ?? 0), money(l.credit ?? 0))).filter(Boolean).sort();
+  return JSON.stringify(was) === JSON.stringify(now);
+}

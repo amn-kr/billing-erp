@@ -15,6 +15,7 @@ import { toastSaveFailed, toastSaved } from '../shell/saved';
 import { useShell } from '../shell/store';
 import { editAsk, withPasscode } from '../settings/passcode';
 import type { Party } from '../parties/PartiesPage';
+import { BankSelect, bankFor, useBankPick } from '../banking/BankPick';
 import { PU_KEYS, statusOfBill, type PaymentMadeDoc, type UnpaidBill } from './model';
 
 /** `party` / `bill` (a bill id) pre-fill the window from a bill's Pay button; `edit` edits a saved payment (same number, passcode when it is on). */
@@ -35,6 +36,8 @@ export function PayDialog({ open, onClose }: { open: PayOpen | null; onClose: ()
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(today());
   const [mode, setMode] = useState(lastMode);
+  const [acct, setAcct] = useState('');
+  const bp = useBankPick();
   const [refNo, setRefNo] = useState('');
   const [alloc, setAlloc] = useState<Record<string, number>>({});
   const [err, setErr] = useState('');
@@ -58,12 +61,12 @@ export function PayDialog({ open, onClose }: { open: PayOpen | null; onClose: ()
   const want = useRef<string | null>(null);
   useEffect(() => {
     if (!open) return;
-    setParty(open.party ?? ''); setAmount(''); setDate(today()); setMode(lastMode); setRefNo(''); setAlloc({}); setErr(''); setDoc(null);
+    setParty(open.party ?? ''); setAmount(''); setDate(today()); setMode(lastMode); setAcct(''); setRefNo(''); setAlloc({}); setErr(''); setDoc(null);
     want.current = open.bill ?? null;
     if (open.edit) {
       void qc.fetchQuery({ queryKey: ['payment-made', open.edit], queryFn: () => api<PaymentMadeDoc>(`/payments-made/${open.edit}`), staleTime: 0 }).then((d) => {
         if (d.locked) { showToast(d.locked); onClose(); return; }
-        setDoc(d); setParty(d.partyId ?? ''); setAmount(String(Number(d.amount))); setDate(d.date); setMode(d.mode); setRefNo(d.ref);
+        setDoc(d); setParty(d.partyId ?? ''); setAmount(String(Number(d.amount))); setDate(d.date); setMode(d.mode); setAcct(d.accountId ?? ''); setRefNo(d.ref);
         setAlloc(Object.fromEntries(d.allocations.map((a) => [a.to, Number(a.amount)])));
         setTimeout(() => (document.getElementById('pyAmt') as HTMLInputElement | null)?.select(), 30);
       }, (e) => { showToast(e instanceof ApiError ? e.message : 'Could not open the payment.'); onClose(); });
@@ -96,7 +99,7 @@ export function PayDialog({ open, onClose }: { open: PayOpen | null; onClose: ()
     if (mode === 'Cheque' && !refNo.trim()) { fail('Enter the cheque number.'); return document.getElementById('pyRef')?.focus(); }
     setBusy(true);
     try {
-      const body = { partyId: party, date, amount: String(amt), mode, ref: refNo.trim(), notes: doc?.notes ?? '', allocations: A };
+      const body = { partyId: party, date, amount: String(amt), mode, accountId: bankFor(bp, mode, acct), ref: refNo.trim(), notes: doc?.notes ?? '', allocations: A };
       if (doc) { if (!(await withPasscode(qc, editAsk(doc.number), (h) => api(`/payments-made/${doc.id}`, { method: 'PUT', body, headers: h })))) return; }
       else await api('/payments-made', { method: 'POST', body });
       onClose();
@@ -113,6 +116,7 @@ export function PayDialog({ open, onClose }: { open: PayOpen | null; onClose: ()
           <option value="">Choose supplier</option>{S.map((p) => <option value={p.id} key={p.id}>{p.name} · {inr(Math.abs(Math.min(0, Number(p.balance))).toFixed(2))} to pay</option>)}</select></label>
         <div className="two"><label className="fl" htmlFor="pyAmt">Amount paid<input className="fi" id="pyAmt" inputMode="decimal" placeholder="0" value={amount} onChange={(e) => { const v = e.target.value.replace(/[^\d.]/g, ''); setAmount(v); setAlloc(auto(Number(v) || 0, B)); setErr(''); }} /></label><label className="fl" htmlFor="pyDate">Date<input className="fi" type="date" id="pyDate" value={date} onChange={(e) => setDate(e.target.value)} /></label></div>
         <div className="two"><label className="fl" htmlFor="pyMode">Mode<select className="fi" id="pyMode" value={mode} onChange={(e) => { setMode(e.target.value); lastMode = e.target.value; }}>{PU_MODES.map((m) => <option key={m}>{m}</option>)}</select></label><label className="fl" htmlFor="pyRef">Reference<input className="fi" id="pyRef" placeholder="UTR, cheque no." autoComplete="off" value={refNo} onChange={(e) => setRefNo(e.target.value)} /></label></div>
+        <BankSelect bp={bp} mode={mode} id="pyAcct" label="Paid from" value={acct} onChange={setAcct} />
         <div className="pyb"><b>Settle against bills</b><small className="mu">Oldest bills are filled first. Change the amounts if needed.</small>
           <div id="pyBills">{!party ? <p className="mu" style={{ margin: 0, fontSize: 13 }}>Choose a supplier to see their unpaid bills.</p> : !bills.data ? null : B.length ? (
             <table className="ptt2 pyt"><thead><tr><th>Bill</th><th>Date</th><th className="n">Balance</th><th className="n">Pay</th></tr></thead><tbody>{B.map((b) => {
