@@ -1,33 +1,40 @@
-import { money, type Money, type PayPart } from '@billing/shared';
+import { isBankMode, money, type Money, type PayPart } from '@billing/shared';
 import type { Tx } from '../../common/db.service';
 import type { LedgerService, PostLine } from '../../common/ledger.service';
 import { day } from '../../common/lookups';
 
 /**
- * Where money of each mode lands (prototype modeAcct): cash in the cash account,
- * cheques wait in "cheques in hand" until cleared, everything else in the default
- * bank account — or cash when the shop has no bank account yet.
+ * The cash or bank account money of each mode goes into or comes out of (prototype modeAcct): cash
+ * in the cash account; UPI, bank transfer and card in the bank account picked — the default bank
+ * account when none is picked (or the one picked is gone), or cash when the shop has no bank
+ * account yet. A cheque has none until it is cleared (null).
  */
-export async function accountFor(tx: Tx, mode: string): Promise<string> {
-  if (mode === 'Cheque') return 'cheques_in_hand';
+export async function cashBankFor(tx: Tx, mode: string, accountId?: string | null): Promise<string | null> {
+  if (mode === 'Cheque') return null;
   const accs = await tx.cashBankAccount.findMany({ where: { archivedAt: null }, orderBy: { createdAt: 'asc' } });
   const cash = accs.find((a) => a.kind === 'cash' && a.isDefault) ?? accs.find((a) => a.kind === 'cash');
-  if (/cash/i.test(mode)) return 'cb:' + cash!.id;
+  if (/cash/i.test(mode)) return cash!.id;
   const banks = accs.filter((a) => a.kind === 'bank');
-  const bank = banks.find((a) => a.isDefault) ?? banks[0] ?? cash!;
-  return 'cb:' + bank.id;
+  const picked = accountId && isBankMode(mode) ? banks.find((a) => a.id === accountId) : undefined;
+  return (picked ?? banks.find((a) => a.isDefault) ?? banks[0] ?? cash!).id;
+}
+
+/** Where money received lands in the books: its cash / bank account, or "cheques in hand" until the cheque is cleared. */
+export async function accountFor(tx: Tx, mode: string, accountId?: string | null): Promise<string> {
+  const id = await cashBankFor(tx, mode, accountId);
+  return id ? 'cb:' + id : 'cheques_in_hand';
 }
 
 /** The debit side of money received, one line per mode; cheques are also put in the cheque register. */
 export async function moneyInLines(
   tx: Tx,
   ctx: { businessId: string; userId: string },
-  o: { splits: { mode: string; amount: Money; ref: string }[]; paymentId: string; partyId: string | null; date: string; memo: string },
+  o: { splits: { mode: string; amount: Money; ref: string; accountId?: string | null }[]; paymentId: string; partyId: string | null; date: string; memo: string },
 ): Promise<PostLine[]> {
   const lines: PostLine[] = [];
   for (const s of o.splits) {
     if (!s.amount.gt(0)) continue;
-    lines.push({ account: await accountFor(tx, s.mode), debit: s.amount, memo: `${s.mode}${s.ref ? ' · ' + s.ref : ''} · ${o.memo}` });
+    lines.push({ account: await accountFor(tx, s.mode, s.accountId), debit: s.amount, memo: `${s.mode}${s.ref ? ' · ' + s.ref : ''} · ${o.memo}` });
     if (s.mode === 'Cheque') {
       await tx.cheque.create({
         data: { businessId: ctx.businessId, createdBy: ctx.userId, direction: 'received', chequeNo: s.ref, chequeDate: day(o.date), amount: s.amount.toFixed(2), partyId: o.partyId, paymentId: o.paymentId },

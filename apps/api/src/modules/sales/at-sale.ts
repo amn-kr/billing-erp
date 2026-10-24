@@ -13,9 +13,10 @@ import type { LedgerService } from '../../common/ledger.service';
 import type { NumberingService } from '../../common/numbering.service';
 import { day } from '../../common/lookups';
 import { autoAllocate, openDues } from './dues';
-import { cancelPendingCheques, moneyInLines } from './money-in';
+import { cashBankFor, cancelPendingCheques, moneyInLines } from './money-in';
+import { refuseIfReconciled, repostPayment } from '../../common/editing';
 
-export interface Part { mode: string; amount: Money; ref: string }
+export interface Part { mode: string; amount: Money; ref: string; accountId?: string | null }
 export interface AtSaleDeps { businessId: string; userId: string; ledger: LedgerService; numbers: NumberingService }
 export interface AtSaleInput {
   docId: string; docNumber: string; date: string; partyId: string | null; total: Money; parts: Part[];
@@ -46,25 +47,31 @@ export async function writeAtSale(tx: Tx, d: AtSaleDeps, o: AtSaleInput): Promis
     await cancelPendingCheques(tx, p.id, o.date, `Replaced when ${o.docNumber} was edited`);
     await tx.paymentAllocation.deleteMany({ where: { paymentId: p.id } });
   }
-  const paid = o.parts.reduce((a, p) => a.plus(p.amount), money(0));
+  // each part's cash / bank account, worked out once (kept with the part, and where the books put it)
+  const all: Part[] = [];
+  for (const p of o.parts) all.push({ ...p, accountId: await cashBankFor(tx, p.mode, p.accountId) });
+  const paid = all.reduce((a, p) => a.plus(p.amount), money(0));
   const onBill = paid.lt(o.total) ? paid : o.total;
-  const [main, rest] = splitParts(o.parts, onBill);
+  const [main, rest] = splitParts(all, onBill);
   const extra = o.partyId ? paid.minus(onBill) : money(0);
   // like the prototype, both entries show every mode used on the invoice
-  const modes = [...new Set(o.parts.filter((p) => p.amount.gt(0)).map((p) => p.mode))].join(' + ');
+  const modes = [...new Set(all.filter((p) => p.amount.gt(0)).map((p) => p.mode))].join(' + ');
 
   const upsert = async (kind: 'main' | 'xp', amount: Money, parts: Part[], alloc: { to: string; amount: Money }[]) => {
     const prev = old.find((p) => (kind === 'xp') === p.number.startsWith('XP-'));
     if (!amount.gt(0)) {
       if (prev && !prev.cancelledAt) {
+        await refuseIfReconciled(tx, prev.id);
         await tx.payment.update({ where: { id: prev.id }, data: { cancelledAt: new Date(), cancelledBy: d.userId } });
         await d.ledger.cancel(tx, 'payment', prev.id);
       }
       return;
     }
+    // one account for the whole entry when all its parts went to the same one
+    const accs = [...new Set(parts.map((p) => p.accountId ?? null))];
     const data = {
-      date: day(o.date), partyId: o.partyId, amount: amount.toFixed(2), mode: modes, reference: parts.map((p) => p.ref).filter(Boolean).join(', '),
-      splits: parts.map((p) => ({ mode: p.mode, amount: p.amount.toFixed(2), ref: p.ref })) as Prisma.InputJsonValue,
+      date: day(o.date), partyId: o.partyId, amount: amount.toFixed(2), mode: modes, accountId: accs.length === 1 ? accs[0]! : null, reference: parts.map((p) => p.ref).filter(Boolean).join(', '),
+      splits: parts.map((p) => ({ mode: p.mode, amount: p.amount.toFixed(2), ref: p.ref, accountId: p.accountId ?? null })) as Prisma.InputJsonValue,
       notes: kind === 'xp' ? `Extra on ${o.docNumber}` : `Received with ${o.docNumber}`, cancelledAt: null, cancelledBy: null,
     };
     const number = prev?.number ?? (kind === 'xp' ? `XP-${o.docNumber}` : o.receiptNo || (await d.numbers.next(tx, d.businessId, d.userId, 'receipt', o.date)));
@@ -79,7 +86,7 @@ export async function writeAtSale(tx: Tx, d: AtSaleDeps, o: AtSaleInput): Promis
         })),
       });
     const debit = await moneyInLines(tx, who, { splits: parts, paymentId: pay.id, partyId: o.partyId, date: o.date, memo: number });
-    await d.ledger.repost(tx, who, {
+    await repostPayment(tx, d.ledger, who, {
       date: o.date, sourceType: 'payment', sourceId: pay.id, number, narration: data.notes,
       lines: [...debit, { account: 'receivable', partyId: o.partyId, credit: amount }],
     });

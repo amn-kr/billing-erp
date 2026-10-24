@@ -34,6 +34,11 @@ const optNum = z
 
 export const PAY_MODES = ['Cash', 'UPI', 'Bank transfer', 'Cheque', 'Card'] as const;
 export type PayMode = (typeof PAY_MODES)[number];
+/** Payment types that go through a bank: the person picks which bank account (the default bank is chosen for them). */
+export const BANK_MODES: readonly string[] = ['UPI', 'Bank transfer', 'Card'];
+export const isBankMode = (mode: string) => BANK_MODES.includes(mode);
+/** The bank account the money went into or came from (bank modes only; blank = the default bank account). */
+export const payAccountId = z.string().uuid().nullable().optional();
 export const CN_REASONS = ['Damaged goods', 'Wrong item', 'Extra quantity', 'Customer changed mind', 'Rate difference', 'Other'] as const;
 
 /** Commission rule: n = none, p = % of the sale price, f = ₹ per unit. */
@@ -56,7 +61,7 @@ export const saleLineSchema = z.object({
 });
 export type SaleLineInput = z.infer<typeof saleLineSchema>;
 
-export const payPartSchema = z.object({ mode: z.enum(PAY_MODES), amount: num('Enter the amount.'), ref: opt(80) });
+export const payPartSchema = z.object({ mode: z.enum(PAY_MODES), amount: num('Enter the amount.'), ref: opt(80), accountId: payAccountId });
 export type PayPart = z.infer<typeof payPartSchema>;
 
 /** Printed extras kept with the document. */
@@ -120,6 +125,7 @@ export const receiptSchema = z.object({
   date: isoDate,
   amount: num('Enter the amount received.'),
   mode: z.enum(PAY_MODES),
+  accountId: payAccountId,
   ref: opt(80),
   notes: opt(500),
   /** dues settled: an invoice id, or "opening" for the opening balance */
