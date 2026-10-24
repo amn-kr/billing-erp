@@ -319,6 +319,9 @@ function latestAvg(i: ItemDetail) {
   return `${p.isInteger() ? formatInr0(p) : inr2f(p)}/${t && money(t.totalQty).gt(0) ? inr2f(t.avgRate) : '—'}`;
 }
 
+/** the prototype's back arrow (sale and purchase editors) */
+const BACK = '<path d="M15 6l-6 6 6 6"/>';
+
 function ItemHead({ i, mrpOn, onBack, onAdjust }: { i: ItemDetail; mrpOn: boolean; onBack: (g: string) => void; onAdjust: () => void }) {
   const s = n(i.stock ?? '0');
   const l = i.kind === 'service' ? '' : i.level;
@@ -329,11 +332,11 @@ function ItemHead({ i, mrpOn, onBack, onAdjust }: { i: ItemDetail; mrpOn: boolea
     <>
       <div className="pth">
         <div style={{ minWidth: 0 }}>
-          {i.group && <button className="lnk" data-gback={i.group} style={{ fontSize: 12, padding: 0 }} onClick={() => onBack(i.group)}>← {i.group}</button>}
           <div className="ptt">
+            {i.group && <button className="ixs" data-gback={i.group} aria-label={`Back to ${i.group}`} title={`Back to ${i.group}`} onClick={() => onBack(i.group)}><RawIcon d={BACK} /></button>}
             <h2 style={{ textTransform: 'none' }}>{i.group ? vlabel(i) : i.name}</h2>
-            {i.brand && !i.group && <span className="brc">{i.brand}</span>}
             <button className="ixs" data-soon="Edit item" aria-label="Edit item" title="Edit item" onClick={() => soon('Edit item')}><Icon name="edit" /></button>
+            {i.brand && !i.group && <span className="brc">{i.brand}</span>}
           </div>
           <div className="ptmeta">
             {i.code && <span className="mono">{i.code}</span>}
@@ -349,19 +352,20 @@ function ItemHead({ i, mrpOn, onBack, onAdjust }: { i: ItemDetail; mrpOn: boolea
           <button className="btn p sm" data-sellitem={i.id} onClick={() => go(`/sales/new?item=${i.id}`)}><Icon name="plus" />Sell</button>
         </div>
       </div>
-      <div className="itfig">
-        {mrpOn && n(i.mrp) > 0 && <div><small>MRP</small><b>{inr2f(i.mrp)}</b></div>}
-        <div><small>Sale price</small><b className={aboveMrp ? 'neg' : ''}>{inr2f(i.sale)}</b>{aboveMrp && <span className="tagw r">Above MRP</span>}</div>
-        {i.kind !== 'service' && (
-          <>
-            <div><small>Latest / Avg purchase price</small><b>{latestAvg(i)}</b></div>
-            <div><small>Margin</small><b className="pos">{inr2f(m)}{n(i.purchase) > 0 && <>{' '}<em>({Math.round(m.div(i.purchase).times(100).toNumber())}%)</em></>}</b></div>
-            {/* with MRP switched off the prototype strips every red .neg from this header (its MRP patch), so "Out of stock" quantity isn't red */}
-            <div><small>In stock</small><b className={l === 'out' ? (mrpOn ? 'neg' : '') : l === 'low' ? 'lowq' : ''}>{qfmt(s)} {i.unit}</b>{l === 'low' ? <span className="tagw">Below {qfmt(i.minStock)}</span> : l === 'out' ? <span className="tagw r">Out of stock</span> : null}</div>
-            <div><small>Stock value</small><b>{inr2f(i.rateTable?.value ?? '0')}</b></div>
-            {i.rateTable && <RateTable t={i.rateTable} unit={i.unit} />}
-          </>
-        )}
+      <div className="itfig itlay">
+        <div className="itfl">
+          {mrpOn && n(i.mrp) > 0 && <div><small>MRP</small><span><b>{inr2f(i.mrp)}</b></span></div>}
+          <div><small>Sale Price</small><span><b className={aboveMrp ? 'neg' : ''}>{inr2f(i.sale)}</b>{i.kind !== 'service' && n(i.purchase) > 0 && <span className="tagw g" id="itMarginPct" title="Margin on the latest purchase price">{Math.round(m.div(i.purchase).times(100).toNumber())}%</span>}{aboveMrp && <span className="tagw r">Above MRP</span>}</span></div>
+          {i.kind !== 'service' && (
+            <>
+              <div><small>Purchase Price</small><span><b>{latestAvg(i)}</b><span className="tagw n">Latest/Avg</span></span></div>
+              {/* with MRP switched off the prototype strips every red .neg from this header (its MRP patch), so "Out of stock" quantity isn't red */}
+              <div><small>In Stock</small><span><b className={l === 'out' ? (mrpOn ? 'neg' : '') : l === 'low' ? 'lowq' : ''}>{qfmt(s)} {i.unit}</b>{l === 'low' ? <span className="tagw">Below {qfmt(i.minStock)}</span> : l === 'out' ? <span className="tagw r">Out of stock</span> : null}</span></div>
+              <div><small>Stock Value</small><span><b>{inr2f(i.rateTable?.value ?? '0')}</b></span></div>
+            </>
+          )}
+        </div>
+        {i.kind !== 'service' && i.rateTable && <RateTable t={i.rateTable} unit={i.unit} />}
       </div>
     </>
   );
