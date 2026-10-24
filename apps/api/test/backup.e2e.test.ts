@@ -407,6 +407,41 @@ describe('restore', () => {
     expect(((await http().get('/api/receipts').set(auth(n)).expect(200)).body as { amount: string }[]).map((x) => x.amount)).toEqual(['500.00']);
   });
 
+  it('restored books show the same cash and bank balances, and price-list prices keep their history', async () => {
+    const { o, inv, fan, verma } = await shop();
+    const bank = (await http().post('/api/banking/accounts').set(auth(o)).send({ name: 'HDFC Bank', openingBalance: '50000', openingDate: D }).expect(201)).body as { id: string };
+    await http().post('/api/receipts').set(auth(o)).send({ partyId: verma.id, date: D, amount: '1500', mode: 'Bank transfer', allocations: [{ to: inv.id, amount: '1500' }] }).expect(201);
+    await http().post('/api/receipts').set(auth(o)).send({ partyId: verma.id, date: D, amount: '400', mode: 'Cash', allocations: [{ to: inv.id, amount: '400' }] }).expect(201);
+    const wholesale = ((await http().get('/api/price-lists').set(auth(o)).expect(200)).body as { id: string; name: string }[]).find((l) => l.name === 'Wholesale')!;
+    await http().post('/api/prices/pin').set(auth(o)).send({ pin: '2468' }).expect(204);
+    await http().put(`/api/price-lists/${wholesale.id}/items/${fan.id}`).set(auth(o)).send({ price: 1720, pin: '2468' }).expect(204);
+    const balances = async (s: { token: string }) =>
+      ((await http().get('/api/banking/accounts').set(auth(s)).expect(200)).body as { name: string; balance: string }[]).map((a) => [a.name, a.balance]).sort();
+    const before = await balances(o);
+    expect(before).toContainEqual(['HDFC Bank', '51500.00']);
+    expect(before).toContainEqual(['Cash in hand', '400.00']);
+    const oldFields = await asShop(o.businessId, (tx) => tx.priceHistory.findMany({ where: { field: { startsWith: 'pl:' } }, select: { field: true } }));
+    expect(oldFields).toEqual([{ field: `pl:${wholesale.id}` }]);
+
+    await useDrive(o);
+    await svc.runDue();
+    const r = (await http().post('/api/backup/restore').set(auth(o)).send({ from: 'drive', confirm: true }).expect(200)).body;
+    const sw = (await http().post('/api/businesses/switch').set(auth(o)).send({ businessId: r.businessId }).expect(201)).body;
+    const n = { token: sw.accessToken as string };
+
+    expect(await balances(n)).toEqual(before);
+    // every bank's ledger key names a bank of the restored books, none of the old ones
+    const keys = await asShop(r.businessId, (tx) => tx.ledgerAccount.findMany({ where: { key: { startsWith: 'cb:' } }, select: { key: true } }));
+    const accts = await asShop(r.businessId, (tx) => tx.cashBankAccount.findMany({ select: { id: true } }));
+    expect(keys.map((k) => k.key).sort()).toEqual(accts.map((a) => `cb:${a.id}`).sort());
+    expect(keys.map((k) => k.key)).not.toContain(`cb:${bank.id}`);
+    const lists = (await http().get('/api/price-lists').set(auth(n)).expect(200)).body as { id: string; name: string }[];
+    const newWholesale = lists.find((l) => l.name === 'Wholesale')!;
+    expect(newWholesale.id).not.toBe(wholesale.id);
+    const fields = await asShop(r.businessId, (tx) => tx.priceHistory.findMany({ where: { field: { startsWith: 'pl:' } }, select: { field: true } }));
+    expect(fields).toEqual([{ field: `pl:${newWholesale.id}` }]);
+  });
+
   it('says what is missing before anything was backed up', async () => {
     const o = await owner(app);
     expect((await http().post('/api/backup/test-restore').set(auth(o)).send({ from: 'drive' }).expect(404)).body.message).toBe('Nothing has been backed up to this place yet.');

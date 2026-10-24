@@ -65,11 +65,13 @@ export function replay(tables: TableInfo[], snap: SnapshotBody, snapSeq: bigint,
   return { books, applied, lastAt };
 }
 
+const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+
 /**
  * New ids for restored books: the shop and every row with a uuid `id` get a fresh id, and every
- * value anywhere in the rows that was one of the old ids is replaced (links between rows,
- * ids kept inside JSON settings and the audit log). Ids from outside the books (people, system
- * roles) stay as they are.
+ * old id anywhere in the rows is replaced (links between rows, ids kept inside JSON settings and
+ * the audit log), also inside labels such as a bank's ledger key "cb:<id>" or a price list's
+ * "pl:<id>", and in JSON keys. Ids from outside the books (people, system roles) stay as they are.
  */
 export function remapIds(books: Books, tables: TableInfo[], oldBusinessId: string, newBusinessId: string): Books {
   const map = new Map<string, string>([[oldBusinessId.toLowerCase(), newBusinessId]]);
@@ -77,10 +79,11 @@ export function remapIds(books: Books, tables: TableInfo[], oldBusinessId: strin
     if (t.pk.length !== 1 || t.pk[0] !== 'id' || t.name === 'businesses') continue;
     for (const r of books.get(t.name)?.values() ?? []) if (typeof r.id === 'string') map.set(r.id.toLowerCase(), randomUUID());
   }
+  const text = (s: string) => s.replace(UUID, (id) => map.get(id.toLowerCase()) ?? id);
   const swap = (v: unknown): unknown => {
-    if (typeof v === 'string') return map.get(v.toLowerCase()) ?? v;
+    if (typeof v === 'string') return text(v);
     if (Array.isArray(v)) return v.map(swap);
-    if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, swap(x)]));
+    if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [text(k), swap(x)]));
     return v;
   };
   const out: Books = new Map();
