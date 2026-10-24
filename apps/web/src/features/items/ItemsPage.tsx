@@ -308,7 +308,7 @@ export function ItemsPage() {
 }
 
 /**
- * "Latest / Avg purchase price" (owner, Oct 2026): the automatic purchase price (newest bill), whole
+ * Purchase Price, latest/avg (owner, Oct 2026): the automatic purchase price (newest bill), whole
  * rupees without .00, then the average rate of the stock left as the table shows it, e.g. 70/65.80.
  * No stock left: 70/—. Never came in with a purchase rate: —.
  */

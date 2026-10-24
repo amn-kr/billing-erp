@@ -1,6 +1,6 @@
 /**
  * Profit by purchase-rate lots (owner, Oct 2026), against the real API: the sale editor's "Profit &
- * loss · this bill" pop-up (a row per lot), Party wise Profit & Loss and the item card's "Latest / Avg purchase price".
+ * loss · this bill" pop-up (a row per lot), Party wise Profit & Loss and the item card's latest/avg Purchase Price.
  */
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import { APP, freshShop, newPage, signInAs } from './setup';
@@ -119,13 +119,13 @@ test('Profit & loss on a bill: one row per lot it uses up, oldest first; Party w
   expect(box).toEqual({ scrolls: true, head: true, cols: true, total: true, sum: true, done: true });
 });
 
-test('Item card: "Latest / Avg purchase price", and the figures one size smaller', async ({ browser, request }) => {
+test('Item card: Purchase Price shows latest/avg, and the figures one size smaller', async ({ browser, request }) => {
   const page = await newPage(browser, 1366);
   const who = await freshShop(request);
   await practice(request, who);
   await signInAs(page, who);
   await page.goto(APP + '/items');
-  const fig = (label: string) => page.locator('#itHead .itfig > div', { has: page.locator(`small:text-is("${label}")`) });
+  const fig = (label: string) => page.locator('#itHead .itfl > div', { has: page.locator(`small:text-is("${label}")`) });
   const open = async (name: string) => {
     await page.locator('#itList .ptr', { hasText: name }).click();
     await expect(page.locator('#itHead h2')).toHaveText(name);
@@ -133,17 +133,17 @@ test('Item card: "Latest / Avg purchase price", and the figures one size smaller
 
   // newest bill 25; the stock left averages (50 × 20 + 200 × 30 + 50 × 25) ÷ 300
   await open('Practice fan');
-  await expect(fig('Latest / Avg purchase price').locator('b')).toHaveText('25/27.50');
+  await expect(fig('Purchase Price').locator('b')).toHaveText('25/27.50');
   await expect(page.locator('#itRates td.s b').first()).toHaveText('27.50');
   // no purchase entry at all
   await open('Never bought fan');
-  await expect(fig('Latest / Avg purchase price').locator('b')).toHaveText('—');
+  await expect(fig('Purchase Price').locator('b')).toHaveText('—');
 
   // numbers 15px (prototype 16px), bold, larger than the 11px labels; the rate table keeps its 13px
   await open('Practice fan');
   const style = (sel: string) => page.locator(sel).first().evaluate((e) => [getComputedStyle(e).fontSize, getComputedStyle(e).fontWeight]);
-  for (const label of ['Sale price', 'Latest / Avg purchase price', 'Margin', 'In stock', 'Stock value'])
+  for (const label of ['Sale Price', 'Purchase Price', 'In Stock', 'Stock Value'])
     expect(await fig(label).locator('b').evaluate((e) => [getComputedStyle(e).fontSize, getComputedStyle(e).fontWeight])).toEqual(['15px', '800']);
-  expect(await style('#itHead .itfig > div > small')).toEqual(['11px', '600']);
+  expect(await style('#itHead .itfl > div > small')).toEqual(['11px', '600']);
   expect(await style('#itRates td.s b')).toEqual(['13px', '800']);
 });
