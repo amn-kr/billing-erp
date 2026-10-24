@@ -166,7 +166,15 @@ test('with the passcode off an edit saves straight away; a bill can’t go below
   await page.goto(APP + `/purchases/new?edit=${b.bill2.id}`);
   const qty = page.locator('#peRows tr[data-ln="0"] [data-pf="qty"]');
   await expect(qty).toHaveValue('2');
+  // the editor puts the cursor in the first item name 30 ms after opening (twice in the test build: React's
+  // StrictMode runs the opening step twice); typing before both moves sent the "1" into the item name
+  // instead of the quantity (GitHub, PR #52 run 40086635533 attempt 2), so wait until both are done
+  const item = page.locator('#peRows .pe-item').first();
+  await expect(item).toBeFocused();
+  await page.waitForTimeout(300);
+  await expect(item).toBeFocused();
   await qty.fill('1');
+  await expect(qty).toHaveValue('1');
   await page.click('#peSave');
   // (the ₹ sign shows only when the shop has the currency symbol switched on)
   await expect(page.locator('#peErr')).toHaveText(new RegExp(`^₹?2,000\\.00 is already paid on ${b.bill2.number} \\(${b.pay.number}\\)\\. The bill total can’t be less than that\\. Change those payments or debit notes first\\.$`));

@@ -67,6 +67,9 @@ test('a new category from the expense window comes back chosen; renaming fixes e
   await expect(page.locator('#toast')).toHaveText('Expense saved successfully');
 
   await page.click('#exCats');
+  // the window puts the cursor in "New category" 30 ms after opening; typing before that sent the
+  // new name into that box instead of the row (GitHub, PR #52 run 40086635533)
+  await expect(page.locator('#xcNew')).toBeFocused();
   const row = page.locator('#xcList .xcrow', { has: page.locator('input[value="Staff welfare"]') });
   await expect(row.locator('small')).toHaveText('1 · 1,200');
   await row.locator('input').fill('Staff tea & welfare');
