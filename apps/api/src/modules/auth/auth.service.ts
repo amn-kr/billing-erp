@@ -1,14 +1,14 @@
-import { ConflictException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { hash, verify } from '@node-rs/argon2';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { verify } from '@node-rs/argon2';
 import { randomBytes } from 'node:crypto';
-import type { LoginInput, RegisterInput } from '@billing/shared';
+import type { ChangePasswordInput, LoginInput, RegisterInput } from '@billing/shared';
+import type { RequestContext } from '../../common/context';
 import { config } from '../../config';
 import { DbService } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import { Issued, sha256, TokensService } from './tokens.service';
+import { hashPassword } from './password';
 
-/** argon2id with OWASP-recommended settings. */
-const ARGON = { memoryCost: 19456, timeCost: 2, parallelism: 1 };
 /** Used so a wrong email takes as long as a wrong password. */
 let DUMMY_HASH: Promise<string> | null = null;
 
@@ -22,7 +22,7 @@ export class AuthService {
   ) {}
 
   hashPassword(pw: string): Promise<string> {
-    return hash(pw, ARGON);
+    return hashPassword(pw);
   }
 
   /** The shop a person lands in after signing in: the one they used last, else their first. */
@@ -51,6 +51,9 @@ export class AuthService {
     }
     const ok = await verify(user.passwordHash, input.password).catch(() => false);
     if (!ok) throw new UnauthorizedException({ message: 'Email or password is wrong.' });
+    if (user.mustChangePassword && user.tempPasswordExpiresAt && user.tempPasswordExpiresAt < new Date()) {
+      throw new UnauthorizedException({ message: 'This temporary password has expired. Ask the shop owner for a new one.' });
+    }
     await this.db.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     const bid = await this.defaultBusiness(user.id, user.email);
     if (bid) {
@@ -85,9 +88,28 @@ export class AuthService {
     const r = await this.db.passwordReset.findUnique({ where: { tokenHash: sha256(token) } });
     if (!r || r.usedAt || r.expiresAt < new Date()) throw new UnauthorizedException({ message: 'This reset link has expired. Ask for a new one.' });
     await this.db.$transaction([
-      this.db.user.update({ where: { id: r.userId }, data: { passwordHash: await this.hashPassword(password) } }),
+      this.db.user.update({ where: { id: r.userId }, data: { passwordHash: await this.hashPassword(password), mustChangePassword: false, tempPasswordExpiresAt: null } }),
       this.db.passwordReset.update({ where: { id: r.id }, data: { usedAt: new Date() } }),
       this.db.session.updateMany({ where: { userId: r.userId, revokedAt: null }, data: { revokedAt: new Date() } }),
     ]);
+  }
+
+  /**
+   * "Choose a new password" (after a temporary one from the shop owner). Needs the current password;
+   * the person's other sign-ins end, this one carries on.
+   */
+  async changePassword(ctx: RequestContext, input: ChangePasswordInput): Promise<void> {
+    const user = await this.db.user.findUniqueOrThrow({ where: { id: ctx.userId } });
+    if (!(await verify(user.passwordHash, input.current).catch(() => false))) throw new BadRequestException({ message: 'The current password is wrong.', field: 'current' });
+    if (input.password === input.current) throw new BadRequestException({ message: 'Choose a new password, not the temporary one.', field: 'password' });
+    await this.db.$transaction([
+      this.db.user.update({ where: { id: user.id }, data: { passwordHash: await this.hashPassword(input.password), mustChangePassword: false, tempPasswordExpiresAt: null } }),
+      this.db.session.updateMany({ where: { userId: user.id, revokedAt: null, id: { not: ctx.sessionId } }, data: { revokedAt: new Date() } }),
+    ]);
+    if (ctx.businessId) {
+      await this.db.scoped({ businessId: ctx.businessId, userId: ctx.userId, email: ctx.email }, (tx) =>
+        this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'password_changed', entity: 'user', entityId: ctx.userId, ip: ctx.ip }),
+      );
+    }
   }
 }

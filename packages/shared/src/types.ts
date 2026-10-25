@@ -4,6 +4,8 @@ export interface MeUser {
   id: string;
   name: string;
   email: string;
+  /** signed in with a temporary password from the shop owner: choose a new one before anything else */
+  mustChangePassword: boolean;
 }
 
 export interface MeMembership {
@@ -45,4 +47,24 @@ export interface AuthTokens {
   accessToken: string;
   /** Seconds until the access token expires. */
   expiresIn: number;
+}
+
+/** Settings › General › Team: one person in the shop. */
+export interface TeamMember {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  role: RoleKey;
+  status: string;
+  lastLoginAt: string | null;
+  joinedAt: string;
+  /** also active in another shop: the owner can't reset this account's password */
+  inOtherShops: boolean;
+}
+
+/** Settings › General › Team: what the server says after "Reset password" (shown once, never again). */
+export interface TempPassword {
+  temporaryPassword: string;
+  expiresAt: string;
 }

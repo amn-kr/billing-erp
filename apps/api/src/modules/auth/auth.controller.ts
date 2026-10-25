@@ -1,9 +1,9 @@
 import { Body, Controller, HttpCode, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { loginSchema, registerSchema, type AuthTokens, type LoginInput, type RegisterInput } from '@billing/shared';
+import { changePasswordSchema, loginSchema, registerSchema, type AuthTokens, type ChangePasswordInput, type LoginInput, type RegisterInput } from '@billing/shared';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
-import { Ctx, Public } from '../../common/decorators';
+import { Ctx, Public, WithTempPassword } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
 import type { RequestContext } from '../../common/context';
 import { AuthService } from './auth.service';
@@ -84,6 +84,15 @@ export class AuthController {
   @Post('reset')
   async reset(@Body(new ZodPipe(resetSchema)) body: z.infer<typeof resetSchema>) {
     await this.auth.reset(body.token, body.password);
+  }
+
+  /** "Choose a new password": the current (temporary) password, then a new one. */
+  @WithTempPassword()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @HttpCode(204)
+  @Post('change-password')
+  async changePassword(@Ctx() ctx: RequestContext, @Body(new ZodPipe(changePasswordSchema)) body: ChangePasswordInput) {
+    await this.auth.changePassword(ctx, body);
   }
 
   /** Sign out every other device. */

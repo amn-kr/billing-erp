@@ -1,8 +1,9 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import type { InviteInput, RoleKey } from '@billing/shared';
+import type { InviteInput, RoleKey, TempPassword } from '@billing/shared';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import type { RequestContext } from '../../common/context';
+import { issueTempPassword } from './temp-password';
 
 const INVITE_DAYS = 14;
 
@@ -21,6 +22,20 @@ export class MembersService {
     return tx.role.findFirstOrThrow({ where: { key, businessId: null } });
   }
 
+  /**
+   * How many other shops this person is active in. Row-level security shows a person's own memberships
+   * in every shop, so this one count is read as that person; then the request's own person is put back.
+   * Only ever called for someone already found in the current shop.
+   */
+  private async otherShops(tx: Tx, ctx: RequestContext, userId: string): Promise<number> {
+    await tx.$queryRaw`SELECT set_config('app.user_id', ${userId}, true)`;
+    try {
+      return await tx.membership.count({ where: { userId, status: 'active', businessId: { not: ctx.businessId! } } });
+    } finally {
+      await tx.$queryRaw`SELECT set_config('app.user_id', ${ctx.userId}, true)`;
+    }
+  }
+
   list(ctx: RequestContext) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const members = await tx.membership.findMany({
@@ -33,17 +48,25 @@ export class MembersService {
         include: { role: true },
         orderBy: { createdAt: 'desc' },
       });
+      const others = new Map<string, number>();
+      for (const m of members) if (m.status === 'active') others.set(m.userId, await this.otherShops(tx, ctx, m.userId));
       return {
         members: members.map((m) => ({
           id: m.id, userId: m.userId, name: m.displayName || m.user.name, email: m.user.email, role: m.role.key, status: m.status,
-          lastLoginAt: m.user.lastLoginAt, joinedAt: m.createdAt,
+          lastLoginAt: m.user.lastLoginAt, joinedAt: m.createdAt, inOtherShops: (others.get(m.userId) ?? 0) > 0,
         })),
         invites: invites.map((i) => ({ id: i.id, email: i.email, role: i.role.key, expiresAt: i.expiresAt })),
       };
     });
   }
 
+  /** Invite, Cancel invite, Remove and Reset password: the shop owner only (owner's decision, 25 Oct 2026), not a manager. */
+  private ownerOnly(ctx: RequestContext, what: string) {
+    if (ctx.role !== 'owner') throw new ForbiddenException({ message: `Only the shop owner can ${what}.` });
+  }
+
   invite(ctx: RequestContext, input: InviteInput) {
+    this.ownerOnly(ctx, 'invite people');
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const already = await tx.membership.findFirst({ where: { businessId: ctx.businessId!, status: 'active', user: { email: input.email } } });
       if (already) throw new ConflictException({ message: 'This person is already in your shop.' });
@@ -59,6 +82,7 @@ export class MembersService {
   }
 
   revokeInvite(ctx: RequestContext, id: string) {
+    this.ownerOnly(ctx, 'cancel an invite');
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const inv = await tx.invite.findFirst({ where: { id, businessId: ctx.businessId! } });
       if (!inv || inv.acceptedAt || inv.revokedAt) throw new NotFoundException({ message: 'That invite is no longer open.' });
@@ -103,11 +127,30 @@ export class MembersService {
   }
 
   remove(ctx: RequestContext, membershipId: string) {
+    this.ownerOnly(ctx, 'remove people');
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const m = await this.target(tx, ctx, membershipId);
       await tx.membership.update({ where: { id: m.id }, data: { status: 'removed', removedAt: new Date() } });
       await tx.session.updateMany({ where: { userId: m.userId, businessId: ctx.businessId!, revokedAt: null }, data: { revokedAt: new Date() } });
       await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'remove_member', entity: 'membership', entityId: m.id, before: { role: m.role.key, status: 'active' }, after: { status: 'removed' }, ip: ctx.ip });
+    });
+  }
+
+  /**
+   * Settings › General › Team › Reset password: only the shop owner, only for someone in this shop who
+   * isn't in any other shop (their account is theirs alone to this shop). Returns the temporary
+   * password once; only its hash is kept.
+   */
+  resetPassword(ctx: RequestContext, membershipId: string): Promise<TempPassword> {
+    this.ownerOnly(ctx, 'reset a password');
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      const m = await this.target(tx, ctx, membershipId);
+      if ((await this.otherShops(tx, ctx, m.userId)) > 0) {
+        throw new ForbiddenException({ message: 'This person also uses their account in another shop. They can use “Forgot password?” on the sign-in page instead.' });
+      }
+      const t = await issueTempPassword(tx, m.userId);
+      await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'reset_password', entity: 'membership', entityId: m.id, after: { by: 'owner', expiresAt: t.expiresAt }, ip: ctx.ip });
+      return { temporaryPassword: t.temporaryPassword, expiresAt: t.expiresAt.toISOString() };
     });
   }
 
