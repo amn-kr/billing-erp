@@ -1,6 +1,8 @@
 /**
  * Add party (#ap) — same markup, tabs, checks and wording as the prototype's
- * renderAP / apSave. Saves through POST /api/parties.
+ * renderAP / apSave. Saves through POST /api/parties. Edit party (owner, Oct 2026) is the same window filled
+ * in with the party: PATCH /api/parties/:id, and Delete sits on the left of the footer as in the prototype's
+ * expense window.
  */
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -37,7 +39,17 @@ const blank = (): Form => ({
   billing: '', bLine: '', bCity: '', bPin: '', shipping: '', ob: '', obDate: today(), lim: '', days: '30',
 });
 
-export function AddPartyDialog({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved: (id: string) => void }) {
+/** The party Edit party opens with (GET /parties/:id). */
+export interface EditParty {
+  id: string; name: string; billingName?: string; kind: 'customer' | 'supplier'; group: string; phone: string; email: string; gstin: string; gstType: string; state: string;
+  creditLimit: string | null; creditDays: number; openingBalance: string; openingType: 'receive' | 'pay'; openingDate: string | null;
+  billing: { line: string; city: string; pin: string; state: string } | null; shipping: string; contacts: { label: string; value: string }[];
+}
+/** 1000.00 → 1000, nothing for 0 */
+const shown = (v: string | null | undefined) => (v && Number(v) ? String(Number(v)) : '');
+
+/** edit: Edit party for this party; onDelete: its Delete button (the Parties page asks and deletes). */
+export function AddPartyDialog({ open, onClose, onSaved, edit, onDelete }: { open: boolean; onClose: () => void; onSaved: (id: string) => void; edit?: EditParty | null; onDelete?: () => void }) {
   const cur = useCur();
   const settings = useSettings().data;
   const gstOn = !!settings?.gstEnabled;
@@ -65,9 +77,22 @@ export function AddPartyDialog({ open, onClose, onSaved }: { open: boolean; onCl
     setF(blank()); setTab('addr'); setDetail(false); setShip(false); setSame(true); setType('receive'); setLimit('none');
     setExtra(APF.map(([, on]) => ({ on, v: '' }))); setErr({}); setNewG(null);
   };
+  /** Edit party: the form filled in with the party (a split address opens as the detailed one). */
+  const fill = (p: EditParty) => {
+    const b = p.billing ?? { line: '', city: '', pin: '', state: '' };
+    const split = !!(b.city || b.pin);
+    setF({
+      ...blank(), name: p.name, billName: p.billingName ?? '', phone: p.phone, group: p.group || 'General', gstin: p.gstin, gtype: p.gstType || GTYPES[0]!, gtypeTouched: !!p.gstType, state: p.state, email: p.email,
+      billing: split ? '' : b.line, bLine: split ? b.line : '', bCity: b.city, bPin: b.pin, shipping: p.shipping, ob: shown(p.openingBalance), obDate: p.openingDate ?? today(),
+      lim: shown(p.creditLimit), days: String(p.creditDays),
+    });
+    setDetail(split); setShip(!!p.shipping); setSame(!p.shipping); setType(p.openingType); setLimit(shown(p.creditLimit) ? 'custom' : 'none');
+    setExtra(APF.map(([label, on]) => { const v = p.contacts.find((c) => c.label === label)?.value ?? ''; return { on: on || !!v, v }; }));
+  };
   useEffect(() => {
     if (!open) return;
     reset();
+    if (edit) fill(edit);
     setTimeout(() => nameRef.current?.focus(), 0);
     const esc = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     document.addEventListener('keydown', esc);
@@ -122,14 +147,22 @@ export function AddPartyDialog({ open, onClose, onSaved }: { open: boolean; onCl
     setBusy(true);
     try {
       const body = {
-        name: f.name.trim(), billingName: billOn ? f.billName.trim() : '', kind: type === 'pay' ? 'supplier' : 'customer', group: aps.groups ? f.group : 'General', phone: ph,
-        email: f.email.trim(), gstin: f.gstin.trim(), gstType: gstOn ? gtype : '', state: gstOn ? f.state : '',
+        // an edit keeps the party's kind unless "To receive / To pay" was changed (imported suppliers can be "to receive")
+        name: f.name.trim(), billingName: billOn ? f.billName.trim() : (edit?.billingName ?? ''), kind: edit && type === edit.openingType ? edit.kind : type === 'pay' ? 'supplier' : 'customer', group: aps.groups ? f.group : (edit?.group || 'General'), phone: ph,
+        // fields switched off in this window keep what the party has
+        email: f.email.trim(), gstin: f.gstin.trim(), gstType: gstOn ? gtype : (edit?.gstType ?? ''), state: gstOn ? f.state : (edit?.state ?? ''),
         billing: detail ? { line: f.bLine, city: f.bCity, pin: f.bPin, state: '' } : { line: f.billing.trim(), city: '', pin: '', state: '' },
         shipping: ship && !same ? f.shipping.trim() : '',
         openingBalance: f.ob.trim() || null, openingType: type, openingDate: f.obDate || today(),
         creditLimit: limit === 'custom' ? f.lim : null, creditDays: Number(f.days) || 0,
         contacts: extra.map((x, i) => ({ label: APF[i]![0], value: x.v.trim(), on: x.on })).filter((x) => x.on && x.value).map(({ label, value }) => ({ label, value })),
       };
+      if (edit) {
+        const p = await api<{ id: string; name: string }>(`/parties/${edit.id}`, { method: 'PATCH', body });
+        await Promise.all(['parties', 'party-tx'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
+        showToast(`${p.name} saved`, 'ok');
+        return onSaved(p.id);
+      }
       const p = await api<{ id: string; name: string }>('/parties', { body });
       await qc.invalidateQueries({ queryKey: ['parties'] });
       const ob = n(f.ob || '0');
@@ -139,7 +172,9 @@ export function AddPartyDialog({ open, onClose, onSaved }: { open: boolean; onCl
         nameRef.current?.focus();
       } else onSaved(p.id);
     } catch (e) {
-      if (e instanceof ApiError && e.status === 409) setErr({ name: e.message });
+      // Edit party: the opening balance can't go below what was already received against it
+      if (e instanceof ApiError && /opening balance/i.test(e.message)) { setErr({ ob: e.message }); setTab('cred'); }
+      else if (e instanceof ApiError && e.status === 409) setErr({ name: e.message });
       else if (e instanceof ApiError) setErr({ name: e.message });
       else showToast('Could not save the party.');
     } finally {
@@ -151,7 +186,7 @@ export function AddPartyDialog({ open, onClose, onSaved }: { open: boolean; onCl
     <div className="ov c" id="ap" hidden={!open} onClick={(e) => { e.stopPropagation(); if (!(e.target as HTMLElement).closest('.apset,#apGear')) setSetOpen(false); }}>
       <div className="mdl apm" role="dialog" aria-modal="true" aria-labelledby="apT">
         <div className="aphd">
-          <h3 id="apT">Add party</h3>
+          <h3 id="apT">{edit ? 'Edit party' : 'Add party'}</h3>
           <div className="rel">
             <button className="ib" type="button" id="apGear" aria-label="Party settings" title="Party settings" onClick={() => setSetOpen(!setOpen)}><RawIcon d={GEAR} /></button>
             <div className="pop apset" id="apSet" hidden={!setOpen}>
@@ -268,7 +303,9 @@ export function AddPartyDialog({ open, onClose, onSaved }: { open: boolean; onCl
           </div>
         </div>
         <div className="apft">
-          <button className="btn" type="button" id="apSaveNew" disabled={busy} onClick={() => save(true)}>Save &amp; new</button>
+          {edit ? (
+            <><button className="btn dz" type="button" id="apDel" disabled={busy} onClick={onDelete}>Delete</button><span style={{ flex: 1 }}></span></>
+          ) : <button className="btn" type="button" id="apSaveNew" disabled={busy} onClick={() => save(true)}>Save &amp; new</button>}
           <button className="btn p" type="button" id="apSave" disabled={busy} onClick={() => save(false)}>Save</button>
         </div>
       </div>

@@ -11,7 +11,9 @@
  *   only the chosen brand's series (Brands & Series plus those typed on its items); one this parent item
  *   already has with that brand is marked "already added": it can be chosen, but a red line under the field
  *   says so (with "Open that item") and Save refuses it. "+ Add series" saves it on the brand at once.
- * Saves through POST /api/items.
+ * Saves through POST /api/items. Edit item (owner, Oct 2026) is the same window filled in with the item:
+ * PATCH /api/items/:id, the Product / Service and Single / Variant switches and the opening stock can't be changed there (stock
+ * changes go through Adjust stock), and Delete sits on the left of the footer as in the prototype's expense window.
  */
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -40,6 +42,22 @@ const vname = (g: string, b: string, s: string) => `${g} · ${b}${s ? ' ' + s : 
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 /** 90.000 → 90, 2.500 → 2.5 */
 const qty = (r: string) => String(Number(r));
+/** Edit item: the Product / Service and Single / Variant switches are locked (the prototype's faded switch; its pointer would still be a hand) */
+const LOCKED = { cursor: 'not-allowed' } as const;
+/** a saved amount or quantity as the form shows it: 120.00 → 120, nothing for 0 */
+const shown = (v: string | null | undefined) => (v && Number(v) ? String(Number(v)) : '');
+
+/** The item Edit item opens with (GET /items/:id), and its opening stock if it has one. */
+export interface EditItem {
+  id: string; kind: 'goods' | 'service'; name: string; code: string; hsn: string; unit: string; secondaryUnit: string; unitRate: string | null;
+  category: string; brand: string; group: string; series: string; gstRate: string; sale: string; mrp: string; wholesale: string; wholesaleMinQty: string;
+  minStock: string; location: string; opening: { qty: string; rate: string; date: string } | null;
+}
+const formOf = (i: EditItem): Partial<Form> => ({
+  name: i.name, group: i.group, hsn: i.hsn, unit: i.unit || 'PCS', sec: i.secondaryUnit, rate: i.secondaryUnit && i.unitRate ? qty(i.unitRate) : '', cat: i.category, code: i.code,
+  brand: i.brand, series: i.series, sale: shown(i.sale), mrp: shown(i.mrp), gst: String(Number(i.gstRate)), whole: shown(i.wholesale), wholeQty: shown(i.wholesaleMinQty),
+  oq: shown(i.opening?.qty), op: shown(i.opening?.rate), od: i.opening?.date ?? '', min: shown(i.minStock), loc: i.location,
+});
 
 type Pop = 'brand' | 'cat' | 'group' | 'unit' | 'series' | null;
 /** Select unit window: base, secondary ('' = None) and the chosen rate ('new' = typed in, else a saved rate). */
@@ -48,8 +66,9 @@ interface UnitWin { base: string; sec: string; pick: string; typed: string; err:
 /**
  * onOpenItem: "Open that item" for a variant that already exists (Items page: its detail screen). Without it
  * (a bill being made) the button reads "Use that item" and hands the existing item to onSaved instead.
+ * edit: Edit item for this item; onDelete: its Delete button (the Items page asks and deletes).
  */
-export function AddItemDialog({ open, onClose, onSaved, onOpenItem }: { open: boolean; onClose: () => void; onSaved: (id: string, svc: boolean, group?: string) => void; onOpenItem?: (id: string) => void }) {
+export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDelete }: { open: boolean; onClose: () => void; onSaved: (id: string, svc: boolean, group?: string) => void; onOpenItem?: (id: string) => void; edit?: EditItem | null; onDelete?: () => void }) {
   const cur = useCur();
   const settings = useSettings().data;
   const qc = useQueryClient();
@@ -81,8 +100,8 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem }: { open: bo
   };
   useEffect(() => {
     if (!open) return;
-    setSvc(false); setVary(false);
-    reset();
+    setSvc(edit?.kind === 'service'); setVary(!!edit?.group);
+    reset(edit ? formOf(edit) : undefined);
     setTimeout(() => nameRef.current?.focus(), 0);
     const esc = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
@@ -111,7 +130,7 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem }: { open: bo
   });
   const seriesList = brandId ? (seriesQ.data ?? []) : [];
   /** the chosen series is already a variant of this parent item with this brand */
-  const dup = vary && f.series ? seriesList.find((x) => x.taken && same(x.name, f.series)) : undefined;
+  const dup = vary && f.series ? seriesList.find((x) => x.taken && x.itemId !== edit?.id && same(x.name, f.series)) : undefined;
   const dupText = dup ? `${f.group} ${f.brand} ${dup.name} is already added.` : '';
   const groups = [...new Set([...(cat.data?.groups.map((g) => g.name) ?? []), ...extraGroups])].sort((a, b) => a.localeCompare(b));
   const gstList = (settings?.taxes ?? []).filter((t) => t.kind === 'GST');
@@ -137,7 +156,8 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem }: { open: bo
   async function save(again: boolean) {
     const er: Record<string, string> = {};
     const series = f.series.trim(), code = f.code.trim();
-    const name = vary ? vname(f.group, f.brand, series) : f.name.trim();
+    // an edited variant keeps its own name until its parent, brand or series changes (imported names differ)
+    const name = vary ? (edit && f.group === edit.group && f.brand === edit.brand && series === edit.series ? edit.name : vname(f.group, f.brand, series)) : f.name.trim();
     if (vary) {
       if (!f.group) er.name = 'Choose the parent item.';
       if (!f.brand) er.brand = 'Choose a brand.';
@@ -159,10 +179,16 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem }: { open: bo
       brand: svc ? '' : f.brand, series: vary ? series : '', ...(vary ? { group: f.group } : {}),
       gstRate: Number(f.gst) || 0, sale: f.sale || null, mrp: f.mrp || null, wholesale: svc ? null : f.whole || null,
       wholesaleMinQty: svc ? null : f.wholeQty || null, minStock: svc ? null : f.min || null, location: svc ? '' : f.loc,
-      ...(!svc && f.oq && num(f.oq) ? { openingQty: f.oq, openingRate: f.op || null, openingDate: f.od || today() } : {}),
+      ...(!edit && !svc && f.oq && num(f.oq) ? { openingQty: f.oq, openingRate: f.op || null, openingDate: f.od || today() } : {}),
     };
     setBusy(true);
     try {
+      if (edit) {
+        const it = await api<{ id: string; name: string }>(`/items/${edit.id}`, { method: 'PATCH', body });
+        await Promise.all(['items', 'item', 'catalogue', 'brand-series-of'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
+        showToast(`${it.name} saved`, 'ok');
+        return onSaved(it.id, svc, vary ? f.group : undefined);
+      }
       const it = await api<{ id: string; name: string; stock: string | null; unit: string }>('/items', { body });
       await qc.invalidateQueries({ queryKey: ['items'] });
       await qc.invalidateQueries({ queryKey: ['catalogue'] });
@@ -244,16 +270,16 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem }: { open: bo
       <div className="ov c" id="ai" hidden={!open} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'ai') onClose(); }}>
         <div className="mdl apm" role="dialog" aria-modal="true" aria-labelledby="aiT">
           <div className="aphd">
-            <h3 id="aiT" style={{ flex: 'none' }}>Add item</h3>
+            <h3 id="aiT" style={{ flex: 'none' }}>{edit ? 'Edit item' : 'Add item'}</h3>
             <div className="aisw" id="aiTypeSw">
               <span className={svc ? '' : 'on'}>Product</span>
-              <label className="tgs" style={{ margin: 0 }}><input type="checkbox" id="aiSvc" checked={svc} aria-label="Service item" onChange={(e) => { const v = e.target.checked; setSvc(v); if (v) { setVary(false); setTab('price'); } }} /><i></i></label>
+              <label className="tgs" style={{ margin: 0 }}><input type="checkbox" id="aiSvc" checked={svc} disabled={!!edit} style={edit ? LOCKED : undefined} aria-label="Service item" onChange={(e) => { const v = e.target.checked; setSvc(v); if (v) { setVary(false); setTab('price'); } }} /><i></i></label>
               <span className={svc ? 'on' : ''}>Service</span>
             </div>
             {!svc && (
               <div className="aisw" id="aiVarSw">
                 <span className={vary ? '' : 'on'}>Single</span>
-                <label className="tgs" style={{ margin: 0 }}><input type="checkbox" id="aiVar" checked={vary} aria-label="Variant item" onChange={(e) => { setVary(e.target.checked); setErr({}); }} /><i></i></label>
+                <label className="tgs" style={{ margin: 0 }}><input type="checkbox" id="aiVar" checked={vary} disabled={!!edit} style={edit ? LOCKED : undefined} aria-label="Variant item" onChange={(e) => { setVary(e.target.checked); setErr({}); }} /><i></i></label>
                 <span className={vary ? 'on' : ''}>Variant</span>
               </div>
             )}
@@ -315,10 +341,10 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem }: { open: bo
                 <div className="aibox">
                   <b className="aph">Opening stock</b>
                   <div className="two">
-                    <label className="apf">Opening quantity<input className={`fi ${bad('oq')}`} data-f="oq" value={f.oq} onChange={set('oq')} inputMode="decimal" placeholder="0" />{E('oq')}</label>
-                    <label className="apf">At price / unit<span className={pre}><span>{cur('₹')}</span><input className="fi" data-f="op" value={f.op} onChange={set('op')} inputMode="decimal" placeholder="Purchase price" /></span></label>
+                    <label className="apf">Opening quantity<input className={`fi ${bad('oq')}`} data-f="oq" value={f.oq} onChange={set('oq')} disabled={!!edit} inputMode="decimal" placeholder="0" />{E('oq')}</label>
+                    <label className="apf">At price / unit<span className={pre}><span>{cur('₹')}</span><input className="fi" data-f="op" value={f.op} onChange={set('op')} disabled={!!edit} inputMode="decimal" placeholder="Purchase price" /></span></label>
                   </div>
-                  <label className="apf">As of date<input className="fi" type="date" data-f="od" value={f.od} onChange={set('od')} /></label>
+                  <label className="apf">As of date<input className="fi" type="date" data-f="od" value={f.od} onChange={set('od')} disabled={!!edit} />{edit && <small className="aphint">Opening stock can’t be changed here. Use Adjust stock.</small>}</label>
                 </div>
                 <div className="aibox">
                   <b className="aph">Stock alerts</b>
@@ -329,7 +355,9 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem }: { open: bo
             </div>
           </div>
           <div className="apft">
-            <button className="btn" type="button" id="aiSaveNew" disabled={busy} onClick={() => save(true)}>Save &amp; new</button>
+            {edit ? (
+              <><button className="btn dz" type="button" id="aiDel" disabled={busy} onClick={onDelete}>Delete</button><span style={{ flex: 1 }}></span></>
+            ) : <button className="btn" type="button" id="aiSaveNew" disabled={busy} onClick={() => save(true)}>Save &amp; new</button>}
             <button className="btn p" type="button" id="aiSave" disabled={busy} onClick={() => save(false)}>Save</button>
           </div>
         </div>

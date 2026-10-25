@@ -39,16 +39,21 @@ export async function unusedAmounts(tx: Tx, kind: 'payment' | 'note', ids: strin
   return new Map(rows.map((r) => [r.id, money(r.used)]));
 }
 
-/** The party's opening balance still unpaid ("to receive" side only). */
-export async function openingDue(tx: Tx, partyId: string, skip?: string): Promise<Money> {
-  const p = await tx.party.findUnique({ where: { id: partyId }, select: { openingBalance: true, openingType: true } });
-  if (!p || p.openingType === 'pay') return money(0);
+/** How much of the party's opening balance live payments and credit notes have settled (leaving out `skip`). */
+export async function openingSettled(tx: Tx, partyId: string, skip?: string): Promise<Money> {
   const [r] = await tx.$queryRaw<{ used: string | null }[]>`
     SELECT sum(a.amount)::text AS used FROM payment_allocations a
     LEFT JOIN payments p ON p.id = a.payment_id LEFT JOIN sales_documents n ON n.id = a.note_id
     WHERE a.kind = 'opening' AND a.party_id = ${partyId}::uuid AND p.cancelled_at IS NULL AND n.cancelled_at IS NULL
       AND (${skip ?? null}::uuid IS NULL OR coalesce(a.payment_id, a.note_id) <> ${skip ?? null}::uuid)`;
-  const due = money(p.openingBalance.toString()).minus(money(r?.used ?? 0));
+  return money(r?.used ?? 0);
+}
+
+/** The party's opening balance still unpaid ("to receive" side only). */
+export async function openingDue(tx: Tx, partyId: string, skip?: string): Promise<Money> {
+  const p = await tx.party.findUnique({ where: { id: partyId }, select: { openingBalance: true, openingType: true } });
+  if (!p || p.openingType === 'pay') return money(0);
+  const due = money(p.openingBalance.toString()).minus(await openingSettled(tx, partyId, skip));
   return due.isNegative() ? money(0) : due;
 }
 

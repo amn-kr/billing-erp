@@ -460,6 +460,9 @@ model Party {
   /// id in the prototype's books, for imports
   legacyId       String?   @map("legacy_id")
   archivedAt     DateTime? @map("archived_at") @db.Timestamptz(6)
+  /// deleted (never used): hidden everywhere, kept for good (archived_at is set too)
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy      String?   @map("deleted_by") @db.Uuid
   createdBy      String    @map("created_by") @db.Uuid
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -658,6 +661,9 @@ model Item {
   imageUrl        String    @default("") @map("image_url")
   legacyId        String?   @map("legacy_id")
   archivedAt      DateTime? @map("archived_at") @db.Timestamptz(6)
+  /// deleted (never used): hidden everywhere, kept for good (archived_at is set too)
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy       String?   @map("deleted_by") @db.Uuid
   createdBy       String    @map("created_by") @db.Uuid
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
