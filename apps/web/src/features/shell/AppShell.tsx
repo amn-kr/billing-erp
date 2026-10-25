@@ -175,6 +175,8 @@ function AppFrame() {
   if (me.error instanceof ApiError && (me.error.status === 401 || me.error.status === 403)) return <GoLogin />;
   if (!me.data) return null;
   if (!me.data.business) return <GoLogin />;
+  // a temporary password from the shop owner: the sign-in page asks for a new one first
+  if (me.data.user.mustChangePassword) return <GoLogin />;
 
   // a screen inside a page (Items › Brands & Series) keeps that page lit in the sidebar
   const active = (Object.entries(VIEW_PATH).find(([, p]) => p === location.pathname) ?? Object.entries(VIEW_PATH).find(([, p]) => p !== '/' && location.pathname.startsWith(p + '/')))?.[0] ?? '';
