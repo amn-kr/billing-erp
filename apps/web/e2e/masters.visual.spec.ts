@@ -581,6 +581,10 @@ for (const width of WIDTHS) {
       await app.waitForSelector('#bzCard #bzName');
       // the whole Backup & restore card (owner-approved, new): the page behind the Start fresh window must match, it shows at the window's rounded corners
       await align(['#bzFresh', '#bkpCard']);
+      // the Team card (the prototype website's, owner-approved 25 Oct 2026; the design file has none) sits above Backup & restore: the same card in both pages
+      await app.waitForSelector('#tmList b');
+      const team = await app.locator('#tmCard').evaluate((e) => e.outerHTML);
+      await proto.evaluate((h) => document.getElementById('bkpCard')!.insertAdjacentHTML('beforebegin', h), team);
       await settle();
       // owner's change: General has the Colour combination and Shortcuts moved from the top bar, so it is compared
       // with its approved picture; from here on the top bar is hidden (it has its own check), also behind the Start fresh window
