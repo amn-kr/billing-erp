@@ -13,7 +13,8 @@
     "prisma:generate": "prisma generate",
     "db:reset-test": "node scripts/reset-db.mjs",
     "postinstall": "prisma generate",
-    "import": "node -r @swc-node/register scripts/import-backup.ts"
+    "import": "node -r @swc-node/register scripts/import-backup.ts",
+    "support:reset": "node -r @swc-node/register scripts/support-reset.ts"
   },
   "dependencies": {
     "@billing/shared": "workspace:*",
