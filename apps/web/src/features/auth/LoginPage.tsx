@@ -1,6 +1,7 @@
 /**
  * Sign in · create account · join a shop · set up your shop.
  * Same markup and wording as reference/firebase-site/public/index.html, backed by our API.
+ * "Choose a new password" (vPass) uses the same card after a temporary password from the shop owner.
  */
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -13,7 +14,7 @@ import { goToApp } from '../../lib/nav';
 import { AUTH_STYLES } from '../../styles';
 import { APP_LETTER, APP_NAME } from '../../lib/brand';
 
-type View = 'vLoad' | 'vAuth' | 'vJoin' | 'vShop';
+type View = 'vLoad' | 'vAuth' | 'vPass' | 'vJoin' | 'vShop';
 const APP = APP_NAME;
 const TRIAL = Number(import.meta.env.VITE_TRIAL_DAYS ?? 14);
 const msgOf = (e: unknown) => (e instanceof ApiError ? e.message : 'Something went wrong.');
@@ -33,6 +34,13 @@ export function LoginPage() {
   const [aErr, setAErr] = useState<{ text: string; ok?: boolean }>({ text: '' });
   const [jErr, setJErr] = useState('');
   const [sErr, setSErr] = useState('');
+  const [pErr, setPErr] = useState('');
+  /** the password just typed to sign in, so the temporary one isn't asked again (kept only in memory) */
+  const signedWith = useRef('');
+  const [askCurrent, setAskCurrent] = useState(true);
+  const pCurRef = useRef<HTMLInputElement>(null);
+  const pNewRef = useRef<HTMLInputElement>(null);
+  const pNew2Ref = useRef<HTMLInputElement>(null);
   const [invite, setInvite] = useState<MeResponse['invites'][number] | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
@@ -51,6 +59,11 @@ export function LoginPage() {
     try {
       const me = await api<MeResponse>('/me');
       qc.setQueryData(meKey(useSession.getState().accessToken), me);
+      if (me.user.mustChangePassword) {
+        setAskCurrent(!signedWith.current);
+        setView('vPass');
+        return setTimeout(() => (signedWith.current ? pNewRef : pCurRef).current?.focus(), 30);
+      }
       if (me.business && !newShop) return goToApp();
       const inv = me.invites[0];
       if (inv && !newShop) {
@@ -89,6 +102,7 @@ export function LoginPage() {
     try {
       if (mode === 'up') await apiWithToken('/auth/register', { email, password, name: nameRef.current!.value.trim() });
       else await apiWithToken('/auth/login', { email, password });
+      signedWith.current = password;
       await route();
     } catch (x) {
       setAErr({ text: msgOf(x) });
@@ -120,7 +134,30 @@ export function LoginPage() {
     }
   }
 
+  async function onPass(e: FormEvent) {
+    e.preventDefault();
+    const current = askCurrent ? pCurRef.current!.value : signedWith.current;
+    const password = pNewRef.current!.value;
+    setPErr('');
+    if (!current) return setPErr('Enter the temporary password.');
+    if (password.length < 8) return setPErr('Use at least 8 characters for the password.');
+    if (password !== pNew2Ref.current!.value) return setPErr('The two passwords don’t match.');
+    setBusy(true);
+    try {
+      await api('/auth/change-password', { body: { current, password } });
+      signedWith.current = '';
+      await route();
+    } catch (x) {
+      setPErr(msgOf(x));
+      // a wrong temporary password: ask for it instead of the one remembered from sign-in
+      if (x instanceof ApiError && x.status === 400 && /current password/i.test(x.message)) setAskCurrent(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function out() {
+    signedWith.current = '';
     await signOut();
     qc.clear();
     setInvite(null);
@@ -186,6 +223,17 @@ export function LoginPage() {
           <button className="btn" type="button" id="aGoogle" onClick={() => setAErr({ text: 'Google sign-in isn’t set up yet. Use your email and password.' })}><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true" dangerouslySetInnerHTML={{ __html: GOOGLE_SVG }} />Continue with Google</button>
           <p className="mu" style={{ margin: '12px 0 0', textAlign: 'center' }}><button className="lnk" type="button" id="aForgot" onClick={onForgot}>Forgot password?</button></p>
           <p className="demo mu">Just looking? <a className="lnk" href="/?demo=1" style={{ textDecoration: 'none' }} onClick={onDemo}>Open the demo shop</a></p>
+        </div>
+        <div id="vPass" hidden={view !== 'vPass'}>
+          <h2>Choose a new password</h2><p className="mu">You signed in with a temporary password from the shop owner. Choose your own to continue.</p>
+          <form id="fPass" noValidate onSubmit={onPass}>
+            <label hidden={!askCurrent}>Temporary password<input id="pCur" type="password" autoComplete="current-password" ref={pCurRef} /></label>
+            <label>New password<input id="pNew" type="password" autoComplete="new-password" minLength={8} ref={pNewRef} /></label>
+            <label>Type it again<input id="pNew2" type="password" autoComplete="new-password" minLength={8} ref={pNew2Ref} /></label>
+            <button className="btn p" id="pGo" type="submit" disabled={busy}>Save and continue</button>
+            <div className="msg bad" id="pErr" role="alert">{pErr}</div>
+          </form>
+          <p className="mu" style={{ margin: '14px 0 0', textAlign: 'center' }}><button className="lnk" type="button" data-out onClick={out}>Sign out</button></p>
         </div>
         <div id="vJoin" hidden={view !== 'vJoin'}>
           <h2>Join <span id="jShop">{invite?.businessName ?? 'the shop'}</span></h2><p className="mu">You were invited as staff. Your entries will go into this shop’s books.</p>

@@ -49,6 +49,10 @@ export type InviteInput = z.infer<typeof inviteSchema>;
 
 export const acceptInviteSchema = z.object({ name: z.string().trim().min(1, 'Enter your name.').max(120) });
 
+/** "Choose a new password" after signing in with a temporary one. */
+export const changePasswordSchema = z.object({ current: z.string().min(1, 'Enter your current password.').max(200), password });
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
 export const changeRoleSchema = z.object({ role: z.enum(ROLE_KEYS) });
 
 export const switchBusinessSchema = z.object({ businessId: z.string().uuid() });

@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { daysBetween, type MeBusiness, type MeResponse, type RoleKey } from '@billing/shared';
-import { Ctx } from '../../common/decorators';
+import { Ctx, WithTempPassword } from '../../common/decorators';
 import { planToday } from '../../config';
 import { DbService } from '../../common/db.service';
 import type { RequestContext } from '../../common/context';
@@ -12,6 +12,7 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
 export class MeController {
   constructor(private readonly db: DbService) {}
 
+  @WithTempPassword()
   @Get()
   async me(@Ctx() ctx: RequestContext): Promise<MeResponse> {
     return this.db.scoped({ businessId: ctx.businessId, userId: ctx.userId, email: ctx.email }, async (tx) => {
@@ -37,7 +38,7 @@ export class MeController {
         };
       }
       return {
-        user: { id: u.id, name: u.name, email: u.email },
+        user: { id: u.id, name: u.name, email: u.email, mustChangePassword: u.mustChangePassword },
         business,
         role: ctx.role,
         permissions: ctx.permissions,
