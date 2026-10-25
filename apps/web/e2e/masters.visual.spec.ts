@@ -583,6 +583,8 @@ for (const width of WIDTHS) {
       await align(['#bzFresh', '#bkpCard']);
       // the Team card (the prototype website's, owner-approved 25 Oct 2026; the design file has none) sits above Backup & restore: the same card in both pages
       await app.waitForSelector('#tmList b');
+      // the test owner's email changes every run: a fixed example in the picture
+      await app.evaluate(() => { document.querySelector('#tmList small')!.textContent = 'ravi@gupta.example.com · you'; });
       const team = await app.locator('#tmCard').evaluate((e) => e.outerHTML);
       await proto.evaluate((h) => document.getElementById('bkpCard')!.insertAdjacentHTML('beforebegin', h), team);
       await settle();
