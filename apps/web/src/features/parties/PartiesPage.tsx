@@ -15,9 +15,10 @@ import { useMe } from '../../lib/me';
 import { Icon, RawIcon } from '../../components/Icon';
 import { soon, useShell } from '../shell/store';
 import { statementOf } from '../reports/party';
-import { AddPartyDialog } from './AddPartyDialog';
+import { InactiveList, useMasterDelete } from '../../components/MasterDelete';
+import { AddPartyDialog, type EditParty } from './AddPartyDialog';
 
-export interface Party {
+export interface Party extends EditParty {
   id: string;
   name: string;
   billingName?: string;
@@ -101,6 +102,8 @@ export function PartiesPage() {
   const [tStat, setTStat] = useState('all');
   const [sort, setSort] = useState<'date' | 'total' | 'bal'>('date');
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<Party | null>(null);
+  const del = useMasterDelete('party', () => setSel(null));
 
   const all = list.data ?? [];
   const L = useMemo(() => {
@@ -194,6 +197,7 @@ export function PartiesPage() {
             ) : (
               <div className="ptempty">No parties match.<br /><button className="lnk" data-soon="New party" onClick={() => setAdding(true)}>+ Add party</button></div>
             )}
+            <InactiveList<Party> what="party" keep={(x) => kind === 'all' || (kind === 'c' ? x.kind === 'customer' : x.kind === 'supplier')} />
           </div>
         </div>
         <div className="ptr2" id="ptRight">
@@ -201,7 +205,7 @@ export function PartiesPage() {
             {!all.length ? (
               <div className="ptempty pue" style={{ padding: '28px 16px' }}><b>Add your first party</b><span>Customers you sell to and suppliers you buy from. Old balances can be entered as opening balance.</span><button className="btn p sm" data-soon="New party" onClick={() => setAdding(true)}>Add party</button></div>
             ) : p ? (
-              <PartyHead p={p} shop={me?.business?.name ?? ''} onCopied={showToast} />
+              <PartyHead p={p} shop={me?.business?.name ?? ''} onCopied={showToast} onEdit={() => setEditing(p)} />
             ) : null}
           </div>
           <div className="card ptxc" hidden={!all.length}>
@@ -221,19 +225,26 @@ export function PartiesPage() {
         </div>
       </div>
       <div className="pop" id="ptRowPop" hidden style={{ position: 'fixed', minWidth: 220 }}></div>
-      <AddPartyDialog open={adding} onClose={() => setAdding(false)} onSaved={(id) => { setAdding(false); setSel(id); }} />
+      {/* one window for Add party and Edit party (the same ids) */}
+      <AddPartyDialog open={adding || !!editing} edit={editing} onClose={() => { setAdding(false); setEditing(null); }} onSaved={(id) => { setAdding(false); setEditing(null); setSel(id); }}
+        onDelete={() => {
+          const x = editing!, ob = money(x.openingBalance);
+          setEditing(null);
+          void del.ask(x, ob.gt(0) ? `its opening balance of ${cur(inr(ob))}` : '');
+        }} />
+      {del.modal}
     </section>
   );
 }
 
-function PartyHead({ p, shop, onCopied }: { p: Party; shop: string; onCopied: (t: string) => void }) {
+function PartyHead({ p, shop, onCopied, onEdit }: { p: Party; shop: string; onCopied: (t: string) => void; onEdit: () => void }) {
   const b = money(p.balance);
   const msg = `Dear ${p.name}, your balance with ${shop} is ${inr(b.abs())}. Please pay at the earliest. Thank you.`;
   const city = p.billing?.city ?? '';
   return (
     <div className="pth">
       <div style={{ minWidth: 0 }}>
-        <div className="ptt"><h2>{p.name}</h2><button className="ixs" data-soon="Edit party" aria-label="Edit party" title="Edit party" onClick={() => soon('Edit party')}><Icon name="edit" /></button></div>
+        <div className="ptt"><h2>{p.name}</h2><button className="ixs" id="ptEdit" aria-label="Edit party" title="Edit party" onClick={onEdit}><Icon name="edit" /></button></div>
         <div className="ptmeta">
           {p.phone && <span><Icon name="phone" />+91 {p.phone.slice(0, 5)} {p.phone.slice(5)}</span>}
           {p.gstin && <span className="mono needs-gst">GSTIN {p.gstin}</span>}

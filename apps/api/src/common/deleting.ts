@@ -16,3 +16,20 @@ export const ALREADY_DELETED = 'Already deleted';
 
 /** The columns a delete sets. */
 export const deleteMark = (ctx: RequestContext, reason: string, at: Date) => ({ deletedAt: at, deletedBy: ctx.userId, deleteReason: reason });
+
+/*
+ * Items and parties (Oct 2026): Delete only when never used. An opening stock or opening balance alone
+ * doesn't count: it is put back (stock) or set to zero (balance). Like a document the row is kept: it
+ * is made inactive (archived_at, so its name is free again) and marked deleted (hidden from "Show
+ * inactive" too). Used ones are refused with what uses them, and can be made inactive instead.
+ */
+
+/** How many of a kind, e.g. count(3, 'sale invoice') = "3 sale invoices"; nothing when 0. */
+export const count = (n: number, one: string, many = one + 's') => (n ? [`${n} ${n === 1 ? one : many}`] : []);
+
+/** "a", "a and b", "a, b and c" */
+export const andList = (parts: string[]) => (parts.length < 2 ? parts.join('') : `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`);
+
+/** What a refused delete says, e.g. "LED bulb is used in 3 sale invoices, so it can't be deleted. …" */
+export const usedMessage = (name: string, uses: string[], where: string) =>
+  `${name} is used in ${andList(uses)}, so it can’t be deleted. You can make it inactive instead: it is hidden from ${where}, and stays on old ones.`;

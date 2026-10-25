@@ -69,6 +69,20 @@ export class ItemsController {
     return this.items.update(ctx, id, body);
   }
 
+  @RequirePermission('masters.view')
+  @Get('items/:id/usage')
+  usage(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
+    return this.items.usage(ctx, id);
+  }
+
+  /** Delete an item that was never used (no passcode: only documents have one); a used one is refused. */
+  @RequirePermission('masters.manage')
+  @HttpCode(200)
+  @Post('items/:id/delete')
+  remove(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
+    return this.items.delete(ctx, id);
+  }
+
   @RequirePermission('masters.manage')
   @HttpCode(200)
   @Post('items/:id/archive')

@@ -4,6 +4,7 @@ import type { Prisma } from '@prisma/client';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import { fieldChanges } from '../../common/editing';
+import { ALREADY_DELETED, count, usedMessage } from '../../common/deleting';
 import type { RequestContext } from '../../common/context';
 import { day, isoOf, namedId, unitIdFor, uniqueMessage } from '../../common/lookups';
 import { invoiceBalances } from '../sales/dues';
@@ -54,7 +55,7 @@ export class ItemsService {
       const s = q.search?.trim();
       const rows = await tx.item.findMany({
         where: {
-          archivedAt: q.archived ? { not: null } : null,
+          archivedAt: q.archived ? { not: null } : null, deletedAt: null,
           ...(q.kind === 'goods' || q.kind === 'service' ? { kind: q.kind } : {}),
           ...(q.category ? { category: { name: q.category } } : {}),
           ...(q.brand ? { brand: { name: q.brand } } : {}),
@@ -247,6 +248,7 @@ export class ItemsService {
    * new value) in after.changes, as the edits of saved records do.
    */
   private async edit(tx: Tx, ctx: RequestContext, id: string, input: Partial<ItemInput>, how: string) {
+    if ((await this.find(tx, id)).deletedAt) throw new BadRequestException({ message: ALREADY_DELETED });
     const before = await this.view(tx, id);
     await this.clash(tx, input, id);
     if (input.kind === 'service' && before.kind === 'goods' && before.stock && !money(before.stock).isZero())
@@ -306,6 +308,7 @@ export class ItemsService {
   setArchived(ctx: RequestContext, id: string, archived: boolean) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const i = await this.find(tx, id);
+      if (i.deletedAt) throw new BadRequestException({ message: ALREADY_DELETED });
       if (archived === !!i.archivedAt) return this.view(tx, id);
       try {
         await tx.item.update({ where: { id }, data: { archivedAt: archived ? new Date() : null } });
@@ -315,6 +318,60 @@ export class ItemsService {
       }
       await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: archived ? 'cancel' : 'update', entity: 'item', entityId: id, before: { archived: !archived }, after: { archived }, ip: ctx.ip });
       return this.view(tx, id);
+    });
+  }
+
+  /**
+   * What uses an item, e.g. ["3 sale invoices", "1 purchase bill"]; empty when it can be deleted. Every
+   * document counts (cancelled and deleted ones too: they still show it); its opening stock doesn't.
+   */
+  private async uses(tx: Tx, id: string) {
+    const [sales, purchases, adjustments, transfers, other] = await Promise.all([
+      tx.salesDocument.findMany({ where: { lines: { some: { itemId: id } } }, select: { kind: true } }),
+      tx.purchaseDocument.findMany({ where: { lines: { some: { itemId: id } } }, select: { kind: true } }),
+      tx.stockAdjustment.count({ where: { itemId: id } }),
+      tx.stockTransfer.count({ where: { itemId: id } }),
+      // anything else in its stock ledger (e.g. an imported sale without its bill)
+      tx.stockMovement.count({ where: { itemId: id, kind: { not: 'opening' }, sourceType: { notIn: ['sales_document', 'purchase_document', 'stock_adjustment', 'stock_transfer', 'item'] } } }),
+    ]);
+    const n = (rows: { kind: string }[], k: string) => rows.filter((r) => r.kind === k).length;
+    return [
+      ...count(n(sales, 'invoice'), 'sale invoice'), ...count(n(sales, 'quotation'), 'quotation'), ...count(n(sales, 'challan'), 'delivery challan'), ...count(n(sales, 'credit_note'), 'credit note'),
+      ...count(n(purchases, 'bill'), 'purchase bill'), ...count(n(purchases, 'order'), 'purchase order'), ...count(n(purchases, 'debit_note'), 'debit note'),
+      ...count(adjustments, 'stock adjustment'), ...count(transfers, 'stock transfer'), ...count(other, 'stock entry', 'stock entries'),
+    ];
+  }
+
+  /** Whether Delete can go ahead, and if not the message for the "can't delete" box (Edit item › Delete). */
+  usage(ctx: RequestContext, id: string) {
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      const i = await this.find(tx, id);
+      const uses = await this.uses(tx, id);
+      return { canDelete: !uses.length, message: uses.length ? usedMessage(i.name, uses, 'lists and new bills') : '' };
+    });
+  }
+
+  /**
+   * Delete an item that was never used (common/deleting.ts): its opening stock is put back, then it is
+   * made inactive and marked deleted. The row stays; nothing else changes.
+   */
+  delete(ctx: RequestContext, id: string) {
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      const i = await this.find(tx, id);
+      if (i.deletedAt) throw new BadRequestException({ message: ALREADY_DELETED });
+      const uses = await this.uses(tx, id);
+      if (uses.length) throw new BadRequestException({ message: usedMessage(i.name, uses, 'lists and new bills') });
+      const before = await this.view(tx, id);
+      const left = await tx.stockMovement.groupBy({ by: ['godownId'], where: { itemId: id }, _sum: { qty: true } });
+      const back = left.filter((g) => g._sum.qty && !g._sum.qty.isZero());
+      if (back.length)
+        await tx.stockMovement.createMany({
+          data: back.map((g) => ({ businessId: ctx.businessId!, createdBy: ctx.userId, itemId: id, godownId: g.godownId, date: day(todayIst()), qty: g._sum.qty!.neg().toFixed(3), kind: 'cancel', sourceType: 'item', note: 'Item deleted' })),
+        });
+      const at = new Date();
+      await tx.item.update({ where: { id }, data: { archivedAt: i.archivedAt ?? at, deletedAt: at, deletedBy: ctx.userId } });
+      await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'delete', entity: 'item', entityId: id, before, after: { deleted: true, openingStockPutBack: back.map((g) => ({ godownId: g.godownId, qty: q3(g._sum.qty!) })) }, ip: ctx.ip });
+      return { id, name: i.name };
     });
   }
 

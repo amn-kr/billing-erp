@@ -14,7 +14,8 @@ import { useCur, useSettings } from '../../lib/settings';
 import { useFitTables } from '../../lib/useFitTables';
 import { Icon, RawIcon } from '../../components/Icon';
 import { soon, useShell } from '../shell/store';
-import { AddItemDialog } from './AddItemDialog';
+import { InactiveList, useMasterDelete } from '../../components/MasterDelete';
+import { AddItemDialog, type EditItem } from './AddItemDialog';
 import { AdjustStockDialog } from './AdjustStockDialog';
 import { RateTable } from './RateTable';
 import { useStyles } from '../../lib/useStyles';
@@ -27,6 +28,8 @@ export interface Item {
   code: string;
   hsn: string;
   unit: string;
+  secondaryUnit: string;
+  unitRate: string | null;
   category: string;
   brand: string;
   group: string;
@@ -36,6 +39,8 @@ export interface Item {
   purchase: string;
   mrp: string;
   listPrice: string;
+  wholesale: string;
+  wholesaleMinQty: string;
   minStock: string;
   location: string;
   stock: string | null;
@@ -84,6 +89,11 @@ function txRows(i: ItemDetail) {
     st: m.kind === 'adjustment' ? (n(m.qty) >= 0 ? 'Added' : 'Reduced') : m.status,
   }));
 }
+/** Edit item's form: the item and its opening stock (all godowns, at the first opening rate). */
+const editOf = (i: ItemDetail): EditItem => {
+  const op = i.movements.filter((m) => m.kind === 'opening');
+  return { ...i, opening: op.length ? { qty: String(op.reduce((a, m) => a + n(m.qty), 0)), rate: op[op.length - 1]!.rate, date: op[op.length - 1]!.date } : null };
+};
 const SC: Record<string, string> = { Paid: 'g', Unpaid: 'a', 'Partly paid': 'b', Overdue: 'r', 'Due today': 'a', Reduced: 'r', Added: 'g' };
 
 export function ItemsPage() {
@@ -105,6 +115,8 @@ export function ItemsPage() {
   const [filOpen, setFilOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [adjusting, setAdjusting] = useState<Item | null>(null);
+  const [editing, setEditing] = useState<ItemDetail | null>(null);
+  const del = useMasterDelete('item', () => setSel(null));
 
   const IT = list.data ?? [];
   const members = (g: string) => IT.filter((i) => i.group === g);
@@ -236,6 +248,7 @@ export function ItemsPage() {
           </div>
           <div className="ptlist" id="itList">
             {rows.length ? rows : <div className="ptempty">No items match.<br /><button className="lnk" data-soon="New item" onClick={() => setAdding(true)}>+ Add item</button></div>}
+            <InactiveList<Item> what="item" keep={(i) => (kind === 'p' ? i.kind === 'goods' : i.kind === 'service')} nameStyle={{ textTransform: 'none', fontSize: 13 }} />
           </div>
         </div>
         <div className="ptr2" id="itRight">
@@ -243,7 +256,7 @@ export function ItemsPage() {
             {groupSel ? (
               <GroupHead g={groupSel} ms={members(groupSel)} mrpOn={mrpOn} cur={cur} onPick={setSel} />
             ) : item ? (
-              <ItemHead i={item} mrpOn={mrpOn} onBack={(g) => setSel('g:' + g)} onAdjust={() => setAdjusting(item)} />
+              <ItemHead i={item} mrpOn={mrpOn} onBack={(g) => setSel('g:' + g)} onAdjust={() => setAdjusting(item)} onEdit={() => setEditing(item)} />
             ) : !selId ? (
               <div className="ptempty">No item selected.</div>
             ) : null}
@@ -301,7 +314,17 @@ export function ItemsPage() {
           </div>
         </div>
       </div>
-      <AddItemDialog open={adding} onClose={() => setAdding(false)} onSaved={(id, svc, group) => { setAdding(false); setKind(svc ? 's' : 'p'); setSel(group ? 'g:' + group : id); }} onOpenItem={(id) => { setAdding(false); setKind('p'); setSel(id); }} />
+      {/* one window for Add item and Edit item (the same ids) */}
+      <AddItemDialog open={adding || !!editing} edit={editing ? editOf(editing) : null}
+        onClose={() => { setAdding(false); setEditing(null); }}
+        onSaved={(id, svc, group) => { setAdding(false); setEditing(null); setKind(svc ? 's' : 'p'); setSel(group ? 'g:' + group : id); }}
+        onOpenItem={(id) => { setAdding(false); setEditing(null); setKind('p'); setSel(id); }}
+        onDelete={() => {
+          const i = editing!, op = editOf(i).opening;
+          setEditing(null);
+          void del.ask(i, op && n(op.qty) ? `its opening stock of ${qfmt(op.qty)} ${i.unit}` : '');
+        }} />
+      {del.modal}
       <AdjustStockDialog item={adjusting} onClose={() => setAdjusting(null)} />
     </section>
   );
@@ -322,7 +345,7 @@ function latestAvg(i: ItemDetail) {
 /** the prototype's back arrow (sale and purchase editors) */
 const BACK = '<path d="M15 6l-6 6 6 6"/>';
 
-function ItemHead({ i, mrpOn, onBack, onAdjust }: { i: ItemDetail; mrpOn: boolean; onBack: (g: string) => void; onAdjust: () => void }) {
+function ItemHead({ i, mrpOn, onBack, onAdjust, onEdit }: { i: ItemDetail; mrpOn: boolean; onBack: (g: string) => void; onAdjust: () => void; onEdit: () => void }) {
   const s = n(i.stock ?? '0');
   const l = i.kind === 'service' ? '' : i.level;
   const m = n(i.purchase) ? money(i.sale).minus(i.purchase) : money(0);
@@ -335,7 +358,7 @@ function ItemHead({ i, mrpOn, onBack, onAdjust }: { i: ItemDetail; mrpOn: boolea
           <div className="ptt">
             {i.group && <button className="ixs" data-gback={i.group} aria-label={`Back to ${i.group}`} title={`Back to ${i.group}`} onClick={() => onBack(i.group)}><RawIcon d={BACK} /></button>}
             <h2 style={{ textTransform: 'none' }}>{i.group ? vlabel(i) : i.name}</h2>
-            <button className="ixs" data-soon="Edit item" aria-label="Edit item" title="Edit item" onClick={() => soon('Edit item')}><Icon name="edit" /></button>
+            <button className="ixs" id="itEdit" aria-label="Edit item" title="Edit item" onClick={onEdit}><Icon name="edit" /></button>
             {i.brand && !i.group && <span className="brc">{i.brand}</span>}
           </div>
           <div className="ptmeta">
