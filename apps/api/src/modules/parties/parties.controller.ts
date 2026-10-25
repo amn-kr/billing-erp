@@ -53,6 +53,20 @@ export class PartiesController {
     return this.parties.update(ctx, id, body);
   }
 
+  @RequirePermission('masters.view')
+  @Get('parties/:id/usage')
+  usage(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
+    return this.parties.usage(ctx, id);
+  }
+
+  /** Delete a party that was never used (no passcode: only documents have one); a used one is refused. */
+  @RequirePermission('masters.manage')
+  @HttpCode(200)
+  @Post('parties/:id/delete')
+  remove(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
+    return this.parties.delete(ctx, id);
+  }
+
   @RequirePermission('masters.manage')
   @HttpCode(200)
   @Post('parties/:id/archive')
