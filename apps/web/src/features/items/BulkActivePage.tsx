@@ -80,7 +80,8 @@ export function BulkActivePage() {
       setConfirm(null);
       setSel(new Set());
       const word = makeActive ? 'active' : 'inactive';
-      showToast(`${plural(r.changed, 'item')} made ${word}${r.skipped ? ` (${n(r.skipped)} ${r.skipped === 1 ? 'was' : 'were'} already ${word})` : ''}`, 'ok');
+      const already = `${r.skipped === 1 ? 'was' : 'were'} already ${word}`;
+      showToast(r.changed ? `${plural(r.changed, 'item')} made ${word}${r.skipped ? ` (${n(r.skipped)} ${already})` : ''}` : `Nothing to change: ${plural(r.skipped, 'item')} ${already}`, 'ok');
       await Promise.all(['items', 'item', 'items-inactive', 'catalogue'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
     } catch (e) {
       setConfirm(null);
