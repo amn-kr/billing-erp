@@ -35,7 +35,7 @@ for (const width of WIDTHS) {
       await app.click('#bacCancel');
 
       await app.click('#baShow [data-show="all"]');
-      await tick('Door bell');
+      // the old Door bell: the only inactive row (an active item has its name)
       await app.locator('#baGrid tbody tr[data-row]').filter({ has: app.locator('.egtail', { hasText: 'Inactive' }) }).locator('td.egck input').check();
       await app.click('#baActive');
       await app.click('#bacGo');

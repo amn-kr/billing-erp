@@ -47,12 +47,12 @@ test('Bulk active / inactive: filters, ticks, the question, make inactive and ac
   expect(await names(page)).toEqual(['LED batten 20W', 'LED bulb 9W']);
   // the heading tick box ticks only the rows of the filter; ticks stay when the filter changes
   await tickAll(page);
-  await expect(page.locator('#baSel')).toHaveText('2 items selected');
+  await expect(page.locator('#baChip')).toHaveText('2 items selected');
   await page.selectOption('#baBrand', '');
   await page.selectOption('#baCat', 'Fans');
   expect(await names(page)).toEqual(['Table fan 400mm', 'Ceiling fan 1200mm']);
   await tickAll(page);
-  await expect(page.locator('#baSel')).toHaveText('4 items selected');
+  await expect(page.locator('#baChip')).toHaveText('4 items selected');
   await page.selectOption('#baCat', '');
 
   // the question: Cancel changes nothing
@@ -66,7 +66,6 @@ test('Bulk active / inactive: filters, ticks, the question, make inactive and ac
   await page.click('#baInactive');
   await page.click('#bacGo');
   await expect(page.locator('#toast')).toContainText('4 items made inactive');
-  await expect(page.locator('#baSel')).toHaveCount(0);
   await expect(page.locator('#baChip')).toHaveText('0 items selected');
   expect(await names(page)).toEqual(['Door bell', '6A-10A 1WAY SWITCH · NORWOOD CLASSIC', '6A-10A 1WAY SWITCH · HAVELLS CORAL', 'Insulation tape', 'Wire 1.5 sq mm']);
   await show(page, 'inactive');

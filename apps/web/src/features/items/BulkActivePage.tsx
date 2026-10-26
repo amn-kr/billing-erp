@@ -124,7 +124,6 @@ export function BulkActivePage() {
               <button key={k} type="button" data-show={k} className={show === k ? 'on' : undefined} aria-pressed={show === k} onClick={() => setShow(k)}>{t}</button>
             ))}
           </div>
-          {selRows.length > 0 && <b id="baSel" style={{ marginLeft: 'auto', fontSize: 13 }}>{plural(selRows.length, 'item')} selected</b>}
         </div>
         <SheetGrid
           id="baGrid"
