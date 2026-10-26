@@ -218,6 +218,7 @@ export function ItemsPage() {
             <button id="itImportMenu" onClick={() => go('/items/import')}>Import products</button>
             <button data-view="prices" onClick={() => soon('Price manager')}>Update prices in bulk</button>
             <button id="itBulkMenu" onClick={() => go('/items/bulk-update')}>Bulk update items</button>
+            <button id="itBulkActMenu" onClick={() => go('/items/bulk-active')}>Bulk active / inactive</button>
             <button id="itRateBtn" onClick={() => soon('Rate list')}>Download rate list</button>
             <button data-soon="Item categories" onClick={() => soon('Item categories')}>Manage categories</button>
             <button data-soon="Units" onClick={() => soon('Units')}>Manage units</button>

@@ -33,6 +33,8 @@ export interface SheetColumn {
   /** takes the spare width of the table */
   grow?: boolean;
   placeholder?: string;
+  /** shown, not typed in (Bulk active / inactive) */
+  readOnly?: boolean;
 }
 
 /** a cell's problem (red) or hint (grey, e.g. "was 18%"), shown as one small line inside the cell */
@@ -406,7 +408,7 @@ export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lea
                   {c.list.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               ) : (
-                <input aria-label={label} aria-invalid={!!m?.error || undefined} tabIndex={tab(k, c.key)} value={v} placeholder={c.placeholder} autoComplete="off" spellCheck={false} onChange={(e) => onChange(r, c.key, e.target.value)} />
+                <input aria-label={label} aria-invalid={!!m?.error || undefined} tabIndex={tab(k, c.key)} value={v} readOnly={c.readOnly} placeholder={c.placeholder} autoComplete="off" spellCheck={false} onChange={(e) => onChange(r, c.key, e.target.value)} />
               )}
               {m?.error ? <small className="egm bad">{m.error}</small> : m?.hint ? <small className="egm info">{m.hint}</small> : null}
             </td>

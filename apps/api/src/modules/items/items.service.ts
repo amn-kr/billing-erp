@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
-import { ITEM_PREFIX, ITEM_PREFIX_DEFAULT, money, todayIst, toDb, type BulkItemsInput, type BulkItemsResult, type ItemInput } from '@billing/shared';
+import { ITEM_PREFIX, ITEM_PREFIX_DEFAULT, money, todayIst, toDb, type BulkActiveInput, type BulkActiveResult, type BulkItemsInput, type BulkItemsResult, type ItemInput } from '@billing/shared';
 import type { Prisma } from '@prisma/client';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
@@ -50,12 +50,12 @@ export class ItemsService {
     return { businessId: ctx.businessId, userId: ctx.userId, email: ctx.email };
   }
 
-  list(ctx: RequestContext, q: { search?: string; kind?: string; category?: string; brand?: string; level?: string; archived?: boolean }) {
+  list(ctx: RequestContext, q: { search?: string; kind?: string; category?: string; brand?: string; level?: string; archived?: boolean | 'all' }) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const s = q.search?.trim();
       const rows = await tx.item.findMany({
         where: {
-          archivedAt: q.archived ? { not: null } : null, deletedAt: null,
+          ...(q.archived !== 'all' && { archivedAt: q.archived ? { not: null } : null }), deletedAt: null,
           ...(q.kind === 'goods' || q.kind === 'service' ? { kind: q.kind } : {}),
           ...(q.category ? { category: { name: q.category } } : {}),
           ...(q.brand ? { brand: { name: q.brand } } : {}),
@@ -295,14 +295,14 @@ export class ItemsService {
   }
 
   /** A row's problem as "<item name>: <reason>. Nothing was saved.", with the item and field it is about. */
-  private rowError(e: unknown, itemId: string, name: string): unknown {
+  private rowError(e: unknown, itemId: string, name: string, tail = 'Nothing was saved.'): unknown {
     const m = uniqueMessage(e);
     const err = m ? new ConflictException({ message: m, field: /code/.test(m) ? 'code' : 'name' }) : e;
     if (!(err instanceof HttpException)) return err;
     const body = err.getResponse() as { message?: string; field?: string } | string;
     const reason = typeof body === 'string' ? body : body.message ?? 'This item could not be saved.';
     const field = typeof body === 'string' ? undefined : body.field;
-    return new HttpException({ message: `${name}: ${reason} Nothing was saved.`, itemId, field }, err.getStatus());
+    return new HttpException({ message: `${name}: ${reason} ${tail}`, itemId, field }, err.getStatus());
   }
 
   setArchived(ctx: RequestContext, id: string, archived: boolean) {
@@ -310,15 +310,44 @@ export class ItemsService {
       const i = await this.find(tx, id);
       if (i.deletedAt) throw new BadRequestException({ message: ALREADY_DELETED });
       if (archived === !!i.archivedAt) return this.view(tx, id);
-      try {
-        await tx.item.update({ where: { id }, data: { archivedAt: archived ? new Date() : null } });
-      } catch (e) {
-        if (uniqueMessage(e)) throw new ConflictException({ message: 'An item with this name or code already exists. Rename one of them first.' });
-        throw e;
-      }
-      await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: archived ? 'cancel' : 'update', entity: 'item', entityId: id, before: { archived: !archived }, after: { archived }, ip: ctx.ip });
+      await this.archiveOne(tx, ctx, id, archived);
       return this.view(tx, id);
     });
+  }
+
+  /** Makes one item inactive (or active again) inside the caller's transaction, with its audit entry. */
+  private async archiveOne(tx: Tx, ctx: RequestContext, id: string, archived: boolean) {
+    try {
+      await tx.item.update({ where: { id }, data: { archivedAt: archived ? new Date() : null } });
+    } catch (e) {
+      if (uniqueMessage(e)) throw new ConflictException({ message: 'An item with this name or code already exists. Rename one of them first.' });
+      throw e;
+    }
+    await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: archived ? 'cancel' : 'update', entity: 'item', entityId: id, before: { archived: !archived }, after: { archived }, ip: ctx.ip });
+  }
+
+  /**
+   * Bulk active / inactive: the ticked items, all in one transaction. Items already in that state are
+   * skipped (no change, no audit entry). If one can't be changed (Make active: an active item has its
+   * name or code) nothing is changed, and the message names the item.
+   */
+  bulkSetActive(ctx: RequestContext, input: BulkActiveInput): Promise<BulkActiveResult> {
+    const archived = !input.active;
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      // every id must be one of this shop's items (row-level security hides other shops' items)
+      const found = await tx.item.findMany({ where: { id: { in: input.ids }, deletedAt: null }, select: { id: true, name: true, archivedAt: true } });
+      const missing = input.ids.length - found.length;
+      if (missing) throw new NotFoundException({ message: `${missing === 1 ? 'One item was' : `${missing} items were`} not found. Nothing was changed. Reload the page and try again.` });
+      const todo = found.filter((i) => archived !== !!i.archivedAt);
+      for (const i of todo) {
+        try {
+          await this.archiveOne(tx, ctx, i.id, archived);
+        } catch (e) {
+          throw this.rowError(e, i.id, i.name, 'Nothing was changed.');
+        }
+      }
+      return { changed: todo.length, skipped: found.length - todo.length };
+    }, { timeout: 120_000 });
   }
 
   /**
