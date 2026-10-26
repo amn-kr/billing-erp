@@ -9,6 +9,7 @@ import { ItemsPage } from '../features/items/ItemsPage';
 import { BrandsPage } from '../features/items/BrandsPage';
 import { ImportPage } from '../features/items/ImportPage';
 import { BulkUpdatePage } from '../features/items/BulkUpdatePage';
+import { BulkActivePage } from '../features/items/BulkActivePage';
 import { AdjustmentsPage } from '../features/stock/AdjustmentsPage';
 import { PricesPage } from '../features/prices/PricesPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
@@ -41,6 +42,7 @@ export const router = createBrowserRouter([
       { path: 'items/brands', element: <BrandsPage /> },
       { path: 'items/import', element: <ImportPage /> },
       { path: 'items/bulk-update', element: <BulkUpdatePage /> },
+      { path: 'items/bulk-active', element: <BulkActivePage /> },
       { path: 'prices', element: <PricesPage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'stock-adjustments', element: <AdjustmentsPage /> },
