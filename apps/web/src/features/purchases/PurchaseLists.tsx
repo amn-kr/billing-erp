@@ -23,6 +23,7 @@ import { PurchaseView } from './PurchaseView';
 import { SlModal, type SlModalProps } from '../sales/SlModal';
 import { HIST_ACTION, openHistory } from '../../components/EditHistory';
 import { cancelAsk, withPasscode } from '../settings/passcode';
+import { deleteModal } from '../sales/deleteDoc';
 import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
@@ -42,11 +43,11 @@ function Thf({ id, label, on, title, onOpen }: { id: string; label: string; on: 
 /** Row keys: Enter opens the document, as a click does; the Menu key or Shift+F10 open its actions. */
 const rowKeys = (sel: string, menuKey?: (e: React.KeyboardEvent) => boolean) => (e: React.KeyboardEvent) => { if (menuKey?.(e)) return; const r = (e.target as HTMLElement).closest<HTMLElement>(sel); if (r && e.key === 'Enter' && e.target === r) { e.preventDefault(); r.click(); } };
 
-/* row actions: Edit first, then what each list already offers (Cancel and Delete are not in these menus) */
-const PUR_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View'], ['pay', 'Record payment'], ['dn', 'Return goods (debit note)'], HIST_ACTION];
+/* row actions: Edit first, then what each list already offers; last, below a line, the red Cancel / Delete (as the Sales list's Delete) */
+const PUR_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View'], ['pay', 'Record payment'], ['dn', 'Return goods (debit note)'], HIST_ACTION, '-', ['cancel', 'Cancel', 'dz']];
 const PO_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View'], ['conv', 'Convert to bill'], HIST_ACTION];
-const DN_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View'], HIST_ACTION];
-const PX_ACT: RowAction[] = [['edit', 'Edit'], HIST_ACTION];
+const DN_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View'], HIST_ACTION, '-', ['del', 'Delete', 'dz']];
+const PX_ACT: RowAction[] = [['edit', 'Edit'], HIST_ACTION, '-', ['del', 'Delete', 'dz']];
 const CANCELLED = 'Cancelled document';
 const editPath = (id: string) => `/purchases/new?edit=${id}`;
 /** The highlighted row while its menu is open. */
@@ -71,6 +72,7 @@ const ST: [string, string][] = [['all', 'All statuses'], ['open', 'Unpaid'], ['o
 export function PurchaseBillsPage() {
   useFitTables();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const list = usePurchases('bill');
   const [hist, setHist] = useState<SlModalProps | null>(null);
   const { showToast } = useShell();
@@ -94,6 +96,12 @@ export function PurchaseBillsPage() {
   const newBill = () => navigate('/purchases/new?kind=bill');
   const rm = rowMenuHandlers('tr[data-bno]', (tr) => L.find((b) => b.number === tr.dataset.bno), setMenu);
   const m = menu?.row;
+  /** Cancel (owner, Oct 2026): the same as a delete — undone, hidden from the list, kept in the records. */
+  const askCancel = (b: PurchaseRow) => setHist(deleteModal({
+    qc, number: b.number, sub: `${b.partyName} · ₹${inr2f(b.total)}`, what: 'bill', url: `/purchases/${b.id}/delete`, keys: PU_KEYS, cancelWords: true,
+    body: <>Its items go out of stock again{Number(b.paid) > 0 ? <>, and ₹{inr2f(b.paid)} already paid on it stays with {b.partyName} as an <b>advance</b></> : null}.</>,
+    done: () => setHist(null), toast: showToast,
+  }));
   return (
     <section id="vPur">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Purchase bills</h1><div className="sp"></div><button className="btn" data-paynew="1" onClick={() => setPay({})}><RawIcon d={UP} />Record payment</button><button className="btn p" data-pnew="bill" onClick={newBill}><RawIcon d={PLUS} />New purchase bill <kbd className="kh" style={KBD}>Alt+P</kbd></button></div>
@@ -122,8 +130,8 @@ export function PurchaseBillsPage() {
         {P.pop?.kind === 'st' ? <ThfChoices options={ST} value={st} onPick={(v) => { setSt(v); P.setPop(null); }} /> : null}
       </ThfPop>
       <RowMenu id="puCtx" label="Purchase bill actions" rows="#puRows tr[data-bno]" menu={menu} head={m ? <><b>{m.number}</b> · {m.partyName}</> : null} actions={PUR_ACT}
-        off={{ edit: m?.cancelled ? CANCELLED : '', pay: m && !(Number(m.balance) > 0) ? 'Nothing left to pay' : '', dn: m?.cancelled ? CANCELLED : '' }} onClose={closeMenu(menu, setMenu)}
-        onPick={(a) => { const b = menu?.row; setMenu(null); if (!b) return; if (a === 'edit') navigate(editPath(b.id)); else if (a === 'pay') setPay({ party: b.party.id, bill: b.id }); else if (a === 'dn') navigate(`/purchases/new?kind=debit_note&against=${b.id}`); else if (a === 'hist') void openHistory('purchase', b.id, setHist, showToast); else setView(b.id); }} />
+        off={{ edit: m?.cancelled ? CANCELLED : '', pay: m && !(Number(m.balance) > 0) ? 'Nothing left to pay' : '', dn: m?.cancelled ? CANCELLED : '', cancel: m?.cancelled ? 'Already cancelled' : '' }} onClose={closeMenu(menu, setMenu)}
+        onPick={(a) => { const b = menu?.row; setMenu(null); if (!b) return; if (a === 'edit') navigate(editPath(b.id)); else if (a === 'cancel') askCancel(b); else if (a === 'pay') setPay({ party: b.party.id, bill: b.id }); else if (a === 'dn') navigate(`/purchases/new?kind=debit_note&against=${b.id}`); else if (a === 'hist') void openHistory('purchase', b.id, setHist, showToast); else setView(b.id); }} />
       <PurchaseView id={view} onClose={() => setView(null)} onPay={(o) => { setView(null); setPay(o); }} />
       <PayDialog open={pay} onClose={() => setPay(null)} />
       <SlModal m={hist} onClose={() => setHist(null)} />
@@ -203,6 +211,7 @@ export function PurchaseOrdersPage() {
 /* ───────── Payments made ───────── */
 export function PaymentsMadePage() {
   useFitTables();
+  const qc = useQueryClient();
   const list = usePaymentsMade();
   const bills = usePurchases('bill');
   const [hist, setHist] = useState<SlModalProps | null>(null);
@@ -223,6 +232,11 @@ export function PaymentsMadePage() {
   const L = A.filter((x) => !s || x.number.toLowerCase().includes(s) || x.partyName.toLowerCase().includes(s) || x.ref.toLowerCase().includes(s));
   const rm = rowMenuHandlers('tr[data-pxno]', (tr) => L.find((x) => x.number === tr.dataset.pxno), setMenu);
   const m = menu?.row;
+  const askDelete = (x: PaymentMade) => setHist(deleteModal({
+    qc, number: x.number, sub: `${x.partyName || '—'} · ₹${inr2f(x.amount)} · ${x.mode}`, what: 'payment', url: `/payments-made/${x.id}/delete`, keys: PU_KEYS,
+    body: <>{x.bills.length ? <>What it paid on {x.bills.map((b) => b.number).join(', ')} is owed to {x.partyName} again</> : <>Its advance with {x.partyName} is removed</>}{x.mode === 'Cheque' ? ', and its cheque is cancelled' : ''}.</>,
+    done: () => setHist(null), toast: showToast,
+  }));
   return (
     <section id="vPmade">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Payments made</h1><div className="sp"></div><button className="btn p" id="pxNew" onClick={() => setPay({})}><RawIcon d={PLUS} />Record payment</button></div>
@@ -242,8 +256,8 @@ export function PaymentsMadePage() {
       </div>
       <ThfPop anchor={P.pop?.anchor ?? null} onClose={P.closePop} focus={P.pop?.kind === 'range' ? '#thdFrom' : 'button.on,button'}>{P.perPop}</ThfPop>
       <RowMenu id="pxCtx" label="Payment actions" rows="#pxRows tr[data-pxno]" menu={menu} head={m ? <><b>{m.number}</b> · {m.partyName || '—'}</> : null} actions={PX_ACT}
-        off={{ edit: m?.atBill ? `Paid with ${m.bills[0]?.number ?? 'a bill'}. Edit the bill instead.` : '' }} onClose={closeMenu(menu, setMenu)}
-        onPick={(a) => { const x = menu?.row; setMenu(null); if (!x) return; if (a === 'hist') void openHistory('payment-made', x.id, setHist, showToast); else setPay({ edit: x.id }); }} />
+        off={{ edit: m?.atBill ? `Paid with ${m.bills[0]?.number ?? 'a bill'}. Edit the bill instead.` : '', del: m?.atBill ? `Paid with ${m.bills[0]?.number ?? 'a bill'}. Delete the bill instead.` : '' }} onClose={closeMenu(menu, setMenu)}
+        onPick={(a) => { const x = menu?.row; setMenu(null); if (!x) return; if (a === 'del') askDelete(x); else if (a === 'hist') void openHistory('payment-made', x.id, setHist, showToast); else setPay({ edit: x.id }); }} />
       <PayDialog open={pay} onClose={() => setPay(null)} />
       <SlModal m={hist} onClose={() => setHist(null)} />
     </section>
@@ -254,6 +268,7 @@ export function PaymentsMadePage() {
 export function DebitNotesPage() {
   useFitTables();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const list = usePurchases('debit_note');
   const [hist, setHist] = useState<SlModalProps | null>(null);
   const { showToast } = useShell();
@@ -269,6 +284,11 @@ export function DebitNotesPage() {
   const newDn = () => navigate('/purchases/new?kind=debit_note');
   const rm = rowMenuHandlers('tr[data-dnno]', (tr) => L.find((d) => d.number === tr.dataset.dnno), setMenu);
   const m = menu?.row;
+  const askDelete = (d: PurchaseRow) => setHist(deleteModal({
+    qc, number: d.number, sub: `${d.partyName || '—'} · ₹${inr2f(d.total)}`, what: 'debit note', url: `/purchases/${d.id}/delete`, keys: PU_KEYS,
+    body: <>Its returned items come back into stock, and {d.against ? <>what it took off {d.against} is owed to {d.partyName} again</> : <>its credit with {d.partyName} is removed</>}.</>,
+    done: () => setHist(null), toast: showToast,
+  }));
   return (
     <section id="vDns">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Debit notes</h1><span className="pttot">Goods returned to suppliers</span><div className="sp"></div><button className="btn p" data-pnew="dn" onClick={newDn}><RawIcon d={PLUS} />New debit note</button></div>
@@ -285,7 +305,7 @@ export function DebitNotesPage() {
       </div>
       <RowMenu id="dnCtx" label="Debit note actions" rows="#dnRows tr[data-dnno]" menu={menu} head={m ? <><b>{m.number}</b> · {m.partyName || '—'}</> : null} actions={DN_ACT}
         off={{ edit: m?.cancelled ? CANCELLED : '' }} onClose={closeMenu(menu, setMenu)}
-        onPick={(a) => { const d = menu?.row; setMenu(null); if (!d) return; if (a === 'edit') navigate(editPath(d.id)); else if (a === 'hist') void openHistory('purchase', d.id, setHist, showToast); else setView(d.id); }} />
+        onPick={(a) => { const d = menu?.row; setMenu(null); if (!d) return; if (a === 'edit') navigate(editPath(d.id)); else if (a === 'del') askDelete(d); else if (a === 'hist') void openHistory('purchase', d.id, setHist, showToast); else setView(d.id); }} />
       <PurchaseView id={view} onClose={() => setView(null)} />
       <SlModal m={hist} onClose={() => setHist(null)} />
     </section>
