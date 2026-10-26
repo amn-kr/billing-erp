@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import type { Tx } from '../../common/db.service';
 import { day } from '../../common/lookups';
 
@@ -17,4 +18,19 @@ export async function reverseStock(tx: Tx, who: { businessId: string; userId: st
         date: day(date), qty: n._sum.qty!.neg().toFixed(3), kind: 'cancel', note,
       })),
     });
+}
+
+/**
+ * Refuses to take out again goods a document brought in (a purchase bill, a credit note's returned
+ * goods) when some of them have been sold since: putting them back would leave the stock below zero.
+ */
+export async function refuseIfSoldSince(tx: Tx, docId: string, number: string, sourceType: 'sales_document' | 'purchase_document') {
+  const net = await tx.stockMovement.groupBy({ by: ['itemId', 'godownId'], where: { sourceType, sourceId: docId }, _sum: { qty: true } });
+  for (const n of net) {
+    if (!n._sum.qty?.gt(0)) continue;
+    const now = await tx.stockMovement.aggregate({ where: { itemId: n.itemId, godownId: n.godownId }, _sum: { qty: true } });
+    if (!(now._sum.qty ?? n._sum.qty).lt(n._sum.qty)) continue;
+    const item = await tx.item.findFirst({ where: { id: n.itemId }, select: { name: true } });
+    throw new BadRequestException({ message: `Some of it has been sold since: taking ${number}’s “${item?.name ?? 'item'}” out of stock again would make its stock negative.` });
+  }
 }
