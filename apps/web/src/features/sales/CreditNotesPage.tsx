@@ -24,6 +24,7 @@ import { SlModal, type SlModalProps } from './SlModal';
 import { editAsk, withPasscode } from '../settings/passcode';
 import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
 import { HIST_ACTION, openHistory } from '../../components/EditHistory';
+import { deleteModal } from './deleteDoc';
 
 interface CreditNote {
   id: string; number: string; date: string; party: { id: string; name: string } | null; partyName: string; reason: string; settle: 'adjust' | 'refund'; refundMode: string;
@@ -40,10 +41,11 @@ interface CnLine { inv: string; invNo: string; id: string; name: string; sold?: 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const PLUS = '<path d="M12 5v14M5 12h14"/>';
 const r2 = (n: number) => Math.round(n * 100) / 100;
-const CN_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View'], HIST_ACTION];
+const CN_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View'], HIST_ACTION, '-', ['del', 'Delete', 'dz']];
 
 export function CreditNotesPage() {
   const { showToast } = useShell();
+  const qc = useQueryClient();
   useFitTables();
   const [params, setParams] = useSearchParams();
   // from a party statement: open that document (prototype rcView / cnView)
@@ -76,6 +78,12 @@ export function CreditNotesPage() {
   if (want) { const x = list.data.find((y) => y.number === want); setWant(null); if (x) queueMicrotask(() => view(x)); }
   const rm = rowMenuHandlers('tr[data-cnno]', (tr) => A.find((c) => c.number === tr.dataset.cnno), setMenu);
   const m = menu?.row;
+  const askDelete = (c: CreditNote) => setModal(deleteModal({
+    qc, number: c.number, sub: `${c.partyName} · ₹${inr2f(c.total)}`, what: 'credit note', url: `/sales/${c.id}/delete`,
+    keys: ['credit-notes', 'credit-note', 'sales', 'parties', 'items', 'sale', 'returnable', 'dues', 'banking'],
+    body: c.cancelled ? <>It is already cancelled.</> : <>Its returned items go out of stock again, and {c.settle === 'refund' ? <>the ₹{inr2f(c.total)} refund by {c.refundMode} is taken out of your books</> : <>the credit it gave {c.partyName} is removed</>}.</>,
+    done: () => setModal(null), toast: showToast,
+  }));
 
   return (
     <section id="vCns">
@@ -93,7 +101,7 @@ export function CreditNotesPage() {
           </tbody></table></div></div>
       <RowMenu id="cnCtx" label="Credit note actions" rows="#cnRows tr[data-cnno]" menu={menu} head={m ? <><b>{m.number}</b> · {m.partyName}</> : null} actions={CN_ACT}
         off={{ edit: m?.cancelled ? 'Cancelled document' : '' }} onClose={() => { const tr = menu?.tr; setMenu(null); return tr; }}
-        onPick={(a) => { const c = menu?.row; setMenu(null); if (!c) return; if (a === 'edit') setOpen({ edit: c.id }); else if (a === 'hist') void openHistory('sales', c.id, setModal, showToast); else view(c); }} />
+        onPick={(a) => { const c = menu?.row; setMenu(null); if (!c) return; if (a === 'edit') setOpen({ edit: c.id }); else if (a === 'del') askDelete(c); else if (a === 'hist') void openHistory('sales', c.id, setModal, showToast); else view(c); }} />
       <CreditNoteDialog open={open} onClose={() => setOpen(null)} />
       <SlModal m={modal} onClose={() => setModal(null)} />
     </section>

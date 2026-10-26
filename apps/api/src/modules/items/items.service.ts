@@ -101,7 +101,7 @@ export class ItemsService {
       // invoices, credit notes and bills behind sale / return / purchase rows: their number, party and (invoices) paid status
       const ids = (t: string) => [...new Set(movements.filter((m) => m.sourceType === t && m.sourceId).map((m) => m.sourceId!))];
       const sdocs = new Map((await tx.salesDocument.findMany({ where: { id: { in: ids('sales_document') } }, select: { id: true, number: true, kind: true, total: true, cancelledAt: true, deletedAt: true, cashName: true, billName: true, party: { select: { name: true } } } })).map((d) => [d.id, d]));
-      const pdocs = new Map((await tx.purchaseDocument.findMany({ where: { id: { in: ids('purchase_document') } }, select: { id: true, number: true, party: { select: { name: true } } } })).map((d) => [d.id, d]));
+      const pdocs = new Map((await tx.purchaseDocument.findMany({ where: { id: { in: ids('purchase_document') } }, select: { id: true, number: true, deletedAt: true, party: { select: { name: true } } } })).map((d) => [d.id, d]));
       const bal = await invoiceBalances(tx, [...sdocs.values()].filter((d) => d.kind === 'invoice').map((d) => d.id));
       const refOf = (m: (typeof movements)[number]) => (m.sourceId ? adjs.get(m.sourceId)?.number ?? trfs.get(m.sourceId)?.number ?? sdocs.get(m.sourceId)?.number ?? pdocs.get(m.sourceId)?.number ?? '' : '');
       const partyOf = (m: (typeof movements)[number]) => {
@@ -127,7 +127,7 @@ export class ItemsService {
         godowns: godowns.map((g) => ({ id: g.id, name: g.name, stock: q3(byGodown.find((b) => b.godownId === g.id)?._sum.qty ?? '0') })),
         // a deleted document's movements (taken out and put back) still count in the stock, but aren't listed;
         // nor are the lines an edit replaced (its reversal and what that put back: see item-history.ts)
-        movements: withoutEditedLines(movements.filter((m) => !(m.sourceId && sdocs.get(m.sourceId)?.deletedAt))).map((m) => ({ id: m.id, date: isoOf(m.date), kind: m.kind, qty: q3(m.qty), rate: toDb(m.rate.toString()), godown: m.godown.name, note: m.note, sourceType: m.sourceType, sourceId: m.sourceId, ref: refOf(m), party: partyOf(m), status: statusOf(m), createdAt: m.createdAt })),
+        movements: withoutEditedLines(movements.filter((m) => !(m.sourceId && (sdocs.get(m.sourceId)?.deletedAt || pdocs.get(m.sourceId)?.deletedAt)))).map((m) => ({ id: m.id, date: isoOf(m.date), kind: m.kind, qty: q3(m.qty), rate: toDb(m.rate.toString()), godown: m.godown.name, note: m.note, sourceType: m.sourceType, sourceId: m.sourceId, ref: refOf(m), party: partyOf(m), status: statusOf(m), createdAt: m.createdAt })),
       };
     });
   }
