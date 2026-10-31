@@ -46,6 +46,9 @@ for (const width of WIDTHS) {
       await open(page, '/settings', '[data-settab="gen"]');
       await page.click('[data-settab="gen"]');
       await page.waitForSelector('#setDen');
+      await page.waitForSelector('#tmList small');
+      // the test owner's email changes every run: a fixed example in the picture
+      await page.evaluate(() => { document.querySelector('#tmList small')!.textContent = 'ravi@gupta.example.com · you'; });
       await settle(page);
       await approvedShot(`compact-settings-${width}`, page, '#vSet');
       await open(page, '/sales/new', '#vNewInv .dgt');
