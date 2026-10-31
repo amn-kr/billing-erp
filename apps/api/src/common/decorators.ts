@@ -6,6 +6,10 @@ export const IS_PUBLIC = 'isPublic';
 /** No sign-in needed (sign-in, sign-up, refresh, health). */
 export const Public = () => SetMetadata(IS_PUBLIC, true);
 
+export const WITH_TEMP_PASSWORD = 'withTempPassword';
+/** Works while the person still has to replace a temporary password (who am I, choose a new password). */
+export const WithTempPassword = () => SetMetadata(WITH_TEMP_PASSWORD, true);
+
 export const NEEDS_BUSINESS = 'needsBusiness';
 export const PERMISSION = 'permission';
 /** Needs a current shop and this permission in it. */

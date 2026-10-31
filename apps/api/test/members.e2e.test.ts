@@ -59,10 +59,21 @@ describe('what each role may do', () => {
     await http().post('/api/members/invites').set(auth(staff)).send({ email: uniqueEmail(), role: 'manager' }).expect(403);
     await http().get('/api/audit').set(auth(staff)).expect(403);
   });
-  it('a manager can invite; an accountant can view members but not invite', async () => {
+  it('only the owner invites, cancels invites and removes people (not a manager); an accountant can view members', async () => {
     const o = await owner(app);
     const mgr = await member(app, o, 'manager');
-    await http().post('/api/members/invites').set(auth(mgr)).send({ email: uniqueEmail(), role: 'billing_staff' }).expect(201);
+    const other = await member(app, o, 'billing_staff');
+    const inv = await http().post('/api/members/invites').set(auth(o)).send({ email: uniqueEmail(), role: 'manager' }).expect(201);
+    expect((await http().post('/api/members/invites').set(auth(mgr)).send({ email: uniqueEmail(), role: 'billing_staff' }).expect(403)).body.message).toBe('Only the shop owner can invite people.');
+    expect((await http().post(`/api/members/invites/${inv.body.id}/revoke`).set(auth(mgr)).expect(403)).body.message).toBe('Only the shop owner can cancel an invite.');
+    expect((await http().post(`/api/members/${other.membershipId}/remove`).set(auth(mgr)).expect(403)).body.message).toBe('Only the shop owner can remove people.');
+    // nothing changed: the invite is still open and the person still in the shop
+    const team = (await http().get('/api/members').set(auth(mgr)).expect(200)).body;
+    expect(team.invites.map((i: { id: string }) => i.id)).toContain(inv.body.id);
+    expect(team.members.find((m: { id: string }) => m.id === other.membershipId)?.status).toBe('active');
+    // the owner still can
+    await http().post(`/api/members/invites/${inv.body.id}/revoke`).set(auth(o)).expect(204);
+    await http().post(`/api/members/${other.membershipId}/remove`).set(auth(o)).expect(204);
     const acc = await member(app, o, 'accountant');
     await http().get('/api/members').set(auth(acc)).expect(200);
     await http().post('/api/members/invites').set(auth(acc)).send({ email: uniqueEmail(), role: 'billing_staff' }).expect(403);

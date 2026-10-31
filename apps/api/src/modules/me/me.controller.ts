@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Patch } from '@nestjs/common';
 import { DENSITY_KEYS, TEXT_SIZE_KEYS, daysBetween, type Density, type MeBusiness, type MeResponse, type RoleKey, type TextSize } from '@billing/shared';
 import { z } from 'zod';
-import { Ctx } from '../../common/decorators';
+import { Ctx, WithTempPassword } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
 import { planToday } from '../../config';
 import { DbService } from '../../common/db.service';
@@ -22,6 +22,7 @@ const display = (u: { uiDensity: string; uiTextSize: string }) => ({ density: u.
 export class MeController {
   constructor(private readonly db: DbService) {}
 
+  @WithTempPassword()
   @Get()
   async me(@Ctx() ctx: RequestContext): Promise<MeResponse> {
     return this.db.scoped({ businessId: ctx.businessId, userId: ctx.userId, email: ctx.email }, async (tx) => {
@@ -47,7 +48,7 @@ export class MeController {
         };
       }
       return {
-        user: { id: u.id, name: u.name, email: u.email, ...display(u) },
+        user: { id: u.id, name: u.name, email: u.email, mustChangePassword: u.mustChangePassword, ...display(u) },
         business,
         role: ctx.role,
         permissions: ctx.permissions,

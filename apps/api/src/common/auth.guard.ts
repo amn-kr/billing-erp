@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import type { Permission, RoleKey } from '@billing/shared';
 import type { Request } from 'express';
 import { DbService } from './db.service';
-import { IS_PUBLIC, PERMISSION } from './decorators';
+import { IS_PUBLIC, PERMISSION, WITH_TEMP_PASSWORD } from './decorators';
 import type { RequestContext } from './context';
 
 export interface AccessClaims {
@@ -43,16 +43,24 @@ export class AuthGuard implements CanActivate {
 
     let role: RoleKey | null = null;
     let permissions: Permission[] = [];
+    let mustChangePassword: boolean;
     if (claims.bid) {
       const m = await this.db.scoped({ businessId: claims.bid, userId: claims.sub, email: claims.email }, (tx) =>
         tx.membership.findFirst({
           where: { businessId: claims.bid!, userId: claims.sub, status: 'active' },
-          include: { role: { include: { permissions: true } } },
+          include: { role: { include: { permissions: true } }, user: { select: { mustChangePassword: true } } },
         }),
       );
       if (!m) throw new ForbiddenException({ message: 'You no longer have access to that shop.', code: 'removed' });
       role = m.role.key as RoleKey;
       permissions = m.role.permissions.map((p) => p.permission as Permission);
+      mustChangePassword = m.user.mustChangePassword;
+    } else {
+      mustChangePassword = !!(await this.db.user.findUnique({ where: { id: claims.sub }, select: { mustChangePassword: true } }))?.mustChangePassword;
+    }
+    // a temporary password from the shop owner opens only "Choose a new password", checked on every request
+    if (mustChangePassword && !this.reflector.getAllAndOverride<boolean>(WITH_TEMP_PASSWORD, targets)) {
+      throw new ForbiddenException({ message: 'Choose a new password first.', code: 'change_password' });
     }
 
     req.ctx = {

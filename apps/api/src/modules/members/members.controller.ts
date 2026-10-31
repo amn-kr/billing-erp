@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Req, Res } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { acceptInviteSchema, changeRoleSchema, inviteSchema, type InviteInput } from '@billing/shared';
 import type { Request, Response } from 'express';
 import type { z } from 'zod';
@@ -47,6 +48,15 @@ export class MembersController {
   @Post('members/:id/remove')
   remove(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
     return this.members.remove(ctx, id);
+  }
+
+  /** Owner only (checked in the service): a temporary password, shown once. */
+  @RequirePermission('members.manage')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @HttpCode(200)
+  @Post('members/:id/reset-password')
+  resetPassword(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
+    return this.members.resetPassword(ctx, id);
   }
 
   @RequirePermission('members.view')

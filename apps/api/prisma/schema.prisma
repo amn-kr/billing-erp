@@ -29,6 +29,10 @@ model User {
   phone         String    @default("")
   passwordHash  String    @map("password_hash")
   emailVerified DateTime? @map("email_verified_at") @db.Timestamptz(6)
+  /// signed in next with a temporary password from the shop owner: must choose a new one first
+  mustChangePassword    Boolean   @default(false) @map("must_change_password")
+  /// the temporary password stops working after this
+  tempPasswordExpiresAt DateTime? @map("temp_password_expires_at") @db.Timestamptz(6)
   lastLoginAt   DateTime? @map("last_login_at") @db.Timestamptz(6)
   /// this person's display choices: comfortable | compact, and small | normal | large
   uiDensity     String    @default("comfortable") @map("ui_density")
