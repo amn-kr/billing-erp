@@ -15,6 +15,7 @@ import { useOpenFocus } from '../../lib/useOpenFocus';
 import { useShell } from '../shell/store';
 import { getP, mg, r2, rnd, usePm, type Change, type Field, type PItem, type PriceData } from './model';
 import { BrandRules, pickEd, prLabel, ruleChanges, type Ed } from './BrandRules';
+import { ui } from '../../styles/uiSize';
 
 const X = '<path d="M6 6l12 12M18 6L6 18"/>';
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
@@ -185,12 +186,12 @@ export function PriceSetup({ open, data, previewOpen, onPreview, onClose }: {
   return (
     <div className={`ov c${rule ? ' prmode' : ''}`} id="psm" ref={ovRef} hidden={!open} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'psm') close(); }}>
       <div className="mdl psmd" role="dialog" aria-modal="true" aria-labelledby="psT">
-        <div className="dh"><div><h3 id="psT" style={{ margin: 0, fontSize: 18 }}>Price Setup</h3><small className="mu">Set sale prices from List Price (LP − discount %) or purchase price (+ margin %). Prices lock again when you close this.</small></div><button className="ib" type="button" id="psClose" aria-label="Close" onClick={close}><RawIcon d={X} /></button></div>
+        <div className="dh"><div><h3 id="psT" style={{ margin: 0, fontSize: ui.fs(18) }}>Price Setup</h3><small className="mu">Set sale prices from List Price (LP − discount %) or purchase price (+ margin %). Prices lock again when you close this.</small></div><button className="ib" type="button" id="psClose" aria-label="Close" onClick={close}><RawIcon d={X} /></button></div>
         <div className="psbar"><div className="seg2 sm" id="psTabs"><button type="button" data-pst="rule" className={rule ? 'on' : ''} onClick={() => { setPsu({ tab: 'rule' }); rerender(); }}>Brand rules</button><button type="button" data-pst="item" className={!rule ? 'on' : ''} onClick={() => { setPsu({ tab: 'item' }); rerender(); }}>Fine-tune items</button></div>
-          <label className="search" htmlFor="psQ" style={{ height: 34, maxWidth: 230 }}><RawIcon d={SEARCH} /><input id="psQ" placeholder="Search item or code" autoComplete="off" value={psu.q} onChange={(e) => { setPsu({ q: e.target.value }); rerender(); }} /></label>
+          <label className="search" htmlFor="psQ" style={{ height: ui.h(34), maxWidth: 230 }}><RawIcon d={SEARCH} /><input id="psQ" placeholder="Search item or code" autoComplete="off" value={psu.q} onChange={(e) => { setPsu({ q: e.target.value }); rerender(); }} /></label>
           <select className="fi" id="psCat" aria-label="Category" value={psu.cat} onChange={(e) => { setPsu({ cat: e.target.value }); rerender(); }}><option value="all">All categories</option>{cats.map((c) => <option key={c}>{c}</option>)}</select>
           <select className="fi" id="psBrand" aria-label="Brand" value={psu.brand} onChange={(e) => { setPsu({ brand: e.target.value, ser: 'all' }); rerender(); }}><option value="all">All brands</option>{brands.map((b) => <option key={b}>{b}</option>)}</select>
-          <select className="fi" id="psSer" aria-label="Series" value={ser || 'all'} disabled={!sers.length} onChange={(e) => { setPsu({ ser: e.target.value }); rerender(); }}><option value="all">All series</option>{sers.map((x) => <option key={x}>{x}</option>)}</select><span className="mu" id="psN" style={{ fontSize: 12.5 }}>{L.length} item{L.length === 1 ? '' : 's'}</span></div>
+          <select className="fi" id="psSer" aria-label="Series" value={ser || 'all'} disabled={!sers.length} onChange={(e) => { setPsu({ ser: e.target.value }); rerender(); }}><option value="all">All series</option>{sers.map((x) => <option key={x}>{x}</option>)}</select><span className="mu" id="psN" style={{ fontSize: ui.fs(12.5) }}>{L.length} item{L.length === 1 ? '' : 's'}</span></div>
         <div id="psBody" ref={bodyRef}>
           {rule ? (
             <BrandRules IT={IT} F={F} rules={rules} ed={ed} setEd={(e) => { setEd(e); setFitted(false); }} meta={meta} fitted={fitted} onPick={(k) => pick(k)} onRemove={removeRule} />

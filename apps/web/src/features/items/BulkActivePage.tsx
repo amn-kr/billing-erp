@@ -16,6 +16,7 @@ import { SheetGrid, type SheetColumn } from '../../components/SheetGrid';
 import { RawIcon } from '../../components/Icon';
 import { useShell } from '../shell/store';
 import { qfmt, type Item } from './ItemsPage';
+import { ui } from '../../styles/uiSize';
 
 interface Row extends Item { archived: boolean }
 type Show = 'active' | 'inactive' | 'all';
@@ -93,7 +94,7 @@ export function BulkActivePage() {
 
   const header = (
     <>
-      <button className="lnk" id="baBack" style={{ fontSize: 12, padding: 0 }} onClick={() => go('/items')}>← Items</button>
+      <button className="lnk" id="baBack" style={{ fontSize: ui.fs(12), padding: 0 }} onClick={() => go('/items')}>← Items</button>
       <div className="pthd">
         <h1 className="ptkind" style={{ cursor: 'default' }}>Bulk Active / Inactive</h1>
         <div className="pttot" id="baTot"><span>{plural(active, 'active item')}</span><span>{n(IT.length - active)} inactive</span></div>
@@ -108,13 +109,13 @@ export function BulkActivePage() {
       {header}
       {serverMsg && <div className="msg bad" id="baErr" role="alert">{serverMsg}</div>}
       <div className="card ptxc">
-        <div className="ptfil" style={{ padding: '14px 16px', alignItems: 'center', gap: 12 }}>
-          <label className="search" htmlFor="baQ" style={{ height: 34 }}><RawIcon d={SEARCH} /><input id="baQ" placeholder="Search by item name or code" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
-          <select className="fi" id="baBrand" aria-label="Filter by brand" value={brand} style={{ width: 'auto', height: 34, margin: 0 }} onChange={(e) => setBrand(e.target.value)}>
+        <div className="ptfil" style={{ padding: ui.sp('14px 16px'), alignItems: 'center', gap: ui.sp(12) }}>
+          <label className="search" htmlFor="baQ" style={{ height: ui.h(34) }}><RawIcon d={SEARCH} /><input id="baQ" placeholder="Search by item name or code" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+          <select className="fi" id="baBrand" aria-label="Filter by brand" value={brand} style={{ width: 'auto', height: ui.h(34), margin: 0 }} onChange={(e) => setBrand(e.target.value)}>
             <option value="">All brands</option>
             {brands.map((b) => <option key={b}>{b}</option>)}
           </select>
-          <select className="fi" id="baCat" aria-label="Filter by category" value={category} style={{ width: 'auto', height: 34, margin: 0 }} onChange={(e) => setCategory(e.target.value)}>
+          <select className="fi" id="baCat" aria-label="Filter by category" value={category} style={{ width: 'auto', height: ui.h(34), margin: 0 }} onChange={(e) => setCategory(e.target.value)}>
             <option value="">All categories</option>
             <option value="—">No category</option>
             {cats.map((c) => <option key={c}>{c}</option>)}
@@ -144,7 +145,7 @@ export function BulkActivePage() {
           empty={IT.length ? 'No items match.' : 'No products yet. Add items first.'}
         />
         <div className="egpg" id="baBar">
-          <span className="brc" id="baChip" style={{ fontSize: 12, padding: '3px 10px' }}>{plural(selRows.length, 'item')} selected</span>
+          <span className="brc" id="baChip" style={{ fontSize: ui.fs(12), padding: ui.sp('3px 10px') }}>{plural(selRows.length, 'item')} selected</span>
           <button className="btn" id="baInactive" disabled={busy} onClick={() => ask(false)}>Make inactive</button>
           <button className="btn p" id="baActive" disabled={busy} onClick={() => ask(true)}>Make active</button>
         </div>
@@ -163,13 +164,13 @@ function ConfirmBody({ busy, makeActive, items, withStock, onCancel, onGo }: { b
   const word = makeActive ? 'active' : 'inactive';
   return (
     <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="bacT">
-      <h3 id="bacT" style={{ margin: '0 0 12px', fontSize: 18 }}>Make {plural(items, 'item')} {word}?</h3>
-      <p id="bacD" style={{ margin: '0 0 8px', fontSize: 13.5, lineHeight: 1.6 }}>
+      <h3 id="bacT" style={{ margin: ui.sp('0 0 12px'), fontSize: ui.fs(18) }}>Make {plural(items, 'item')} {word}?</h3>
+      <p id="bacD" style={{ margin: ui.sp('0 0 8px'), fontSize: ui.fs(13.5), lineHeight: 1.6 }}>
         {makeActive ? 'They can be picked on new bills again.' : 'They are hidden from the item list and from new bills. Old bills and stock reports keep them, and you can make them active again.'}
       </p>
-      {withStock > 0 && <p id="bacStock" style={{ margin: '0 0 8px', fontSize: 13.5, lineHeight: 1.6 }}><b>{withStock === 1 ? '1 of them still has stock.' : `${n(withStock)} of them still have stock.`}</b></p>}
-      <p className="mu" style={{ margin: '0 0 14px', fontSize: 12.5, lineHeight: 1.6 }}>All of them are changed together. If one can’t be changed, none is, and you are told which one and why.</p>
-      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+      {withStock > 0 && <p id="bacStock" style={{ margin: ui.sp('0 0 8px'), fontSize: ui.fs(13.5), lineHeight: 1.6 }}><b>{withStock === 1 ? '1 of them still has stock.' : `${n(withStock)} of them still have stock.`}</b></p>}
+      <p className="mu" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(12.5), lineHeight: 1.6 }}>All of them are changed together. If one can’t be changed, none is, and you are told which one and why.</p>
+      <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end' }}>
         <button className="btn" type="button" id="bacCancel" disabled={busy} onClick={onCancel}>Cancel</button>
         <button className="btn p" type="button" id="bacGo" disabled={busy} onClick={onGo}>{busy ? 'Saving…' : `Make ${word}`}</button>
       </div>

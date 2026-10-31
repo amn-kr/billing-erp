@@ -33,6 +33,7 @@ import { DG_TERMS, addDaysIso, daysDiff, partyState, r2, type EItem, type EParty
 import { PE_T, PU_KEYS, usePurchases, type PKind, type PurchaseDoc } from './model';
 import { editAsk, withPasscode } from '../settings/passcode';
 import { SlModal, type SlModalProps } from '../sales/SlModal';
+import { ui } from '../../styles/uiSize';
 
 const BACK = '<path d="M15 6l-6 6 6 6"/>';
 const WALLET = '<path d="M4 7a2 2 0 0 1 2-2h12v4M4 7v11a2 2 0 0 0 2 2h14V9H6a2 2 0 0 1-2-2zM16 14.5h1"/>';
@@ -415,8 +416,8 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
             <div className="tl tt"><span>Total</span><b>₹{inr2f(total)}</b></div><div className="siw">{amountInWords(String(total))}</div>
             {k === 'bill' ? <><label className="cb2 peupd"><input type="checkbox" id="peUpd" checked={s.updPrice} onChange={(e) => up((x) => { x.updPrice = e.target.checked; })} /> Update purchase price in Items{changes.length ? <> <b>({changes.length} change{changes.length > 1 ? 's' : ''})</b></> : null}</label>
               {changes.length && s.updPrice ? <div className="pechl">{changes.slice(0, 4).map((x) => <span key={x.it.id}>{x.it.name}: ₹{inr2f(x.ov)} → <b>₹{inr2f(x.nv)}</b></span>)}{changes.length > 4 ? <span>…and {changes.length - 4} more</span> : null}</div> : null}</> : null}
-            {k === 'debit_note' ? <p className="aphint" style={{ margin: '8px 0 0' }}>{s.against ? `Reduces what you owe on ${partyBills.find((b) => b.id === s.against)?.number ?? ''}.` : 'Kept as credit with this supplier.'} Stock goes down by the returned quantity.</p> : null}
-            {k === 'order' ? <p className="aphint" style={{ margin: '8px 0 0' }}>An order doesn’t change stock. Convert it to a bill when the goods arrive.</p> : null}
+            {k === 'debit_note' ? <p className="aphint" style={{ margin: ui.sp('8px 0 0') }}>{s.against ? `Reduces what you owe on ${partyBills.find((b) => b.id === s.against)?.number ?? ''}.` : 'Kept as credit with this supplier.'} Stock goes down by the returned quantity.</p> : null}
+            {k === 'order' ? <p className="aphint" style={{ margin: ui.sp('8px 0 0') }}>An order doesn’t change stock. Convert it to a bill when the goods arrive.</p> : null}
           </div></div>
       </div>
 

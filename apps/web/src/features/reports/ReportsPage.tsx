@@ -12,6 +12,7 @@ import { choosePer, type PeriodState } from './periods';
 import { RpPrint, type RpDef } from './Shell';
 import { PartyReports } from './party';
 import { ExpenseReports } from './expense';
+import { ui } from '../../styles/uiSize';
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 
@@ -57,7 +58,7 @@ export function ReportsPage() {
                 <div className="rph" id={'rps-' + k}>{h}</div>
                 {L.map((r) => <button type="button" className={r[0] === sel ? 'rpi on' : 'rpi'} data-rp={r[0]} aria-current={r[0] === sel ? 'page' : undefined} key={r[0]} onClick={() => { open(r[0]); if (innerWidth < 900) document.getElementById('rpMain')?.scrollIntoView({ block: 'start' }); }}>{r[1]}</button>)}
               </Fragment>
-            )) : <p className="mu" style={{ padding: 12, margin: 0 }}>No report matches.</p>}
+            )) : <p className="mu" style={{ padding: ui.sp(12), margin: 0 }}>No report matches.</p>}
           </nav></aside>
         <div className="card rpm" id="rpMain">
           {Rp ? <Rp sel={sel} p={p} setP={setP} onToggle={toggle} onPrint={setPrint} open={open} /> : (

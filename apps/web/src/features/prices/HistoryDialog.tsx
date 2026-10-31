@@ -6,6 +6,7 @@ import { inr2f } from '../../lib/format';
 import { RawIcon } from '../../components/Icon';
 import { useOpenFocus } from '../../lib/useOpenFocus';
 import { histField } from './model';
+import { ui } from '../../styles/uiSize';
 
 interface Row { at: string; itemId: string; item: string; field: string; oldValue: string | null; newValue: string | null; how: string; by: string }
 const X = '<path d="M6 6l12 12M18 6L6 18"/>';
@@ -25,8 +26,8 @@ export function HistoryDialog({ open, fname, onClose }: { open: boolean; fname: 
   return (
     <div className="ov c" id="phm" ref={ovRef} hidden={!open} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'phm') onClose(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="phT" style={{ width: 'min(820px,100%)' }}>
-        <div className="dh"><h3 id="phT" style={{ margin: 0, fontSize: 18 }}>Price history</h3><button className="ib" type="button" id="phClose" aria-label="Close" onClick={onClose}><RawIcon d={X} /></button></div>
-        <div className="tw stk" style={{ margin: '12px 0 0', maxHeight: '60vh', overflow: 'auto' }}><table className="ptt2" style={{ minWidth: 640 }}><thead><tr><th>When</th><th>Item</th><th>Price</th><th className="n">Old</th><th className="n">New</th><th>How</th></tr></thead>
+        <div className="dh"><h3 id="phT" style={{ margin: 0, fontSize: ui.fs(18) }}>Price history</h3><button className="ib" type="button" id="phClose" aria-label="Close" onClick={onClose}><RawIcon d={X} /></button></div>
+        <div className="tw stk" style={{ margin: ui.sp('12px 0 0'), maxHeight: '60vh', overflow: 'auto' }}><table className="ptt2" style={{ minWidth: 640 }}><thead><tr><th>When</th><th>Item</th><th>Price</th><th className="n">Old</th><th className="n">New</th><th>How</th></tr></thead>
           <tbody id="phRows">
             {h.data && (H.length ? H.slice(0, 200).map((r, k) => (
               <tr key={k}><td>{when(r.at)}</td><td>{r.item}</td><td>{fname(histField(r.field))}</td><td className="n">{r.oldValue === null ? '' : inr2f(r.oldValue)}</td><td className="n"><b>{r.newValue === null ? '' : inr2f(r.newValue)}</b></td><td className="mu">{r.how} · {r.by || 'Owner'}</td></tr>

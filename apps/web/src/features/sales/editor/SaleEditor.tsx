@@ -37,6 +37,7 @@ import {
   DG_TERMS, SI_MODES, SI_TT, addDaysIso, blankLine, calc, cmApply, daysDiff, hasContent, lineComm, lineFor, newSI, partyState, paySum, priceListFor, r2, unitPrice, useSI, useTab, TabCtx, isDirty,
   type EItem, type EParty, type Line, type SI,
 } from './state';
+import { ui } from '../../../styles/uiSize';
 
 const BACK = '<path d="M15 6l-6 6 6 6"/>';
 const CHG = '<path d="M19 5L5 19M7.5 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM16.5 18a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/>';
@@ -498,7 +499,7 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
         <button className="btn" type="button" id="siSaveNew" disabled={busy} onClick={() => void save(true)}>Save &amp; new <kbd className="kh">Ctrl+Shift+S</kbd></button>
         <button className="btn" type="button" id="siSavePrint" title="Save & print" disabled={busy} onClick={() => void save(false, true)}><RawIcon d={PRINT} /><span className="sftx">{quote ? 'Save & print' : 'Save & print'}</span></button>
         <button className="btn p" type="button" id="siSave" disabled={busy} onClick={() => void save(false)}>{quote ? 'Save quotation ' : 'Save '}<kbd className="kh" style={{ background: 'transparent', color: 'inherit', borderColor: 'rgba(255,255,255,.4)' }}>Ctrl+S</kbd></button></div>
-      <div className="dgpop cmpop" id="siCmPop" role="dialog" aria-label="Referral" hidden={pop !== 'cm'}><b style={{ fontSize: 14 }}>Referral</b>
+      <div className="dgpop cmpop" id="siCmPop" role="dialog" aria-label="Referral" hidden={pop !== 'cm'}><b style={{ fontSize: ui.fs(14) }}>Referral</b>
         <div id="siCmBody"><div className="cmref"><label className="ff on"><select className="fi" id="siRef" value={s.ref} onChange={(e) => { const v = e.target.value; if (v === '__new') { e.target.value = s.ref; elec.open(); return; } setRef(v); toast(v ? 'Referral set · rates updated' : 'Referral removed · rates updated'); }}>
           <option value="">No electrician</option>{d.refs.map((r) => <option value={r.id} key={r.id}>{r.name}{r.city ? ' · ' + r.city : ''}</option>)}<option value="__new">+ Add electrician…</option></select><span>Referred by</span></label>
           {s.ref ? <button type="button" className="cmchip" id="siCmChip" title="Added to the rates · not printed on the invoice" onClick={() => setCmView(true)}><Icon name="pct" /><span>Commission</span><b id="siCmAmt">{inr2f(comm)}</b><em className="cmed">Edit ›</em></button> : null}</div></div>

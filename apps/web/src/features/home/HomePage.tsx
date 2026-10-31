@@ -21,6 +21,7 @@ import type { Party } from '../parties/PartiesPage';
 import type { SaleRow } from '../sales/model';
 import type { PurchaseRow } from '../purchases/model';
 import { dt } from '../reports/periods';
+import { ui } from '../../styles/uiSize';
 
 interface Home {
   today: number; todayBills: number; yesterday: number; gst: { out: number; inp: number }; top: [string, number][]; cashToday: number;
@@ -155,8 +156,8 @@ export function HomePage() {
           <section className="card">
             <div className="hd"><h3>Top selling items</h3><span className="pill">This year</span></div>
             <div id="top">{TP.length ? TP.map((t, i) => (
-              <div style={{ marginBottom: 13 }} key={t[0]}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 12.5 }}><span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t[0]}</span><b>{hmL(t[1])}</b></div><div className="bar"><i style={{ width: `${(t[1] / tm) * 100}%`, background: 'var(--ac)', opacity: 1 - i * 0.14 }}></i></div></div>
-            )) : <p className="mu" style={{ fontSize: 13, margin: 0 }}>Sales this year will show here.</p>}</div>
+              <div style={{ marginBottom: ui.sp(13) }} key={t[0]}><div style={{ display: 'flex', justifyContent: 'space-between', gap: ui.sp(10), fontSize: ui.fs(12.5) }}><span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t[0]}</span><b>{hmL(t[1])}</b></div><div className="bar"><i style={{ width: `${(t[1] / tm) * 100}%`, background: 'var(--ac)', opacity: 1 - i * 0.14 }}></i></div></div>
+            )) : <p className="mu" style={{ fontSize: ui.fs(13), margin: 0 }}>Sales this year will show here.</p>}</div>
           </section>
         </div>
         <div className="rail">
@@ -167,8 +168,8 @@ export function HomePage() {
 
           <section className="card">
             <div className="hd"><h3>Cash &amp; bank</h3><button className="lnk" data-soon="Banking" onClick={() => nav('/bank-accounts')}>Banking →</button></div>
-            <b style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-.02em' }}>{inr(cashTot)}</b>
-            <small style={{ display: 'block', color: 'var(--t2)', marginBottom: 14 }}>Total across {plural(A.length, 'account', 'accounts')}</small>
+            <b style={{ fontSize: ui.fs(28), fontWeight: 800, letterSpacing: '-.02em' }}>{inr(cashTot)}</b>
+            <small style={{ display: 'block', color: 'var(--t2)', marginBottom: ui.sp(14) }}>Total across {plural(A.length, 'account', 'accounts')}</small>
             <div id="bank">
               {A.map((a) => (
                 <a href="#" className="row" data-view={a.kind === 'cash' ? 'cash' : 'bks'} data-bksel={a.kind === 'bank' ? a.id : undefined} style={{ textDecoration: 'none', color: 'inherit' }} key={a.id} onClick={(e) => { e.preventDefault(); nav(a.kind === 'cash' ? '/cash-in-hand' : `/bank-accounts?sel=${a.id}`); }}>
@@ -194,9 +195,9 @@ export function HomePage() {
             <div className="hd"><h3>Low stock</h3><span className="st r">{plural(low.length, 'item', 'items')}</span></div>
             <div id="low">{LW.length ? LW.map(([i, q]) => {
               const m = Number(i.minStock) || 1, p = Math.max(0, Math.min(100, (q / m) * 100)), c = p < 30 ? 'var(--red)' : 'var(--amber)';
-              return <div className="row" style={{ display: 'block' }} key={i.id}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><b>{i.name}</b><span style={{ fontSize: 12.5, fontWeight: 700, color: c, whiteSpace: 'nowrap' }}>{q} {i.unit || ''}</span></div><small>Reorder at {m} {i.unit || ''}</small><div className="bar"><i style={{ width: `${p}%`, background: c }}></i></div></div>;
-            }) : <p className="mu" style={{ fontSize: 13, margin: 0 }}>All items are above their reorder level.</p>}</div>
-            <button className="lnk" data-soon="Items & stock" style={{ marginTop: 10 }} onClick={() => soon('Items & stock')}>View stock report →</button>
+              return <div className="row" style={{ display: 'block' }} key={i.id}><div style={{ display: 'flex', justifyContent: 'space-between', gap: ui.sp(10) }}><b>{i.name}</b><span style={{ fontSize: ui.fs(12.5), fontWeight: 700, color: c, whiteSpace: 'nowrap' }}>{q} {i.unit || ''}</span></div><small>Reorder at {m} {i.unit || ''}</small><div className="bar"><i style={{ width: `${p}%`, background: c }}></i></div></div>;
+            }) : <p className="mu" style={{ fontSize: ui.fs(13), margin: 0 }}>All items are above their reorder level.</p>}</div>
+            <button className="lnk" data-soon="Items & stock" style={{ marginTop: ui.sp(10) }} onClick={() => soon('Items & stock')}>View stock report →</button>
           </section>
         </div>
       </div>

@@ -23,6 +23,7 @@ import css from './edit-grid.css?inline';
 import sheetCss from './sheet-grid.css?inline';
 import { useStyles } from '../lib/useStyles';
 import { useFitToScreen } from './EditGrid';
+import { ui } from '../styles/uiSize';
 
 export interface SheetColumn {
   key: string;
@@ -445,7 +446,7 @@ export function SheetGrid<R>({ id, columns, rows, rowKey, rowLabel, rowName, lea
         </table>
       </div>
       {list && lc?.list && lr && createPortal(
-        <div className="pop thfp" id={`${id}-list`} role="listbox" aria-label={lc.title} style={{ position: 'fixed', top: lr.bottom + 2, left: lr.left, minWidth: lr.width, maxHeight: 280, overflowY: 'auto' }}>
+        <div className="pop thfp" id={`${id}-list`} role="listbox" aria-label={lc.title} style={{ position: 'fixed', top: lr.bottom + 2, left: lr.left, minWidth: lr.width, maxHeight: ui.h(280), overflowY: 'auto' }}>
           {lc.list.map((o, i) => (
             <button key={o.value} type="button" role="option" aria-selected={i === list.hi} className={i === list.hi ? 'on' : ''} tabIndex={-1}
               ref={(b) => { if (b && i === list.hi) b.scrollIntoView({ block: 'nearest' }); }}

@@ -14,6 +14,7 @@ import { RawIcon } from '../../components/Icon';
 import { P } from '../../components/icon-paths';
 import { useOpenFocus } from '../../lib/useOpenFocus';
 import { useShell } from '../shell/store';
+import { ui } from '../../styles/uiSize';
 
 export interface PasscodeState { set: boolean; enabled: boolean }
 export const PASSCODE_KEY = ['txn-passcode'] as const;
@@ -174,7 +175,7 @@ export function PasscodeBox() {
         <div className="plkic"><RawIcon d={P.lock} /></div>
         <h3 id="pcT">{t.title}</h3><p className="mu" id="pcSub">{t.sub}</p>
         <form id="pcForm" noValidate onSubmit={submit}>
-          {mode === 'forgot' ? <><label className="vh" htmlFor="pcPw">Account password</label><input className="fi" id="pcPw" type="password" autoComplete="current-password" placeholder="Your account password" style={{ margin: '0 0 10px', height: 42 }} value={pw} onChange={(e) => { setPw(e.target.value); setErr(''); }} ref={pwRef} /></> : null}
+          {mode === 'forgot' ? <><label className="vh" htmlFor="pcPw">Account password</label><input className="fi" id="pcPw" type="password" autoComplete="current-password" placeholder="Your account password" style={{ margin: ui.sp('0 0 10px'), height: ui.h(42) }} value={pw} onChange={(e) => { setPw(e.target.value); setErr(''); }} ref={pwRef} /></> : null}
           <label className="vh" htmlFor="pcPin">{two ? 'New passcode' : 'Passcode'}</label><input className="fi plkpin" id="pcPin" type="password" inputMode="numeric" maxLength={6} autoComplete="off" placeholder={mode === 'forgot' ? 'New passcode' : '••••••'} value={pin} onChange={(e) => { setPin(digits(e.target.value)); setErr(''); }} ref={pinRef} />
           {two ? <><label className="vh" htmlFor="pcPin2">Type it again</label><input className="fi plkpin" id="pcPin2" type="password" inputMode="numeric" maxLength={6} autoComplete="off" placeholder="Type it again" value={pin2} onChange={(e) => { setPin2(digits(e.target.value)); setErr(''); }} ref={pin2Ref} /></> : null}
           <div className="msg bad" id="pcErr" role="alert">{err}</div>

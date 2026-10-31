@@ -8,6 +8,7 @@ import { useOpenFocus } from '../../lib/useOpenFocus';
 import { useShell } from '../shell/store';
 import { API_FIELD, rawOverride, usePm, type Change, type PriceData } from './model';
 import { nudgeLock } from './PricesPage';
+import { ui } from '../../styles/uiSize';
 
 export interface Preview { changes: Change[]; how: string; note: ReactNode; after?: () => void }
 const X = '<path d="M6 6l12 12M18 6L6 18"/>';
@@ -70,8 +71,8 @@ export function PreviewDialog({ preview, data, mrpOn, onClose, onApplied }: { pr
   return (
     <div className="ov c" id="ppv" ref={ovRef} hidden={!preview} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'ppv') onClose(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="ppvT" style={{ width: 'min(820px,100%)' }}>
-        <div className="dh"><div><small className="mu">Preview price changes</small><h3 id="ppvT" style={{ margin: '2px 0 0', fontSize: 18 }}>{preview?.how}</h3></div><button className="ib" type="button" id="ppvCancel" aria-label="Close" onClick={onClose}><RawIcon d={X} /></button></div>
-        <div className="ppvsum" id="ppvSum">{preview && <><span><b>{changes.length}</b> prices will change</span><span className="pos">▲ {up} up</span><span className="neg">▼ {dn} down</span>{bad ? <span className="lowq">{bad} need a look</span> : null}</>}</div><p className="hint" id="ppvNote" style={{ margin: '0 0 8px' }}>{preview?.note}</p>
+        <div className="dh"><div><small className="mu">Preview price changes</small><h3 id="ppvT" style={{ margin: ui.sp('2px 0 0'), fontSize: ui.fs(18) }}>{preview?.how}</h3></div><button className="ib" type="button" id="ppvCancel" aria-label="Close" onClick={onClose}><RawIcon d={X} /></button></div>
+        <div className="ppvsum" id="ppvSum">{preview && <><span><b>{changes.length}</b> prices will change</span><span className="pos">▲ {up} up</span><span className="neg">▼ {dn} down</span>{bad ? <span className="lowq">{bad} need a look</span> : null}</>}</div><p className="hint" id="ppvNote" style={{ margin: ui.sp('0 0 8px') }}>{preview?.note}</p>
         <div className="tw stk" style={{ margin: 0, maxHeight: '52vh', overflow: 'auto' }}><table className="ptt2" style={{ minWidth: 620 }}><thead><tr><th>Item</th><th>Price</th><th className="n">Now</th><th className="n">New</th><th className="n">Change</th><th></th></tr></thead>
           <tbody id="ppvRows">
             {changes.map((c, k) => {
@@ -80,7 +81,7 @@ export function PreviewDialog({ preview, data, mrpOn, onClose, onApplied }: { pr
               return <tr key={k}><td><b style={{ fontWeight: 600 }}>{c.i.name}</b></td><td>{data.fname(c.f)}</td><td className="n">{inr2f(c.ov)}</td><td className="n"><b>{inr2f(nv)}</b></td><td className={`n ${d > 0 ? 'pos' : d < 0 ? 'neg' : ''}`}>{c.ov ? (d > 0 ? '+' : '') + d.toFixed(1) + '%' : 'new'}</td><td>{warn(c)}</td></tr>;
             })}
           </tbody></table></div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 14, flexWrap: 'wrap' }}><span className="mu" style={{ fontSize: 12, alignSelf: 'center', flex: 1 }}>You can undo this afterwards.</span><button className="btn p" id="ppvApply" onClick={apply}>{preview ? `Apply ${changes.length} change${changes.length > 1 ? 's' : ''}` : 'Apply'}</button></div>
+        <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end', marginTop: ui.sp(14), flexWrap: 'wrap' }}><span className="mu" style={{ fontSize: ui.fs(12), alignSelf: 'center', flex: 1 }}>You can undo this afterwards.</span><button className="btn p" id="ppvApply" onClick={apply}>{preview ? `Apply ${changes.length} change${changes.length > 1 ? 's' : ''}` : 'Apply'}</button></div>
       </div>
     </div>
   );

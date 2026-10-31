@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '../lib/api';
 import { SlModal, type SlModalProps } from '../features/sales/SlModal';
 import { useShell } from '../features/shell/store';
+import { ui } from '../styles/uiSize';
 
 export type Master = 'item' | 'party';
 const PATH: Record<Master, string> = { item: 'items', party: 'parties' };
@@ -89,7 +90,7 @@ export function InactiveList<R extends MasterRow>({ what, keep, nameStyle }: { w
   }
   return (
     <>
-      <div style={{ padding: '10px 14px' }}><button className="lnk" type="button" id={`${what}Inactive`} aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Hide inactive' : `Show inactive (${rows.length})`}</button></div>
+      <div style={{ padding: ui.sp('10px 14px') }}><button className="lnk" type="button" id={`${what}Inactive`} aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Hide inactive' : `Show inactive (${rows.length})`}</button></div>
       {open && rows.map((r) => (
         <div className="ptr" data-inactive={r.id} key={r.id} style={{ cursor: 'default', alignItems: 'center' }}>
           <span className="ptn" style={{ color: 'var(--t2)', ...nameStyle }}>{r.name}{' '}<span className="st q">Inactive</span></span>

@@ -15,6 +15,7 @@ import { today } from '../../lib/time';
 import { useOpenFocus } from '../../lib/useOpenFocus';
 import { RawIcon } from '../../components/Icon';
 import type { PItem, PriceData } from './model';
+import { ui } from '../../styles/uiSize';
 
 const X = '<path d="M6 6l12 12M18 6L6 18"/>';
 const CHAT = '<path d="M4 5h16v11H9l-5 4z"/>';
@@ -205,7 +206,7 @@ export function RateList({ open, data, onClose }: { open: boolean; data: PriceDa
   return (
     <div className="ov c" id="rlm" ref={ovRef} hidden={!open} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'rlm') onClose(); }}>
       <div className="mdl rlm" role="dialog" aria-modal="true" aria-labelledby="rlT">
-        <div className="dh" style={{ padding: '16px 20px', borderBottom: '1px solid var(--bd)' }}><div><h3 id="rlT" style={{ margin: 0, fontSize: 18 }}>Download rate list</h3><small className="mu" id="rlCount">{R.length} item{R.length === 1 ? '' : 's'}</small></div><button className="ib" type="button" id="rlClose" aria-label="Close" onClick={onClose}><RawIcon d={X} /></button></div>
+        <div className="dh" style={{ padding: ui.sp('16px 20px'), borderBottom: '1px solid var(--bd)' }}><div><h3 id="rlT" style={{ margin: 0, fontSize: ui.fs(18) }}>Download rate list</h3><small className="mu" id="rlCount">{R.length} item{R.length === 1 ? '' : 's'}</small></div><button className="ib" type="button" id="rlClose" aria-label="Close" onClick={onClose}><RawIcon d={X} /></button></div>
         <div className="rlg">
           <div className="rlopt">
             <label className="apf" htmlFor="rlTitle">Title<input className="fi" id="rlTitle" placeholder="e.g. Wholesale rate list" autoComplete="off" value={RL.title} onChange={(e) => set({ title: e.target.value })} /></label>

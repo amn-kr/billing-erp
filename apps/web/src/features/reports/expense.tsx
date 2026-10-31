@@ -9,6 +9,7 @@ import { useExpenses, type ExpenseRow } from '../expenses/ExpensesPage';
 import { dmyOf, range } from './periods';
 import { RpShell, Sel, type RpDef } from './Shell';
 import type { RpProps } from './ReportsPage';
+import { ui } from '../../styles/uiSize';
 
 const r2 = (v: number) => Math.round(v * 100) / 100;
 const rpN = (v: number) => (v ? inr2f(v) : '—');
@@ -66,7 +67,7 @@ function Expc(props: RpProps) {
     kpis: [['Total spent', inr2f(tot), 'pscl neg'], ['Categories used', String(R.length)], ['Biggest', R.length ? R[0]![0] : '—', '', R.length && tot ? Math.round((R[0]![1].t / tot) * 100) + '% of spending' : ''], ['Paid in cash', inr2f(T('cash'))]],
     cols: [{ h: 'Category', w: 24 }, { h: 'Entries', n: true, int: true, w: 9 }, { h: 'Cash', n: true }, { h: 'Bank & UPI', n: true }, { h: 'GST', n: true }, { h: 'Total', n: true }, { h: 'Share', n: true, int: true, w: 9 }],
     rows: R.map(([c, o]) => ({ k: c, c: [c, o.n, rpN(o.cash), rpN(o.bank), rpN(o.g), inr2f(o.t), pc(o.t).toFixed(1) + '%'],
-      h: { 6: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><i style={{ display: 'inline-block', width: 60, height: 6, borderRadius: 3, background: 'var(--bd,#e2e8f0)', overflow: 'hidden' }}><em style={{ display: 'block', height: '100%', width: `${pc(o.t)}%`, background: 'var(--ac)' }}></em></i>{pc(o.t).toFixed(1)}%</span> } })),
+      h: { 6: <span style={{ display: 'inline-flex', alignItems: 'center', gap: ui.sp(8) }}><i style={{ display: 'inline-block', width: 60, height: 6, borderRadius: 3, background: 'var(--bd,#e2e8f0)', overflow: 'hidden' }}><em style={{ display: 'block', height: '100%', width: `${pc(o.t)}%`, background: 'var(--ac)' }}></em></i>{pc(o.t).toFixed(1)}%</span> } })),
     foot: ['Total', A.length, rpN(T('cash')), rpN(T('bank')), rpN(T('g')), inr2f(tot), '100%'], empty: 'No expenses in this period.',
     note: 'Click a category to see its entries.', click: (k) => { RPF.exCat = k; RPF.exAcct = 'all'; props.open('expl'); },
   };

@@ -16,6 +16,7 @@ import { choosePer, dmyOf, range, type PeriodState } from './periods';
 import { ListToggle, PeriodFields, RpShell, Sel, type RpDef } from './Shell';
 import type { RpProps } from './ReportsPage';
 import { saveFile, xlsxBlob } from '../../lib/files';
+import { ui } from '../../styles/uiSize';
 
 export interface RParty { id: string; name: string; kind: string; group: string; phone: string; city: string; gstin: string; limit: number | null; sup: boolean; type: string; entries: number; sales: boolean }
 interface StRow { date: string; no: string; type: string; kind: string; info: string; dr: number; cr: number; run: number; ref?: string; lines: { name: string; qty: number; unit: string; rate: number; amt: number }[] }
@@ -114,7 +115,7 @@ function PStmt({ onToggle }: RpProps) {
           ];
         }) : <tr><td colSpan={7} className="ptempty">No transactions in this period.</td></tr>}
       </tbody><tfoot><tr><td colSpan={4}><b>Total</b> <span className="mu">· {D.rows.length} transaction{D.rows.length === 1 ? '' : 's'}</span></td><td className="n"><b>{inr2f(D.dr)}</b></td><td className="n"><b>{inr2f(D.cr)}</b></td><td className="n"><b>{psBal(D.close)}</b></td></tr></tfoot></table></div>
-      <p className="hint" style={{ margin: '10px 0 0' }}>Dr = {sup ? 'you paid or returned' : 'bills and charges'} · Cr = {sup ? 'their bills' : 'payments and returns'}. Click a bill, receipt or credit note to open it.</p>
+      <p className="hint" style={{ margin: ui.sp('10px 0 0') }}>Dr = {sup ? 'you paid or returned' : 'bills and charges'} · Cr = {sup ? 'their bills' : 'payments and returns'}. Click a bill, receipt or credit note to open it.</p>
       {printing ? <StPrint D={D} onClose={() => setPrinting(false)} /> : null}
     </>
   );
@@ -133,7 +134,7 @@ function StPrint({ D, onClose }: { D: Statement; onClose: () => void }) {
   return (
     <div className="ov c" id="ipv" ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'ipv') onClose(); }}>
       <div className="mdl ipvm" role="dialog" aria-modal="true" aria-labelledby="ipvTitle">
-        <div className="ipvbar"><h3 id="ipvTitle" style={{ margin: 0, fontSize: 16, flex: 1 }}>Party statement · {P.name}</h3>
+        <div className="ipvbar"><h3 id="ipvTitle" style={{ margin: 0, fontSize: ui.fs(16), flex: 1 }}>Party statement · {P.name}</h3>
           <button className="btn sm" type="button" id="ipvLink" hidden style={{ display: 'none' }}><Icon name="phone" />Payment link</button>
           <a className="btn sm" id="ipvWa" href="#" target="_blank" rel="noopener" style={{ textDecoration: 'none', display: 'none' }}><svg className="i" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: '<path d="M4 5h16v11H9l-5 4z"/>' }} />Share on WhatsApp</a>
           <button className="btn sm" type="button" id="ipvPrint" onClick={printNow}><RawIcon d={PRINT} />Print</button>

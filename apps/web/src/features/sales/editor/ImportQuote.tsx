@@ -16,6 +16,7 @@ import type { SlModalProps } from '../SlModal';
 import type { EditorData } from './data';
 import { SI_TT, addDaysIso, blankLine, cmApply, lineFor, partyState, unitPrice, type Line, type SI } from './state';
 import { qRanked, qRate, qTotals, type QCtx, type QDraft } from '../../quotations/model';
+import { ui } from '../../../styles/uiSize';
 
 const qfmt = (n: number) => n.toLocaleString('en-IN', { maximumFractionDigits: 2 });
 
@@ -97,8 +98,8 @@ export function ImportQuote({ open, onClose, d, s, up, toast }: { open: boolean;
   return (
     <div className="ov c" id="iqm" hidden={!open} ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'iqm') onClose(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="iqT" style={{ width: 'min(640px,100%)' }}>
-        <h3 id="iqT" style={{ margin: '0 0 4px', fontSize: 18 }}>Import from quotation</h3>
-        <p className="mu" id="iqSub" style={{ margin: '0 0 14px', fontSize: 13 }}>{pn ? `Quotations for ${s.party ? s.party.name : s.cashName} are shown first. Items are added below the ones already on this invoice.` : 'Items are added below the ones already on this invoice.'}</p>
+        <h3 id="iqT" style={{ margin: ui.sp('0 0 4px'), fontSize: ui.fs(18) }}>Import from quotation</h3>
+        <p className="mu" id="iqSub" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(13) }}>{pn ? `Quotations for ${s.party ? s.party.name : s.cashName} are shown first. Items are added below the ones already on this invoice.` : 'Items are added below the ones already on this invoice.'}</p>
         <div className="iql" id="iqList" role="listbox" aria-label="Saved quotations">
           {L.length ? L.map((x) => (
             <button type="button" className={`iqr ${x.partyName.toLowerCase() === pn && pn ? 'me' : ''}${x.id === sel ? ' on' : ''}`} data-iq={x.number} key={x.id} onClick={() => setSel(x.id)}>
@@ -110,7 +111,7 @@ export function ImportQuote({ open, onClose, d, s, up, toast }: { open: boolean;
         <div className="qcl iqbr" id="iqBr" hidden={!q}>{bq ? <><b>Which brand?</b>{opts.map((o, k) => (
           <label className={`qco ${o.miss ? 'warn' : ''}`} key={o.s.id}><input type="radio" name="iqb" value={o.s.id} checked={o.s.id === sid} onChange={() => setSid(o.s.id)} /><span className="qct"><b>{qSerName(o.s)}</b><small>{o.miss ? `${o.miss} item${o.miss > 1 ? 's' : ''} not available — left out` : `All ${o.n} items available`}</small></span><span className="qcv">₹{inr2f(o.tot)}{k === 0 && !o.miss ? <i>Lowest</i> : null}</span></label>
         ))}</> : q ? <small className="mu">{q.items} item{q.items > 1 ? 's' : ''} will be added at the quoted rates.</small> : null}</div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 14 }}><button className="btn" type="button" id="iqCancel" onClick={onClose}>Cancel</button><button className="btn p" type="button" id="iqGo" disabled={!q} onClick={() => void add()}>Add items</button></div>
+        <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end', marginTop: ui.sp(14) }}><button className="btn" type="button" id="iqCancel" onClick={onClose}>Cancel</button><button className="btn p" type="button" id="iqGo" disabled={!q} onClick={() => void add()}>Add items</button></div>
       </div>
     </div>
   );

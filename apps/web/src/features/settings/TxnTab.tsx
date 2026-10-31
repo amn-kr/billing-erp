@@ -14,6 +14,7 @@ import { P } from '../../components/icon-paths';
 import { useShell } from '../shell/store';
 import { Sw, useS, useSaveS } from './model';
 import { openPasscodeBox, PASSCODE_KEY, usePasscodeState } from './passcode';
+import { ui } from '../../styles/uiSize';
 
 const T = (c: string) => ({ background: `color-mix(in srgb,${c} 14%,transparent)`, color: c });
 const shown = (p: string) => p || 'None';
@@ -82,7 +83,7 @@ function PrefixCard() {
   return (
     <section className="card" id="cTxPre">
       <div className="tgl" style={{ marginTop: 0 }}><div className="ti" style={T('var(--blue)')}><Icon name="menu" /></div><div className="tx"><b>Transaction prefixes</b><small>Prefixes for: <b style={{ display: 'inline', fontSize: 'inherit' }} id="pxBiz">{q.data?.business ?? ''}</b>. The active prefix is used for new documents only — old documents keep their numbers.</small></div></div>
-      <div className="tw" style={{ marginTop: 14 }}><table className="tlt" id="pxTable"><thead><tr><th>Document</th><th>Active prefix</th><th>Next number</th><th className="n">Prefixes</th><th className="n"><span className="vh">Manage</span></th></tr></thead>
+      <div className="tw" style={{ marginTop: ui.sp(14) }}><table className="tlt" id="pxTable"><thead><tr><th>Document</th><th>Active prefix</th><th>Next number</th><th className="n">Prefixes</th><th className="n"><span className="vh">Manage</span></th></tr></thead>
         <tbody>
           {types.map((t) => {
             const a = t.prefixes.find((p) => p.active);
@@ -153,17 +154,17 @@ function PrefixDialog({ t, business, onClose }: { t: PType | null; business: str
   return (
     <div className="ov c" id="px" ref={ref} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'px') onClose(); }}>
       <div className="mdl wide" role="dialog" aria-modal="true" aria-labelledby="pxT">
-        <div className="dh"><div><h3 id="pxT" style={{ margin: 0, fontSize: 18 }}>{t.label} prefixes</h3><small style={{ color: 'var(--t2)' }}>{business} · one prefix is active and used for new {word === 'sale' ? 'sales' : `${word}s`}.</small></div><button className="ib" id="pxClose" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
-        <div className="tw stk" style={{ marginTop: 16 }}><table className="tlt"><thead><tr><th>Prefix</th><th>Used in</th><th>Next number</th><th className="n"><span className="vh">Actions</span></th></tr></thead>
+        <div className="dh"><div><h3 id="pxT" style={{ margin: 0, fontSize: ui.fs(18) }}>{t.label} prefixes</h3><small style={{ color: 'var(--t2)' }}>{business} · one prefix is active and used for new {word === 'sale' ? 'sales' : `${word}s`}.</small></div><button className="ib" id="pxClose" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
+        <div className="tw stk" style={{ marginTop: ui.sp(16) }}><table className="tlt"><thead><tr><th>Prefix</th><th>Used in</th><th>Next number</th><th className="n"><span className="vh">Actions</span></th></tr></thead>
           <tbody id="pxBody">
             {t.prefixes.map((x) => (
               <tr key={x.id} data-prefix={x.prefix}>
                 <td>{ed?.id === x.id
-                  ? <input className="fi mono" style={{ ...mono, width: 130, height: 36 }} aria-label="Prefix" value={ed.v} maxLength={10} autoFocus onChange={(e) => { setEd({ id: x.id, v: e.target.value }); setM({ c: 'msg', t: '' }); }} onKeyDown={(e) => { if (e.key === 'Enter') void saveEdit(x); if (e.key === 'Escape') { e.stopPropagation(); setEd(null); } }} />
+                  ? <input className="fi mono" style={{ ...mono, width: 130, height: ui.h(36) }} aria-label="Prefix" value={ed.v} maxLength={10} autoFocus onChange={(e) => { setEd({ id: x.id, v: e.target.value }); setM({ c: 'msg', t: '' }); }} onKeyDown={(e) => { if (e.key === 'Enter') void saveEdit(x); if (e.key === 'Escape') { e.stopPropagation(); setEd(null); } }} />
                   : <><b className="mono" style={mono}>{shown(x.prefix)}</b> {x.active ? <span className="st g">Active</span> : <span className="st q">Not in use</span>}</>}</td>
-                <td>{x.used ? <span style={{ display: 'inline-flex', gap: 5, alignItems: 'center', color: 'var(--t2)' }} title="Used prefixes can’t be edited or deleted"><svg className="i" viewBox="0 0 24 24" style={{ width: 14, height: 14 }} dangerouslySetInnerHTML={{ __html: P.lock }} />Used in {x.used.toLocaleString('en-IN')} {x.used === 1 ? 'document' : 'documents'}</span> : <span className="mu">Not used yet</span>}</td>
+                <td>{x.used ? <span style={{ display: 'inline-flex', gap: ui.sp(5), alignItems: 'center', color: 'var(--t2)' }} title="Used prefixes can’t be edited or deleted"><svg className="i" viewBox="0 0 24 24" style={{ width: 14, height: 14 }} dangerouslySetInnerHTML={{ __html: P.lock }} />Used in {x.used.toLocaleString('en-IN')} {x.used === 1 ? 'document' : 'documents'}</span> : <span className="mu">Not used yet</span>}</td>
                 <td className="mu">{x.next}</td>
-                <td className="n"><div style={{ display: 'inline-flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end' }}>
+                <td className="n"><div style={{ display: 'inline-flex', gap: ui.sp(6), alignItems: 'center', justifyContent: 'flex-end' }}>
                   {ed?.id === x.id ? <><button className="btn sm p" type="button" onClick={() => void saveEdit(x)}>Save</button><button className="btn sm" type="button" onClick={() => setEd(null)}>Cancel</button></> : <>
                     {!x.active && <button className="btn sm" type="button" data-act={x.prefix} onClick={() => void run(api<Prefixes>(`/settings/prefixes/${x.id}`, { method: 'PATCH', body: { active: true } }), `New ${word === 'sale' ? 'sales' : `${word}s`} now use ${shown(x.prefix)}`)}>Make active</button>}
                     {!x.used && <button className="ib" type="button" aria-label={`Edit ${shown(x.prefix)}`} onClick={() => { setEd({ id: x.id, v: x.prefix }); setM({ c: 'msg', t: '' }); }}><Icon name="edit" /></button>}
@@ -173,11 +174,11 @@ function PrefixDialog({ t, business, onClose }: { t: PType | null; business: str
               </tr>
             ))}
           </tbody></table></div>
-        <p className="hint" style={{ margin: '10px 0 0' }}>A prefix that is used can’t be edited or deleted. To change it, add a new prefix and make it active. Leave the box empty to add “None” (numbers without a prefix).</p>
+        <p className="hint" style={{ margin: ui.sp('10px 0 0') }}>A prefix that is used can’t be edited or deleted. To change it, add a new prefix and make it active. Leave the box empty to add “None” (numbers without a prefix).</p>
         <form className="addf" id="pxForm" noValidate onSubmit={add} style={{ gridTemplateColumns: '1fr auto auto' }}>
           <label className="fl" htmlFor="pxNew">New prefix<input className="fi mono" id="pxNew" style={mono} value={f.prefix} maxLength={10} autoComplete="off" spellCheck={false} placeholder="e.g. JE/INV/" onChange={(e) => { setF({ ...f, prefix: e.target.value }); setM({ c: 'msg', t: '' }); }} /></label>
-          <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, fontSize: 13 }}><input type="checkbox" id="pxActive" checked={f.active} onChange={(e) => setF({ ...f, active: e.target.checked })} /> Make it active</label>
-          <button className="btn p" type="submit" style={{ marginBottom: 8 }}><Icon name="plus" />Add</button>
+          <label style={{ display: 'flex', gap: ui.sp(8), alignItems: 'center', marginBottom: ui.sp(12), fontSize: ui.fs(13) }}><input type="checkbox" id="pxActive" checked={f.active} onChange={(e) => setF({ ...f, active: e.target.checked })} /> Make it active</label>
+          <button className="btn p" type="submit" style={{ marginBottom: ui.sp(8) }}><Icon name="plus" />Add</button>
         </form>
         <div className={msg.c} id="pxMsg" aria-live="polite">{msg.t}</div>
       </div>

@@ -24,6 +24,7 @@ import { editAsk, withPasscode } from '../settings/passcode';
 import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
 import { HIST_ACTION, openHistory } from '../../components/EditHistory';
 import { deleteModal } from './deleteDoc';
+import { ui } from '../../styles/uiSize';
 
 export interface Receipt {
   id: string; number: string; date: string; party: { id: string; name: string; phone: string } | null; partyName: string; counter: boolean; mode: string; reference: string;
@@ -83,15 +84,15 @@ export function PaymentsReceivedPage() {
   }));
   return (
     <section id="vPin">
-      <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Payments received</h1><span className="pttot">Money in from customers</span><div className="sp"></div><button className="btn p" id="rcNew" onClick={() => setRc({})}><RawIcon d={PLUS} />Receive payment <kbd className="kh" style={{ marginLeft: 6, background: 'transparent', color: 'inherit', borderColor: 'rgba(255,255,255,.4)' }}>Alt+R</kbd></button></div>
-      <div className="card ptxc"><div className="ptfil" style={{ padding: '14px 16px', alignItems: 'center' }}><label className="search" htmlFor="rcQ" style={{ maxWidth: 300, height: 36 }}><RawIcon d={SEARCH} /><input id="rcQ" placeholder="Search receipt, party or reference" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+      <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Payments received</h1><span className="pttot">Money in from customers</span><div className="sp"></div><button className="btn p" id="rcNew" onClick={() => setRc({})}><RawIcon d={PLUS} />Receive payment <kbd className="kh" style={{ marginLeft: ui.sp(6), background: 'transparent', color: 'inherit', borderColor: 'rgba(255,255,255,.4)' }}>Alt+R</kbd></button></div>
+      <div className="card ptxc"><div className="ptfil" style={{ padding: ui.sp('14px 16px'), alignItems: 'center' }}><label className="search" htmlFor="rcQ" style={{ maxWidth: 300, height: ui.h(36) }}><RawIcon d={SEARCH} /><input id="rcQ" placeholder="Search receipt, party or reference" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
         <div className="sumrow sumin" id="rcSum"><div><small>Received</small><b className="pos">{inr(tot.toFixed(2))}</b></div><div><small>Receipts</small><b>{A.length}</b></div><div><small>Advance (unused)</small><b>{inr(un.toFixed(2))}</b></div><div><small>Still to collect</small><b className="neg">{inr(toCollect.toFixed(2))}</b></div></div>
         <div className="seg2 sm" id="rcPer">{(['all', 'oct', 'sep'] as const).map((k) => <button data-per={k} className={per === k ? 'on' : ''} key={k} onClick={() => setPer(k)}>{k === 'all' ? 'All' : k === 'oct' ? 'This month' : 'Last month'}</button>)}</div>
         <select className="fi" id="rcMode" aria-label="Mode" style={{ width: 'auto' }} value={mode} onChange={(e) => setMode(e.target.value)}><option value="all">All modes</option>{PAY_MODES.map((m) => <option key={m}>{m}</option>)}</select></div>
         <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr><th>Date</th><th>Receipt no.</th><th>Party</th><th>Mode</th><th>Reference</th><th>Against</th><th className="n">Amount</th><th className="n">Unused</th><th className="slact"><span className="vh">Actions</span></th></tr></thead>
           <tbody id="rcRows" onContextMenu={rm.onContextMenu} onKeyDown={(e) => { if (rm.menuKey(e)) return; const r = (e.target as HTMLElement).closest<HTMLElement>('tr[data-rcno]'); if (r && e.key === 'Enter') { e.preventDefault(); r.click(); } }}>
             {L.length ? L.map((x) => (
-              <tr tabIndex={0} data-rcno={x.number} data-rcp={x.party?.id ?? ''} key={x.id} className={menu?.row.id === x.id ? 'ctxon' : undefined} onClick={() => view(x)}><td>{dmy(x.date)}</td><td className="mono">{x.number}{!x.atSale ? <> <span className="st b" style={{ fontSize: 10, padding: '1px 6px' }}>New</span></> : null}</td><td><b style={{ fontWeight: 600 }}>{x.partyName}</b>{x.counter ? <> <small className="mu">counter sale</small></> : null}</td>
+              <tr tabIndex={0} data-rcno={x.number} data-rcp={x.party?.id ?? ''} key={x.id} className={menu?.row.id === x.id ? 'ctxon' : undefined} onClick={() => view(x)}><td>{dmy(x.date)}</td><td className="mono">{x.number}{!x.atSale ? <> <span className="st b" style={{ fontSize: ui.fs(10), padding: ui.sp('1px 6px') }}>New</span></> : null}</td><td><b style={{ fontWeight: 600 }}>{x.partyName}</b>{x.counter ? <> <small className="mu">counter sale</small></> : null}</td>
                 <td>{x.mode}</td><td className="mono mu">{x.reference || '—'}</td><td>{against(x) ? <span className="mono">{against(x)}</span> : Number(x.unused) > 0 ? <span className="st a">Advance</span> : <span className="mu">On account</span>}</td><td className="n"><b>{inr2f(x.amount)}</b></td><td className={`n ${Number(x.unused) > 0 ? 'lowq' : 'mu'}`}>{Number(x.unused) > 0 ? inr2f(x.unused) : '—'}</td>
                 <td className="slact"><RowMenuButton no={x.number} label={`Actions for ${x.number}`} onOpen={(b) => setMenu({ row: x, ...atButton(b), tr: b.closest('tr') })} /></td></tr>
             )) : <tr><td colSpan={9}><div className="ptempty pue"><b>No payments found</b><span>Record money you receive from customers. It settles their oldest invoices first.</span><button className="btn p sm" id="rcNew2" onClick={() => setRc({})}>Receive payment</button></div></td></tr>}
@@ -111,7 +112,7 @@ export function receiptModal(x: Receipt): SlModalProps {
   return {
     title: `Receipt ${x.number}`, sub: `${x.partyName} · ${dmy(x.date)}`,
     body: <><div className="rcv"><div><span>Amount</span><b>{inr2f(x.amount)}</b></div><div><span>Mode</span><b>{x.mode}</b></div><div><span>Reference</span><b className="mono">{x.reference || '—'}</b></div><div><span>Against</span><b>{against(x) || (Number(x.unused) > 0 ? 'Advance' : 'On account')}</b></div>{Number(x.unused) > 0 ? <div><span>Unused advance</span><b className="lowq">{inr2f(x.unused)}</b></div> : null}</div>
-      {x.party?.phone ? <a className="btn sm" style={{ marginTop: 14, textDecoration: 'none' }} target="_blank" rel="noopener" href={`https://wa.me/91${x.party.phone}?text=${encodeURIComponent(msg)}`}><Icon name="chat" />Send receipt on WhatsApp</a> : null}</>,
+      {x.party?.phone ? <a className="btn sm" style={{ marginTop: ui.sp(14), textDecoration: 'none' }} target="_blank" rel="noopener" href={`https://wa.me/91${x.party.phone}?text=${encodeURIComponent(msg)}`}><Icon name="chat" />Send receipt on WhatsApp</a> : null}</>,
   };
 }
 
@@ -202,23 +203,23 @@ export function ReceiveDialog({ open, parties, onClose }: { open: { party?: stri
   return (
     <div className="ov c" id="rcm" hidden={!isOpen} ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'rcm') close(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="rcT" style={{ width: 'min(600px,100%)' }}>
-        <div className="dh"><div><h3 id="rcT" style={{ margin: 0, fontSize: 18 }}>{editId ? 'Edit payment' : 'Receive payment'}</h3><small className="mu mono" id="rcNo">{editId ? (doc?.number ?? '') : (no.data?.number ?? '')}</small></div><button className="ib" type="button" id="rcClose" aria-label="Close" onClick={close}><Icon name="x" /></button></div>
-        <label className="fl" htmlFor="rcParty" style={{ marginTop: 14 }}>Customer<select className="fi" id="rcParty" value={party} onChange={(e) => { setParty(e.target.value); setAlloc({}); setAmount(''); filled.current = ''; setTimeout(() => (document.getElementById('rcAmt') as HTMLInputElement | null)?.select(), 50); }}>
+        <div className="dh"><div><h3 id="rcT" style={{ margin: 0, fontSize: ui.fs(18) }}>{editId ? 'Edit payment' : 'Receive payment'}</h3><small className="mu mono" id="rcNo">{editId ? (doc?.number ?? '') : (no.data?.number ?? '')}</small></div><button className="ib" type="button" id="rcClose" aria-label="Close" onClick={close}><Icon name="x" /></button></div>
+        <label className="fl" htmlFor="rcParty" style={{ marginTop: ui.sp(14) }}>Customer<select className="fi" id="rcParty" value={party} onChange={(e) => { setParty(e.target.value); setAlloc({}); setAmount(''); filled.current = ''; setTimeout(() => (document.getElementById('rcAmt') as HTMLInputElement | null)?.select(), 50); }}>
           <option value="">Choose customer</option>{C.map((p) => { const b = Number(p.balance); return <option value={p.id} key={p.id}>{p.name}{b > 0 ? ' · ' + inr2f(b) + ' due' : b < 0 ? ' · advance ' + inr2f(-b) : ''}</option>; })}</select></label>
         <div className="two"><label className="fl" htmlFor="rcAmt">Amount received<input className="fi" id="rcAmt" inputMode="decimal" placeholder="0" autoComplete="off" value={amount} onChange={(e) => { const v = e.target.value.replace(/[^\d.]/g, ''); setAmount(v); setAlloc(auto(Number(v) || 0, D)); }} /></label><label className="fl" htmlFor="rcDate">Date<input className="fi" type="date" id="rcDate" value={date} onChange={(e) => setDate(e.target.value)} /></label></div>
         <div className="two"><label className="fl" htmlFor="rcModeI">Mode<select className="fi" id="rcModeI" value={mode} onChange={(e) => setMode(e.target.value)}>{PAY_MODES.map((m) => <option key={m}>{m}</option>)}</select></label><label className="fl" htmlFor="rcRef">Reference<input className="fi" id="rcRef" placeholder="UPI ref, UTR, cheque no." autoComplete="off" value={refNo} onChange={(e) => setRefNo(e.target.value)} /></label></div>
         <BankSelect bp={bp} mode={mode} id="rcAcct" label="Received in" value={acct} onChange={setAcct} />
         <div className="pyb"><b>Settle against invoices</b><small className="mu">Oldest invoices are filled first. Change the amounts if needed.</small>
-          <div id="rcBills">{!party ? <p className="mu" style={{ margin: 0, fontSize: 13 }}>Choose a customer to see their unpaid invoices.</p> : D.length ? (
+          <div id="rcBills">{!party ? <p className="mu" style={{ margin: 0, fontSize: ui.fs(13) }}>Choose a customer to see their unpaid invoices.</p> : D.length ? (
             <table className="ptt2 pyt"><thead><tr><th>Invoice</th><th>Date</th><th className="n">Balance</th><th className="n">Receive</th></tr></thead><tbody>{D.map((t) => {
               const st = t.kind === 'opening' ? { t: 'Unpaid', c: 'a' } : saleStatus({ total: Number(t.total), balance: Number(t.balance), due: t.dueDate }, today());
               return <tr key={t.to}><td className="mono">{t.kind === 'opening' ? 'Opening balance' : t.number}<small className="mu" style={{ display: 'block' }}><span className={`stt ${st.c}`}>{st.t}</span></small></td><td>{dmy(t.date)}</td><td className="n">{inr2f(t.balance)}</td>
                 <td className="n"><input className="fi sm n" data-rca={t.to} value={alloc[t.to] || ''} placeholder="0" inputMode="decimal" style={{ width: 110 }} onChange={(e) => { const v = e.target.value.replace(/[^\d.]/g, ''); const nx = { ...alloc, [t.to]: Number(v) || 0 }; setAlloc(nx); const u = Object.values(nx).reduce((a, b) => a + (b || 0), 0); if (u > amt) setAmount(String(r2(u))); }} /></td></tr>;
             })}</tbody></table>
-          ) : <p className="mu" style={{ margin: 0, fontSize: 13 }}>No unpaid invoices. This payment will be kept as an advance.</p>}</div>
+          ) : <p className="mu" style={{ margin: 0, fontSize: ui.fs(13) }}>No unpaid invoices. This payment will be kept as an advance.</p>}</div>
           <div className="pysum" id="rcSumI">{amt ? <>Against invoices {inr2f(used)}{amt - used > 0.009 ? <> · <b>Advance {inr2f(r2(amt - used))}</b></> : null}{used - amt > 0.009 ? <> · <span className="neg">{inr2f(r2(used - amt))} more than the amount</span></> : null}</> : null}</div></div>
         <div className="msg bad" id="rcErr" role="alert">{err}</div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}><button className="btn" type="button" id="rcCancel" onClick={close}>Cancel</button><button className="btn p" type="button" id="rcSave" disabled={busy} onClick={() => void save()}>Save receipt</button></div>
+        <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end', marginTop: ui.sp(12) }}><button className="btn" type="button" id="rcCancel" onClick={close}>Cancel</button><button className="btn p" type="button" id="rcSave" disabled={busy} onClick={() => void save()}>Save receipt</button></div>
       </div>
     </div>
   );

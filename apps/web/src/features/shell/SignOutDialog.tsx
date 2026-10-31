@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { ui } from '../../styles/uiSize';
 
 /** The prototype's "Sign out?" dialog (#so). */
 export function SignOutDialog({ open, onCancel, onConfirm }: { open: boolean; onCancel: () => void; onConfirm: () => void }) {
@@ -17,9 +18,9 @@ export function SignOutDialog({ open, onCancel, onConfirm }: { open: boolean; on
   return (
     <div className="ov c" id="so" hidden={!open}>
       <div className="mdl" role="alertdialog" aria-modal="true" aria-labelledby="soT">
-        <h3 id="soT" style={{ margin: '0 0 6px', fontSize: 18 }}>Sign out?</h3>
-        <p style={{ margin: '0 0 18px', color: 'var(--t2)' }}>You’ll need your mobile number or email and password to sign in again. Your data stays saved.</p>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        <h3 id="soT" style={{ margin: ui.sp('0 0 6px'), fontSize: ui.fs(18) }}>Sign out?</h3>
+        <p style={{ margin: ui.sp('0 0 18px'), color: 'var(--t2)' }}>You’ll need your mobile number or email and password to sign in again. Your data stays saved.</p>
+        <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <button className="btn" id="soNo" ref={first} onClick={onCancel}>Stay signed in</button>
           <button className="btn dg" id="soYes" onClick={onConfirm}>Sign out</button>
         </div>

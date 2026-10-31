@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { scaleSheet, scaleValue, scopeSelector, UI_VARS, uiSizeSheet } from './uiSize';
+import { scaleSheet, scaleValue, scopeSelector, ui, UI_VARS, uiSizeSheet } from './uiSize';
 
 const css = (f: string) => fs.readFileSync(path.join(__dirname, f), 'utf8');
 const SIZE = /^(font-size|font|line-height|padding(-\w+)?|margin(-\w+)?|gap|row-gap|column-gap|height|min-height|max-height|top|bottom|width|min-width|max-width)$/;
@@ -38,6 +38,25 @@ describe('scaling one value', () => {
     expect(scaleValue('w', 'min(440px,100%)')).toBe('min(440px,100%)');
     expect(scaleValue('w', '42px')).toBe('round(calc(42px * var(--ui-h,1)), 1px)');
     expect(scaleValue('h', 'auto')).toBe('auto');
+  });
+});
+
+describe('sizes written inline in screens (ui.fs, ui.sp, ui.h, ui.w)', () => {
+  it('follow the same rules; numbers are px, as React reads them', () => {
+    expect(ui.fs(17)).toBe('calc(17px * var(--ui-fs,1))');
+    expect(ui.sp('0 0 6px')).toBe('0 0 round(calc(6px * var(--ui-sp,1)), 1px)');
+    expect(ui.h(42)).toBe('round(calc(42px * var(--ui-h,1)), 1px)');
+    expect(ui.h(16)).toBe('16px');
+    expect(ui.w(28)).toBe('round(calc(28px * var(--ui-h,1)), 1px)');
+    expect(ui.w('min(680px,100%)')).toBe('min(680px,100%)');
+  });
+  it('are the original size when the variables are 1 (the default)', () => {
+    for (const v of [ui.fs(12.5), ui.sp('10px 14px'), ui.h(34), ui.w(42), ui.sp(-6)]) expect(atOne(v)).toMatch(/^[\d. -]+px( [\d.]+px)*$|^-?[\d.]+px$/);
+    expect(atOne(ui.sp('10px 14px'))).toBe('10px 14px');
+    expect(atOne(ui.sp(-6))).toBe('-6px');
+  });
+  it('Large text gives table cells Compact’s side spacing, never on paper', () => {
+    expect(UI_VARS).toContain(':root[data-text="large"] :is(td,th):not(:is(.ivsheet,.rlsheet,.prclone,.ppage) *){--ui-sp:.72}');
   });
 });
 

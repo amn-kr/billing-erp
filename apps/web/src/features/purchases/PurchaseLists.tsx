@@ -25,6 +25,7 @@ import { HIST_ACTION, openHistory } from '../../components/EditHistory';
 import { cancelAsk, withPasscode } from '../settings/passcode';
 import { deleteModal } from '../sales/deleteDoc';
 import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
+import { ui } from '../../styles/uiSize';
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const FILTER = '<path d="M4 5h16l-6 8v6l-4-2v-4z"/>';
@@ -33,7 +34,7 @@ const UP = '<path d="M12 20V9M7 13l5-5 5 5"/>';
 const KBD = { marginLeft: 6, background: 'transparent', color: 'inherit', borderColor: 'rgba(255,255,255,.4)' };
 const PER: [Period, string][] = [['all', 'All dates'], ['oct', 'This month'], ['sep', 'Last month'], ['custom', 'Custom range…']];
 const fmShort = (x?: string) => (x ? new Date(x + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '…');
-const NEW = <> <span className="st b" style={{ fontSize: 10, padding: '1px 6px' }}>New</span></>;
+const NEW = <> <span className="st b" style={{ fontSize: ui.fs(10), padding: ui.sp('1px 6px') }}>New</span></>;
 
 /** A column-head filter button over a hidden <select> (prototype thf). */
 function Thf({ id, label, on, title, onOpen }: { id: string; label: string; on: boolean; title: string; onOpen: (el: HTMLElement) => void }) {
@@ -106,7 +107,7 @@ export function PurchaseBillsPage() {
     <section id="vPur">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Purchase bills</h1><div className="sp"></div><button className="btn" data-paynew="1" onClick={() => setPay({})}><RawIcon d={UP} />Record payment</button><button className="btn p" data-pnew="bill" onClick={newBill}><RawIcon d={PLUS} />New purchase bill <kbd className="kh" style={KBD}>Alt+P</kbd></button></div>
       <div className="card ptxc">
-        <div className="ptfil" style={{ padding: '14px 16px', alignItems: 'center' }}><label className="search" htmlFor="puQ" style={{ maxWidth: 300, height: 36 }}><RawIcon d={SEARCH} /><input id="puQ" placeholder="Search bill no., supplier or their bill no." autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+        <div className="ptfil" style={{ padding: ui.sp('14px 16px'), alignItems: 'center' }}><label className="search" htmlFor="puQ" style={{ maxWidth: 300, height: ui.h(36) }}><RawIcon d={SEARCH} /><input id="puQ" placeholder="Search bill no., supplier or their bill no." autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
           <div className="sumrow sumin" id="puSum"><div><small>Purchases</small><b>{inr(tot.toFixed(2))}</b></div><div><small>Paid</small><b className="pos">{inr(tot.minus(due).toFixed(2))}</b></div><div><small>To pay</small><b className="neg">{inr(due.toFixed(2))}</b></div><div><small>Overdue</small><b className={over.gt(0) ? 'neg' : ''}>{inr(over.toFixed(2))}</b></div></div>
           <div className="seg2 sm" id="puPer" hidden>{(['all', 'oct', 'sep'] as const).map((k) => <button data-per={k} className={P.per === k ? 'on' : ''} key={k} onClick={() => P.setPer(k)}>{k === 'all' ? 'All' : k === 'oct' ? 'This month' : 'Last month'}</button>)}</div>
           <select id="puPerSel" hidden aria-hidden="true" value={P.per} onChange={(e) => P.setPer(e.target.value as Period)}>{P.perOpts.map(([v, t]) => <option value={v} key={v}>{t}</option>)}</select>
@@ -180,7 +181,7 @@ export function PurchaseOrdersPage() {
     <section id="vPos">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Purchase orders</h1><div className="sp"></div><button className="btn p" data-pnew="po" onClick={newPo}><RawIcon d={PLUS} />New purchase order</button></div>
       <div className="card ptxc">
-        <div className="ptfil" style={{ padding: '14px 16px', alignItems: 'center' }}><label className="search" htmlFor="poQ" style={{ maxWidth: 300, height: 36 }}><RawIcon d={SEARCH} /><input id="poQ" placeholder="Search order no. or supplier" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+        <div className="ptfil" style={{ padding: ui.sp('14px 16px'), alignItems: 'center' }}><label className="search" htmlFor="poQ" style={{ maxWidth: 300, height: ui.h(36) }}><RawIcon d={SEARCH} /><input id="poQ" placeholder="Search order no. or supplier" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
           <div className="sumrow sumin" id="poSum"><div><small>Open orders</small><b>{open.length}</b></div><div><small>Open value</small><b>{inr(val.toFixed(2))}</b></div><div><small>Received</small><b className="pos">{A.filter((d) => d.status === 'received').length}</b></div><div><small>Cancelled</small><b>{A.filter((d) => d.status === 'cancelled').length}</b></div></div>
           <select className="fi" hidden id="poSt" aria-label="Filter by status" value={st} onChange={(e) => setSt(e.target.value)}>{PO_ST.map(([v, t]) => <option value={v} key={v}>{t}</option>)}</select></div>
         <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr><th>Date</th><th>Order no.</th><th>Supplier</th><th>Expected</th><th className="n">Items</th><th className="n">Amount</th>
@@ -241,7 +242,7 @@ export function PaymentsMadePage() {
     <section id="vPmade">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Payments made</h1><div className="sp"></div><button className="btn p" id="pxNew" onClick={() => setPay({})}><RawIcon d={PLUS} />Record payment</button></div>
       <div className="card ptxc">
-        <div className="ptfil" style={{ padding: '14px 16px', alignItems: 'center' }}><label className="search" htmlFor="pxQ" style={{ maxWidth: 300, height: 36 }}><RawIcon d={SEARCH} /><input id="pxQ" placeholder="Search payment no., supplier or reference" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+        <div className="ptfil" style={{ padding: ui.sp('14px 16px'), alignItems: 'center' }}><label className="search" htmlFor="pxQ" style={{ maxWidth: 300, height: ui.h(36) }}><RawIcon d={SEARCH} /><input id="pxQ" placeholder="Search payment no., supplier or reference" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
           <div className="sumrow sumin" id="pxSum"><div><small>Paid out</small><b>{inr(tot.toFixed(2))}</b></div><div><small>Payments</small><b>{A.length}</b></div><div><small>Advance (unused)</small><b>{inr(adv.toFixed(2))}</b></div><div><small>To pay now</small><b className="neg">{inr(toPay.toFixed(2))}</b></div></div>
           <div className="seg2 sm" id="pxPer" hidden>{(['all', 'oct', 'sep'] as const).map((k) => <button data-per={k} className={P.per === k ? 'on' : ''} key={k} onClick={() => P.setPer(k)}>{k === 'all' ? 'All' : k === 'oct' ? 'This month' : 'Last month'}</button>)}</div>
           <select id="pxPerSel" hidden aria-hidden="true" value={P.per} onChange={(e) => P.setPer(e.target.value as Period)}>{P.perOpts.map(([v, t]) => <option value={v} key={v}>{t}</option>)}</select></div>
@@ -293,7 +294,7 @@ export function DebitNotesPage() {
     <section id="vDns">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Debit notes</h1><span className="pttot">Goods returned to suppliers</span><div className="sp"></div><button className="btn p" data-pnew="dn" onClick={newDn}><RawIcon d={PLUS} />New debit note</button></div>
       <div className="card ptxc">
-        <div className="ptfil" style={{ padding: '14px 16px', alignItems: 'center' }}><label className="search" htmlFor="dnQ" style={{ maxWidth: 300, height: 36 }}><RawIcon d={SEARCH} /><input id="dnQ" placeholder="Search debit note or supplier" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+        <div className="ptfil" style={{ padding: ui.sp('14px 16px'), alignItems: 'center' }}><label className="search" htmlFor="dnQ" style={{ maxWidth: 300, height: ui.h(36) }}><RawIcon d={SEARCH} /><input id="dnQ" placeholder="Search debit note or supplier" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
           <div className="sumrow sumin" id="dnSum"><div><small>Returned to suppliers</small><b>{inr(tot.toFixed(2))}</b></div><div><small>Debit notes</small><b>{A.length}</b></div><div><small>Items returned</small><b>{Number(qty.toFixed(3)).toLocaleString('en-IN')}</b></div><div><small>Unused credit</small><b>{inr(A.reduce((a, d) => a.plus(d.balance), money(0)).toFixed(2))}</b></div></div></div>
         <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr><th>Date</th><th>Debit note</th><th>Supplier</th><th>Against bill</th><th>Reason</th><th className="n">Qty</th><th className="n">Amount</th><th className="slact"><span className="vh">Actions</span></th></tr></thead>
           <tbody id="dnRows" onContextMenu={rm.onContextMenu} onKeyDown={rowKeys('tr[data-dnno]', rm.menuKey)}>

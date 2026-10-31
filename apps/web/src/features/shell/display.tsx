@@ -12,7 +12,7 @@ import { RawIcon } from '../../components/Icon';
 import { ME_KEY } from '../../lib/me';
 import { useStyles } from '../../lib/useStyles';
 import { APP_STYLES } from '../../styles';
-import { DENSITIES, TEXT_SIZES, uiSizeSheet } from '../../styles/uiSize';
+import { DENSITIES, TEXT_SIZES, uiSizeSheet, ui } from '../../styles/uiSize';
 import toastCss from './toast.css?inline';
 import rowMenuCss from './row-menu.css?inline';
 import rowHeightCss from './row-height.css?inline';
@@ -78,10 +78,10 @@ export function useSaveDisplay() {
 export function DisplayChoices({ d, idp }: { d: Display; idp: string }) {
   const save = useSaveDisplay();
   const row = <K extends keyof Display>(key: K, icon: string, title: string, help: string, opts: [Display[K], string][]) => (
-    <div className="tgl" style={{ marginTop: 14 }}>
+    <div className="tgl" style={{ marginTop: ui.sp(14) }}>
       <div className="ti" style={tile('var(--blue,#2563eb)')}><RawIcon d={icon} /></div>
       <div className="tx"><b>{title}</b><small>{help}</small>
-        <div className="seg2" role="radiogroup" aria-label={title} id={`${idp}${key === 'density' ? 'Den' : 'Txt'}`} style={{ marginTop: 10 }}>
+        <div className="seg2" role="radiogroup" aria-label={title} id={`${idp}${key === 'density' ? 'Den' : 'Txt'}`} style={{ marginTop: ui.sp(10) }}>
           {opts.map(([v, label]) => (
             <button type="button" role="radio" aria-checked={d[key] === v} className={d[key] === v ? 'on' : ''} data-v={v} key={v} onClick={() => d[key] !== v && void save({ [key]: v } as Partial<Display>)}>{label}</button>
           ))}
@@ -117,10 +117,10 @@ export function DisplayDialog({ open, d, onClose }: { open: boolean; d: Display;
   return (
     <div className="ov c" id="dsp" hidden={!open} onClick={(e) => { if ((e.target as HTMLElement).id === 'dsp') onClose(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="dspT">
-        <h3 id="dspT" style={{ margin: '0 0 4px', fontSize: 18 }}>Display</h3>
-        <p className="mu" style={{ margin: 0, fontSize: 13 }}>How your screens look. Saved on your account, on every device.</p>
+        <h3 id="dspT" style={{ margin: ui.sp('0 0 4px'), fontSize: ui.fs(18) }}>Display</h3>
+        <p className="mu" style={{ margin: 0, fontSize: ui.fs(13) }}>How your screens look. Saved on your account, on every device.</p>
         <DisplayChoices d={d} idp="dsp" />
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}><button className="btn p" id="dspDone" ref={done} onClick={onClose}>Done</button></div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: ui.sp(18) }}><button className="btn p" id="dspDone" ref={done} onClick={onClose}>Done</button></div>
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ import { qfmt } from '../items/ItemsPage';
 import { useEditorData, type EditorData } from './editor/data';
 import { ComboList, comboKey, partyOpts, useCombo, type ComboOpt } from './editor/Grid';
 import { calc, lineFor, newSI, partyState, priceListFor, unitPrice, useSI, type EItem, type EParty, type Line } from './editor/state';
+import { ui } from '../../styles/uiSize';
 
 export const useQuick = create<{ open: boolean; show: () => void; hide: () => void }>((set) => ({ open: false, show: () => set({ open: true }), hide: () => set({ open: false }) }));
 
@@ -141,7 +142,7 @@ function QuickSaleWindow({ d, close }: { d: EditorData; close: () => void }) {
     <div className="ov c" id="qsm" ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'qsm') close(); }} onKeyDownCapture={onKey}>
       <div className="mdl qsmd" role="dialog" aria-modal="true" aria-labelledby="qsT">
         <div className="qsh"><div><h3 id="qsT"><span className="qsbolt"><RawIcon d={BOLT} /></span>Quick sale</h3><small className="mu"><span className="mono" id="qsNo">{nn.data?.number ?? ''}</span> · <span id="qsDate">{fmtD(date)}</span></small></div>
-          <div style={{ display: 'flex', gap: 6 }}><button className="ib" type="button" id="qsFull" title="Open full invoice" aria-label="Open full invoice" onClick={full}><RawIcon d={FULL} /></button><button className="ib" type="button" id="qsClose" aria-label="Close" onClick={close}><RawIcon d={X} /></button></div></div>
+          <div style={{ display: 'flex', gap: ui.sp(6) }}><button className="ib" type="button" id="qsFull" title="Open full invoice" aria-label="Open full invoice" onClick={full}><RawIcon d={FULL} /></button><button className="ib" type="button" id="qsClose" aria-label="Close" onClick={close}><RawIcon d={X} /></button></div></div>
         <label className="fl" htmlFor="qsParty">Party name<div className="combo"><input className="fi" id="qsParty" placeholder="Search party or type a name" autoComplete="off" value={party ? party.name : name}
           onChange={(e) => { setParty(null); setName(e.target.value); if (pay === 'Credit') setPay('Cash'); c.show('qsp', pOpts(e.target.value), (v) => pickParty(v as EParty)); }}
           onFocus={(e) => { if (!party) c.show('qsp', pOpts(e.target.value), (v) => pickParty(v as EParty)); }} onBlur={blur} /><ComboList c={c} k="qsp" /></div></label>
@@ -163,7 +164,7 @@ function QuickSaleWindow({ d, close }: { d: EditorData; close: () => void }) {
         })}</div>
         <button type="button" className="lnk qsadd" id="qsAdd" onClick={() => { setLines((L) => [...L, blank()]); setTimeout(() => [...document.querySelectorAll<HTMLInputElement>('#qsRows .qs-item')].pop()?.focus(), 0); }}>+ Add another item</button>
         <div className="qstot" id="qsTotal"><span>{n} item{n === 1 ? '' : 's'}{t.tax ? ` · incl. GST ${inr2f(t.tax)}` : ''}</span><b>₹{inr2f(t.total)}</b></div>
-        <div className="qsfoot"><div><small className="mu" style={{ display: 'block', marginBottom: 6 }}>Payment type</small><div className="seg2 sm" id="qsPay" role="group" aria-label="Payment type">
+        <div className="qsfoot"><div><small className="mu" style={{ display: 'block', marginBottom: ui.sp(6) }}>Payment type</small><div className="seg2 sm" id="qsPay" role="group" aria-label="Payment type">
           {(['Cash', 'UPI', 'Card', 'Credit'] as Pay[]).map((m) => <button type="button" className={pay === m ? 'on' : ''} data-qspay={m} key={m} disabled={m === 'Credit' && !party} title={m === 'Credit' && !party ? 'Choose a party for a credit sale' : undefined} onClick={() => setPay(m)}>{m}</button>)}</div></div>
           <div className="qsbtns"><div className="msg bad" id="qsErr" role="alert" style={{ margin: 0 }}>{err}</div><button className="ib qsib" type="button" id="qsPrint" title="Save & print (Ctrl+Shift+S)" aria-label="Save and print" disabled={busy} onClick={() => void save(true)}><RawIcon d={PRINT} /></button><button className="ib qsib p" type="button" id="qsSave" title="Save (Ctrl+S)" aria-label="Save" disabled={busy} onClick={() => void save(false)}><RawIcon d={SAVE} /></button></div></div>
       </div>

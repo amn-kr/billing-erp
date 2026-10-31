@@ -2,6 +2,7 @@
 import { useRef, type ReactNode } from 'react';
 import { useEscape } from '../../lib/useEscape';
 import { useOpenFocus } from '../../lib/useOpenFocus';
+import { ui } from '../../styles/uiSize';
 
 export interface SlModalProps {
   title: string;
@@ -26,8 +27,8 @@ export function SlModal({ m, onClose }: { m: SlModalProps | null; onClose: () =>
   return (
     <div className="ov c" id="slm" hidden={!m} ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'slm') onClose(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="slmT" style={width ? { width } : undefined}>
-        <h3 id="slmT" style={{ margin: '0 0 4px', fontSize: 18 }}>{m?.title}</h3><p className="mu" id="slmSub" style={{ margin: '0 0 14px', fontSize: 13 }}>{m?.sub}</p><div id="slmBody">{m?.body}</div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}><button className="btn" type="button" id="slmCancel" onClick={onClose}>{m?.cancel ?? (m?.ok ? 'Keep it' : 'Close')}</button>
+        <h3 id="slmT" style={{ margin: ui.sp('0 0 4px'), fontSize: ui.fs(18) }}>{m?.title}</h3><p className="mu" id="slmSub" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(13) }}>{m?.sub}</p><div id="slmBody">{m?.body}</div>
+        <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end', marginTop: ui.sp(16) }}><button className="btn" type="button" id="slmCancel" onClick={onClose}>{m?.cancel ?? (m?.ok ? 'Keep it' : 'Close')}</button>
           <button className={`btn p${m?.danger ? ' dz' : ''}`} type="button" id="slmOk" hidden={!m?.ok} style={m?.ok ? undefined : { display: 'none' }} onClick={m?.onOk}>{m?.ok ?? ''}</button></div>
       </div>
     </div>

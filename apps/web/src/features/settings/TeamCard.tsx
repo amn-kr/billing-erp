@@ -11,10 +11,11 @@ import { api, ApiError } from '../../lib/api';
 import { useMe } from '../../lib/me';
 import { useShell } from '../shell/store';
 import { SlModal, type SlModalProps } from '../sales/SlModal';
+import { ui } from '../../styles/uiSize';
 
 interface Team { members: TeamMember[]; invites: { id: string; email: string }[] }
 const TEAM_KEY = ['members'] as const;
-const ROW: CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderTop: '1px solid var(--bd,#e2e8f0)', fontSize: 13 };
+const ROW: CSSProperties = { display: 'flex', alignItems: 'center', gap: ui.sp(10), padding: ui.sp('7px 0'), borderTop: '1px solid var(--bd,#e2e8f0)', fontSize: ui.fs(13) };
 const Row = ({ l, r }: { l: ReactNode; r?: ReactNode }) => <div style={ROW}><span style={{ flex: 1, minWidth: 0 }}>{l}</span>{r}</div>;
 const until = (iso: string) => new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
 const msgOf = (e: unknown, d: string) => (e instanceof ApiError ? e.message : d);
@@ -89,9 +90,9 @@ export function TeamCard() {
             title: `Temporary password for ${n}`, sub: 'Shown only once. Give it to them in person.', cancel: 'Done',
             body: (
               <>
-                <div style={{ display: 'flex', gap: 8 }}><input className="fi mono" id="tmTemp" readOnly value={t.temporaryPassword} aria-label="Temporary password" style={{ margin: 0, flex: 1, fontSize: 18, letterSpacing: 1 }} onFocus={(e) => e.target.select()} />
+                <div style={{ display: 'flex', gap: ui.sp(8) }}><input className="fi mono" id="tmTemp" readOnly value={t.temporaryPassword} aria-label="Temporary password" style={{ margin: 0, flex: 1, fontSize: ui.fs(18), letterSpacing: 1 }} onFocus={(e) => e.target.select()} />
                   <button className="btn" type="button" id="tmCopy" onClick={() => void navigator.clipboard?.writeText(t.temporaryPassword).then(() => showToast('Copied'), () => showToast('Select it and copy'))}>Copy</button></div>
-                <p className="hint" style={{ margin: '10px 0 0' }}>It works until {until(t.expiresAt)}. When {n} signs in with it, they choose their own password.</p>
+                <p className="hint" style={{ margin: ui.sp('10px 0 0') }}>It works until {until(t.expiresAt)}. When {n} signs in with it, they choose their own password.</p>
               </>
             ),
           });
@@ -105,13 +106,13 @@ export function TeamCard() {
   const members = (team.data?.members ?? []).filter((m) => m.status === 'active');
   return (
     <>
-      <div id="tmCard"><h3 style={{ margin: '26px 0 4px', fontSize: 16 }}>Team</h3><p className="mu" style={{ margin: '0 0 12px', fontSize: 13 }}>People who can open these books. Each person signs in with their own email.</p>
+      <div id="tmCard"><h3 style={{ margin: ui.sp('26px 0 4px'), fontSize: ui.fs(16) }}>Team</h3><p className="mu" style={{ margin: ui.sp('0 0 12px'), fontSize: ui.fs(13) }}>People who can open these books. Each person signs in with their own email.</p>
         {owner && (
           <div className="synccard"><div className="sx"><b>Invite staff</b><span>They sign in at this website with the same email and join your shop.</span>
-            <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}><input className="fi" id="tmEmail" type="email" placeholder="staff@email.com" autoComplete="off" style={{ margin: 0, flex: 1, minWidth: 200 }} value={email} onChange={(e) => { setEmail(e.target.value); setErr(''); }} onKeyDown={(e) => e.key === 'Enter' && void invite()} /><button className="btn p" type="button" id="tmInvite" disabled={busy} onClick={() => void invite()}>Send invite</button></div>
+            <div style={{ display: 'flex', gap: ui.sp(8), marginTop: ui.sp(8), flexWrap: 'wrap' }}><input className="fi" id="tmEmail" type="email" placeholder="staff@email.com" autoComplete="off" style={{ margin: 0, flex: 1, minWidth: 200 }} value={email} onChange={(e) => { setEmail(e.target.value); setErr(''); }} onKeyDown={(e) => e.key === 'Enter' && void invite()} /><button className="btn p" type="button" id="tmInvite" disabled={busy} onClick={() => void invite()}>Send invite</button></div>
             <div className="msg bad" id="tmErr" role="alert">{err}</div></div></div>
         )}
-        <div className="synccard"><div className="sx"><b>Members</b><div id="tmList" style={{ marginTop: 6 }}>
+        <div className="synccard"><div className="sx"><b>Members</b><div id="tmList" style={{ marginTop: ui.sp(6) }}>
           {team.isError ? 'Couldn’t load the team right now.' : (
             <>
               {members.map((m) => {

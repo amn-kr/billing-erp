@@ -25,6 +25,7 @@ import { Icon, RawIcon } from '../../components/Icon';
 import { SearchSelect } from '../../components/SearchSelect';
 import { useShell } from '../shell/store';
 import { qfmt } from './ItemsPage';
+import { ui } from '../../styles/uiSize';
 
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>';
 const X = '<path d="M6 6l12 12M18 6L6 18"/>';
@@ -367,7 +368,7 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
       <div className="ov c" id="aiUnits" hidden={!open || !uw} onClick={(e) => { e.stopPropagation(); if (e.target === e.currentTarget) setUw(null); }}>
         {uw && (
           <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="aiUnitsT">
-            <div className="dh" style={{ marginBottom: 14 }}><h3 id="aiUnitsT" style={{ margin: 0, fontSize: 18 }}>Select unit</h3><button className="ib" type="button" aria-label="Close" onClick={() => setUw(null)}><RawIcon d={X} /></button></div>
+            <div className="dh" style={{ marginBottom: ui.sp(14) }}><h3 id="aiUnitsT" style={{ margin: 0, fontSize: ui.fs(18) }}>Select unit</h3><button className="ib" type="button" aria-label="Close" onClick={() => setUw(null)}><RawIcon d={X} /></button></div>
             <div className="two">
               <label className="fl" htmlFor="aiUBase">Base unit<select className="fi" id="aiUBase" value={uw.base} onChange={(e) => (e.target.value === '__new' ? (setUw({ ...uw, addFor: 'base' }), setPop('unit')) : setUw({ ...uw, base: e.target.value, sec: uw.sec === e.target.value ? '' : uw.sec, pick: 'new', err: '' }))}>
                 {units.map((u) => <option key={u.code} value={u.code}>{uLabel(u.code)}</option>)}<option value="__new">+ Add new unit</option></select></label>
@@ -377,14 +378,14 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
             {uw.sec && (
               <>
                 <b className="aph">Conversion rates</b>
-                <label className="cb2"><input type="radio" name="aiRate" checked={uw.pick === 'new'} onChange={() => setUw({ ...uw, pick: 'new', err: '' })} />1 {uw.base} =<input className="fi" id="aiURate" style={{ width: 90, height: 42, margin: 0 }} value={uw.typed} inputMode="decimal" placeholder="0" aria-label={`${uw.sec} in 1 ${uw.base}`} onFocus={() => setUw({ ...uw, pick: 'new' })} onChange={(e) => setUw({ ...uw, typed: e.target.value, pick: 'new', err: '' })} />{uw.sec}</label>
+                <label className="cb2"><input type="radio" name="aiRate" checked={uw.pick === 'new'} onChange={() => setUw({ ...uw, pick: 'new', err: '' })} />1 {uw.base} =<input className="fi" id="aiURate" style={{ width: 90, height: ui.h(42), margin: 0 }} value={uw.typed} inputMode="decimal" placeholder="0" aria-label={`${uw.sec} in 1 ${uw.base}`} onFocus={() => setUw({ ...uw, pick: 'new' })} onChange={(e) => setUw({ ...uw, typed: e.target.value, pick: 'new', err: '' })} />{uw.sec}</label>
                 {saved.map((r) => (
                   <label className="cb2" key={r.rate}><input type="radio" name="aiRate" checked={uw.pick === r.rate} onChange={() => setUw({ ...uw, pick: r.rate, err: '' })} />1 {uw.base} = {qty(r.rate)} {uw.sec}</label>
                 ))}
               </>
             )}
-            <div className="msg bad" role="alert" style={{ marginTop: 8 }}>{uw.err}</div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}><button className="btn p" type="button" id="aiUSave" onClick={saveUnits}>Save</button></div>
+            <div className="msg bad" role="alert" style={{ marginTop: ui.sp(8) }}>{uw.err}</div>
+            <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end' }}><button className="btn p" type="button" id="aiUSave" onClick={saveUnits}>Save</button></div>
           </div>
         )}
       </div>
@@ -427,11 +428,11 @@ function AddPopup({ kind, open, initial = '', title, label, ph, onClose, onCreat
   return (
     <div className="ov c" id={id} hidden={!open} onClick={(e) => { e.stopPropagation(); if (e.target === e.currentTarget) onClose(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby={id + 'T'}>
-        <div className="dh" style={{ marginBottom: 14 }}><h3 id={id + 'T'} style={{ margin: 0, fontSize: 18 }}>{title}</h3><button className="ib" type="button" aria-label="Close" onClick={onClose}><RawIcon d={X} /></button></div>
+        <div className="dh" style={{ marginBottom: ui.sp(14) }}><h3 id={id + 'T'} style={{ margin: 0, fontSize: ui.fs(18) }}>{title}</h3><button className="ib" type="button" aria-label="Close" onClick={onClose}><RawIcon d={X} /></button></div>
         <label className="fl" htmlFor={id + 'N'}>{label}<input className="fi" id={id + 'N'} ref={ref} value={name} placeholder={ph} autoComplete="off" onChange={(e) => { setName(e.target.value); setErr(''); }} onKeyDown={enter} /></label>
         {kind === 'unit' && <label className="fl" htmlFor={id + 'S'}>Short name<input className="fi mono" id={id + 'S'} value={short} placeholder="e.g., COIL" maxLength={20} autoComplete="off" onChange={(e) => { setShort(e.target.value.toUpperCase()); setErr(''); }} onKeyDown={enter} /></label>}
         <div className="msg bad" role="alert">{err}</div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}><button className="btn p" type="button" id={id + 'Go'} disabled={busy} onClick={() => void go()}>Create</button></div>
+        <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end' }}><button className="btn p" type="button" id={id + 'Go'} disabled={busy} onClick={() => void go()}>Create</button></div>
       </div>
     </div>
   );

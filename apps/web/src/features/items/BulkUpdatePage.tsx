@@ -23,6 +23,7 @@ import { ThfChoices, ThfPop, type ThfAnchor } from '../../components/ThfPop';
 import { withPasscode } from '../settings/passcode';
 import { useShell } from '../shell/store';
 import type { Item } from './ItemsPage';
+import { ui } from '../../styles/uiSize';
 
 interface Row extends Item { description: string }
 type Key = 'lead' | BulkField;
@@ -207,7 +208,7 @@ export function BulkUpdatePage() {
 
   const header = (
     <>
-      <button className="lnk" id="buBack" style={{ fontSize: 12, padding: 0 }} onClick={() => go('/items')}>← Items</button>
+      <button className="lnk" id="buBack" style={{ fontSize: ui.fs(12), padding: 0 }} onClick={() => go('/items')}>← Items</button>
       <div className="pthd">
         <h1 className="ptkind" style={{ cursor: 'default' }}>Bulk Update Items</h1>
         <div className="pttot" id="buTot"><span>{plural(IT.length, 'item')}</span></div>
@@ -224,19 +225,19 @@ export function BulkUpdatePage() {
       {tried && badCount > 0 && <div className="msg bad" id="buErr" role="alert">{plural(badCount, 'cell')} {badCount === 1 ? 'needs' : 'need'} fixing before Update: {badNames.slice(0, 5).join(', ')}{badNames.length > 5 ? ` and ${n(badNames.length - 5)} more` : ''}. {badCount === 1 ? 'It is' : 'They are'} marked in red.</div>}
       {serverMsg && <div className="msg bad" id="buSrvErr" role="alert">{serverMsg}</div>}
       <div className="card ptxc">
-        <div className="ptfil" style={{ padding: '14px 16px', alignItems: 'center', gap: 12 }}>
-          <label className="search" htmlFor="buQ" style={{ height: 34 }}><RawIcon d={SEARCH} /><input id="buQ" placeholder="Search by item name" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+        <div className="ptfil" style={{ padding: ui.sp('14px 16px'), alignItems: 'center', gap: ui.sp(12) }}>
+          <label className="search" htmlFor="buQ" style={{ height: ui.h(34) }}><RawIcon d={SEARCH} /><input id="buQ" placeholder="Search by item name" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
           {applied.length > 0 && (
-            <span id="buFilters" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
+            <span id="buFilters" style={{ display: 'inline-flex', alignItems: 'center', gap: ui.sp(8), fontSize: ui.fs(12.5) }}>
               <span className="brc" id="buFilterOn">Filter on</span>
               <span className="mu" id="buFilterWhat">{applied.map(([k, v]) => `${TITLES[k]}: ${filterText(k, v!)}`).join(' · ')}</span>
               <button type="button" className="lnk" id="buFilterClr" onClick={() => setFx({})}>Clear filter{applied.length > 1 ? 's' : ''}</button>
             </span>
           )}
           {selRows.length > 0 && (
-            <span id="buSel" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginLeft: 'auto', fontSize: 13 }}>
+            <span id="buSel" style={{ display: 'inline-flex', alignItems: 'center', gap: ui.sp(10), marginLeft: 'auto', fontSize: ui.fs(13) }}>
               <b>{plural(selRows.length, 'item')} selected</b>
-              <select className="fi" id="buTax" aria-label="Update tax slab of the selected items" value="" style={{ width: 'auto', height: 34, margin: 0 }} onChange={(e) => { const v = e.target.value; if (!v) return; for (const i of selRows) edit(i.id, 'gstRate', v); showToast(`Tax slab ${taxName(v)} set for ${plural(selRows.length, 'item')}. Press Update to save.`); }}>
+              <select className="fi" id="buTax" aria-label="Update tax slab of the selected items" value="" style={{ width: 'auto', height: ui.h(34), margin: 0 }} onChange={(e) => { const v = e.target.value; if (!v) return; for (const i of selRows) edit(i.id, 'gstRate', v); showToast(`Tax slab ${taxName(v)} set for ${plural(selRows.length, 'item')}. Press Update to save.`); }}>
                 <option value="">Update Tax Slab</option>
                 {taxes.map((t) => <option key={t.id} value={String(Number(t.rate))}>{t.name}{t.isOld ? ' (older rate)' : ''}</option>)}
               </select>
@@ -271,8 +272,8 @@ export function BulkUpdatePage() {
           empty={IT.length ? 'No items match.' : 'No items yet. Add items first.'}
         />
         <div className="egpg" id="buBar">
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-            <span className="brc" id="buChip" style={{ fontSize: 12, padding: '3px 10px' }}>Item Information - {plural(validItems.length, 'Update')}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: ui.sp(10) }}>
+            <span className="brc" id="buChip" style={{ fontSize: ui.fs(12), padding: ui.sp('3px 10px') }}>Item Information - {plural(validItems.length, 'Update')}</span>
             {badCount > 0 && <span className="stt r" id="buErrCount">{plural(badCount, 'error')}</span>}
           </span>
           <button className="btn p" id="buGo" disabled={busy} onClick={update}>Update</button>
@@ -312,10 +313,10 @@ function ConfirmBody({ busy, items, onCancel, onGo }: { busy: boolean; items: nu
   useEscape(!busy, onCancel);
   return (
     <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="bucT">
-      <h3 id="bucT" style={{ margin: '0 0 12px', fontSize: 18 }}>Update {plural(items, 'item')}?</h3>
-      <p id="bucD" style={{ margin: '0 0 8px', fontSize: 13.5, lineHeight: 1.6 }}>The item information of {plural(items, 'item')} will change.</p>
-      <p className="mu" style={{ margin: '0 0 14px', fontSize: 12.5, lineHeight: 1.6 }}>All of them are saved together. If one can’t be saved, none is, and you are told which one and why.</p>
-      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+      <h3 id="bucT" style={{ margin: ui.sp('0 0 12px'), fontSize: ui.fs(18) }}>Update {plural(items, 'item')}?</h3>
+      <p id="bucD" style={{ margin: ui.sp('0 0 8px'), fontSize: ui.fs(13.5), lineHeight: 1.6 }}>The item information of {plural(items, 'item')} will change.</p>
+      <p className="mu" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(12.5), lineHeight: 1.6 }}>All of them are saved together. If one can’t be saved, none is, and you are told which one and why.</p>
+      <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end' }}>
         <button className="btn" type="button" id="bucCancel" disabled={busy} onClick={onCancel}>Cancel</button>
         <button className="btn p" type="button" id="bucGo" disabled={busy} onClick={onGo}>{busy ? 'Updating…' : 'Update'}</button>
       </div>

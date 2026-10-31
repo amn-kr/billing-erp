@@ -19,6 +19,7 @@ import { useSettings } from '../../lib/settings';
 import { Icon, RawIcon } from '../../components/Icon';
 import type { SaleDoc } from './model';
 import { txnOpts } from './editor/state';
+import { ui } from '../../styles/uiSize';
 
 export interface Biz { name: string; shortName: string; phone: string; address: string; city: string; pin: string; stateCode: string; gstin: string; email?: string }
 export const useBiz = () => useQuery({ queryKey: ['business-current'], queryFn: () => api<Biz>('/businesses/current') });
@@ -56,7 +57,7 @@ export function InvoicePreview({ doc, challan, hsnOf, onClose, onNew, onLink }: 
   return (
     <div className="ov c" id="ipv" ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'ipv') onClose(); }}>
       <div className="mdl ipvm" role="dialog" aria-modal="true" aria-labelledby="ipvTitle">
-        <div className="ipvbar"><h3 id="ipvTitle" style={{ margin: 0, fontSize: 16, flex: 1 }}>{title}</h3>
+        <div className="ipvbar"><h3 id="ipvTitle" style={{ margin: 0, fontSize: ui.fs(16), flex: 1 }}>{title}</h3>
           <button className="btn sm" type="button" id="ipvLink" hidden={q || dc || v.cancelled || !due.gt(0)} style={dc ? { display: 'none' } : undefined} onClick={() => onLink(v)}><Icon name="phone" />Payment link</button>
           <a className="btn sm" id="ipvWa" href={phone ? `https://wa.me/91${phone}?text=${encodeURIComponent(q ? qmsg : msg)}` : '#'} hidden={!phone} target="_blank" rel="noopener" style={{ textDecoration: 'none', ...(dc && { display: 'none' }) }}><RawIcon d={WA} />Share on WhatsApp</a>
           <button className="btn sm" type="button" id="ipvPrint" onClick={printNow}><RawIcon d={PRINT} />Print</button>
