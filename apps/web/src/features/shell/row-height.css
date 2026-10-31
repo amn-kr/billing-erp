@@ -1,0 +1,12 @@
+/* One row height for every table (owner's request, 25 Oct 2026; answers 31 Oct 2026): each data row and
+   totals row is as tall as a Sales invoices row (39px), each single heading row 35px. The prototype's own
+   rules are unchanged; this file is loaded after them. Not here: the typing grids (sale, purchase and
+   quotation editors, bulk update / active, import grids: their rows hold input boxes), printed paper,
+   and one-cell rows (empty-list messages, opened details). A grey second line (e.g. "1 item") stays
+   under the first, with tighter line spacing, so columns keep their width. Amount boxes inside a
+   table row are 32px with no gap above, like the prototype's own boxes in the Prices table (.pmi). */
+.ptt2:not(.egt)>tbody>tr:not(.psit):not(:has(>td:only-child))>td,.ptt2:not(.egt)>tfoot>tr>td,#vDash .tw>table>tbody>tr:not(:has(>td:only-child))>td{height:39px;padding-top:0!important;padding-bottom:0!important;white-space:nowrap!important;vertical-align:middle}
+.ptt2:not(.egt)>tbody>tr>td,.ptt2:not(.egt)>tfoot>tr>td,#vDash .tw>table>tbody>tr>td{line-height:16px}
+.ptt2:not(.egt)>tbody>tr>td small,.ptt2:not(.egt)>tfoot>tr>td small,#vDash .tw>table>tbody>tr>td small{line-height:13px}
+.ptt2:not(.egt)>tbody>tr>td .fi{height:32px;margin-top:0}
+.ptt2:not(.egt)>thead>tr:only-child>th,#vDash .tw>table>thead>tr:only-child>th{height:35px;padding-top:0!important;padding-bottom:0!important;vertical-align:middle}
