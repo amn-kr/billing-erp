@@ -19,7 +19,7 @@
   "dependencies": {
     "@billing/shared": "workspace:*",
     "@nestjs/common": "10.4.22",
-    "@nestjs/core": "10.4.22",
+    "@nestjs/core": "11.1.18",
     "@nestjs/jwt": "10.2.0",
     "@nestjs/platform-express": "10.4.22",
     "@nestjs/throttler": "6.4.0",
