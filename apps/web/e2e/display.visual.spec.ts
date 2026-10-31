@@ -4,6 +4,7 @@
  * a shop of its own (the sales books), so the display choice never reaches the shared test accounts.
  */
 import { request as playwrightRequest, test, type Browser, type Page } from '@playwright/test';
+import { BKP, fakeBackup } from './backup.data';
 import { approvedShot } from './shots';
 import { APP, WIDTHS, freshShop, newPage, settle, signInAs } from './setup';
 
@@ -16,6 +17,9 @@ async function shopWith(browser: Browser, width: number, display: { density: str
   if (!r.ok()) throw new Error(`saving the display failed: ${r.status()} ${await r.text()}`);
   await api.dispose();
   const page = await newPage(browser, width);
+  // Settings › General shows the backup card: a fixed answer, as in the set-gen picture (the space used
+  // is the test database's real size, which changes with what other tests stored)
+  await fakeBackup(page, BKP.none);
   await signInAs(page, who);
   return page;
 }
