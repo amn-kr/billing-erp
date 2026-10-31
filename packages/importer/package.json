@@ -13,7 +13,7 @@
   "dependencies": {
     "@billing/shared": "workspace:*",
     "playwright-core": "1.56.1",
-    "zod": "3.25.76"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@types/node": "22.18.0",
