@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, type Payment } from '@prisma/client';
+import { Prisma, type Payment, type PurchaseDocument } from '@prisma/client';
 import { PURCHASE_KIND, billTotalTooLow, formatInr2, money, payPartsUpTo, purchaseTotals, toDb, todayIst, type Money, type PaymentOutInput, type PurchaseInput } from '@billing/shared';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
@@ -8,11 +8,12 @@ import { LedgerService, type PostLine } from '../../common/ledger.service';
 import type { RequestContext } from '../../common/context';
 import { day, isoOf } from '../../common/lookups';
 import { booksOf } from '../sales/sales.service';
-import { reverseStock } from '../sales/stock-back';
+import { refuseIfSoldSince, reverseStock } from '../sales/stock-back';
 import { cancelPayment, cancelPendingCheques, cashBankFor } from '../sales/money-in';
 import { reconciledIn, reconciledMessage, refuseIfReconciled, repostPayment } from '../../common/editing';
 import { billBalances, settledElsewhere, usedOut } from './dues';
 import { refreshPurchasePrices } from '../stock/stock-value';
+import { ALREADY_DELETED, deleteMark } from '../../common/deleting';
 
 const DOC_TYPE = { bill: 'bill', order: 'purchase_order', debit_note: 'debit_note' } as const;
 const d2 = (v: { toString(): string } | null | undefined) => (v === null || v === undefined ? null : toDb(v.toString()));
@@ -31,7 +32,8 @@ async function chequeDone(tx: Tx, paymentId: string) {
 /**
  * Purchases (prototype savePE / puApply / pySave): bills bring stock in and add to what you owe
  * the supplier; orders change nothing until converted; debit notes send stock back and reduce a
- * bill; payments made settle bills (the rest is an advance). Nothing is deleted, only cancelled.
+ * bill; payments made settle bills (the rest is an advance). Nothing is erased: a delete is a cancel
+ * that also hides the record from the lists (common/deleting.ts).
  */
 @Injectable()
 export class PurchasesService {
@@ -246,20 +248,53 @@ export class PurchasesService {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const d = await tx.purchaseDocument.findFirst({ where: { id } });
       if (!d) throw new NotFoundException({ message: 'That document was not found.' });
+      if (d.deletedAt) throw new BadRequestException({ message: ALREADY_DELETED });
       if (d.cancelledAt) throw new BadRequestException({ message: 'Already cancelled' });
-      const today = todayIst();
-      if (d.kind !== 'order') {
-        await this.ledger.cancel(tx, 'purchase_document', d.id);
-        await reverseStock(tx, { businessId: ctx.businessId!, userId: ctx.userId }, d.id, today, `Cancelled ${d.number}`, 'purchase_document');
-        if (d.kind === 'bill') {
-          const lines = await tx.purchaseDocumentLine.findMany({ where: { documentId: d.id }, select: { itemId: true } });
-          await refreshPurchasePrices(tx, { businessId: ctx.businessId!, userId: ctx.userId }, lines.map((l) => l.itemId), `Purchase bill ${d.number} cancelled`);
-        }
-      }
-      // money paid against a cancelled bill stays with the supplier as an advance (its allocations no longer count)
-      await tx.purchaseDocument.update({ where: { id }, data: { cancelledAt: new Date(), cancelledBy: ctx.userId, cancelReason: reason, ...(d.kind === 'order' && { status: 'cancelled' }) } });
-      await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'cancel', entity: 'purchase_document', entityId: id, before: d, after: { reason }, ip: ctx.ip });
-      return { id, number: d.number };
+      return this.cancelIn(tx, ctx, d, reason, new Date());
+    });
+  }
+
+  /**
+   * Undoes a document's effects and marks it cancelled; a delete runs the same steps first. A bill
+   * whose goods were sold since is refused. Money paid on a bill stays with the supplier as an
+   * advance (its settlements no longer count): `movedToAdvance` says how much.
+   */
+  private async cancelIn(tx: Tx, ctx: RequestContext, d: PurchaseDocument, reason: string, at: Date) {
+    const today = todayIst();
+    let movedToAdvance = money(0);
+    if (d.kind === 'bill') {
+      await refuseIfSoldSince(tx, d.id, d.number, 'purchase_document');
+      movedToAdvance = money(d.total.toString()).minus((await billBalances(tx, [d.id])).get(d.id) ?? 0);
+    }
+    if (d.kind !== 'order') {
+      await this.ledger.cancel(tx, 'purchase_document', d.id);
+      await reverseStock(tx, { businessId: ctx.businessId!, userId: ctx.userId }, d.id, today, `Cancelled ${d.number}`, 'purchase_document');
+    }
+    // money paid against a cancelled bill stays with the supplier as an advance (its allocations no longer count)
+    await tx.purchaseDocument.update({ where: { id: d.id }, data: { cancelledAt: at, cancelledBy: ctx.userId, cancelReason: reason, ...(d.kind === 'order' && { status: 'cancelled' }) } });
+    if (d.kind === 'bill') {
+      const lines = await tx.purchaseDocumentLine.findMany({ where: { documentId: d.id }, select: { itemId: true } });
+      await refreshPurchasePrices(tx, { businessId: ctx.businessId!, userId: ctx.userId }, lines.map((l) => l.itemId), `Purchase bill ${d.number} cancelled`);
+    }
+    await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'cancel', entity: 'purchase_document', entityId: d.id, before: d, after: { reason, movedToAdvance: movedToAdvance.toFixed(2) }, ip: ctx.ip });
+    return { id: d.id, number: d.number, movedToAdvance: movedToAdvance.toFixed(2) };
+  }
+
+  /**
+   * Delete a bill or debit note (common/deleting.ts): the same steps as cancel, then hidden from the
+   * lists and kept for good. One cancelled earlier has nothing left to undo: it is only marked deleted.
+   */
+  delete(ctx: RequestContext, id: string, reason: string) {
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      const d = await tx.purchaseDocument.findFirst({ where: { id } });
+      if (!d) throw new NotFoundException({ message: 'That document was not found.' });
+      if (d.kind === 'order') throw new BadRequestException({ message: 'A purchase order is cancelled, not deleted.' });
+      if (d.deletedAt) throw new BadRequestException({ message: ALREADY_DELETED });
+      const at = new Date();
+      const r = d.cancelledAt ? { movedToAdvance: '0.00' } : await this.cancelIn(tx, ctx, d, reason, at);
+      await tx.purchaseDocument.update({ where: { id }, data: deleteMark(ctx, reason, at) });
+      await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'delete', entity: 'purchase_document', entityId: id, before: d, after: { reason, wasCancelled: !!d.cancelledAt, movedToAdvance: r.movedToAdvance }, ip: ctx.ip });
+      return { id, number: d.number, movedToAdvance: r.movedToAdvance };
     });
   }
 
@@ -279,9 +314,28 @@ export class PurchasesService {
       if (!p) throw new NotFoundException({ message: 'That payment was not found.' });
       if (p.deletedAt) throw new BadRequestException({ message: `${p.number} is deleted. It can’t be changed.` });
       if (p.cancelledAt) throw new BadRequestException({ message: `${p.number} is cancelled. It can’t be changed.` });
-      const why = await this.payOutLock(tx, p);
+      const why = await this.payOutLock(tx, p, 'edit');
       if (why) throw new BadRequestException({ message: why });
       return this.writePayOut(tx, ctx, input, p);
+    });
+  }
+
+  /**
+   * Delete a payment made (common/deleting.ts, as a payment received): cancelled, then hidden from
+   * the lists and kept for good. What it settled is owed again; a cheque still waiting is cancelled.
+   */
+  deletePayOut(ctx: RequestContext, id: string, reason: string) {
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      const p = await tx.payment.findFirst({ where: { id, direction: 'out' } });
+      if (!p) throw new NotFoundException({ message: 'That payment was not found.' });
+      if (p.deletedAt) throw new BadRequestException({ message: ALREADY_DELETED });
+      const why = await this.payOutLock(tx, p, 'delete');
+      if (why) throw new BadRequestException({ message: why });
+      const at = new Date();
+      if (!p.cancelledAt) await cancelPayment(tx, this.ledger, { id, userId: ctx.userId, date: todayIst(), at });
+      await tx.payment.update({ where: { id }, data: deleteMark(ctx, reason, at) });
+      await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'delete', entity: 'payment', entityId: id, before: p, after: { reason, wasCancelled: !!p.cancelledAt }, ip: ctx.ip });
+      return { id, number: p.number, amount: toDb(p.amount.toString()) };
     });
   }
 
@@ -293,20 +347,19 @@ export class PurchasesService {
       return {
         id: p.id, number: p.number, date: isoOf(p.date), partyId: p.partyId, amount: toDb(p.amount.toString()), mode: p.mode, accountId: p.accountId, ref: p.reference, notes: p.notes, cancelled: !!p.cancelledAt,
         allocations: p.allocations.flatMap((a) => (a.purchaseDocumentId ? [{ to: a.purchaseDocumentId, amount: toDb(a.amount.toString()) }] : [])),
-        locked: p.cancelledAt ? `${p.number} is cancelled. It can’t be changed.` : await this.payOutLock(tx, p),
+        locked: p.cancelledAt ? `${p.number} is cancelled. It can’t be changed.` : await this.payOutLock(tx, p, 'edit'),
       };
     });
   }
 
   /**
-   * Why a payment made can't be edited here, or '' when it can: money paid with a bill belongs to that bill, a cleared or
-   * bounced cheque has its own entry, and an entry ticked in Reconciliation must stay as it is.
+   * Why a payment made can't be edited or deleted here, or '' when it can: money paid with a bill belongs to that bill
+   * (once the bill is cancelled or deleted it is an advance like any other), a cleared or bounced cheque has its own
+   * entry, and an entry ticked in Reconciliation must stay as it is.
    */
-  private async payOutLock(tx: Tx, p: { id: string; atSale: boolean; sourceId: string | null }) {
-    if (p.atSale) {
-      const b = p.sourceId ? await tx.purchaseDocument.findFirst({ where: { id: p.sourceId }, select: { number: true } }) : null;
-      return `This payment was made with ${b?.number ?? 'a purchase bill'}. Edit the bill instead.`;
-    }
+  private async payOutLock(tx: Tx, p: { id: string; atSale: boolean; sourceId: string | null }, verb: 'edit' | 'delete') {
+    const b = p.atSale && p.sourceId ? await tx.purchaseDocument.findFirst({ where: { id: p.sourceId }, select: { number: true, cancelledAt: true } }) : null;
+    if (p.atSale && !b?.cancelledAt) return `This payment was made with ${b?.number ?? 'a purchase bill'}. ${verb === 'edit' ? 'Edit the bill instead.' : 'Delete the bill instead.'}`;
     const c = await chequeDone(tx, p.id);
     if (c) return `Cheque ${c.chequeNo} on this payment is already ${c.status}. Undo it on the Cheques page first.`;
     const bank = await reconciledIn(tx, 'payment', p.id);
@@ -380,7 +433,7 @@ export class PurchasesService {
   list(ctx: RequestContext, kind: 'bill' | 'order' | 'debit_note') {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const docs = await tx.purchaseDocument.findMany({
-        where: { kind }, include: { party: { select: { id: true, name: true, gstin: true } }, lines: { select: { qty: true } } },
+        where: { kind, deletedAt: null }, include: { party: { select: { id: true, name: true, gstin: true } }, lines: { select: { qty: true } } },
         orderBy: [{ date: 'desc' }, { number: 'desc' }],
       });
       const bal = kind === 'bill' ? await billBalances(tx, docs.map((d) => d.id)) : new Map<string, Money>();
@@ -432,15 +485,17 @@ export class PurchasesService {
 
   payments(ctx: RequestContext) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
-      const pays = await tx.payment.findMany({ where: { direction: 'out' }, include: { party: { select: { id: true, name: true } }, allocations: true }, orderBy: [{ date: 'desc' }, { number: 'desc' }] });
+      const pays = await tx.payment.findMany({ where: { direction: 'out', deletedAt: null }, include: { party: { select: { id: true, name: true } }, allocations: true }, orderBy: [{ date: 'desc' }, { number: 'desc' }] });
       const used = await usedOut(tx, 'payment', pays.map((p) => p.id));
-      const bills = new Map((await tx.purchaseDocument.findMany({ where: { id: { in: pays.flatMap((p) => p.allocations.flatMap((a) => (a.purchaseDocumentId ? [a.purchaseDocumentId] : []))) } }, select: { id: true, number: true, cancelledAt: true } })).map((b) => [b.id, b]));
+      const bills = new Map((await tx.purchaseDocument.findMany({ where: { id: { in: pays.flatMap((p) => [...p.allocations.flatMap((a) => (a.purchaseDocumentId ? [a.purchaseDocumentId] : [])), ...(p.atSale && p.sourceId ? [p.sourceId] : [])]) } }, select: { id: true, number: true, cancelledAt: true } })).map((b) => [b.id, b]));
       return pays.map((p) => {
         const amt = money(p.amount.toString());
         return {
           id: p.id, number: p.number, date: isoOf(p.date), party: p.party, partyName: p.party?.name ?? '', mode: p.mode, ref: p.reference, amount: amt.toFixed(2), cancelled: !!p.cancelledAt,
           bills: p.allocations.flatMap((a) => { const b = a.purchaseDocumentId ? bills.get(a.purchaseDocumentId) : null; return b && !b.cancelledAt ? [{ number: b.number, amount: d2(a.amount) }] : []; }),
-          unused: p.cancelledAt ? '0.00' : amt.minus(used.get(p.id) ?? 0).toFixed(2), legacy: !!p.legacyId, atBill: p.atSale,
+          unused: p.cancelledAt ? '0.00' : amt.minus(used.get(p.id) ?? 0).toFixed(2), legacy: !!p.legacyId,
+          // paid with a bill still live (a cancelled or deleted bill's payment is an advance like any other)
+          atBill: p.atSale && !!p.sourceId && !bills.get(p.sourceId)?.cancelledAt,
         };
       });
     });

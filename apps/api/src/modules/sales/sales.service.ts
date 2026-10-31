@@ -13,8 +13,8 @@ import { invoiceBalances, openDues, unusedAmounts } from './dues';
 import { writeAtSale } from './at-sale';
 import { cancelPayment } from './money-in';
 import { ALREADY_DELETED, deleteMark } from '../../common/deleting';
-import { refuseIfReconciled } from '../../common/editing';
-import { reverseStock } from './stock-back';
+import { reconciledIn, reconciledMessage, refuseIfReconciled } from '../../common/editing';
+import { refuseIfSoldSince, reverseStock } from './stock-back';
 import { draftSaleCosts } from '../stock/stock-value';
 
 const q3 = (v: { toString(): string }) => money(v.toString()).toDecimalPlaces(3).toFixed(3);
@@ -293,6 +293,10 @@ export class SalesService {
         movedToAdvance = money(0);
       }
     } else if (d.kind === 'credit_note') {
+      // a refund ticked in Reconciliation would no longer match the bank statement
+      const bank = await reconciledIn(tx, 'sales_document', d.id);
+      if (bank) throw new BadRequestException({ message: reconciledMessage(bank) });
+      await refuseIfSoldSince(tx, d.id, d.number, 'sales_document');
       // the returned goods go out of stock again and its entry (credit or refund) no longer counts
       await this.ledger.cancel(tx, 'sales_document', d.id);
       await this.reverseStock(tx, ctx, d.id, today, `Cancelled ${d.number}`);

@@ -1,11 +1,21 @@
-import { Controller, Get } from '@nestjs/common';
-import { daysBetween, type MeBusiness, type MeResponse, type RoleKey } from '@billing/shared';
+import { Body, Controller, Get, Patch } from '@nestjs/common';
+import { DENSITY_KEYS, TEXT_SIZE_KEYS, daysBetween, type Density, type MeBusiness, type MeResponse, type RoleKey, type TextSize } from '@billing/shared';
+import { z } from 'zod';
 import { Ctx, WithTempPassword } from '../../common/decorators';
+import { ZodPipe } from '../../common/zod.pipe';
 import { planToday } from '../../config';
 import { DbService } from '../../common/db.service';
 import type { RequestContext } from '../../common/context';
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+/** Settings › General › Display / the account menu: either choice or both */
+const displaySchema = z
+  .object({ density: z.enum(DENSITY_KEYS), textSize: z.enum(TEXT_SIZE_KEYS) })
+  .partial()
+  .strict()
+  .refine((v) => v.density !== undefined || v.textSize !== undefined, 'Choose a density or a text size.');
+const display = (u: { uiDensity: string; uiTextSize: string }) => ({ density: u.uiDensity as Density, textSize: u.uiTextSize as TextSize });
 
 /** Everything the app shell needs after sign-in: who you are, your shop, your role, your other shops. */
 @Controller('me')
@@ -38,7 +48,7 @@ export class MeController {
         };
       }
       return {
-        user: { id: u.id, name: u.name, email: u.email, mustChangePassword: u.mustChangePassword },
+        user: { id: u.id, name: u.name, email: u.email, mustChangePassword: u.mustChangePassword, ...display(u) },
         business,
         role: ctx.role,
         permissions: ctx.permissions,
@@ -50,6 +60,15 @@ export class MeController {
           .filter((i) => !ms.some((m) => m.businessId === i.businessId))
           .map((i) => ({ id: i.id, businessName: i.business.name, role: i.role.key as RoleKey })),
       };
+    });
+  }
+
+  /** This person's own density and text size (any role; only their own row, in every shop they belong to). */
+  @Patch('display')
+  setDisplay(@Ctx() ctx: RequestContext, @Body(new ZodPipe(displaySchema)) body: z.infer<typeof displaySchema>) {
+    return this.db.scoped({ businessId: ctx.businessId, userId: ctx.userId, email: ctx.email }, async (tx) => {
+      const u = await tx.user.update({ where: { id: ctx.userId }, data: { uiDensity: body.density, uiTextSize: body.textSize } });
+      return display(u);
     });
   }
 }

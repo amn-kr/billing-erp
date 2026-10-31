@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
-import { bulkItemsSchema, importRowsSchema, itemSchema, itemUpdateSchema, nameSchema, unitSchema, type BulkItemsInput, type ImportRowsInput, type ItemInput } from '@billing/shared';
+import { bulkActiveSchema, bulkItemsSchema, importRowsSchema, itemSchema, itemUpdateSchema, nameSchema, unitSchema, type BulkActiveInput, type BulkItemsInput, type ImportRowsInput, type ItemInput } from '@billing/shared';
 import type { z } from 'zod';
 import { Ctx, RequirePermission } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
@@ -18,7 +18,7 @@ export class ItemsController {
   @RequirePermission('masters.view')
   @Get('items')
   list(@Ctx() ctx: RequestContext, @Query('q') q?: string, @Query('kind') kind?: string, @Query('category') category?: string, @Query('brand') brand?: string, @Query('level') level?: string, @Query('archived') archived?: string) {
-    return this.items.list(ctx, { search: q, kind, category, brand, level, archived: archived === 'true' });
+    return this.items.list(ctx, { search: q, kind, category, brand, level, archived: archived === 'all' ? 'all' : archived === 'true' });
   }
 
   @RequirePermission('masters.manage')
@@ -49,6 +49,14 @@ export class ItemsController {
   @Post('items/bulk-update')
   bulkUpdate(@Ctx() ctx: RequestContext, @Body(new ZodPipe(bulkItemsSchema)) body: BulkItemsInput) {
     return this.items.bulkUpdate(ctx, body);
+  }
+
+  /** Bulk active / inactive: the ticked items (up to 500), all changed in one go (or none); no passcode */
+  @RequirePermission('masters.manage')
+  @HttpCode(200)
+  @Post('items/bulk-active')
+  bulkActive(@Ctx() ctx: RequestContext, @Body(new ZodPipe(bulkActiveSchema)) body: BulkActiveInput) {
+    return this.items.bulkSetActive(ctx, body);
   }
 
   @RequirePermission('masters.view')

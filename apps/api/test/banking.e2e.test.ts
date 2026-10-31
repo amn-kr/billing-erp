@@ -106,6 +106,19 @@ describe('the money book', () => {
     expect((await http().get(`/api/banking/accounts/${h.id}/reconciliation`).set(auth(o)).expect(200)).body).toEqual({ asOf: '2026-10-31', statement: null, ticked: [] });
   });
 
+  it('reconciliation: first saves sent at once all succeed and one statement is kept with the ticks', async () => {
+    const o = await owner(app);
+    for (let round = 0; round < 5; round++) {
+      const h = (await http().post('/api/banking/accounts').set(auth(o)).send({ name: `HDFC Bank ${round}`, openingBalance: '1000' }).expect(201)).body;
+      await move(o, { kind: 'in', accountId: h.id, amount: '412', category: 'Interest received', date: '2026-09-29' }).expect(201);
+      const line = (await book(o, h.id)).entries[0].key;
+      const save = () => http().put(`/api/banking/accounts/${h.id}/reconciliation`).set(auth(o)).send({ asOf: '2026-09-30', statement: '', ticked: [line] });
+      const res = await Promise.all(Array.from({ length: 8 }, save));
+      expect(res.map((r) => r.status)).toEqual(Array(8).fill(200));
+      expect((await http().get(`/api/banking/accounts/${h.id}/reconciliation`).set(auth(o)).expect(200)).body).toEqual({ asOf: '2026-09-30', statement: null, ticked: [line] });
+    }
+  });
+
   it('billing staff can see balances but not move money', async () => {
     const o = await owner(app);
     const staff = await member(app, o, 'billing_staff');

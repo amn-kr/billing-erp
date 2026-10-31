@@ -243,6 +243,8 @@ export class BankingService {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const a = await tx.cashBankAccount.findFirst({ where: { id: accountId, kind: 'bank' } });
       if (!a) throw new NotFoundException({ message: 'That account was not found.' });
+      // the screen saves on every tick without waiting: one save per account at a time, so two first saves can't both create
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'reconciliation:' + accountId}))`;
       const r = await tx.reconciliation.findFirst({ where: { accountId }, orderBy: { updatedAt: 'desc' } });
       const data = { statementDate: day(o.asOf), statementBalance: o.statement === null ? null : money(o.statement).toFixed(2), cleared: o.ticked };
       if (r) await tx.reconciliation.update({ where: { id: r.id }, data });

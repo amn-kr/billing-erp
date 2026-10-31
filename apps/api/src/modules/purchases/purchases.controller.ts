@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, ParseUUIDPipe, Post, Put, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Put, Query } from '@nestjs/common';
 import { cancelSchema, paymentOutSchema, purchaseSchema, type PaymentOutInput, type PurchaseInput } from '@billing/shared';
 import type { z } from 'zod';
 import { Ctx, RequirePermission } from '../../common/decorators';
@@ -62,6 +62,15 @@ export class PurchasesController {
     return this.purchases.cancel(ctx, id, body.reason);
   }
 
+  /** Delete a bill or debit note: undone like a cancel, then hidden from the lists (never erased). */
+  @RequirePermission('purchases.manage')
+  @HttpCode(200)
+  @NeedsPasscode('delete', 'purchase')
+  @Post('purchases/:id/delete')
+  remove(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(cancelSchema)) body: z.infer<typeof cancelSchema>) {
+    return this.purchases.delete(ctx, id, body.reason);
+  }
+
   @RequirePermission('purchases.view')
   @Get('payments-made')
   payments(@Ctx() ctx: RequestContext) {
@@ -85,6 +94,15 @@ export class PurchasesController {
   @Put('payments-made/:id')
   editPayOut(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(paymentOutSchema)) body: PaymentOutInput) {
     return this.purchases.editPayOut(ctx, id, body);
+  }
+
+  /** Delete a payment made: cancelled in the books, then hidden from the lists (never erased). */
+  @RequirePermission('purchases.manage')
+  @HttpCode(200)
+  @NeedsPasscode('delete', 'payment')
+  @Post('payments-made/:id/delete')
+  removePayOut(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(cancelSchema)) body: z.infer<typeof cancelSchema>) {
+    return this.purchases.deletePayOut(ctx, id, body.reason);
   }
 
   @RequirePermission('purchases.view')

@@ -23,6 +23,7 @@ import { useShell } from '../shell/store';
 import { editAsk, withPasscode } from '../settings/passcode';
 import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
 import { HIST_ACTION, openHistory } from '../../components/EditHistory';
+import { deleteModal } from './deleteDoc';
 
 export interface Receipt {
   id: string; number: string; date: string; party: { id: string; name: string; phone: string } | null; partyName: string; counter: boolean; mode: string; reference: string;
@@ -35,12 +36,14 @@ const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const PLUS = '<path d="M12 5v14M5 12h14"/>';
 const against = (x: Receipt) => (x.number.startsWith('XP-') ? `Extra on ${x.number.slice(3)}` : x.counter ? x.against : x.against);
 const r2 = (n: number) => Math.round(n * 100) / 100;
-const RC_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View'], HIST_ACTION];
+const RC_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View'], HIST_ACTION, '-', ['del', 'Delete', 'dz']];
 /** Why a receipt can't be edited from the list (the server says the rest, e.g. a cleared cheque). */
 const editOff = (x: Receipt) => (x.atSale ? 'Taken with an invoice. Edit the invoice instead.' : x.mode === 'Commission adjust' ? 'From a commission payout' : '');
+const delOff = (x: Receipt) => (x.atSale ? 'Taken with an invoice. Edit or delete the invoice instead.' : x.mode === 'Commission adjust' ? 'From a commission payout' : '');
 
 export function PaymentsReceivedPage() {
   const { showToast } = useShell();
+  const qc = useQueryClient();
   useFitTables();
   const [params, setParams] = useSearchParams();
   // from a party statement: open that document (prototype rcView / cnView)
@@ -72,6 +75,12 @@ export function PaymentsReceivedPage() {
   if (want) { const x = list.data.find((y) => y.number === want); setWant(null); if (x) queueMicrotask(() => view(x)); }
   const rm = rowMenuHandlers('tr[data-rcno]', (tr) => L.find((x) => x.number === tr.dataset.rcno), setMenu);
   const m = menu?.row;
+  const askDelete = (x: Receipt) => setModal(deleteModal({
+    qc, number: x.number, sub: `${x.partyName} · ₹${inr2f(x.amount)} · ${x.mode}`, what: 'payment', url: `/receipts/${x.id}/delete`,
+    keys: ['receipts', 'receipt', 'sales', 'parties', 'dues', 'sale', 'cheques', 'banking'],
+    body: <>{against(x) ? <>What it settled ({against(x)}) is owed by {x.partyName} again</> : <>Its advance from {x.partyName} is removed</>}{x.mode === 'Cheque' ? ', and its cheque is cancelled' : ''}.</>,
+    done: () => setModal(null), toast: showToast,
+  }));
   return (
     <section id="vPin">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Payments received</h1><span className="pttot">Money in from customers</span><div className="sp"></div><button className="btn p" id="rcNew" onClick={() => setRc({})}><RawIcon d={PLUS} />Receive payment <kbd className="kh" style={{ marginLeft: 6, background: 'transparent', color: 'inherit', borderColor: 'rgba(255,255,255,.4)' }}>Alt+R</kbd></button></div>
@@ -88,8 +97,8 @@ export function PaymentsReceivedPage() {
             )) : <tr><td colSpan={9}><div className="ptempty pue"><b>No payments found</b><span>Record money you receive from customers. It settles their oldest invoices first.</span><button className="btn p sm" id="rcNew2" onClick={() => setRc({})}>Receive payment</button></div></td></tr>}
           </tbody></table></div></div>
       <RowMenu id="rcCtx" label="Receipt actions" rows="#rcRows tr[data-rcno]" menu={menu} head={m ? <><b>{m.number}</b> · {m.partyName}</> : null} actions={RC_ACT}
-        off={{ edit: m ? editOff(m) : '' }} onClose={() => { const tr = menu?.tr; setMenu(null); return tr; }}
-        onPick={(a) => { const x = menu?.row; setMenu(null); if (!x) return; if (a === 'edit') setRc({ edit: x.id }); else if (a === 'hist') void openHistory('receipt', x.id, setModal, showToast); else view(x); }} />
+        off={{ edit: m ? editOff(m) : '', del: m ? delOff(m) : '' }} onClose={() => { const tr = menu?.tr; setMenu(null); return tr; }}
+        onPick={(a) => { const x = menu?.row; setMenu(null); if (!x) return; if (a === 'edit') setRc({ edit: x.id }); else if (a === 'del') askDelete(x); else if (a === 'hist') void openHistory('receipt', x.id, setModal, showToast); else view(x); }} />
       <ReceiveDialog open={rc} parties={parties.data} onClose={() => setRc(null)} />
       <SlModal m={modal} onClose={() => setModal(null)} />
     </section>

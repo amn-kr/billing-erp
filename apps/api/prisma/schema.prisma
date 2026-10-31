@@ -34,6 +34,9 @@ model User {
   /// the temporary password stops working after this
   tempPasswordExpiresAt DateTime? @map("temp_password_expires_at") @db.Timestamptz(6)
   lastLoginAt   DateTime? @map("last_login_at") @db.Timestamptz(6)
+  /// this person's display choices: comfortable | compact, and small | normal | large
+  uiDensity     String    @default("comfortable") @map("ui_density")
+  uiTextSize    String    @default("normal") @map("ui_text_size")
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -1110,6 +1113,10 @@ model PurchaseDocument {
   cancelledAt   DateTime? @map("cancelled_at") @db.Timestamptz(6)
   cancelledBy   String?   @map("cancelled_by") @db.Uuid
   cancelReason  String    @default("") @map("cancel_reason")
+  /// deleted: hidden from the lists, kept for good (cancelled_at is set too: its effects are undone)
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy     String?   @map("deleted_by") @db.Uuid
+  deleteReason  String    @default("") @map("delete_reason")
   legacyId      String?   @map("legacy_id")
   createdBy     String    @map("created_by") @db.Uuid
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)

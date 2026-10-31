@@ -98,6 +98,28 @@ describe('row actions ⋮ on the other lists', () => {
   });
 });
 
+/*
+ * Owner's request, 25 Oct 2026 (answers 31 Oct 2026): every table row as tall as a Sales invoices row (39px),
+ * heading rows 35px. features/shell/row-height.css holds exactly these rules, and nothing else.
+ */
+describe('one row height for every table', () => {
+  it('features/shell/row-height.css holds only the approved row, heading and amount-box rules', () => {
+    const t = fs.readFileSync(path.join(__dirname, '../features/shell/row-height.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const rows = '.ptt2:not(.egt)>tbody>tr:not(.psit):not(:has(>td:only-child))>td,.ptt2:not(.egt)>tfoot>tr>td,#vDash .tw>table>tbody>tr:not(:has(>td:only-child))>td';
+    const cells = '.ptt2:not(.egt)>tbody>tr>td,.ptt2:not(.egt)>tfoot>tr>td,#vDash .tw>table>tbody>tr>td';
+    expect(t.split('\n').map((l) => l.trim()).filter(Boolean)).toEqual([
+      `${rows}{height:39px;padding-top:0!important;padding-bottom:0!important;white-space:nowrap!important;vertical-align:middle}`,
+      `${cells}{line-height:16px}`,
+      `${cells.split(',').map((s) => s + ' small').join(',')}{line-height:13px}`,
+      '.ptt2:not(.egt)>tbody>tr>td .fi{height:32px;margin-top:0}',
+      '.ptt2:not(.egt)>thead>tr:only-child>th,#vDash .tw>table>thead>tr:only-child>th{height:35px;padding-top:0!important;padding-bottom:0!important;vertical-align:middle}',
+    ]);
+    // the Sales invoices row it copies (11px + 11px padding), and the prototype's own 32px boxes in a table row
+    expect(proto).toContain('.ptt2 td{padding:11px 10px;');
+    expect(proto).toContain('.pmi{width:96px;height:32px!important;margin:0!important;');
+  });
+});
+
 describe('icons are the prototype’s', () => {
   it('every icon path matches const P in the prototype', async () => {
     const { P } = await import('../components/icon-paths');

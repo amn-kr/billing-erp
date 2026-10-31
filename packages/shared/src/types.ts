@@ -1,11 +1,21 @@
 import type { Permission, RoleKey } from './permissions.js';
 
+/** How tightly each person's screens are laid out (Settings › General › Display); Comfortable is the prototype's look. */
+export const DENSITY_KEYS = ['comfortable', 'compact'] as const;
+export type Density = (typeof DENSITY_KEYS)[number];
+/** Each person's text size; Normal is the prototype's. */
+export const TEXT_SIZE_KEYS = ['small', 'normal', 'large'] as const;
+export type TextSize = (typeof TEXT_SIZE_KEYS)[number];
+
 export interface MeUser {
   id: string;
   name: string;
   email: string;
   /** signed in with a temporary password from the shop owner: choose a new one before anything else */
   mustChangePassword: boolean;
+  /** this person's own display choices (the same in every shop they belong to) */
+  density: Density;
+  textSize: TextSize;
 }
 
 export interface MeMembership {

@@ -55,3 +55,22 @@ export function bulkSame(field: BulkField, saved: string, text: string): boolean
   if (field === 'gstRate') return Number(saved) === Number(text);
   return saved.trim() === text.trim();
 }
+
+/** Items › Bulk active / inactive: how many items one request can change. */
+export const BULK_ACTIVE_MAX = 500;
+
+/** The ticked items and what they become; the server changes all of them or none. */
+export const bulkActiveSchema = z
+  .object({
+    ids: z
+      .array(z.string().uuid('That item was not found.'))
+      .min(1, 'Select at least one item.')
+      .max(BULK_ACTIVE_MAX, `Up to ${BULK_ACTIVE_MAX} items can be changed at once.`)
+      .refine((ids) => new Set(ids).size === ids.length, 'An item is listed twice.'),
+    active: z.boolean(),
+  })
+  .strict();
+export type BulkActiveInput = z.infer<typeof bulkActiveSchema>;
+
+/** changed: made active / inactive now; skipped: already were */
+export interface BulkActiveResult { changed: number; skipped: number }

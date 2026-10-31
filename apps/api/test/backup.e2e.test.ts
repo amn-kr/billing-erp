@@ -406,17 +406,50 @@ describe('restore', () => {
     expect((await http().get('/api/sales/next-number?kind=invoice').set(auth(n)).expect(200)).body.number).toBe('INV-0003');
   });
 
+  it('deleted purchase bills, debit notes and payments made stay deleted in the restored books', async () => {
+    const { o, fan } = await shop();
+    const kc = (await http().post('/api/parties').set(auth(o)).send({ name: 'Kanpur Cables', kind: 'supplier' }).expect(201)).body;
+    const pl = (qty: string) => [{ itemId: fan.id, name: fan.name, qty, rate: '1500', discPct: '0', gstRate: '18' }];
+    const buy = (body: object) => http().post('/api/purchases').set(auth(o)).send({ kind: 'bill', date: D, dueDate: D, partyId: kc.id, transport: '0', labour: '0', ...body }).expect(201);
+    const pb1 = (await buy({ lines: pl('2'), payments: [{ mode: 'Cash', amount: '1000', ref: '' }] })).body;
+    const pb2 = (await buy({ lines: pl('4') })).body;
+    const dn = (await http().post('/api/purchases').set(auth(o)).send({ kind: 'debit_note', date: D, partyId: kc.id, againstId: pb2.id, transport: '0', labour: '0', lines: pl('1') }).expect(201)).body;
+    await http().post(`/api/purchases/${pb1.id}/delete`).set(auth(o)).send({ reason: 'Typed twice' }).expect(200);
+    await useDrive(o);
+    await svc.runDue();
+    // after the full copy: comes from the change files
+    await http().post(`/api/purchases/${dn.id}/delete`).set(auth(o)).send({}).expect(200);
+    const po = ((await http().get('/api/payments-made').set(auth(o)).expect(200)).body as { id: string }[])[0]!;
+    await http().post(`/api/payments-made/${po.id}/delete`).set(auth(o)).send({}).expect(200);
+    await svc.runDue();
+    const r = (await http().post('/api/backup/restore').set(auth(o)).send({ from: 'drive', confirm: true }).expect(200)).body;
+    const n = { token: (await http().post('/api/businesses/switch').set(auth(o)).send({ businessId: r.businessId }).expect(201)).body.accessToken as string };
+    expect(((await http().get('/api/purchases?kind=bill').set(auth(n)).expect(200)).body as { number: string }[]).map((x) => x.number)).toEqual([pb2.number]);
+    expect((await http().get('/api/purchases?kind=debit_note').set(auth(n)).expect(200)).body).toEqual([]);
+    expect((await http().get('/api/payments-made').set(auth(n)).expect(200)).body).toEqual([]);
+    const items = (await http().get('/api/items').set(auth(n)).expect(200)).body as { name: string; stock: string }[];
+    expect(items.find((i) => i.name === fan.name)!.stock).toBe('26.000'); // 25 − 3 sold + 4 on the live bill
+    const kept = await asShop(r.businessId, (tx) => tx.purchaseDocument.findMany({ where: { deletedAt: { not: null } }, select: { number: true, deleteReason: true, cancelledAt: true, deletedAt: true }, orderBy: { number: 'asc' } }));
+    expect(kept.map((d) => [d.number, d.deleteReason])).toEqual([[dn.number, ''], [pb1.number, 'Typed twice']]);
+    for (const d of kept) expect(d.cancelledAt!.getTime()).toBe(d.deletedAt!.getTime());
+    expect(await asShop(r.businessId, (tx) => tx.payment.count({ where: { direction: 'out', deletedAt: { not: null }, cancelledAt: { not: null } } }))).toBe(1);
+    // the deleted numbers are still taken in the restored books
+    expect((await http().get('/api/purchases/next-number?kind=bill').set(auth(n)).expect(200)).body.number).toBe('PB-0003');
+  });
+
   it('an old backup, made before Delete existed, restores with nothing deleted', async () => {
     const { o, inv, fan, verma } = await shop();
     const inv2 = (await http().post('/api/sales').set(auth(o)).send({ date: D, dueDate: D, partyId: verma.id, lines: [{ itemId: fan.id, name: fan.name, qty: '1', price: '1890', discPct: '0', gstRate: '18' }] }).expect(201)).body;
     await http().post(`/api/sales/${inv2.id}/cancel`).set(auth(o)).send({}).expect(200);
     await http().post('/api/receipts').set(auth(o)).send({ partyId: verma.id, date: D, amount: '500', mode: 'Cash', allocations: [{ to: inv.id, amount: '500' }] }).expect(201);
+    const kc = (await http().post('/api/parties').set(auth(o)).send({ name: 'Kanpur Cables', kind: 'supplier' }).expect(201)).body;
+    await http().post('/api/purchases').set(auth(o)).send({ kind: 'bill', date: D, dueDate: D, partyId: kc.id, transport: '0', labour: '0', lines: [{ itemId: fan.id, name: fan.name, qty: '1', rate: '1500', discPct: '0', gstRate: '18' }] }).expect(201);
     await useDrive(o);
     await svc.runDue();
     // take the new columns out of the full copy, as an older version of the app wrote it
     const snap = (await files(o)).find((f) => f.kind === 'snapshot')!;
     const { header, body } = openFile<SnapshotBody>(KEY, o.businessId, drive.files.get(snap.ref)!);
-    for (const t of ['sales_documents', 'payments']) {
+    for (const t of ['sales_documents', 'payments', 'purchase_documents']) {
       expect(body.tables[t]!.length).toBeGreaterThan(0);
       for (const row of body.tables[t]!) { delete row.deleted_at; delete row.deleted_by; delete row.delete_reason; }
     }
@@ -430,6 +463,8 @@ describe('restore', () => {
     const rows = await asShop(r.businessId, (tx) => tx.salesDocument.findMany({ select: { deletedAt: true, deletedBy: true, deleteReason: true } }));
     expect(rows).toEqual([{ deletedAt: null, deletedBy: null, deleteReason: '' }, { deletedAt: null, deletedBy: null, deleteReason: '' }]);
     expect(((await http().get('/api/receipts').set(auth(n)).expect(200)).body as { amount: string }[]).map((x) => x.amount)).toEqual(['500.00']);
+    expect(await asShop(r.businessId, (tx) => tx.purchaseDocument.findMany({ select: { deletedAt: true, deleteReason: true } }))).toEqual([{ deletedAt: null, deleteReason: '' }]);
+    expect(((await http().get('/api/purchases?kind=bill').set(auth(n)).expect(200)).body as unknown[]).length).toBe(1);
   });
 
   it('restored books show the same cash and bank balances, and price-list prices keep their history', async () => {
