@@ -37,7 +37,7 @@
     "pdfjs-dist": "5.4.149",
     "pixelmatch": "7.1.0",
     "pngjs": "7.0.0",
-    "vite": "6.4.4",
+    "vite": "6.4.5",
     "vitest": "4.1.11"
   }
 }
