@@ -24,6 +24,7 @@ import { VIEW_LABEL, VIEW_PATH, type NavLink } from './nav';
 import { REPSEC, repOf } from '../reports/catalogue';
 import { Sidebar } from './Sidebar';
 import { SignOutDialog } from './SignOutDialog';
+import { DisplayDialog, useDisplayStyles } from './display';
 import { Toast } from './Toast';
 import { DiscardDialog } from '../../components/Discard';
 import { TopBar } from './TopBar';
@@ -57,6 +58,9 @@ function AppFrame() {
   useStyles([...APP_STYLES, toastCss, rowMenuCss, rowHeightCss], 'app');
   const token = useSession((s) => s.accessToken);
   const me = useMe();
+  // this person's density and text size (Settings › General › Display); the default changes nothing
+  const display = { density: me.data?.user.density ?? 'comfortable', textSize: me.data?.user.textSize ?? 'normal' } as const;
+  useDisplayStyles(display);
   const settings = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
@@ -206,6 +210,7 @@ function AppFrame() {
             }}
             onAddBusiness={() => goToLogin('?new=1')}
             onSignOut={() => setDialog('so')}
+            onDisplay={() => setDialog('display')}
             onSearch={(q) => showToast(`Search for “${q}” comes with the Sales screen`)}
           />
           <main className="page">
@@ -224,6 +229,7 @@ function AppFrame() {
           goToLogin();
         }}
       />
+      <DisplayDialog open={dialog === 'display'} d={display} onClose={() => setDialog(null)} />
       <DiscardDialog />
       <QuickSale />
       <PasscodeBox />

@@ -3,12 +3,14 @@ import { Fragment, type MouseEvent as RMouseEvent, type ReactNode } from 'react'
 import { ROLE_LABELS, daysBetween, formatInr2, formatLongDate, type MeResponse } from '@billing/shared';
 import { Icon, RawIcon } from '../../components/Icon';
 import { useShell, type PopId } from './store';
+import { displayLabel } from './display';
 
 const KEYS = '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>';
 const PROFILE = '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>';
 const LICENSE = '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="12" r="2.5"/><path d="M14 10h4M14 14h3"/>';
 const LOCK = '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>';
 const OUT = '<path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9"/>';
+const DISPLAY = '<path d="M4 7V5h10v2M9 5v14M7 19h4M14 13v-1h6v1M17 12v7M15.5 19h3"/>';
 
 /** Sync status labels (prototype LBL). The rebuild saves to the server, so "ok" when online. */
 export const SYNC_LABEL = {
@@ -122,10 +124,12 @@ interface Props {
   onSwitch: (businessId: string) => void;
   onAddBusiness: () => void;
   onSignOut: () => void;
+  /** Display in the account menu (density and text size) */
+  onDisplay: () => void;
   onSearch: (q: string) => void;
 }
 
-export function TopBar({ me, today, lowItems = 0, overdue, online, onView, onSoon, onSwitch, onAddBusiness, onSignOut, onSearch }: Props) {
+export function TopBar({ me, today, lowItems = 0, overdue, online, onView, onSoon, onSwitch, onAddBusiness, onSignOut, onDisplay, onSearch }: Props) {
   const { pop, setPop, sideOpen, setSideOpen } = useShell();
   const b = me.business!;
   const toggle = (p: PopId) => (e: RMouseEvent) => {
@@ -199,6 +203,7 @@ export function TopBar({ me, today, lowItems = 0, overdue, online, onView, onSoo
           <button role="menuitem" id="miProfile" onClick={() => { setPop(null); onSoon('My profile'); }}><RawIcon d={PROFILE} /><span>My profile<small>Name, mobile, email, password</small></span></button>
           <button role="menuitem" id="miLicense" onClick={() => { setPop(null); onView('sub'); }}><RawIcon d={LICENSE} /><span>License<small id="miLicSub">{lic}</small></span></button>
           <button role="menuitem" id="miKeys" onClick={() => { setPop(null); onSoon('Keyboard shortcuts'); }}><RawIcon d={KEYS} /><span>Keyboard shortcuts<small>Press ?</small></span></button>
+          <button role="menuitem" id="miDisplay" onClick={() => { setPop(null); onDisplay(); }}><RawIcon d={DISPLAY} /><span>Display<small id="miDisplaySub">{displayLabel({ density: me.user.density, textSize: me.user.textSize })}</small></span></button>
           <button role="menuitem" id="miLock" onClick={() => { setPop(null); onSoon('Lock screen'); }}><RawIcon d={LOCK} /><span>Lock screen<small>Ctrl + Shift + L</small></span></button>
           <div className="avsep"></div>
           <button role="menuitem" id="miOut" className="out" onClick={() => { setPop(null); onSignOut(); }}><RawIcon d={OUT} /><span>Sign out</span></button>

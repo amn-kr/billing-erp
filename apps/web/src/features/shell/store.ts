@@ -36,13 +36,13 @@ interface ShellState {
   palId: PalId;
   sideOpen: boolean;
   mini: boolean;
-  dialog: 'so' | null;
+  dialog: 'so' | 'display' | null;
   showToast: (text: string, kind?: ToastKind) => void;
   setPop: (p: PopId | null) => void;
   choosePal: (id: PalId) => void;
   setSideOpen: (open: boolean) => void;
   toggleMini: () => void;
-  setDialog: (d: 'so' | null) => void;
+  setDialog: (d: 'so' | 'display' | null) => void;
   closeAll: () => void;
 }
 
