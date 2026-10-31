@@ -30,6 +30,9 @@ model User {
   passwordHash  String    @map("password_hash")
   emailVerified DateTime? @map("email_verified_at") @db.Timestamptz(6)
   lastLoginAt   DateTime? @map("last_login_at") @db.Timestamptz(6)
+  /// this person's display choices: comfortable | compact, and small | normal | large
+  uiDensity     String    @default("comfortable") @map("ui_density")
+  uiTextSize    String    @default("normal") @map("ui_text_size")
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
