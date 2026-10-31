@@ -76,6 +76,12 @@ for (const width of WIDTHS) {
         await app.click(btn);
         await proto.mouse.move(0, 0);
         await app.mouse.move(0, 0);
+        // owner's addition (31 Oct 2026): Display (density and text size) in the account menu; copied into the
+        // prototype's menu, before Lock screen, so the rest of the menu is still compared pixel for pixel
+        if (pop === '#avPop') {
+          const item = await app.locator('#miDisplay').evaluate((e) => e.outerHTML);
+          await proto.evaluate((html) => { if (!document.getElementById('miDisplay')) document.getElementById('miLock')!.insertAdjacentHTML('beforebegin', html); }, item);
+        }
         await same(`${pop.slice(1)}-${width}`, await shot(proto, pop), await shot(app, pop));
         await proto.keyboard.press('Escape');
         await app.keyboard.press('Escape');

@@ -16,6 +16,8 @@ import { Icon, RawIcon } from '../../components/Icon';
 import { useDiscardGuard } from '../../components/Discard';
 import { useOnline, useShell } from '../shell/store';
 import { PAL } from '../shell/palette';
+import { DisplayChoices } from '../shell/display';
+import { useMe } from '../../lib/me';
 import { SYNC_LABEL } from '../shell/TopBar';
 import { useQuick } from '../sales/QuickSale';
 import { Sw, useS, useSaveS } from './model';
@@ -52,6 +54,7 @@ const StateSel = ({ id, v, set }: { id: string; v: string; set: (v: string) => v
 
 export function GeneralTab() {
   const { S } = useS();
+  const me = useMe();
   const save = useSaveS();
   const qc = useQueryClient();
   const { showToast, palId, choosePal } = useShell();
@@ -148,6 +151,8 @@ export function GeneralTab() {
             </button>
           ))}
         </div></div></div>
+      {/* each person's own density and text size (owner's request, 31 Oct 2026); also in the account menu */}
+      {me.data && <DisplayChoices d={me.data.user} idp="set" />}
       {/* moved here from the top bar's lightning button (owner's change); the keys work anywhere in the app */}
       <h3 style={{ margin: '22px 0 4px', fontSize: 16 }}>Shortcuts</h3><p className="mu" style={{ margin: '0 0 12px', fontSize: 13 }}>Keys that work on any screen.</p>
       <div className="synccard" id="qsCard"><span className="ti" style={{ width: 36, height: 36, display: 'grid', placeItems: 'center', borderRadius: 10, ...T('var(--ac)') }}><RawIcon d={BOLT} /></span><div className="sx"><b>Quick sale <kbd className="kh">Alt+N</kbd></b><span>A walk-in cash sale in a small window, without leaving the screen you are on.</span></div><button className="btn" type="button" id="qsOpen" onClick={() => useQuick.getState().show()}>Open quick sale</button></div>
