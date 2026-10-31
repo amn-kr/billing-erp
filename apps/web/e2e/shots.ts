@@ -82,6 +82,7 @@ export async function approvedShot(name: string, app: Page, sel: string): Promis
  * both pages to be still (see settle); a real difference shows on every try.
  */
 export async function sameShot(name: string, proto: Page, app: Page, sel: string): Promise<void> {
+  await withRowHeight(proto);
   let d = compare(name, await shot(proto, sel), await shot(app, sel));
   for (let n = 0; n < 2 && !(d.sizeMatches && d.ratio <= MAX_RATIO); n++) {
     await proto.waitForTimeout(700);
@@ -89,6 +90,23 @@ export async function sameShot(name: string, proto: Page, app: Page, sel: string
   }
   expect.soft(d.sizeMatches, `${name}: size ${d.width}×${d.height} must match`).toBe(true);
   expect.soft(d.ratio, `${name}: ${d.diffPixels} pixels differ (see test-results/visual/${name}-diff.png)`).toBeLessThanOrEqual(MAX_RATIO);
+}
+
+/**
+ * Deliberate difference (owner's request, 25 Oct 2026, answered 31 Oct 2026): every table row has one
+ * height (features/shell/row-height.css). Put that small style file into the prototype too, so
+ * everything else is still compared pixel for pixel.
+ */
+export async function withRowHeight(proto: Page): Promise<void> {
+  const css = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '../src/features/shell/row-height.css'), 'utf8');
+  await proto.evaluate((css) => {
+    if (document.getElementById('rowHeightCss')) return;
+    const st = document.createElement('style');
+    st.id = 'rowHeightCss';
+    st.textContent = css;
+    document.head.appendChild(st);
+    window.dispatchEvent(new Event('resize'));
+  }, css);
 }
 
 /**
