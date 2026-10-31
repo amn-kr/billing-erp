@@ -14,6 +14,7 @@ import { useOpenFocus } from '../../lib/useOpenFocus';
 import { Icon, RawIcon } from '../../components/Icon';
 import { useShell } from '../shell/store';
 import { useSetTab } from './model';
+import { ui } from '../../styles/uiSize';
 
 export type Dest = 'drive' | 'local' | 'both';
 type Place = 'drive' | 'local';
@@ -180,9 +181,9 @@ export function BackupLive({ onDownload, children }: { onDownload: () => void; c
 
   return (
     <>
-      <p className="mu" style={{ margin: '0 0 8px', fontSize: 13 }}>Every change is copied within about a minute, and a full copy is made each day. Backups are locked (encrypted) so only this app can open them.</p>
-      {s && !s.keySet && <p className="msg warn" id="bkpOff" style={{ fontSize: 13 }}>Backups are not switched on for this server yet. They start once its backup key is set.</p>}
-      <div className="rad" role="radiogroup" aria-label="Where to keep backups" id="bkpDest" style={{ gridTemplateColumns: '1fr 1fr 1fr', margin: '0 0 12px' }}>
+      <p className="mu" style={{ margin: ui.sp('0 0 8px'), fontSize: ui.fs(13) }}>Every change is copied within about a minute, and a full copy is made each day. Backups are locked (encrypted) so only this app can open them.</p>
+      {s && !s.keySet && <p className="msg warn" id="bkpOff" style={{ fontSize: ui.fs(13) }}>Backups are not switched on for this server yet. They start once its backup key is set.</p>}
+      <div className="rad" role="radiogroup" aria-label="Where to keep backups" id="bkpDest" style={{ gridTemplateColumns: '1fr 1fr 1fr', margin: ui.sp('0 0 12px') }}>
         {([['drive', 'Google Drive', 'In a folder in your Google Drive'], ['local', 'This computer', 'In a folder you choose on this computer'], ['both', 'Both', 'Google Drive and this computer']] as const).map(([k, n, d]) => (
           <label key={k} className={dest === k ? 'on' : ''}><input type="radio" name="bkpDest" value={k} checked={dest === k} disabled={!can || !s} onChange={() => void pick(k)} />{n}<small>{d}</small></label>
         ))}
@@ -203,7 +204,7 @@ export function BackupLive({ onDownload, children }: { onDownload: () => void; c
       {local && (folderOk() ? (
         <div className="synccard" id="bkpLocal"><span className="ti" style={TI(local.failingSince || !local.connected ? 'var(--red)' : '#16a34a')}><RawIcon d={PC} /></span>
           {local.connected ? (
-            <><div className="sx"><b>This computer {status(local)}</b><span>{line(local)}{local.folder ? ` Folder “${local.folder}”.` : ''}</span><span className="mu" style={{ display: 'block', fontSize: 12, marginTop: 4 }}>Works only while this app is open in this browser. After the computer or browser restarts, the browser asks you once to allow the folder again.</span></div>
+            <><div className="sx"><b>This computer {status(local)}</b><span>{line(local)}{local.folder ? ` Folder “${local.folder}”.` : ''}</span><span className="mu" style={{ display: 'block', fontSize: ui.fs(12), marginTop: ui.sp(4) }}>Works only while this app is open in this browser. After the computer or browser restarts, the browser asks you once to allow the folder again.</span></div>
               {can && <button className="btn" type="button" id="bkpLocalNow" disabled={busy} onClick={() => void backupNow('local')}>Backup now</button>}</>
           ) : (
             <><div className="sx"><b>This computer</b><span>Choose a folder, for example in Documents. Works only while this app is open in this browser; after a restart the browser asks you once to allow it again.</span></div>
@@ -221,7 +222,7 @@ export function BackupLive({ onDownload, children }: { onDownload: () => void; c
           {can && <><button className="btn" type="button" id="bkpTest" disabled={!from} onClick={() => setWin('test')}>Test restore</button><button className="btn dz" type="button" id="bkpRestoreLive" disabled={!from} onClick={() => setWin('restore')}>Restore…</button></>}</div>
       )}
       {children}
-      <div className="synccard"><span className="ti" style={TI(spaceC)}><RawIcon d={DB} /></span><div className="sx"><b>Space for your books</b><span id="bkpUseTxt">{s ? `${s.space.usedMb} MB used of ${s.space.limitMb} MB${pct >= 85 ? ' — almost full. When it is full, new entries can’t be saved. Contact support to get more space.' : pct >= 70 ? ' — getting full.' : '.'}` : 'Your books are kept on the server, not on this device.'}</span><div style={{ height: 6, borderRadius: 3, background: 'var(--bd,#e2e8f0)', overflow: 'hidden', marginTop: 6 }}><i id="bkpUseBar" style={{ display: 'block', height: '100%', width: Math.max(2, pct) + '%', background: spaceC }}></i></div></div></div>
+      <div className="synccard"><span className="ti" style={TI(spaceC)}><RawIcon d={DB} /></span><div className="sx"><b>Space for your books</b><span id="bkpUseTxt">{s ? `${s.space.usedMb} MB used of ${s.space.limitMb} MB${pct >= 85 ? ' — almost full. When it is full, new entries can’t be saved. Contact support to get more space.' : pct >= 70 ? ' — getting full.' : '.'}` : 'Your books are kept on the server, not on this device.'}</span><div style={{ height: 6, borderRadius: 3, background: 'var(--bd,#e2e8f0)', overflow: 'hidden', marginTop: ui.sp(6) }}><i id="bkpUseBar" style={{ display: 'block', height: '100%', width: Math.max(2, pct) + '%', background: spaceC }}></i></div></div></div>
       {from && <RestoreWindow mode={win} from={from} onClose={() => setWin(null)} />}
     </>
   );
@@ -282,28 +283,28 @@ function RestoreWindow({ mode, from, onClose }: { mode: 'test' | 'restore' | nul
   return (
     <div className="ov c" id="trm" ref={ref} hidden={!open} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'trm') onClose(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="trmT" style={{ width: 'min(560px,100%)' }}>
-        <div className="dh"><div><h3 id="trmT" style={{ margin: 0, fontSize: 18 }}>{restore ? 'Restore from backup' : 'Test restore'}</h3><small className="mu" id="trmSub">From {from === 'drive' ? 'Google Drive' : 'this computer'}{r ? ` · full copy of ${when(r.fullCopyAt)} + ${plural(r.changes, 'later change')}` : ''}</small></div><button className="ib" type="button" id="trmClose" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
-        <div id="trmBody" style={{ marginTop: 12 }}>
+        <div className="dh"><div><h3 id="trmT" style={{ margin: 0, fontSize: ui.fs(18) }}>{restore ? 'Restore from backup' : 'Test restore'}</h3><small className="mu" id="trmSub">From {from === 'drive' ? 'Google Drive' : 'this computer'}{r ? ` · full copy of ${when(r.fullCopyAt)} + ${plural(r.changes, 'later change')}` : ''}</small></div><button className="ib" type="button" id="trmClose" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
+        <div id="trmBody" style={{ marginTop: ui.sp(12) }}>
           {!r && !err && <p className="hint" id="trmWait" style={{ margin: 0 }}>Opening the backup and checking it…</p>}
           {r && !done && (
             <>
-              <p className={`msg ${r.matches ? 'good' : 'warn'}`} id="trmOk" style={{ margin: '0 0 10px', fontSize: 13 }}>{r.matches ? 'The backup opened and checked out. Your books were not touched.' : 'The backup opened. It differs from your books in a few places (changes still on their way, or made after it). Your books were not touched.'}</p>
+              <p className={`msg ${r.matches ? 'good' : 'warn'}`} id="trmOk" style={{ margin: ui.sp('0 0 10px'), fontSize: ui.fs(13) }}>{r.matches ? 'The backup opened and checked out. Your books were not touched.' : 'The backup opened. It differs from your books in a few places (changes still on their way, or made after it). Your books were not touched.'}</p>
               <div className="rcv"><div><span>Backed up up to</span><b>{when(r.upTo)}</b></div><div><span>Invoices</span><b>{r.invoices.toLocaleString('en-IN')}</b></div>
                 <div><span>Parties</span><b>{r.parties.toLocaleString('en-IN')}</b></div><div><span>Items</span><b>{r.items.toLocaleString('en-IN')}</b></div>
                 <div><span>Purchase bills</span><b>{r.purchaseBills.toLocaleString('en-IN')}</b></div><div><span>Payments received</span><b>{r.paymentsReceived.toLocaleString('en-IN')}</b></div>
                 <div><span>Sales total this year</span><b>₹{formatInr2(r.salesTotalThisYear)}</b></div><div><span>Matches your books</span><b>{r.matches ? 'Yes' : `No — ${plural(r.differences.length, 'list')} differ`}</b></div></div>
               {restore ? (
                 <>
-                  <p className="hint" style={{ margin: '10px 0' }}>The backup becomes new books, as with Start fresh. Your current books are kept exactly as they are and stay in the shop menu. Staff are invited to the new books again. The restore is written in the activity log.</p>
-                  <label className="cb2" style={{ alignItems: 'flex-start' }}><input type="checkbox" id="trmUnderstand" style={{ marginTop: 3 }} checked={ok} onChange={(e) => setOk(e.target.checked)} /> <span><b>I understand</b> new books are made from this backup; nothing in the current books changes.</span></label>
+                  <p className="hint" style={{ margin: ui.sp('10px 0') }}>The backup becomes new books, as with Start fresh. Your current books are kept exactly as they are and stay in the shop menu. Staff are invited to the new books again. The restore is written in the activity log.</p>
+                  <label className="cb2" style={{ alignItems: 'flex-start' }}><input type="checkbox" id="trmUnderstand" style={{ marginTop: ui.sp(3) }} checked={ok} onChange={(e) => setOk(e.target.checked)} /> <span><b>I understand</b> new books are made from this backup; nothing in the current books changes.</span></label>
                 </>
-              ) : <p className="hint" style={{ margin: '10px 0 0' }}>To really restore, use “Restore…”. The backup becomes new books; your current books are kept as they are.</p>}
+              ) : <p className="hint" style={{ margin: ui.sp('10px 0 0') }}>To really restore, use “Restore…”. The backup becomes new books; your current books are kept as they are.</p>}
             </>
           )}
-          {done && <p className="msg good" id="trmDone" style={{ margin: 0, fontSize: 13 }}>Restored into new books: {done.name} ({done.code}). Your current books are unchanged and stay in the shop menu.</p>}
+          {done && <p className="msg good" id="trmDone" style={{ margin: 0, fontSize: ui.fs(13) }}>Restored into new books: {done.name} ({done.code}). Your current books are unchanged and stay in the shop menu.</p>}
         </div>
         <div className="msg bad" id="trmErr" role="alert">{err}</div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}>
+        <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end', marginTop: ui.sp(12) }}>
           {done ? (
             <><button className="btn" type="button" id="trmStay" onClick={onClose}>Stay in these books</button><button className="btn p" type="button" id="trmOpen" onClick={() => void openBooks()}>Open the restored books</button></>
           ) : restore ? (

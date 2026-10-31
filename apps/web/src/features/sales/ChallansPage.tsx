@@ -23,6 +23,7 @@ import { cancelAsk, editAsk, withPasscode } from '../settings/passcode';
 import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
 import { HIST_ACTION, openHistory } from '../../components/EditHistory';
 import { SlModal, type SlModalProps } from './SlModal';
+import { ui } from '../../styles/uiSize';
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const PLUS = '<path d="M12 5v14M5 12h14"/>';
@@ -74,7 +75,7 @@ export function ChallansPage() {
   return (
     <section id="vDcs">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Delivery challans</h1><span className="pttot">Goods sent before billing</span><div className="sp"></div><button className="btn p" id="dcNew" onClick={() => setOpen(true)}><RawIcon d={PLUS} />New delivery challan</button></div>
-      <div className="card ptxc"><div className="ptfil" style={{ padding: '14px 16px', alignItems: 'center' }}><label className="search" htmlFor="dcQ" style={{ maxWidth: 300, height: 36 }}><RawIcon d={SEARCH} /><input id="dcQ" placeholder="Search challan, party or item" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+      <div className="card ptxc"><div className="ptfil" style={{ padding: ui.sp('14px 16px'), alignItems: 'center' }}><label className="search" htmlFor="dcQ" style={{ maxWidth: 300, height: ui.h(36) }}><RawIcon d={SEARCH} /><input id="dcQ" placeholder="Search challan, party or item" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
         <div className="sumrow sumin" id="dcSum"><div><small>Open challans</small><b>{openL.length}</b></div><div><small>Qty out (not billed)</small><b>{qfmt(openL.reduce((a, d) => a + Number(d.qty), 0))}</b></div><div><small>Invoiced</small><b className="pos">{A.filter((d) => d.status === 'invoiced').length}</b></div><div><small>Total challans</small><b>{A.length}</b></div></div>
         <select className="fi" id="dcSt" aria-label="Status" style={{ width: 'auto' }} value={st} onChange={(e) => setSt(e.target.value)}><option value="all">All challans</option><option value="open">Open (not billed)</option><option value="invoiced">Invoiced</option><option value="cancelled">Cancelled</option></select></div>
         <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr><th>Date</th><th>Challan no.</th><th>Party</th><th>Items</th><th className="n">Qty</th><th>Transport</th><th>Status</th><th className="n"><span className="vh">Actions</span></th></tr></thead>
@@ -165,12 +166,12 @@ function ChallanDialog({ open, editId, onClose, onSaved }: { open: boolean; edit
   return (
     <div className="ov c" id="dcm" hidden={!open} ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'dcm') close(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="dcT" style={{ width: 'min(760px,100%)' }}>
-        <div className="dh"><div><h3 id="dcT" style={{ margin: 0, fontSize: 18 }}>{editId ? 'Edit delivery challan' : 'New delivery challan'}</h3><small className="mu mono" id="dcNo">{editId ? (doc?.number ?? '') : (no.data?.number ?? '')}</small></div><button className="ib" type="button" id="dcClose" aria-label="Close" onClick={close}><Icon name="x" /></button></div>
-        <div className="two" style={{ marginTop: 14 }}><label className="fl" htmlFor="dcParty">Deliver to<select className="fi" id="dcParty" value={party} onChange={(e) => { setParty(e.target.value); if (e.target.value === '__walk') setTimeout(() => document.getElementById('dcName')?.focus(), 0); }}>
+        <div className="dh"><div><h3 id="dcT" style={{ margin: 0, fontSize: ui.fs(18) }}>{editId ? 'Edit delivery challan' : 'New delivery challan'}</h3><small className="mu mono" id="dcNo">{editId ? (doc?.number ?? '') : (no.data?.number ?? '')}</small></div><button className="ib" type="button" id="dcClose" aria-label="Close" onClick={close}><Icon name="x" /></button></div>
+        <div className="two" style={{ marginTop: ui.sp(14) }}><label className="fl" htmlFor="dcParty">Deliver to<select className="fi" id="dcParty" value={party} onChange={(e) => { setParty(e.target.value); if (e.target.value === '__walk') setTimeout(() => document.getElementById('dcName')?.focus(), 0); }}>
           <option value="">Choose customer</option><option value="__walk">Walk-in / new customer</option>{(parties.data ?? []).filter((p) => p.kind !== 'supplier').map((p) => <option value={p.id} key={p.id}>{p.name}{p.billing?.city ? ' · ' + p.billing.city : ''}</option>)}</select></label>
           <label className="fl" htmlFor="dcDate">Date<input className="fi" type="date" id="dcDate" value={date} onChange={(e) => setDate(e.target.value)} /></label></div>
         <div className="two" id="dcWalkW" hidden={party !== '__walk'}><label className="fl" htmlFor="dcName">Name<input className="fi" id="dcName" autoComplete="off" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></label><label className="fl" htmlFor="dcPhone">Mobile<input className="fi" id="dcPhone" inputMode="numeric" autoComplete="off" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} /></label></div>
-        <div className="tw" style={{ margin: '4px 0 0' }}><table className="ptt2 pyt spt"><thead><tr><th>Item</th><th className="n">In stock</th><th className="n">Qty</th><th>Unit</th><th></th></tr></thead>
+        <div className="tw" style={{ margin: ui.sp('4px 0 0') }}><table className="ptt2 pyt spt"><thead><tr><th>Item</th><th className="n">In stock</th><th className="n">Qty</th><th>Unit</th><th></th></tr></thead>
           <tbody id="dcRowsI">{lines.length ? lines.map((l, k) => {
             const stock = Number(goods.find((i) => i.id === l.id)?.stock ?? 0);
             return <tr data-dck={k} key={k}><td><b style={{ fontWeight: 600 }}>{l.name}</b></td><td className={`n ${stock < (Number(l.qty) || 0) ? 'neg' : 'mu'}`}>{qfmt(stock)}</td><td className="n"><input className="fi sm n" data-dcq value={l.qty} inputMode="decimal" style={{ width: 80 }} onChange={(e) => { const v = e.target.value.replace(/[^\d.]/g, ''); setLines((x) => x.map((y, i) => (i === k ? { ...y, qty: v } : y))); }} /></td><td>{l.unit}</td>
@@ -187,7 +188,7 @@ function ChallanDialog({ open, editId, onClose, onSaved }: { open: boolean; edit
         <label className="fl" htmlFor="dcNote">Note<input className="fi" id="dcNote" autoComplete="off" placeholder="e.g. Goods on approval. Bill to follow." value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} /></label>
         <p className="hint" style={{ margin: 0 }}>A challan doesn’t change stock or the party’s balance. Stock and dues update when you convert it to an invoice.</p>
         <div className="msg bad" id="dcErr" role="alert">{err}</div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}><button className="btn" type="button" id="dcCancel" onClick={close}>Cancel</button><button className="btn" type="button" id="dcSavePrint" disabled={busy} onClick={() => void save(true)}>Save &amp; print</button><button className="btn p" type="button" id="dcSave" disabled={busy} onClick={() => void save(false)}>Save challan</button></div>
+        <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end', marginTop: ui.sp(12) }}><button className="btn" type="button" id="dcCancel" onClick={close}>Cancel</button><button className="btn" type="button" id="dcSavePrint" disabled={busy} onClick={() => void save(true)}>Save &amp; print</button><button className="btn p" type="button" id="dcSave" disabled={busy} onClick={() => void save(false)}>Save challan</button></div>
       </div>
     </div>
   );

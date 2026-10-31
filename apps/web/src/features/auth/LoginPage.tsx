@@ -12,6 +12,7 @@ import { useStyles } from '../../lib/useStyles';
 import { goToApp } from '../../lib/nav';
 import { AUTH_STYLES } from '../../styles';
 import { APP_LETTER, APP_NAME } from '../../lib/brand';
+import { ui } from '../../styles/uiSize';
 
 type View = 'vLoad' | 'vAuth' | 'vJoin' | 'vShop';
 const APP = APP_NAME;
@@ -167,7 +168,7 @@ export function LoginPage() {
         <h1>Billing, stock and accounts for your shop — in the browser.</h1>
         <p>GST invoices, purchases, payments, expenses, cash and bank, party statements and reports. Work from the counter, the godown or home; your staff see the same books.</p>
         <ul className="feat"><li>GST &amp; non-GST invoices</li><li>Quotations &amp; delivery challans</li><li>Purchase bills &amp; supplier payments</li><li>Stock with low-stock alerts</li><li>Cash book, bank &amp; cheques</li><li>Party statements on WhatsApp</li><li>Staff accounts, shared live</li><li>Daily cloud backup</li></ul>
-        <p className="mu" id="legal" style={{ margin: '18px 0 0' }}><a className="lnk" href="/privacy.html">Privacy policy</a> · <a className="lnk" href="/terms.html">Terms of service</a></p>
+        <p className="mu" id="legal" style={{ margin: ui.sp('18px 0 0') }}><a className="lnk" href="/privacy.html">Privacy policy</a> · <a className="lnk" href="/terms.html">Terms of service</a></p>
       </section>
       <section className="card" id="box" aria-live="polite">
         <div id="vLoad" hidden={view !== 'vLoad'}><h2>Loading…</h2><p className="mu">Checking your account.</p></div>
@@ -184,18 +185,18 @@ export function LoginPage() {
           </form>
           <div className="or">or</div>
           <button className="btn" type="button" id="aGoogle" onClick={() => setAErr({ text: 'Google sign-in isn’t set up yet. Use your email and password.' })}><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true" dangerouslySetInnerHTML={{ __html: GOOGLE_SVG }} />Continue with Google</button>
-          <p className="mu" style={{ margin: '12px 0 0', textAlign: 'center' }}><button className="lnk" type="button" id="aForgot" onClick={onForgot}>Forgot password?</button></p>
+          <p className="mu" style={{ margin: ui.sp('12px 0 0'), textAlign: 'center' }}><button className="lnk" type="button" id="aForgot" onClick={onForgot}>Forgot password?</button></p>
           <p className="demo mu">Just looking? <a className="lnk" href="/?demo=1" style={{ textDecoration: 'none' }} onClick={onDemo}>Open the demo shop</a></p>
         </div>
         <div id="vJoin" hidden={view !== 'vJoin'}>
           <h2>Join <span id="jShop">{invite?.businessName ?? 'the shop'}</span></h2><p className="mu">You were invited as staff. Your entries will go into this shop’s books.</p>
-          <label style={{ marginTop: 16 }}>Your name<input id="jName" autoComplete="name" ref={jNameRef} /></label>
+          <label style={{ marginTop: ui.sp(16) }}>Your name<input id="jName" autoComplete="name" ref={jNameRef} /></label>
           <button className="btn p" type="button" id="jGo" disabled={busy} onClick={onJoin}>Join shop</button><div className="msg bad" id="jErr" role="alert">{jErr}</div>
-          <p className="mu" style={{ margin: '14px 0 0', textAlign: 'center' }}><button className="lnk" type="button" id="jOwn" onClick={() => { if (sOwnerRef.current) sOwnerRef.current.value = jNameRef.current?.value ?? ''; setView('vShop'); }}>Create my own shop instead</button> · <button className="lnk" type="button" data-out onClick={out}>Sign out</button></p>
+          <p className="mu" style={{ margin: ui.sp('14px 0 0'), textAlign: 'center' }}><button className="lnk" type="button" id="jOwn" onClick={() => { if (sOwnerRef.current) sOwnerRef.current.value = jNameRef.current?.value ?? ''; setView('vShop'); }}>Create my own shop instead</button> · <button className="lnk" type="button" data-out onClick={out}>Sign out</button></p>
         </div>
         <div id="vShop" hidden={view !== 'vShop'}>
           <h2>Set up your shop</h2><p className="mu">This goes on your invoices. You can change it later in Settings.</p>
-          <div className="note" style={{ marginTop: 14 }} id="trialNote">Free for {TRIAL} days. No card needed.</div>
+          <div className="note" style={{ marginTop: ui.sp(14) }} id="trialNote">Free for {TRIAL} days. No card needed.</div>
           <form id="fShop" noValidate onSubmit={onShop} ref={formRef}>
             <label>Business name<input id="sName" placeholder="e.g. Gupta Electricals & Hardware" required /></label>
             <div className="two"><label>Your name<input id="sOwner" autoComplete="name" required ref={sOwnerRef} /></label><label>Phone<input id="sPhone" inputMode="tel" placeholder="+91 " /></label></div>
@@ -205,7 +206,7 @@ export function LoginPage() {
             <label>First invoice number<input id="sInv" inputMode="numeric" defaultValue="1" /></label>
             <button className="btn p" id="sGo" type="submit" disabled={busy}>Create shop &amp; open books</button><div className="msg bad" id="sErr" role="alert">{sErr}</div>
           </form>
-          <p className="mu" style={{ margin: '14px 0 0', textAlign: 'center' }}><button className="lnk" type="button" data-out onClick={out}>Sign out</button></p>
+          <p className="mu" style={{ margin: ui.sp('14px 0 0'), textAlign: 'center' }}><button className="lnk" type="button" data-out onClick={out}>Sign out</button></p>
         </div>
       </section>
     </div>

@@ -10,6 +10,7 @@ import { useOpenFocus } from '../../lib/useOpenFocus';
 import { qfmt } from '../items/ItemsPage';
 import type { SaleRow } from '../sales/model';
 import type { QTotal } from './model';
+import { ui } from '../../styles/uiSize';
 
 const X = '<path d="M6 6l12 12M18 6L6 18"/>';
 const QL_ACT: RowAction[] = [['edit', 'Edit'], ['open', 'Open'], ['conv', 'Convert to invoice'], HIST_ACTION];
@@ -33,12 +34,12 @@ export function SavedList({ open, rows, onClose, onOpen, onConvert, onCancel, on
   return (
     <div className="ov c" id="qlm" hidden={!open} ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'qlm') onClose(); }}>
       <div className="mdl wide" role="dialog" aria-modal="true" aria-labelledby="qlT" style={{ width: 'min(880px,100%)' }}>
-        <div className="dh"><div><h3 id="qlT" style={{ margin: 0, fontSize: 18 }}>Saved quotations</h3><small className="mu">Open one to continue, or convert it to a sale invoice.</small></div><button className="ib" type="button" id="qlClose" aria-label="Close" onClick={onClose}><RawIcon d={X} /></button></div>
-        <div className="tw stk" style={{ marginTop: 14 }}><table className="ptt2" style={{ minWidth: 720 }}><thead><tr><th>Quote</th><th>Date</th><th>Customer</th><th className="n">Items</th><th>Lowest</th><th>Status</th><th className="n"><span className="vh">Actions</span></th></tr></thead>
+        <div className="dh"><div><h3 id="qlT" style={{ margin: 0, fontSize: ui.fs(18) }}>Saved quotations</h3><small className="mu">Open one to continue, or convert it to a sale invoice.</small></div><button className="ib" type="button" id="qlClose" aria-label="Close" onClick={onClose}><RawIcon d={X} /></button></div>
+        <div className="tw stk" style={{ marginTop: ui.sp(14) }}><table className="ptt2" style={{ minWidth: 720 }}><thead><tr><th>Quote</th><th>Date</th><th>Customer</th><th className="n">Items</th><th>Lowest</th><th>Status</th><th className="n"><span className="vh">Actions</span></th></tr></thead>
           <tbody id="qlRows" onContextMenu={rm.onContextMenu} onKeyDown={(e) => void rm.menuKey(e)}>{rows.length ? rows.map((q) => {
             const low = q.qtype === 'brand' ? q.brandQuote?.low ?? null : { name: 'Item-wise', total: Number(q.total) };
             return (
-              <tr key={q.id} data-qno={q.number} className={menu?.row.id === q.id ? 'ctxon' : undefined}><td className="mono"><b>{q.number}</b>{q.qtype === 'items' ? <> <span className="st b" style={{ fontSize: 10, padding: '1px 6px' }}>Item-wise</span></> : null}</td><td>{dmy(q.date)}</td><td>{q.partyName || '—'}</td><td className="n">{q.items} · {qfmt(Number(q.qty))} pcs</td>
+              <tr key={q.id} data-qno={q.number} className={menu?.row.id === q.id ? 'ctxon' : undefined}><td className="mono"><b>{q.number}</b>{q.qtype === 'items' ? <> <span className="st b" style={{ fontSize: ui.fs(10), padding: ui.sp('1px 6px') }}>Item-wise</span></> : null}</td><td>{dmy(q.date)}</td><td>{q.partyName || '—'}</td><td className="n">{q.items} · {qfmt(Number(q.qty))} pcs</td>
                 <td>{low ? <>{low.name}<small className="mu" style={{ display: 'block' }}>₹{inr2f(low.total)}</small></> : '—'}</td>
                 <td>{q.status === 'converted' ? <><span className="st g">Converted</span><small className="mu" style={{ display: 'block' }}>{q.invoiceNo} · {q.qtype === 'items' ? 'Item-wise' : q.invoiceBrand}</small></> : <span className="st b">Open</span>}</td>
                 <td className="n" style={{ whiteSpace: 'nowrap' }}><button className="btn sm" data-qopen={q.number} onClick={() => onOpen(q)}>Open</button> {q.status === 'converted' ? null : <><button className="btn p sm" data-qconv={q.number} onClick={() => onConvert(q)}>Convert</button> </>}
@@ -64,13 +65,13 @@ export function ConvertDialog({ open, no, cust, n, ranked, onGo, onClose }: { op
   return (
     <div className="ov c" id="qcm" hidden={!open} ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'qcm') onClose(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="qcT" style={{ width: 'min(560px,100%)' }}>
-        <h3 id="qcT" style={{ margin: '0 0 4px', fontSize: 18 }}>Convert to sale invoice</h3>
-        <p className="mu" id="qcSub" style={{ margin: '0 0 14px', fontSize: 13 }}>{no}{cust ? <> for <b>{cust}</b></> : null} · {n} item{n > 1 ? 's' : ''}. Which brand should go on the sale invoice?</p>
+        <h3 id="qcT" style={{ margin: ui.sp('0 0 4px'), fontSize: ui.fs(18) }}>Convert to sale invoice</h3>
+        <p className="mu" id="qcSub" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(13) }}>{no}{cust ? <> for <b>{cust}</b></> : null} · {n} item{n > 1 ? 's' : ''}. Which brand should go on the sale invoice?</p>
         <div className="qcl" id="qcList" role="radiogroup" aria-label="Brand to use">{ranked.map((t, k) => (
           <label className={`qco ${t.miss ? 'warn' : ''}`} key={t.s.id}><input type="radio" name="qcb" value={t.s.id} checked={t.s.id === sel} onChange={() => setSel(t.s.id)} /><span className="qct"><b>{qSerName(t.s)}</b><small>{t.miss ? `${t.miss} item${t.miss > 1 ? 's' : ''} not available — they’ll be left out` : `All ${n} items available`}</small></span><span className="qcv">₹{inr2f(t.total)}{k === 0 && !t.miss ? <i>Lowest</i> : null}</span></label>
         ))}</div>
         <div className="msg bad" id="qcErr" role="alert">{err}</div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 14 }}><button className="btn" type="button" id="qcCancel" onClick={onClose}>Cancel</button>
+        <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end', marginTop: ui.sp(14) }}><button className="btn" type="button" id="qcCancel" onClick={onClose}>Cancel</button>
           <button className="btn p" type="button" id="qcGo" onClick={() => { const s = ranked.find((t) => t.s.id === sel)?.s; if (!s) return setErr('Choose a brand.'); const e = onGo(s); if (e) setErr(e); }}>Create sale invoice</button></div>
       </div>
     </div>
@@ -125,19 +126,19 @@ export function AddDialog({ mode, brands, gstOn, onClose, onSer, onRow, onItem }
   return (
     <div className="ov c" id="qam" hidden={!open} ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'qam') onClose(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="qaT" style={{ width: 'min(440px,100%)' }}>
-        <h3 id="qaT" style={{ margin: '0 0 14px', fontSize: 18 }}>{k === 'item' ? 'Add item' : k === 'row' ? 'Add item row' : 'Add brand range'}</h3>
+        <h3 id="qaT" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(18) }}>{k === 'item' ? 'Add item' : k === 'row' ? 'Add item row' : 'Add brand range'}</h3>
         <form id="qaForm" noValidate onSubmit={(e) => void submit(e)} key={JSON.stringify(mode)}><input type="hidden" id="qaMode" value={k ?? 'ser'} />
           <div id="qaSer" hidden={k !== 'ser'}><label className="fl" htmlFor="qaBrand">Brand<select className="fi" id="qaBrand" value={brand} onChange={(e) => { picked.current = true; setBrand(e.target.value); if (e.target.value === '__new') setTimeout(() => document.getElementById('qaNewB')?.focus(), 0); }}>{brands.map((b) => <option key={b}>{b}</option>)}<option value="__new">+ New brand</option></select></label>
             {/* only for "+ New brand": the prototype's .fi{display:block} overrides the hidden attribute */}
-            {brand === '__new' && <input className="fi" id="qaNewB" placeholder="New brand name" autoComplete="off" style={{ marginTop: -6, marginBottom: 12 }} />}
+            {brand === '__new' && <input className="fi" id="qaNewB" placeholder="New brand name" autoComplete="off" style={{ marginTop: ui.sp(-6), marginBottom: ui.sp(12) }} />}
             <div className="two"><label className="fl" htmlFor="qaRange">Range<input className="fi" id="qaRange" placeholder="e.g. Coral" autoComplete="off" /></label><label className="fl" htmlFor="qaFin">Finish / colour<input className="fi" id="qaFin" placeholder="e.g. White" autoComplete="off" defaultValue="White" /></label></div></div>
-          <div id="qaItem" hidden={k !== 'item'}><p className="mu" id="qaItemTx" style={{ margin: '0 0 12px', fontSize: 13 }}>{mode?.k === 'item' ? <><b>{mode.grp} · {mode.s.b} {mode.series}</b> will be added to Items &amp; stock. Its rate then comes from Price manager.</> : null}</p>
+          <div id="qaItem" hidden={k !== 'item'}><p className="mu" id="qaItemTx" style={{ margin: ui.sp('0 0 12px'), fontSize: ui.fs(13) }}>{mode?.k === 'item' ? <><b>{mode.grp} · {mode.s.b} {mode.series}</b> will be added to Items &amp; stock. Its rate then comes from Price manager.</> : null}</p>
             <div className="two"><label className="fl" htmlFor="qaMrp">MRP<input className="fi" id="qaMrp" inputMode="decimal" /></label><label className="fl" htmlFor="qaPur">Purchase price<input className="fi" id="qaPur" inputMode="decimal" /></label></div>
             <label className="fl" htmlFor="qaSale">Sale price (Retail<span className="needs-gst">{gstOn ? ', incl. GST' : ''}</span>)<input className="fi" id="qaSale" inputMode="decimal" /></label></div>
           <div id="qaRow" hidden={k !== 'row'}><label className="fl" htmlFor="qaName">Item<input className="fi" id="qaName" placeholder="e.g. 20A socket" autoComplete="off" /></label>
             <label className="fl" htmlFor="qaSec">Section<select className="fi" id="qaSec" defaultValue="acc"><option value="acc">Switches &amp; accessories</option><option value="plate">Plates</option></select></label></div>
           <div className="msg bad" id="qaErr" role="alert">{err}</div>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}><button className="btn" type="button" id="qaCancel" onClick={onClose}>Cancel</button><button className="btn p" type="submit">Add</button></div>
+          <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end' }}><button className="btn" type="button" id="qaCancel" onClick={onClose}>Cancel</button><button className="btn p" type="submit">Add</button></div>
         </form>
       </div>
     </div>

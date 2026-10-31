@@ -17,6 +17,7 @@ import { soon, useShell } from '../shell/store';
 import { statementOf } from '../reports/party';
 import { InactiveList, useMasterDelete } from '../../components/MasterDelete';
 import { AddPartyDialog, type EditParty } from './AddPartyDialog';
+import { ui } from '../../styles/uiSize';
 
 export interface Party extends EditParty {
   id: string;
@@ -189,7 +190,7 @@ export function PartiesPage() {
                 const b = money(x.balance);
                 return (
                   <button className={`ptr ${x.id === selId ? 'on' : ''}`} data-pid={x.id} key={x.id} onClick={() => setSel(x.id)}>
-                    <span className="ptn">{x.name}{isNew(x) && <>{' '}<span className="st b" style={{ fontSize: 10, padding: '1px 6px' }}>New</span></>}</span>
+                    <span className="ptn">{x.name}{isNew(x) && <>{' '}<span className="st b" style={{ fontSize: ui.fs(10), padding: ui.sp('1px 6px') }}>New</span></>}</span>
                     <span className={b.gt(0) ? 'pos' : b.lt(0) ? 'neg' : 'zero'}>{inr2f(b.abs())}</span>
                   </button>
                 );
@@ -203,13 +204,13 @@ export function PartiesPage() {
         <div className="ptr2" id="ptRight">
           <div className="card" id="ptHead">
             {!all.length ? (
-              <div className="ptempty pue" style={{ padding: '28px 16px' }}><b>Add your first party</b><span>Customers you sell to and suppliers you buy from. Old balances can be entered as opening balance.</span><button className="btn p sm" data-soon="New party" onClick={() => setAdding(true)}>Add party</button></div>
+              <div className="ptempty pue" style={{ padding: ui.sp('28px 16px') }}><b>Add your first party</b><span>Customers you sell to and suppliers you buy from. Old balances can be entered as opening balance.</span><button className="btn p sm" data-soon="New party" onClick={() => setAdding(true)}>Add party</button></div>
             ) : p ? (
               <PartyHead p={p} shop={me?.business?.name ?? ''} onCopied={showToast} onEdit={() => setEditing(p)} />
             ) : null}
           </div>
           <div className="card ptxc" hidden={!all.length}>
-            <div className="hd" style={{ margin: 0, padding: '14px 16px' }}>
+            <div className="hd" style={{ margin: 0, padding: ui.sp('14px 16px') }}>
               <h3>Transactions</h3>
               <div className="ptools">
                 <div className={tsOpen ? 'xsr open' : 'xsr'} id="ptTsWrap">
@@ -265,7 +266,7 @@ function PartyHead({ p, shop, onCopied, onEdit }: { p: Party; shop: string; onCo
         {/* the prototype adds Statement just before "New invoice", so suppliers don't get it */}
         {p.kind === 'customer' && (
           <>
-            <button className="btn" id="ptStmtBtn" type="button" style={{ marginRight: 8 }} onClick={() => { statementOf(p.id); go('/reports?r=pstmt'); }}><Icon name="doc" />Statement</button>
+            <button className="btn" id="ptStmtBtn" type="button" style={{ marginRight: ui.sp(8) }} onClick={() => { statementOf(p.id); go('/reports?r=pstmt'); }}><Icon name="doc" />Statement</button>
             <button className="btn p sm" data-sellparty={p.id} onClick={() => go(`/sales/new?party=${p.id}`)}><Icon name="plus" />New invoice</button>
           </>
         )}

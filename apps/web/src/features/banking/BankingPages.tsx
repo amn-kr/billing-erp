@@ -22,6 +22,7 @@ import { receiptModal, type Receipt } from '../sales/PaymentsReceivedPage';
 import { BK_KEYS, bkCol, bkMask, ledger, tint, useAccounts, useBook, type Account, type BkPer, type Book, type BookEntry } from './model';
 import { cancelAsk, editAsk, withPasscode } from '../settings/passcode';
 import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
+import { ui } from '../../styles/uiSize';
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const PLUS = '<path d="M12 5v14M5 12h14"/>';
@@ -65,7 +66,7 @@ function LedgerCard({ p, a, book, head, onEntry, onEdit, onHistory, per, setPer 
   const m = menu?.row;
   return (
     <div className="card ptxc bkled"><div className="bkhd" id={`${p}Hd`}>{head(r)}</div>
-      <div className="ptfil" style={{ padding: '12px 16px', alignItems: 'center' }}><label className="search" htmlFor={`${p}Q`} style={{ maxWidth: 280, height: 36 }}><RawIcon d={SEARCH} /><input id={`${p}Q`} placeholder="Search party, reference, note" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+      <div className="ptfil" style={{ padding: ui.sp('12px 16px'), alignItems: 'center' }}><label className="search" htmlFor={`${p}Q`} style={{ maxWidth: 280, height: ui.h(36) }}><RawIcon d={SEARCH} /><input id={`${p}Q`} placeholder="Search party, reference, note" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
         <div className="seg2 sm" id={`${p}Per`}>{PER.map(([k, t]) => <button data-per={k} className={per === k ? 'on' : ''} key={k} onClick={() => setPer(k)}>{t}</button>)}</div>
         <select className="fi" id={`${p}Ty`} aria-label="Show" style={{ width: 'auto' }} value={ty} onChange={(e) => setTy(e.target.value)}><option value="all">Money in &amp; out</option><option value="in">Money in</option><option value="out">Money out</option></select></div>
       <div className="tw" style={{ margin: 0 }}><table className="ptt2 bkt"><thead><tr><th>Date</th><th>Particulars</th><th>Voucher</th><th>Mode / ref</th><th className="n">Money in</th><th className="n">Money out</th><th className="n">Balance</th><th className="slact"><span className="vh">Actions</span></th></tr></thead>
@@ -290,7 +291,7 @@ export function MoveMoney({ open, accounts, onClose }: { open: Move | null; acco
   return (
     <div className="ov c" id="bmm" hidden={!open} ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'bmm') onClose(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="bmmT" style={{ width: 'min(580px,100%)' }}>
-        <div className="dh"><h3 id="bmmT" style={{ margin: 0, fontSize: 18 }}>{x ? `Edit ${x.number}` : BM_T[k]}</h3><button className="ib" type="button" id="bmmClose" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
+        <div className="dh"><h3 id="bmmT" style={{ margin: 0, fontSize: ui.fs(18) }}>{x ? `Edit ${x.number}` : BM_T[k]}</h3><button className="ib" type="button" id="bmmClose" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
         <div className="seg2 bmseg" id="bmmK" role="group" aria-label="Type">{(['transfer', 'deposit', 'withdraw', 'in', 'out'] as const).map((x) => <button data-mk={x} key={x} className={k === x ? 'on' : undefined} aria-pressed={k === x} onClick={() => kind(x, { kind: x, acct })}>{{ transfer: 'Bank to bank', deposit: 'Deposit cash', withdraw: 'Withdraw cash', in: 'Add money', out: 'Take out money' }[x]}</button>)}</div>
         <div className="two" id="bmmFT" style={two ? undefined : { display: 'none' }}><label className="fl" htmlFor="bmmFrom">From<select className="fi" id="bmmFrom" value={from} onChange={(e) => setFrom(e.target.value)}>{accounts.map((a) => opt(a, k === 'deposit' ? a.kind !== 'cash' : a.kind === 'cash'))}</select></label>
           <label className="fl" htmlFor="bmmTo">To<select className="fi" id="bmmTo" value={to} onChange={(e) => setTo(e.target.value)}>{accounts.map((a) => opt(a, k === 'withdraw' ? a.kind !== 'cash' : a.kind === 'cash'))}</select></label></div>
@@ -298,8 +299,8 @@ export function MoveMoney({ open, accounts, onClose }: { open: Move | null; acco
           <label className="fl" htmlFor="bmmCat">What for<select className="fi" id="bmmCat" value={cat} onChange={(e) => setCat(e.target.value)}>{two ? null : BANK_CATEGORIES[k as 'in' | 'out'].map((c) => <option key={c}>{c}</option>)}</select></label></div>
         <div className="two"><label className="fl" htmlFor="bmmAmt">Amount<input className="fi n" id="bmmAmt" inputMode="decimal" placeholder="0" autoComplete="off" value={amt} onChange={(e) => setAmt(e.target.value)} /></label><label className="fl" htmlFor="bmmDate">Date<input className="fi" type="date" id="bmmDate" value={date} onChange={(e) => setDate(e.target.value)} /></label></div>
         <div className="two"><label className="fl" htmlFor="bmmRef">Reference<input className="fi" id="bmmRef" placeholder="UTR, slip or cheque no." autoComplete="off" value={refNo} onChange={(e) => setRefNo(e.target.value)} /></label><label className="fl" htmlFor="bmmNote">Note<input className="fi" id="bmmNote" autoComplete="off" value={note} onChange={(e) => setNote(e.target.value)} /></label></div>
-        <p className="hint" id="bmmHint" style={{ margin: '2px 0 0' }}>{BM_H[k]}</p><div className="msg bad" id="bmmErr" role="alert">{err}</div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}><button className="btn" type="button" id="bmmCancel" onClick={onClose}>Cancel</button><button className="btn p" type="button" id="bmmSave" disabled={busy} onClick={() => void save()}>Save</button></div>
+        <p className="hint" id="bmmHint" style={{ margin: ui.sp('2px 0 0') }}>{BM_H[k]}</p><div className="msg bad" id="bmmErr" role="alert">{err}</div>
+        <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end', marginTop: ui.sp(12) }}><button className="btn" type="button" id="bmmCancel" onClick={onClose}>Cancel</button><button className="btn p" type="button" id="bmmSave" disabled={busy} onClick={() => void save()}>Save</button></div>
       </div>
     </div>
   );
@@ -351,14 +352,14 @@ function AccountDialog({ open, accounts, onClose, onSaved }: { open: { id: strin
   return (
     <div className="ov c" id="bam" hidden={!open} ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'bam') onClose(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="bamT" style={{ width: 'min(560px,100%)' }}>
-        <div className="dh"><h3 id="bamT" style={{ margin: 0, fontSize: 18 }}>{cash ? 'Cash in hand' : a ? 'Edit bank account' : 'Add bank account'}</h3><button className="ib" type="button" id="bamClose" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
-        <div id="bamBank" hidden={cash}><div className="two" style={{ marginTop: 14 }}><label className="fl" htmlFor="bamName">Bank name<input className="fi" id="bamName" placeholder="e.g. ICICI Bank" autoComplete="off" value={f.name} onChange={set('name')} /></label><label className="fl" htmlFor="bamType">Account type<select className="fi" id="bamType" value={f.sub} onChange={set('sub')}>{BANK_TYPES.map((t) => <option key={t}>{t}</option>)}</select></label></div>
+        <div className="dh"><h3 id="bamT" style={{ margin: 0, fontSize: ui.fs(18) }}>{cash ? 'Cash in hand' : a ? 'Edit bank account' : 'Add bank account'}</h3><button className="ib" type="button" id="bamClose" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
+        <div id="bamBank" hidden={cash}><div className="two" style={{ marginTop: ui.sp(14) }}><label className="fl" htmlFor="bamName">Bank name<input className="fi" id="bamName" placeholder="e.g. ICICI Bank" autoComplete="off" value={f.name} onChange={set('name')} /></label><label className="fl" htmlFor="bamType">Account type<select className="fi" id="bamType" value={f.sub} onChange={set('sub')}>{BANK_TYPES.map((t) => <option key={t}>{t}</option>)}</select></label></div>
           <div className="two"><label className="fl" htmlFor="bamNo">Account number<input className="fi mono" id="bamNo" inputMode="numeric" autoComplete="off" value={f.accountNo} onChange={set('accountNo')} /></label><label className="fl" htmlFor="bamIfsc">IFSC<input className="fi mono" id="bamIfsc" autoComplete="off" placeholder="ABCD0123456" style={{ textTransform: 'uppercase' }} value={f.ifsc} onChange={set('ifsc')} /></label></div>
           <label className="fl" htmlFor="bamBr">Branch<input className="fi" id="bamBr" autoComplete="off" value={f.branch} onChange={set('branch')} /></label></div>
         <div className="two" id="bamOpenW"><label className="fl" htmlFor="bamOpen">Opening balance<input className="fi n" id="bamOpen" inputMode="decimal" placeholder="0" autoComplete="off" value={f.open} onChange={set('open')} /></label><label className="fl" htmlFor="bamOd">As on<input className="fi" type="date" id="bamOd" value={f.od} onChange={set('od')} /></label></div>
-        <label className="cb2" id="bamDefW" style={{ margin: '4px 0 0' }} hidden={cash}><input type="checkbox" id="bamDef" checked={f.def} onChange={set('def')} /> Payments by UPI, card and bank transfer go to this account</label>
+        <label className="cb2" id="bamDefW" style={{ margin: ui.sp('4px 0 0') }} hidden={cash}><input type="checkbox" id="bamDef" checked={f.def} onChange={set('def')} /> Payments by UPI, card and bank transfer go to this account</label>
         <div className="msg bad" id="bamErr" role="alert">{err}</div>
-        <div style={{ display: 'flex', gap: 10, marginTop: 14 }}><button className="btn dz" type="button" id="bamDel" hidden={!a || cash} style={!a || cash ? { display: 'none' } : undefined} disabled={!!a?.used} title={a?.used ? 'This account has entries. Move them first.' : ''} onClick={() => void del()}>{sure ? 'Click again to delete' : 'Delete account'}</button><span style={{ flex: 1 }}></span><button className="btn" type="button" id="bamCancel" onClick={onClose}>Cancel</button><button className="btn p" type="button" id="bamSave" onClick={() => void save()}>Save</button></div>
+        <div style={{ display: 'flex', gap: ui.sp(10), marginTop: ui.sp(14) }}><button className="btn dz" type="button" id="bamDel" hidden={!a || cash} style={!a || cash ? { display: 'none' } : undefined} disabled={!!a?.used} title={a?.used ? 'This account has entries. Move them first.' : ''} onClick={() => void del()}>{sure ? 'Click again to delete' : 'Delete account'}</button><span style={{ flex: 1 }}></span><button className="btn" type="button" id="bamCancel" onClick={onClose}>Cancel</button><button className="btn p" type="button" id="bamSave" onClick={() => void save()}>Save</button></div>
       </div>
     </div>
   );
@@ -384,6 +385,6 @@ function CountCash({ open, book, onClose }: { open: boolean; book: number; onClo
   return <SlModal m={open ? {
     title: 'Count cash', sub: `Cash in books: ${inr2f(book)}`, ok: 'Save difference', onOk: () => void ok(),
     body: <><label className="fl" htmlFor="ccAmt">Cash actually in the counter<input className="fi n" id="ccAmt" inputMode="decimal" placeholder={String(book)} autoComplete="off" value={v} onChange={(e) => setV(e.target.value.replace(/[^\d.]/g, ''))} /></label>
-      <p className="hint" id="ccH" style={{ margin: '4px 0 0' }}>{v === '' ? 'Count the notes and coins and enter the total. Any difference is saved as a cash adjustment.' : Math.abs(d) < 0.01 ? <b className="pos">Matches the books.</b> : <><b className={d > 0 ? 'pos' : 'neg'}>{d > 0 ? 'Excess' : 'Short'} {inr2f(Math.abs(d))}</b> — saved as a cash adjustment.</>}</p></>,
+      <p className="hint" id="ccH" style={{ margin: ui.sp('4px 0 0') }}>{v === '' ? 'Count the notes and coins and enter the total. Any difference is saved as a cash adjustment.' : Math.abs(d) < 0.01 ? <b className="pos">Matches the books.</b> : <><b className={d > 0 ? 'pos' : 'neg'}>{d > 0 ? 'Excess' : 'Short'} {inr2f(Math.abs(d))}</b> — saved as a cash adjustment.</>}</p></>,
   } : null} onClose={onClose} />;
 }

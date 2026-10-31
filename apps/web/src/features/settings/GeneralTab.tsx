@@ -22,6 +22,7 @@ import { SYNC_LABEL } from '../shell/TopBar';
 import { useQuick } from '../sales/QuickSale';
 import { Sw, useS, useSaveS } from './model';
 import { BackupLive } from './BackupCard';
+import { ui } from '../../styles/uiSize';
 
 const BOLT = '<path d="M13 3L5 13h6l-1 8 8-10h-6z"/>';
 /** the Alt keys the app frame handles (AppShell), shown under Settings › General › Shortcuts */
@@ -128,7 +129,7 @@ export function GeneralTab() {
   return (
     <section className="card" id="cGen">
       {bz && (
-        <div id="bzCard"><h3 style={{ margin: '0 0 4px', fontSize: 16 }}>Business details</h3><p className="mu" style={{ margin: '0 0 14px', fontSize: 13 }}>Printed on every invoice, challan, statement and report, and used in WhatsApp messages.</p>
+        <div id="bzCard"><h3 style={{ margin: ui.sp('0 0 4px'), fontSize: ui.fs(16) }}>Business details</h3><p className="mu" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(13) }}>Printed on every invoice, challan, statement and report, and used in WhatsApp messages.</p>
           <div className="two"><Field id="bzName" lbl="Business name" v={bz.name} set={f('name')} ph="e.g. Gupta Electricals & Hardware" /><Field id="bzShort" lbl="Short name (top bar)" v={bz.short} set={f('short')} ph="e.g. Gupta Electricals" /></div>
           <div className="two"><Field id="bzOwner" lbl="Owner name" v={bz.owner} set={f('owner')} /><Field id="bzPhone" lbl="Phone" v={bz.phone} set={f('phone')} im="tel" ph="+91 " /></div>
           <div className="two"><Field id="bzEmail" lbl="Email" v={bz.email} set={f('email')} im="email" /><Field id="bzUpi" lbl="UPI ID for payments" v={bz.upi} set={f('upi')} ph="yourshop@upi" /></div>
@@ -136,14 +137,14 @@ export function GeneralTab() {
           <div className="two"><Field id="bzCity" lbl="City" v={bz.city} set={f('city')} /><Field id="bzPin" lbl="PIN code" v={bz.pin} set={f('pin')} im="numeric" /></div>
           <div className="two"><StateSel id="bzSt" v={bz.state} set={f('state')} /><Field id="bzGstin" lbl="GSTIN (leave empty if not registered)" v={bz.gstin} set={f('gstin')} mono up ph="15 characters" /></div>
           <div className="two"><Field id="bzInv" lbl="Next invoice number" v={bz.inv} set={f('inv')} im="numeric" /><span></span></div>
-          <div className="msg bad" id="bzErr" role="alert">{bzErr}</div><div style={{ display: 'flex', justifyContent: 'flex-end', margin: '6px 0 4px' }}><button className="btn p" type="button" id="bzSaveBtn" onClick={() => void saveBz()}>Save business details</button></div></div>
+          <div className="msg bad" id="bzErr" role="alert">{bzErr}</div><div style={{ display: 'flex', justifyContent: 'flex-end', margin: ui.sp('6px 0 4px') }}><button className="btn p" type="button" id="bzSaveBtn" onClick={() => void saveBz()}>Save business details</button></div></div>
       )}
-      <h3 style={{ margin: '0 0 4px', fontSize: 16 }}>Display</h3><p className="mu" style={{ margin: '0 0 14px', fontSize: 13 }}>How amounts look across the app, on invoices and in print.</p>
-      <div className="tgl" data-keepcur><div className="ti" style={T('var(--ac)')}><b style={{ fontSize: 17 }}>₹</b></div><div className="tx"><b>Show currency symbol</b><small>Show ₹ before amounts, e.g. ₹1,250.00. Turned off, amounts show as plain numbers: 1,250.00.</small></div><Sw id="sCur" on={S.showCurrency} label="Show currency symbol" onChange={(v) => { void save({ data: { showCurrency: v } }); showToast(v ? 'Currency symbol shown' : 'Currency symbol hidden'); }} /></div>
-      <div className="tgl" style={{ marginTop: 14 }}><div className="ti" style={T('var(--amber,#d97706)')}><b style={{ fontSize: 12 }}>MRP</b></div><div className="tx"><b>Show MRP</b><small>Show the MRP (maximum retail price) column and fields in Items, Price manager, Price Setup, add-item forms and rate lists. Turned off, MRP is hidden everywhere; saved MRPs are kept.</small></div><Sw id="sMrp" on={S.mrp} label="Show MRP" onChange={(v) => { void save({ data: { mrp: v } }); showToast(v ? 'MRP shown' : 'MRP hidden everywhere'); }} /></div>
+      <h3 style={{ margin: ui.sp('0 0 4px'), fontSize: ui.fs(16) }}>Display</h3><p className="mu" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(13) }}>How amounts look across the app, on invoices and in print.</p>
+      <div className="tgl" data-keepcur><div className="ti" style={T('var(--ac)')}><b style={{ fontSize: ui.fs(17) }}>₹</b></div><div className="tx"><b>Show currency symbol</b><small>Show ₹ before amounts, e.g. ₹1,250.00. Turned off, amounts show as plain numbers: 1,250.00.</small></div><Sw id="sCur" on={S.showCurrency} label="Show currency symbol" onChange={(v) => { void save({ data: { showCurrency: v } }); showToast(v ? 'Currency symbol shown' : 'Currency symbol hidden'); }} /></div>
+      <div className="tgl" style={{ marginTop: ui.sp(14) }}><div className="ti" style={T('var(--amber,#d97706)')}><b style={{ fontSize: ui.fs(12) }}>MRP</b></div><div className="tx"><b>Show MRP</b><small>Show the MRP (maximum retail price) column and fields in Items, Price manager, Price Setup, add-item forms and rate lists. Turned off, MRP is hidden everywhere; saved MRPs are kept.</small></div><Sw id="sMrp" on={S.mrp} label="Show MRP" onChange={(v) => { void save({ data: { mrp: v } }); showToast(v ? 'MRP shown' : 'MRP hidden everywhere'); }} /></div>
       {/* moved here from the top bar's palette button (owner's change); remembered on this device */}
-      <div className="tgl" style={{ marginTop: 14 }}><div className="ti" style={T('var(--ac)')}><Icon name="palette" /></div><div className="tx"><b>Colour combination</b><small>Colours of the whole app on this device. Invoices and print are not affected.</small>
-        <div className="two" id="setPal" role="radiogroup" aria-label="Colour combination" style={{ marginTop: 10 }}>
+      <div className="tgl" style={{ marginTop: ui.sp(14) }}><div className="ti" style={T('var(--ac)')}><Icon name="palette" /></div><div className="tx"><b>Colour combination</b><small>Colours of the whole app on this device. Invoices and print are not affected.</small>
+        <div className="two" id="setPal" role="radiogroup" aria-label="Colour combination" style={{ marginTop: ui.sp(10) }}>
           {PAL.map((p) => (
             <button className="po" type="button" role="radio" data-p={p.id} aria-checked={palId === p.id} key={p.id} onClick={() => choosePal(p.id)}>
               <span className="sw"><i style={{ background: p.ac }}></i><i style={{ background: p.ac3 }}></i><i style={{ background: p.bg, borderColor: p.bd }}></i></span>
@@ -154,24 +155,24 @@ export function GeneralTab() {
       {/* each person's own density and text size (owner's request, 31 Oct 2026); also in the account menu */}
       {me.data && <DisplayChoices d={me.data.user} idp="set" />}
       {/* moved here from the top bar's lightning button (owner's change); the keys work anywhere in the app */}
-      <h3 style={{ margin: '22px 0 4px', fontSize: 16 }}>Shortcuts</h3><p className="mu" style={{ margin: '0 0 12px', fontSize: 13 }}>Keys that work on any screen.</p>
-      <div className="synccard" id="qsCard"><span className="ti" style={{ width: 36, height: 36, display: 'grid', placeItems: 'center', borderRadius: 10, ...T('var(--ac)') }}><RawIcon d={BOLT} /></span><div className="sx"><b>Quick sale <kbd className="kh">Alt+N</kbd></b><span>A walk-in cash sale in a small window, without leaving the screen you are on.</span></div><button className="btn" type="button" id="qsOpen" onClick={() => useQuick.getState().show()}>Open quick sale</button></div>
-      <div className="synccard" id="keysCard"><div className="sx">{KEYS.map(([k, w]) => <span key={k} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '2px 0' }}><kbd className="kh" style={{ minWidth: 48, marginLeft: 0 }}>{k}</kbd>{w}</span>)}</div></div>
-      <h3 style={{ margin: '22px 0 4px', fontSize: 16 }}>Payment links</h3><p className="mu" style={{ margin: '0 0 14px', fontSize: 13 }}>Customers pay straight into this UPI ID from the link or the QR on their invoice.</p>
+      <h3 style={{ margin: ui.sp('22px 0 4px'), fontSize: ui.fs(16) }}>Shortcuts</h3><p className="mu" style={{ margin: ui.sp('0 0 12px'), fontSize: ui.fs(13) }}>Keys that work on any screen.</p>
+      <div className="synccard" id="qsCard"><span className="ti" style={{ width: ui.w(36), height: ui.h(36), display: 'grid', placeItems: 'center', borderRadius: 10, ...T('var(--ac)') }}><RawIcon d={BOLT} /></span><div className="sx"><b>Quick sale <kbd className="kh">Alt+N</kbd></b><span>A walk-in cash sale in a small window, without leaving the screen you are on.</span></div><button className="btn" type="button" id="qsOpen" onClick={() => useQuick.getState().show()}>Open quick sale</button></div>
+      <div className="synccard" id="keysCard"><div className="sx">{KEYS.map(([k, w]) => <span key={k} style={{ display: 'flex', alignItems: 'center', gap: ui.sp(10), margin: ui.sp('2px 0') }}><kbd className="kh" style={{ minWidth: ui.w(48), marginLeft: 0 }}>{k}</kbd>{w}</span>)}</div></div>
+      <h3 style={{ margin: ui.sp('22px 0 4px'), fontSize: ui.fs(16) }}>Payment links</h3><p className="mu" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(13) }}>Customers pay straight into this UPI ID from the link or the QR on their invoice.</p>
       <div className="two plset"><label className="fl" htmlFor="sUpi">Your UPI ID<input className="fi mono" id="sUpi" value={upi} placeholder="yourshop@okhdfcbank" autoComplete="off" onChange={(e) => setUpi(e.target.value)} onBlur={() => upi !== S.upi && savePay('upi')} /></label><label className="fl" htmlFor="sUpiN">Name shown to the customer<input className="fi" id="sUpiN" value={upiN} autoComplete="off" onChange={(e) => setUpiN(e.target.value)} onBlur={() => upiN !== S.upiName && savePay('name')} /></label></div>
       <p className="xperr" id="sUpiErr" hidden={!upi || upiOk(upi)}>Enter a UPI ID like yourshop@okhdfcbank.</p>
       <div className="tgl"><div className="ti" style={T('var(--blue)')}><Icon name="doc" /></div><div className="tx"><b>Print payment QR on invoices</b><small>Unpaid invoices get a UPI QR for the balance due, beside your UPI ID.</small></div><Sw id="sPayQr" on={S.payQr} label="Print payment QR on invoices" onChange={(v) => { void save({ data: { payQr: v } }); showToast(`Payment QR ${v ? 'on' : 'off'}`); }} /></div>
       <div className="tgl"><div className="ti" style={T('var(--green)')}><Icon name="chat" /></div><div className="tx"><b>Add payment link to WhatsApp messages</b><small>When you share an unpaid invoice on WhatsApp, the message includes your UPI ID and a pay link.</small></div><Sw id="sWaLink" on={S.waLink} label="Add payment link to WhatsApp messages" onChange={(v) => { void save({ data: { waLink: v } }); showToast(`WhatsApp pay link ${v ? 'on' : 'off'}`); }} /></div>
-      <h3 style={{ margin: '22px 0 4px', fontSize: 16 }}>Modules</h3><p className="mu" style={{ margin: '0 0 14px', fontSize: 13 }}>Turn off parts of the app you don’t use. Your data is kept.</p>
+      <h3 style={{ margin: ui.sp('22px 0 4px'), fontSize: ui.fs(16) }}>Modules</h3><p className="mu" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(13) }}>Turn off parts of the app you don’t use. Your data is kept.</p>
       <div className="tgl"><div className="ti" style={T('var(--blue,#2563eb)')}><Icon name="book" /></div><div className="tx"><b>Accounting</b><small>Chart of accounts, journal vouchers and day book in the side menu.</small></div><Sw id="sAcct" on={S.acct} label="Accounting" onChange={(v) => { void save({ data: { acct: v } }); showToast(v ? 'Accounting turned on' : 'Accounting turned off'); }} /></div>
-      <div id="bkpCard"><h3 style={{ margin: '26px 0 4px', fontSize: 16 }}>Backup &amp; restore</h3><p className="mu" style={{ margin: '0 0 12px', fontSize: 13 }}>Keep a copy of your books outside the app. If entries are lost or deleted by mistake, restore the copy.</p>
+      <div id="bkpCard"><h3 style={{ margin: ui.sp('26px 0 4px'), fontSize: ui.fs(16) }}>Backup &amp; restore</h3><p className="mu" style={{ margin: ui.sp('0 0 12px'), fontSize: ui.fs(13) }}>Keep a copy of your books outside the app. If entries are lost or deleted by mistake, restore the copy.</p>
         <BackupLive onDownload={() => void download()}>
           <div className="synccard"><div className="sx"><b>Backup file</b><span id="bkpLastTxt">{l ? `Last downloaded on this device ${when(new Date(l).toISOString())}${days! >= 7 ? ` — ${days} days ago, take a new one` : ''}.` : 'No backup downloaded on this device yet.'}</span></div><button className="btn" type="button" id="bkpRestoreBtn" onClick={() => fileRef.current?.click()}>Restore from file…</button><button className="btn p" type="button" id="bkpDlBtn" onClick={() => void download()}>Download backup</button></div>
         </BackupLive></div>
-      <div id="bzFresh"><h3 style={{ margin: '26px 0 4px', fontSize: 16 }}>Start fresh</h3><p className="mu" style={{ margin: '0 0 12px', fontSize: 13 }}>Begin a new, empty set of books. These books are kept and stay available from the shop menu.</p>
+      <div id="bzFresh"><h3 style={{ margin: ui.sp('26px 0 4px'), fontSize: ui.fs(16) }}>Start fresh</h3><p className="mu" style={{ margin: ui.sp('0 0 12px'), fontSize: ui.fs(13) }}>Begin a new, empty set of books. These books are kept and stay available from the shop menu.</p>
         <div className="synccard" style={{ borderColor: 'color-mix(in srgb,var(--red,#dc2626) 35%,transparent)' }}><div className="sx"><b>Start new books from zero</b><span>Parties, items, invoices, purchases, payments, expenses and bank entries start empty in the new books. Nothing here is deleted.</span></div><button className="btn dz" type="button" id="bzFreshBtn" onClick={() => setFresh(true)}>Start fresh…</button></div></div>
-      <h3 style={{ margin: '22px 0 4px', fontSize: 16 }}>Cloud sync</h3><p className="mu" style={{ margin: '0 0 12px', fontSize: 13 }}>One shared set of books for your shop. Open it on any laptop or phone, at any location, and you and your staff see the same invoices, parties and stock. Only people you share the app with as Contributor or Editor can see or change the data.</p>
-      <div className="synccard"><span className="ti" style={{ width: 36, height: 36, display: 'grid', placeItems: 'center', borderRadius: 10, ...T(online ? '#16a34a' : 'var(--red)') }}><RawIcon d={CLOUD} /></span><div className="sx"><b>Status</b><span id="syncSt" data-st={online ? 'ok' : 'off'}>{SYNC_LABEL[online ? 'ok' : 'off']}</span></div><button className="btn" type="button" id="syncNow" onClick={() => { if (!online) return showToast(SYNC_LABEL.off); void qc.invalidateQueries(); showToast('Synced'); }}>Sync now</button></div><div id="syncWho"></div>
+      <h3 style={{ margin: ui.sp('22px 0 4px'), fontSize: ui.fs(16) }}>Cloud sync</h3><p className="mu" style={{ margin: ui.sp('0 0 12px'), fontSize: ui.fs(13) }}>One shared set of books for your shop. Open it on any laptop or phone, at any location, and you and your staff see the same invoices, parties and stock. Only people you share the app with as Contributor or Editor can see or change the data.</p>
+      <div className="synccard"><span className="ti" style={{ width: ui.w(36), height: ui.h(36), display: 'grid', placeItems: 'center', borderRadius: 10, ...T(online ? '#16a34a' : 'var(--red)') }}><RawIcon d={CLOUD} /></span><div className="sx"><b>Status</b><span id="syncSt" data-st={online ? 'ok' : 'off'}>{SYNC_LABEL[online ? 'ok' : 'off']}</span></div><button className="btn" type="button" id="syncNow" onClick={() => { if (!online) return showToast(SYNC_LABEL.off); void qc.invalidateQueries(); showToast('Synced'); }}>Sync now</button></div><div id="syncWho"></div>
       <input type="file" id="bkpFile" accept=".json,application/json" hidden ref={fileRef} onChange={(e) => { const x = e.target.files?.[0]; e.target.value = ''; pickFile(x); }} />
       <StartFresh open={fresh} biz={biz.data} cash={S.cashOpen} onClose={() => setFresh(false)} />
       <RestoreBackup src={restore} onClose={() => setRestore(null)} download={download} />
@@ -228,20 +229,20 @@ function StartFresh({ open, biz, cash, onClose }: { open: boolean; biz?: Biz; ca
   return (
     <div className="ov c" id="bzm" ref={ref} hidden={!open} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'bzm') close(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="bzmT" style={{ width: 'min(680px,100%)' }}>
-        <div className="dh"><div><h3 id="bzmT" style={{ margin: 0, fontSize: 18 }}>Start fresh with your own business</h3><small className="mu">New books start empty. These books are kept.</small></div><button className="ib" type="button" id="bzmClose" aria-label="Close" onClick={close}><Icon name="x" /></button></div>
-        <div id="bzmBody" style={{ marginTop: 12 }}>
+        <div className="dh"><div><h3 id="bzmT" style={{ margin: 0, fontSize: ui.fs(18) }}>Start fresh with your own business</h3><small className="mu">New books start empty. These books are kept.</small></div><button className="ib" type="button" id="bzmClose" aria-label="Close" onClick={close}><Icon name="x" /></button></div>
+        <div id="bzmBody" style={{ marginTop: ui.sp(12) }}>
           <div className="two"><Field id="bzfName" lbl="Business name" v={o.name} set={f('name')} ph="e.g. Gupta Electricals & Hardware" /><Field id="bzfOwner" lbl="Owner name" v={o.owner} set={f('owner')} /></div>
           <div className="two"><Field id="bzfPhone" lbl="Phone" v={o.phone} set={f('phone')} im="tel" ph="+91 " /><Field id="bzfEmail" lbl="Email" v={o.email} set={f('email')} im="email" /></div>
           <Field id="bzfAddr" lbl="Address" v={o.addr} set={f('addr')} ph="Shop no., street, area" />
           <div className="two"><Field id="bzfCity" lbl="City" v={o.city} set={f('city')} /><Field id="bzfPin" lbl="PIN code" v={o.pin} set={f('pin')} im="numeric" /></div>
           <div className="two"><StateSel id="bzfSt" v={o.state} set={f('state')} /><Field id="bzfGstin" lbl="GSTIN (leave empty if not registered)" v={o.gstin} set={f('gstin')} mono up ph="15 characters" /></div>
           <div className="two"><Field id="bzfInv" lbl="First invoice number" v={o.inv} set={f('inv')} im="numeric" /><Field id="bzfCash" lbl="Cash in hand today" v={o.cash ?? ''} set={f('cash')} im="decimal" ph="0" /></div>
-          <p className="hint" style={{ margin: '0 0 8px' }}>Continuing an existing bill book? Put the next number you would write, e.g. 415. Bank accounts, parties with old balances and opening stock can be added afterwards.</p>
+          <p className="hint" style={{ margin: ui.sp('0 0 8px') }}>Continuing an existing bill book? Put the next number you would write, e.g. 415. Bank accounts, parties with old balances and opening stock can be added afterwards.</p>
           <label className="cb2"><input type="checkbox" id="bzfKeep" checked={keep} onChange={(e) => setKeep(e.target.checked)} /> Keep my item list (names and prices only, stock set to zero)</label>
-          <label className="cb2" style={{ marginTop: 6, alignItems: 'flex-start' }}><input type="checkbox" id="bzfOk" style={{ marginTop: 3 }} checked={ok} onChange={(e) => setOk(e.target.checked)} /> <span><b>I understand</b> new, empty books are started for this business. The current books are kept and can be opened again from the shop menu.</span></label>
+          <label className="cb2" style={{ marginTop: ui.sp(6), alignItems: 'flex-start' }}><input type="checkbox" id="bzfOk" style={{ marginTop: ui.sp(3) }} checked={ok} onChange={(e) => setOk(e.target.checked)} /> <span><b>I understand</b> new, empty books are started for this business. The current books are kept and can be opened again from the shop menu.</span></label>
         </div>
         <div className="msg bad" id="bzmErr" role="alert">{err}</div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}><button className="btn" type="button" id="bzmCancel" onClick={close}>Cancel</button><button className="btn dz" type="button" id="bzmGo" disabled={!ok || busy} onClick={() => void go()}>{busy ? 'Starting fresh…' : 'Start new books'}</button></div>
+        <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end', marginTop: ui.sp(12) }}><button className="btn" type="button" id="bzmCancel" onClick={close}>Cancel</button><button className="btn dz" type="button" id="bzmGo" disabled={!ok || busy} onClick={() => void go()}>{busy ? 'Starting fresh…' : 'Start new books'}</button></div>
       </div>
     </div>
   );
@@ -301,22 +302,22 @@ function RestoreBackup({ src, onClose, download }: { src: { text: string; file: 
   return (
     <div className="ov c" id="rsm" ref={ref} hidden={!src} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'rsm') close(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="rsmT" style={{ width: 'min(560px,100%)' }}>
-        <div className="dh"><div><h3 id="rsmT" style={{ margin: 0, fontSize: 18 }}>Restore books</h3><small className="mu" id="rsmSub">{src ? 'From file · ' + src.file : ''}</small></div><button className="ib" type="button" id="rsmClose" aria-label="Close" onClick={close}><Icon name="x" /></button></div>
-        <div id="rsmBody" style={{ marginTop: 12 }}>
+        <div className="dh"><div><h3 id="rsmT" style={{ margin: 0, fontSize: ui.fs(18) }}>Restore books</h3><small className="mu" id="rsmSub">{src ? 'From file · ' + src.file : ''}</small></div><button className="ib" type="button" id="rsmClose" aria-label="Close" onClick={close}><Icon name="x" /></button></div>
+        <div id="rsmBody" style={{ marginTop: ui.sp(12) }}>
           {src && (
             <>
               <div className="rcv"><div><span>Business</span><b>{String(src.d.biz ?? '—')}</b></div><div><span>Saved on</span><b>{when(String(src.d.at ?? ''))}</b></div>
                 <div><span>Invoices</span><b>{c.inv}</b></div><div><span>Parties added</span><b>{c.par}</b></div><div><span>Items added</span><b>{c.itm}</b></div><div><span>Purchase bills</span><b>{c.pur}</b></div><div><span>Payments received</span><b>{c.rc}</b></div><div><span>Expenses</span><b>{c.exp}</b></div></div>
-              <p className="hint" style={{ margin: '10px 0' }}>Parties, items, opening balances and stock, prices, godowns, electricians and settings from this backup come into these books. This works while the books are still empty. Invoices, purchases, payments and expenses come across in the next phase of the new app.</p>
-              {check && <p className="hint" id="rsmCheck" style={{ margin: '0 0 10px' }}>Ready: {check.counts.parties ?? 0} parties and {check.counts.items ?? 0} items.{check.warnings.map((w) => ' ' + w).join('')}</p>}
-              {!fresh && <label className="cb2" style={{ marginBottom: 6 }}><input type="checkbox" id="rsmSample" checked={sample} onChange={(e) => setSample(e.target.checked)} /> Also bring in the old app’s sample entries</label>}
+              <p className="hint" style={{ margin: ui.sp('10px 0') }}>Parties, items, opening balances and stock, prices, godowns, electricians and settings from this backup come into these books. This works while the books are still empty. Invoices, purchases, payments and expenses come across in the next phase of the new app.</p>
+              {check && <p className="hint" id="rsmCheck" style={{ margin: ui.sp('0 0 10px') }}>Ready: {check.counts.parties ?? 0} parties and {check.counts.items ?? 0} items.{check.warnings.map((w) => ' ' + w).join('')}</p>}
+              {!fresh && <label className="cb2" style={{ marginBottom: ui.sp(6) }}><input type="checkbox" id="rsmSample" checked={sample} onChange={(e) => setSample(e.target.checked)} /> Also bring in the old app’s sample entries</label>}
               <label className="cb2"><input type="checkbox" id="rsmSafe" checked={safe} onChange={(e) => setSafe(e.target.checked)} /> First download a backup of the books as they are now</label>
-              <label className="cb2" style={{ marginTop: 6, alignItems: 'flex-start' }}><input type="checkbox" id="rsmOk" style={{ marginTop: 3 }} checked={ok} onChange={(e) => setOk(e.target.checked)} /> <span><b>I understand</b> the entries in this backup are added to these books.</span></label>
+              <label className="cb2" style={{ marginTop: ui.sp(6), alignItems: 'flex-start' }}><input type="checkbox" id="rsmOk" style={{ marginTop: ui.sp(3) }} checked={ok} onChange={(e) => setOk(e.target.checked)} /> <span><b>I understand</b> the entries in this backup are added to these books.</span></label>
             </>
           )}
         </div>
         <div className="msg bad" id="rsmErr" role="alert">{err}</div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}><button className="btn" type="button" id="rsmCancel" onClick={close}>Cancel</button><button className="btn dz" type="button" id="rsmGo" disabled={!ok || busy || !check} onClick={() => void go()}>{busy ? 'Restoring…' : 'Restore these books'}</button></div>
+        <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end', marginTop: ui.sp(12) }}><button className="btn" type="button" id="rsmCancel" onClick={close}>Cancel</button><button className="btn dz" type="button" id="rsmGo" disabled={!ok || busy || !check} onClick={() => void go()}>{busy ? 'Restoring…' : 'Restore these books'}</button></div>
       </div>
     </div>
   );

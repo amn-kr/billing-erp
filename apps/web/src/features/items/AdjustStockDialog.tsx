@@ -10,6 +10,7 @@ import { useDiscardGuard } from '../../components/Discard';
 import { qfmt, type Item } from './ItemsPage';
 import { editAsk, withPasscode } from '../settings/passcode';
 import type { Adjustment } from '../stock/AdjustmentsPage';
+import { ui } from '../../styles/uiSize';
 
 const REASONS = ['Physical count correction', 'Damaged', 'Expired', 'Lost or stolen', 'Free sample / gift', 'Own use', 'Other'];
 
@@ -76,11 +77,11 @@ export function AdjustStockDialog({ item, choices, edit, onClose }: { item: Item
   return (
     <div className="ov c" id="adj" ref={ovRef} hidden={!item} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'adj') close(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="adjT">
-        <h3 id="adjT" style={{ margin: '0 0 4px', fontSize: 18 }}>{edit ? `Edit ${edit.number}` : 'Adjust stock'}</h3>
-        <p id="adjFor" style={{ margin: '0 0 14px', color: 'var(--t2)', fontSize: 13 }}>{it ? (picked ? `In stock ${qfmt(s)} ${it.unit}` : `${it.name} · in stock ${qfmt(s)} ${it.unit}`) : ''}</p>
+        <h3 id="adjT" style={{ margin: ui.sp('0 0 4px'), fontSize: ui.fs(18) }}>{edit ? `Edit ${edit.number}` : 'Adjust stock'}</h3>
+        <p id="adjFor" style={{ margin: ui.sp('0 0 14px'), color: 'var(--t2)', fontSize: ui.fs(13) }}>{it ? (picked ? `In stock ${qfmt(s)} ${it.unit}` : `${it.name} · in stock ${qfmt(s)} ${it.unit}`) : ''}</p>
         <form id="adjForm" noValidate onSubmit={submit}>
           <label className="fl" id="adjItemRow" htmlFor="adjItem" hidden={!choices}>Item<select className="fi" id="adjItem" ref={pickRef} value={it?.id ?? ''} onChange={(e) => { const i = choices?.find((x) => x.id === e.target.value); if (!i) return; setIt(i); setPicked(true); setPrice(String(Number(i.purchase))); }}>{choices?.map((i) => <option value={i.id} key={i.id}>{i.name} · {qfmt(i.stock)} {i.unit}</option>)}</select></label>
-          <div className="seg2" id="adjSeg" style={{ marginBottom: 14 }}>
+          <div className="seg2" id="adjSeg" style={{ marginBottom: ui.sp(14) }}>
             <button type="button" data-am="add" className={mode === 'add' ? 'on' : ''} onClick={() => setMode('add')}>Add stock</button>
             <button type="button" data-am="reduce" className={mode === 'reduce' ? 'on' : ''} onClick={() => setMode('reduce')}>Reduce stock</button>
           </div>
@@ -92,9 +93,9 @@ export function AdjustStockDialog({ item, choices, edit, onClose }: { item: Item
             <label className="fl" htmlFor="adjDate">Date<input className="fi" type="date" id="adjDate" value={date} onChange={(e) => setDate(e.target.value)} /></label>
             <label className="fl" htmlFor="adjWhy">Reason<select className="fi" id="adjWhy" value={why} onChange={(e) => setWhy(e.target.value)}>{REASONS.map((r) => <option key={r}>{r}</option>)}</select></label>
           </div>
-          <div className="hint" id="adjAfter" style={{ margin: '0 0 6px' }}>{q && it ? <>Stock after: <b>{qfmt(stockAfterAdjustment(s, mode, q).toNumber())} {it.unit}</b></> : ''}</div>
+          <div className="hint" id="adjAfter" style={{ margin: ui.sp('0 0 6px') }}>{q && it ? <>Stock after: <b>{qfmt(stockAfterAdjustment(s, mode, q).toNumber())} {it.unit}</b></> : ''}</div>
           <div className="msg bad" id="adjErr" role="alert">{err}</div>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end' }}>
             <button className="btn" type="button" id="adjCancel" onClick={close}>Cancel</button>
             <button className="btn p" type="submit">Save adjustment</button>
           </div>

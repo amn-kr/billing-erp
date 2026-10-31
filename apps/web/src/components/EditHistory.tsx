@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import { api, ApiError } from '../lib/api';
 import type { SlModalProps } from '../features/sales/SlModal';
+import { ui } from '../styles/uiSize';
 
 /** Which kind of document (the API's /history/:type/:id). */
 export type HistoryType = 'sales' | 'receipt' | 'purchase' | 'payment-made' | 'expense' | 'bank-entry' | 'stock-adjustment' | 'stock-transfer';
@@ -21,9 +22,9 @@ function Box({ e }: { e: HistoryEntry }) {
   const cut = e.lines.length > 3 && !all;
   return (
     <div className="dgterms" data-hist={e.id}>
-      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', gap: ui.sp(14), alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <ul className="slcl" style={{ flex: 1, minWidth: 0 }}>{(cut ? e.lines.slice(0, 2) : e.lines).map((l, k) => <li key={k}>{l}</li>)}</ul>
-        <div style={{ flex: 'none', textAlign: 'right', fontSize: 12.5 }}><b>{e.when}</b><small className="mu" style={{ display: 'block' }}>{e.user}</small></div>
+        <div style={{ flex: 'none', textAlign: 'right', fontSize: ui.fs(12.5) }}><b>{e.when}</b><small className="mu" style={{ display: 'block' }}>{e.user}</small></div>
       </div>
       {cut ? <button type="button" className="lnk" style={{ alignSelf: 'flex-start' }} onClick={() => setAll(true)}>Show More</button> : null}
     </div>
@@ -36,7 +37,7 @@ export function historyModal(h: DocHistory): SlModalProps {
     // the prototype's width for a list window (#iqm, Import from quotation)
     wide: 'min(640px,100%)',
     body: h.entries.length
-      ? <div id="ehList" style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 'min(60vh, 520px)', overflow: 'auto' }}>{h.entries.map((e) => <Box e={e} key={e.id} />)}</div>
+      ? <div id="ehList" style={{ display: 'flex', flexDirection: 'column', gap: ui.sp(10), maxHeight: ui.h('min(60vh, 520px)'), overflow: 'auto' }}>{h.entries.map((e) => <Box e={e} key={e.id} />)}</div>
       : <div className="ptempty" id="ehList">No edits yet</div>,
   };
 }

@@ -8,6 +8,7 @@ import { money, rulePrice, type PriceRuleSet, type RuleField } from '@billing/sh
 import { inr2f } from '../../lib/format';
 import { RawIcon } from '../../components/Icon';
 import { getP, mg, r2, usePm, type Change, type Field, type PItem } from './model';
+import { ui } from '../../styles/uiSize';
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const CAR = '<path d="M9 6l6 6-6 6"/>';
@@ -138,7 +139,7 @@ export function BrandRules({ IT, F, rules, ed, setEd, meta, fitted, onPick, onRe
 
   return (
     <div className="prw">
-      <aside className="prleft"><label className="search" htmlFor="prQ" style={{ height: 34, margin: '0 0 8px' }}><RawIcon d={SEARCH} /><input id="prQ" placeholder="Find brand or series" value={pr.q} autoComplete="off" onChange={(e) => setPr({ q: e.target.value })} /></label><div className="prlist">{left}</div></aside>
+      <aside className="prleft"><label className="search" htmlFor="prQ" style={{ height: ui.h(34), margin: ui.sp('0 0 8px') }}><RawIcon d={SEARCH} /><input id="prQ" placeholder="Find brand or series" value={pr.q} autoComplete="off" onChange={(e) => setPr({ q: e.target.value })} /></label><div className="prlist">{left}</div></aside>
       <section className="prright">
         {g && ed ? (
           <>

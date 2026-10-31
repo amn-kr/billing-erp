@@ -20,14 +20,16 @@ import type { Density, TextSize } from '@billing/shared';
 export const DENSITIES: [Density, string][] = [['comfortable', 'Comfortable'], ['compact', 'Compact']];
 export const TEXT_SIZES: [TextSize, string][] = [['small', 'Small'], ['normal', 'Normal'], ['large', 'Large']];
 
-/** the variables; Compact: spacing 72%, heights 80%, text 93% of Comfortable. Paper keeps its sizes. */
+/** the variables; Compact: spacing 72%, heights 80%, text 93% of Comfortable; Large text: table cells use Compact's spacing. Paper keeps its sizes. */
 export const UI_VARS =
   ':root[data-density="compact"]{--ui-sp:.72;--ui-h:.8;--ui-fd:.93}' +
   ':root[data-text="small"]{--ui-ft:.92}:root[data-text="large"]{--ui-ft:1.1}' +
   ':root[data-ui]{--ui-fs:calc(var(--ui-fd,1) * var(--ui-ft,1))}' +
+  // Large text: table cells take Compact's side spacing, so the bigger letters fit at 1280px
+  ':root[data-text="large"] :is(td,th):not(:is(.ivsheet,.rlsheet,.prclone,.ppage) *){--ui-sp:.72}' +
   ':root[data-ui] :is(.ivsheet,.rlsheet,.prclone,.ppage){--ui-sp:1;--ui-h:1;--ui-fs:1}';
 
-type Kind = 'fs' | 'sp' | 'h' | 'w';
+export type Kind = 'fs' | 'sp' | 'h' | 'w';
 const KIND: Record<string, Kind> = {
   'font-size': 'fs', font: 'fs', 'line-height': 'fs',
   padding: 'sp', 'padding-top': 'sp', 'padding-right': 'sp', 'padding-bottom': 'sp', 'padding-left': 'sp',
@@ -49,6 +51,14 @@ export function scaleValue(kind: Kind, value: string): string {
     return kind !== 'fs' && Number.isInteger(a) ? `round(${v}, 1px)` : v;
   });
 }
+
+/**
+ * A size written inline in a screen (style={{ fontSize: ui.fs(17) }}), following the same rules as the copied
+ * stylesheets: with Comfortable + Normal text (no data-ui, variables unset) it is exactly the original size.
+ * Numbers are px, as React reads them.
+ */
+const inline = (kind: Kind) => (v: number | string) => scaleValue(kind, typeof v === 'number' ? `${v}px` : v);
+export const ui = { fs: inline('fs'), sp: inline('sp'), h: inline('h'), w: inline('w') };
 
 /** Split at top-level commas (not inside :not(…), :is(…) and the like). */
 function splitTop(s: string): string[] {

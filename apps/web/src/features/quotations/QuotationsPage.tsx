@@ -31,6 +31,7 @@ import { quoteExcel, quotePdf, quoteWhatsApp, qUsed } from './exports';
 import { AddDialog, ConvertDialog, SavedList, type AddMode } from './QuoteDialogs';
 import { printNow } from '../print/printer';
 import { cancelAsk, editAsk, passcodeOn, withPasscode } from '../settings/passcode';
+import { ui } from '../../styles/uiSize';
 
 const P = {
   plus: '<path d="M12 5v14M5 12h14"/>',
@@ -322,14 +323,14 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
     <section id="vQuo" className={ro ? 'qlocked' : undefined}>
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Quotation</h1><span className="pttot mono" id="qNo">{q.no}</span>
         <span id="qState">{sv ? (sv.status === 'converted' ? <span className="st g">Converted · {sv.invoiceNo}</span> : <span className="st b">Saved</span>) : <span className="st qdr">Draft</span>}</span>
-        <button className="btn" style={{ marginLeft: 6 }} id="qNew" title="New brand-wise quotation" onClick={() => void newQuote()}><RawIcon d={P.plus} />New brand-wise</button>
+        <button className="btn" style={{ marginLeft: ui.sp(6) }} id="qNew" title="New brand-wise quotation" onClick={() => void newQuote()}><RawIcon d={P.plus} />New brand-wise</button>
         <button className="btn p" id="qNewItems" title="Make a quotation item by item, like an invoice" onClick={() => navigate(`/sales/new?quote&n=${Date.now()}`)}><RawIcon d={P.plus} />Item-wise quotation</button><div className="sp"></div>
         <div className="rel"><button className={`btn ibq cmfb${q.ref ? ' on' : ''}`} id="qRefBtn" title="Referral" aria-label="Referral" aria-haspopup="dialog" aria-expanded={pop === 'ref'} onClick={() => { const o = pop !== 'ref'; setPop(o ? 'ref' : null); if (o) setTimeout(() => document.getElementById('qRef')?.focus(), 20); }}><RawIcon d={P.users} /><i className="cmdot" hidden={!q.ref}></i></button>
           <div className="pop cmqpop" id="qRefPop" hidden={pop !== 'ref'} role="dialog" aria-label="Referral"><h4>Referral</h4><div id="qRefBody">
             <label className="ff on"><select className="fi" id="qRef" value={q.ref} onChange={(e) => { const v = e.target.value; if (v === '__new') { setPop(null); elec.open(); return; } up({ ref: v }); toast(v ? 'Referral set · rates updated' : 'Referral removed · rates updated'); }}>
               <option value="">No electrician</option>{d.refs.map((r) => <option value={r.id} key={r.id}>{r.name}{r.city ? ' · ' + r.city : ''}</option>)}<option value="__new">+ Add electrician…</option></select><span>Referred by</span></label>
-            {q.ref ? <><div className="cmql">{cols.map((s) => <div key={s.id}><span>{qSerName(s)}</span><b>{inr2f(qComm(c, g, q, s))}</b></div>)}</div><p className="hint" style={{ margin: '6px 0 0' }}>Commission per brand on this quotation. Added to the rates · not shown to the customer.</p></>
-              : <p className="hint" style={{ margin: '6px 0 0' }}>Pick the electrician who referred this customer. His commission is added to the rates by category.</p>}</div></div></div>
+            {q.ref ? <><div className="cmql">{cols.map((s) => <div key={s.id}><span>{qSerName(s)}</span><b>{inr2f(qComm(c, g, q, s))}</b></div>)}</div><p className="hint" style={{ margin: ui.sp('6px 0 0') }}>Commission per brand on this quotation. Added to the rates · not shown to the customer.</p></>
+              : <p className="hint" style={{ margin: ui.sp('6px 0 0') }}>Pick the electrician who referred this customer. His commission is added to the rates by category.</p>}</div></div></div>
         <div className="rel"><button className="btn ibq" id="qShare" title="Share & download" aria-label="Share and download" aria-haspopup="true" aria-expanded={pop === 'share'} onClick={() => setPop(pop === 'share' ? null : 'share')}><RawIcon d={P.share} /></button>
           <div className="pop qshp" id="qSharePop" hidden={pop !== 'share'} role="menu"><h4>Share &amp; download</h4>
             <button role="menuitem" id="qWa" onClick={() => share('wa')}><RawIcon d={P.wa} /><span>WhatsApp<small>Send brand totals to the customer</small></span></button>
@@ -340,7 +341,7 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
       {/* no columns: lead to Brands & Series; a saved quotation opened from Saved still shows its quantities */}
       {!g.ser.length && !has ? (
         <div className="card ptxc"><div className="ptempty" id="qEmpty">No brands or series yet. Add them in Brands &amp; Series first.<br />
-          <button className="btn p" id="qOpenBrands" style={{ marginTop: 12 }} onClick={() => navigate('/items/brands?tab=series')}>Open Brands &amp; Series</button></div></div>
+          <button className="btn p" id="qOpenBrands" style={{ marginTop: ui.sp(12) }} onClick={() => navigate('/items/brands?tab=series')}>Open Brands &amp; Series</button></div></div>
       ) : (
       <div className="card ptxc">
         <div className="ptfil qfil">
@@ -354,7 +355,7 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
                 <label className="mselr all"><input type="checkbox" data-qs="*" checked={q.sel.length === g.ser.length} onChange={(e) => up({ sel: e.target.checked ? g.ser.map((s) => s.id) : [] })} /><span>All ranges</span><i>{g.ser.length}</i></label>
                 {g.ser.map((s) => <label className="mselr" key={s.id}><input type="checkbox" data-qs={s.id} checked={q.sel.includes(s.id)} onChange={(e) => { const on = e.target.checked; up({ sel: g.ser.map((x) => x.id).filter((id) => (id === s.id ? on : q.sel.includes(id))) }); }} /><span>{qSerName(s)}</span></label>)}</div>
               <div className="qserx"><button type="button" className="lnk" id="qAddSer" hidden={ro} onClick={() => { setPop(null); setAdd({ k: 'ser' }); }}>+ Add brand range</button><button type="button" className="lnk" id="qAddRow" hidden={ro} onClick={() => { setPop(null); setAdd({ k: 'row' }); }}>+ Add item row</button></div>
-              <div className="mself"><span className="mu" style={{ fontSize: '11.5px' }}>Untick ranges you don’t need</span><button type="button" className="btn p sm" id="qSerDone" onClick={() => setPop(null)}>Done</button></div></div></div>
+              <div className="mself"><span className="mu" style={{ fontSize: ui.fs('11.5px') }}>Untick ranges you don’t need</span><button type="button" className="btn p sm" id="qSerDone" onClick={() => setPop(null)}>Done</button></div></div></div>
           <span style={{ flex: 1 }}></span>
           <button className="btn sm" id="qClear" disabled={ro} onClick={() => { if (!has) return toast('No quantities to clear'); if (!clearSure) return setClearSure(true); setClearSure(false); up({ qty: {} }); toast('Quantities cleared'); }}>{clearSure ? 'Click again to clear' : 'Clear quantities'}</button>
           <button className="btn sm p" id="qSave" disabled={ro} onClick={() => void save(q, false).then((x) => { if (x) setQ(x); })}><RawIcon d={P.save} />Save</button>

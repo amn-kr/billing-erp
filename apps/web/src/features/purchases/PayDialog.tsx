@@ -17,6 +17,7 @@ import { editAsk, withPasscode } from '../settings/passcode';
 import type { Party } from '../parties/PartiesPage';
 import { BankSelect, bankFor, useBankPick } from '../banking/BankPick';
 import { PU_KEYS, statusOfBill, type PaymentMadeDoc, type UnpaidBill } from './model';
+import { ui } from '../../styles/uiSize';
 
 /** `party` / `bill` (a bill id) pre-fill the window from a bill's Pay button; `edit` edits a saved payment (same number, passcode when it is on). */
 export type PayOpen = { party?: string; bill?: string; edit?: string };
@@ -111,23 +112,23 @@ export function PayDialog({ open, onClose }: { open: PayOpen | null; onClose: ()
   return (
     <div className="ov c" id="ppm" hidden={!isOpen} ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'ppm') onClose(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="pyT" style={{ width: 'min(560px,100%)' }}>
-        <div className="dh"><div><h3 id="pyT" style={{ margin: 0, fontSize: 18 }}>{editId ? 'Edit payment made' : 'Record payment made'}</h3><small className="mu mono" id="pyNo">{editId ? (doc?.number ?? '') : (no.data?.number ?? '')}</small></div><button className="ib" type="button" id="pyCancel" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
-        <label className="fl" htmlFor="pySup" style={{ marginTop: 14 }}>Supplier<select className="fi" id="pySup" value={party} onChange={(e) => { setParty(e.target.value); setAlloc({}); setErr(''); pending.current = !!Number(amount); }}>
+        <div className="dh"><div><h3 id="pyT" style={{ margin: 0, fontSize: ui.fs(18) }}>{editId ? 'Edit payment made' : 'Record payment made'}</h3><small className="mu mono" id="pyNo">{editId ? (doc?.number ?? '') : (no.data?.number ?? '')}</small></div><button className="ib" type="button" id="pyCancel" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
+        <label className="fl" htmlFor="pySup" style={{ marginTop: ui.sp(14) }}>Supplier<select className="fi" id="pySup" value={party} onChange={(e) => { setParty(e.target.value); setAlloc({}); setErr(''); pending.current = !!Number(amount); }}>
           <option value="">Choose supplier</option>{S.map((p) => <option value={p.id} key={p.id}>{p.name} · {inr(Math.abs(Math.min(0, Number(p.balance))).toFixed(2))} to pay</option>)}</select></label>
         <div className="two"><label className="fl" htmlFor="pyAmt">Amount paid<input className="fi" id="pyAmt" inputMode="decimal" placeholder="0" value={amount} onChange={(e) => { const v = e.target.value.replace(/[^\d.]/g, ''); setAmount(v); setAlloc(auto(Number(v) || 0, B)); setErr(''); }} /></label><label className="fl" htmlFor="pyDate">Date<input className="fi" type="date" id="pyDate" value={date} onChange={(e) => setDate(e.target.value)} /></label></div>
         <div className="two"><label className="fl" htmlFor="pyMode">Mode<select className="fi" id="pyMode" value={mode} onChange={(e) => { setMode(e.target.value); lastMode = e.target.value; }}>{PU_MODES.map((m) => <option key={m}>{m}</option>)}</select></label><label className="fl" htmlFor="pyRef">Reference<input className="fi" id="pyRef" placeholder="UTR, cheque no." autoComplete="off" value={refNo} onChange={(e) => setRefNo(e.target.value)} /></label></div>
         <BankSelect bp={bp} mode={mode} id="pyAcct" label="Paid from" value={acct} onChange={setAcct} />
         <div className="pyb"><b>Settle against bills</b><small className="mu">Oldest bills are filled first. Change the amounts if needed.</small>
-          <div id="pyBills">{!party ? <p className="mu" style={{ margin: 0, fontSize: 13 }}>Choose a supplier to see their unpaid bills.</p> : !bills.data ? null : B.length ? (
+          <div id="pyBills">{!party ? <p className="mu" style={{ margin: 0, fontSize: ui.fs(13) }}>Choose a supplier to see their unpaid bills.</p> : !bills.data ? null : B.length ? (
             <table className="ptt2 pyt"><thead><tr><th>Bill</th><th>Date</th><th className="n">Balance</th><th className="n">Pay</th></tr></thead><tbody>{B.map((b) => {
               const st = statusOfBill(b);
               return <tr key={b.id}><td className="mono">{b.number}<small className="mu" style={{ display: 'block' }}><span className={`stt ${st.c}`}>{st.t}</span></small></td><td>{dmy(b.date)}</td><td className="n">{inr2f(b.balance)}</td>
                 <td className="n"><input className="fi sm n" data-pya={b.number} value={alloc[b.id] || ''} placeholder="0" inputMode="decimal" style={{ width: 110 }} onChange={(e) => { const v = e.target.value.replace(/[^\d.]/g, ''); const nx = { ...alloc, [b.id]: Number(v) || 0 }; setAlloc(nx); const u = Object.values(nx).reduce((a, x) => a + (x || 0), 0); if (u > amt) setAmount(String(r2(u))); }} /></td></tr>;
             })}</tbody></table>
-          ) : <p className="mu" style={{ margin: 0, fontSize: 13 }}>No unpaid bills. The payment will be kept as an advance.</p>}</div>
+          ) : <p className="mu" style={{ margin: 0, fontSize: ui.fs(13) }}>No unpaid bills. The payment will be kept as an advance.</p>}</div>
           <div className="pysum" id="pySum">{amt ? <>Against bills ₹{inr2f(used)}{amt - used > 0.009 ? <> · <b>Advance ₹{inr2f(r2(amt - used))}</b></> : null}{used - amt > 0.009 ? <> · <span className="neg">₹{inr2f(r2(used - amt))} more than the amount</span></> : null}</> : null}</div></div>
         <div className="msg bad" id="pyErr" role="alert">{err}</div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}><button className="btn" type="button" onClick={onClose}>Cancel</button><button className="btn p" type="button" id="pySave" disabled={busy} onClick={() => void save()}>Save payment</button></div>
+        <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end', marginTop: ui.sp(12) }}><button className="btn" type="button" onClick={onClose}>Cancel</button><button className="btn p" type="button" id="pySave" disabled={busy} onClick={() => void save()}>Save payment</button></div>
       </div>
     </div>
   );

@@ -20,6 +20,7 @@ import { RawIcon } from '../../components/Icon';
 import { SheetGrid, type SheetColumn, type SheetHandle, type SheetMark } from '../../components/SheetGrid';
 import { useShell } from '../shell/store';
 import { ImportHead, num, PARTY_QUERIES, plural, STATUS, Summary, useKeepRows } from './importParts';
+import { ui } from '../../styles/uiSize';
 
 type Cells = Record<PartyImportKey, string>;
 interface Row { key: string; cells: Cells }
@@ -148,10 +149,10 @@ export function BulkEntryPage() {
         <button className="btn" id="pbAdd" onClick={addRow}><RawIcon d={PLUS} />Add row</button>
         <button className="btn p" id="pbSave" disabled={!ok || busy || tooMany} onClick={() => void saveAll()}>{busy ? 'Saving…' : ok ? `Save all (${plural(ok, 'party', 'parties')})` : 'Save all'}</button>
       </ImportHead>
-      <p className="hint" style={{ margin: '0 0 12px' }}>Type parties in the table, or copy rows from Excel or Google Sheets and paste them into a cell (Ctrl+V). Rows with a problem are not saved.</p>
+      <p className="hint" style={{ margin: ui.sp('0 0 12px') }}>Type parties in the table, or copy rows from Excel or Google Sheets and paste them into a cell (Ctrl+V). Rows with a problem are not saved.</p>
       {tooMany && <div className="msg bad" role="alert" id="pbTooMany">At most {num(PARTY_IMPORT_MAX_ROWS)} parties can be saved at once. Remove some rows first.</div>}
       {msg && <div className="msg bad" role="alert" id="pbErr">{msg}</div>}
-      {summary && <div style={{ margin: '0 0 14px' }}><Summary s={summary} counts again={() => setSummary(null)} againLabel="Enter more parties" /></div>}
+      {summary && <div style={{ margin: ui.sp('0 0 14px') }}><Summary s={summary} counts again={() => setSummary(null)} againLabel="Enter more parties" /></div>}
 
       <div className="card ptxc">
         <SheetGrid
@@ -169,7 +170,7 @@ export function BulkEntryPage() {
           tail={{ title: 'Status', width: 210, cell: (r) => {
             const c = byLine.get(lineOf.get(r.key)!);
             return (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: ui.sp(8), justifyContent: 'space-between' }}>
                 {c ? <span className={`stt ${STATUS[c.status][0]}`} data-st={c.status}>{STATUS[c.status][1]}</span> : <span></span>}
                 <button className="ixs" type="button" data-remove={lineOf.get(r.key)} aria-label={`Remove row ${lineOf.get(r.key)}`} title="Remove row" onClick={() => removeRow(r.key)}><RawIcon d={X} /></button>
               </span>
@@ -179,9 +180,9 @@ export function BulkEntryPage() {
       </div>
 
       {problems.length > 0 && (
-        <div className="card" id="pbProblems" style={{ padding: '14px 16px', marginTop: 14 }}>
-          <h3 style={{ margin: '0 0 8px', fontSize: 14 }}>{plural(problems.length, 'row')} will not be saved</h3>
-          <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.8, fontSize: 13 }}>
+        <div className="card" id="pbProblems" style={{ padding: ui.sp('14px 16px'), marginTop: ui.sp(14) }}>
+          <h3 style={{ margin: ui.sp('0 0 8px'), fontSize: ui.fs(14) }}>{plural(problems.length, 'row')} will not be saved</h3>
+          <ul style={{ margin: 0, paddingLeft: ui.sp(18), lineHeight: 1.8, fontSize: ui.fs(13) }}>
             {problems.map((c) => <li key={c.line} data-line={c.line}><b>Row {c.line}</b> · <span className={`stt ${STATUS[c.status][0]}`}>{STATUS[c.status][1]}</span> · {partyRowProblems(c).join(' · ')}</li>)}
           </ul>
         </div>

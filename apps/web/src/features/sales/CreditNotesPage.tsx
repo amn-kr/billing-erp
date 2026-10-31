@@ -25,6 +25,7 @@ import { editAsk, withPasscode } from '../settings/passcode';
 import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
 import { HIST_ACTION, openHistory } from '../../components/EditHistory';
 import { deleteModal } from './deleteDoc';
+import { ui } from '../../styles/uiSize';
 
 interface CreditNote {
   id: string; number: string; date: string; party: { id: string; name: string } | null; partyName: string; reason: string; settle: 'adjust' | 'refund'; refundMode: string;
@@ -88,7 +89,7 @@ export function CreditNotesPage() {
   return (
     <section id="vCns">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Credit notes</h1><span className="pttot">Goods returned by customers</span><div className="sp"></div><button className="btn p" id="cnNew" onClick={() => setOpen({})}><RawIcon d={PLUS} />New credit note</button></div>
-      <div className="card ptxc"><div className="ptfil" style={{ padding: '14px 16px', alignItems: 'center' }}><label className="search" htmlFor="cnQ" style={{ maxWidth: 300, height: 36 }}><RawIcon d={SEARCH} /><input id="cnQ" placeholder="Search credit note, party or invoice" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+      <div className="card ptxc"><div className="ptfil" style={{ padding: ui.sp('14px 16px'), alignItems: 'center' }}><label className="search" htmlFor="cnQ" style={{ maxWidth: 300, height: ui.h(36) }}><RawIcon d={SEARCH} /><input id="cnQ" placeholder="Search credit note, party or invoice" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
         <div className="sumrow sumin" id="cnSum"><div><small>Returns value</small><b>{inr(tot.toFixed(2))}</b></div><div><small>Credit notes</small><b>{A.length}</b></div><div><small>Items returned</small><b>{qfmt(A.reduce((a, c) => a + Number(c.qty), 0))}</b></div><div><small>Unused credit</small><b>{inr(cr.toFixed(2))}</b></div></div></div>
         <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr><th>Date</th><th>Credit note</th><th>Party</th><th>Against invoice</th><th>Reason</th><th className="n">Qty</th><th className="n">Amount</th><th>Settled as</th><th className="slact"><span className="vh">Actions</span></th></tr></thead>
           <tbody id="cnRows" onContextMenu={rm.onContextMenu} onKeyDown={(e) => { if (rm.menuKey(e)) return; const r = (e.target as HTMLElement).closest<HTMLElement>('tr[data-cnno]'); if (r && e.key === 'Enter') { e.preventDefault(); r.click(); } }}>
@@ -234,17 +235,17 @@ export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string; 
   return (
     <div className="ov c" id="cnm" hidden={!isOpen} ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'cnm') close(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="cnT" style={{ width: 'min(820px,100%)' }}>
-        <div className="dh"><div><h3 id="cnT" style={{ margin: 0, fontSize: 18 }}>{editId ? 'Edit credit note' : 'New credit note'}</h3><small className="mu mono" id="cnNo">{editId ? editNo : (no.data?.number ?? '')}</small></div><button className="ib" type="button" id="cnClose" aria-label="Close" onClick={close}><Icon name="x" /></button></div>
-        <div className="cnhd" style={{ marginTop: 14 }}><label className="fl" htmlFor="cnParty">Customer<select className="fi" id="cnParty" value={party} onChange={(e) => { setParty(e.target.value); setInvs([]); setLines([]); setIq(''); if (e.target.value === '__cash') setSettle('refund'); redraw(); }}>
+        <div className="dh"><div><h3 id="cnT" style={{ margin: 0, fontSize: ui.fs(18) }}>{editId ? 'Edit credit note' : 'New credit note'}</h3><small className="mu mono" id="cnNo">{editId ? editNo : (no.data?.number ?? '')}</small></div><button className="ib" type="button" id="cnClose" aria-label="Close" onClick={close}><Icon name="x" /></button></div>
+        <div className="cnhd" style={{ marginTop: ui.sp(14) }}><label className="fl" htmlFor="cnParty">Customer<select className="fi" id="cnParty" value={party} onChange={(e) => { setParty(e.target.value); setInvs([]); setLines([]); setIq(''); if (e.target.value === '__cash') setSettle('refund'); redraw(); }}>
           <option value="">Choose customer</option>{(parties.data ?? []).filter((p) => p.kind !== 'supplier').map((p) => <option value={p.id} key={p.id}>{p.name}</option>)}<option value="__cash">Counter sales (no account)</option></select></label>
           <label className="fl" htmlFor="cnDate">Date<input className="fi" type="date" id="cnDate" value={date} onChange={(e) => setDate(e.target.value)} /></label>
           <label className="fl" htmlFor="cnReason">Reason<select className="fi" id="cnReason" value={reason} onChange={(e) => setReason(e.target.value)}>{CN_REASONS.map((r) => <option key={r}>{r}</option>)}</select></label></div>
         <div className="cnil"><b>Against invoices</b><small className="mu" id="cnInvHint">{invs.length ? `${invs.length} selected` : 'Tick one or more invoices of this customer'}</small><span className="sp"></span><label className="search cnis" htmlFor="cnInvQ" hidden={!party || P.length < 7} id="cnInvQW"><input id="cnInvQ" placeholder="Find invoice" autoComplete="off" value={iq} onChange={(e) => setIq(e.target.value)} /></label></div>
-        <div className="cninv" id="cnInvs" role="group" aria-label="Invoices">{!party ? <p className="mu" style={{ margin: 0, fontSize: 13 }}>Choose the customer to see their invoices.</p> : shownInvs.length ? shownInvs.map((s) => {
+        <div className="cninv" id="cnInvs" role="group" aria-label="Invoices">{!party ? <p className="mu" style={{ margin: 0, fontSize: ui.fs(13) }}>Choose the customer to see their invoices.</p> : shownInvs.length ? shownInvs.map((s) => {
           const on = invs.includes(s.id);
           return <label className={`cnic${on ? ' on' : ''}`} key={s.id}><input type="checkbox" data-cninv={s.number} checked={on} onChange={(e) => void toggle(s, e.target.checked)} /><span><b className="mono">{s.number}</b><small>{dmy(s.date)} · {inr2f(s.total)}{Number(s.balance) > 0 ? <> · <span className="neg">due {inr2f(s.balance)}</span></> : ' · paid'}</small></span></label>;
-        }) : <p className="mu" style={{ margin: 0, fontSize: 13 }}>{P.length ? 'No invoice matches.' : 'No invoices for this customer. You can still add items below.'}</p>}</div>
-        <div className="tw" style={{ margin: '4px 0 0' }}><table className="ptt2 pyt spt"><thead><tr><th>Item</th><th id="cnInvTh" style={{ display: 'none' }}>Invoice</th><th className="n">Can return</th><th className="n">Return qty</th><th className="n">Rate</th>{gst ? <th className="n">GST</th> : null}<th className="n">Amount</th><th></th></tr></thead>
+        }) : <p className="mu" style={{ margin: 0, fontSize: ui.fs(13) }}>{P.length ? 'No invoice matches.' : 'No invoices for this customer. You can still add items below.'}</p>}</div>
+        <div className="tw" style={{ margin: ui.sp('4px 0 0') }}><table className="ptt2 pyt spt"><thead><tr><th>Item</th><th id="cnInvTh" style={{ display: 'none' }}>Invoice</th><th className="n">Can return</th><th className="n">Return qty</th><th className="n">Rate</th>{gst ? <th className="n">GST</th> : null}<th className="n">Amount</th><th></th></tr></thead>
           <tbody id="cnRowsI">{groups.length ? groups.map(([id, number, a]) => (
             <GroupRows key={id || 'other'} head={multi || (!id && invs.length > 0) ? <tr className="cngh"><td colSpan={cols}>{id ? <><b className="mono">{number}</b> <button type="button" className="lnk" data-cnall={number} onClick={() => { setLines((x) => x.map((l) => (l.inv === id ? { ...l, qty: l.max ?? l.qty, amt: r2((l.max ?? l.qty) * l.price) } : l))); redraw(); }}>Return all</button></> : <b>Other items</b>}</td></tr> : null} rows={a.map(row)} />
           )) : <tr><td colSpan={cols} className="ptempty">{party ? 'Tick an invoice above, or add items below.' : 'Choose the customer first.'}</td></tr>}</tbody></table></div>
@@ -256,10 +257,10 @@ export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string; 
           redraw();
         }} /><datalist id="cnItemsL">{(items.data ?? []).map((i) => <option value={i.name} key={i.id} />)}</datalist></div>
         <div className="cnset"><b>Settle as</b><label className="cb2"><input type="radio" name="cnS" value="adjust" checked={settle === 'adjust'} onChange={() => setSettle('adjust')} /> Adjust in customer’s balance <small className="mu">(reduces the invoice due, rest kept as credit)</small></label>
-          <label className="cb2"><input type="radio" name="cnS" value="refund" checked={settle === 'refund'} onChange={() => setSettle('refund')} /> Refund now by <select className="fi sm" id="cnRefMode" style={{ width: 'auto', height: 30, margin: '0 0 0 4px' }} value={refMode} onChange={(e) => setRefMode(e.target.value)}><option>Cash</option><option>UPI</option><option>Bank transfer</option></select></label></div>
+          <label className="cb2"><input type="radio" name="cnS" value="refund" checked={settle === 'refund'} onChange={() => setSettle('refund')} /> Refund now by <select className="fi sm" id="cnRefMode" style={{ width: 'auto', height: ui.h(30), margin: ui.sp('0 0 0 4px') }} value={refMode} onChange={(e) => setRefMode(e.target.value)}><option>Cash</option><option>UPI</option><option>Bank transfer</option></select></label></div>
         <div className="cntot" id="cnTot"><span>Return value{gst && gstNote ? <> <small className="mu">incl. GST {inr2f(gstNote)}</small></> : null}{invs.length > 1 ? <> <small className="mu">· {invs.length} invoices</small></> : null}</span><b>{inr2f(c.tot)}</b></div>
         <div className="msg bad" id="cnErr" role="alert">{err}</div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}><button className="btn" type="button" id="cnCancel" onClick={close}>Cancel</button><button className="btn p" type="button" id="cnSave" disabled={busy} onClick={() => void save()}>Save credit note</button></div>
+        <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end', marginTop: ui.sp(12) }}><button className="btn" type="button" id="cnCancel" onClick={close}>Cancel</button><button className="btn p" type="button" id="cnSave" disabled={busy} onClick={() => void save()}>Save credit note</button></div>
       </div>
     </div>
   );
