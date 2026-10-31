@@ -22,6 +22,7 @@ import { SlModal, type SlModalProps } from './SlModal';
 import { openHistory } from '../../components/EditHistory';
 import { printNow } from '../print/printer';
 import { cancelAsk, deleteAsk, withPasscode } from '../settings/passcode';
+import { ui } from '../../styles/uiSize';
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const FILTER = '<path d="M4 5h16l-6 8v6l-4-2v-4z"/>';
@@ -179,10 +180,10 @@ export function SalesPage() {
 
   return (
     <section id="vSales">
-      <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Sales invoices</h1><div className="sp"></div><button className="btn p" onClick={() => navigate('/sales/new')}><RawIcon d={PLUS} />New invoice <kbd className="kh" style={{ marginLeft: 6, background: 'transparent', color: 'inherit', borderColor: 'rgba(255,255,255,.4)' }}>Alt+S</kbd></button></div>
+      <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Sales invoices</h1><div className="sp"></div><button className="btn p" onClick={() => navigate('/sales/new')}><RawIcon d={PLUS} />New invoice <kbd className="kh" style={{ marginLeft: ui.sp(6), background: 'transparent', color: 'inherit', borderColor: 'rgba(255,255,255,.4)' }}>Alt+S</kbd></button></div>
 
       <div className="card ptxc">
-        <div className="ptfil" style={{ padding: '14px 16px', alignItems: 'center' }}>
+        <div className="ptfil" style={{ padding: ui.sp('14px 16px'), alignItems: 'center' }}>
           <div className={tsOpen ? 'xsr open' : 'xsr'} id="slTsWrap"><button className="ixs" id="slTsBtn" type="button" title="Search invoices" aria-label="Search invoices" aria-expanded={tsOpen} onMouseDown={(e) => tsOpen && e.preventDefault()} onClick={() => { if (!tsOpen) { setTsOpen(true); setTimeout(() => qRef.current?.focus(), 30); } else { setQ(''); setTsOpen(false); } }}><RawIcon d={SEARCH} /></button>
             <input className="fi" id="slTq" placeholder="Search invoice no. or party" autoComplete="off" tabIndex={tsOpen ? 0 : -1} aria-label="Search invoices" ref={qRef} value={q} onChange={(e) => setQ(e.target.value)} onBlur={() => { if (!q.trim()) setTsOpen(false); }} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setQ(''); setTsOpen(false); (document.getElementById('slTsBtn') as HTMLElement)?.focus(); } }} /></div>
           <div className="sumrow sumin" id="slSum"><div><small>Sales</small><b>{inr(tot.toFixed(2))}</b></div><div><small>Received</small><b className="pos">{inr(tot.minus(owed).toFixed(2))}</b></div><div><small>Unpaid</small><b className="neg">{inr(owed.toFixed(2))}</b></div><div><small>Invoices</small><b>{live.length}</b></div></div>
@@ -208,7 +209,7 @@ export function SalesPage() {
               const c = s.cancelled;
               return (
                 <tr tabIndex={0} data-sno={s.number} data-sid={s.id} data-spid={s.party?.id ?? ''} className={[c ? 'slcan' : '', menu?.row.id === s.id ? 'ctxon' : ''].filter(Boolean).join(' ')} key={s.id} onClick={() => openRow(s)}>
-                  <td>{dmy(s.date)}</td><td className="mono">{s.number}{!c ? <> <span className="st b" style={{ fontSize: 10, padding: '1px 6px' }}>New</span></> : null}</td><td><b style={{ fontWeight: 600 }}>{s.partyName}</b></td>
+                  <td>{dmy(s.date)}</td><td className="mono">{s.number}{!c ? <> <span className="st b" style={{ fontSize: ui.fs(10), padding: ui.sp('1px 6px') }}>New</span></> : null}</td><td><b style={{ fontWeight: 600 }}>{s.partyName}</b></td>
                   <td className="n">{inr2f(s.total)}</td><td className="n">{inr2f(s.received)}</td><td className="n">{inr2f(s.balance)}</td><td>{!c && Number(s.balance) > 0 && s.dueDate ? dmy(s.dueDate) : ''}</td><td><span className={`stt ${stt.c}`}>{stt.t}</span></td>
                   <td className="slact"><RowMenuButton no={s.number} label={`Actions for ${s.number}`} onOpen={(b) => setMenu({ row: s, ...atButton(b), tr: b.closest('tr') })} /></td></tr>
               );

@@ -13,6 +13,7 @@ import { useCur, useSettings } from '../../lib/settings';
 import { today } from '../../lib/time';
 import { Icon, RawIcon } from '../../components/Icon';
 import { useShell } from '../shell/store';
+import { ui } from '../../styles/uiSize';
 
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>';
 const X = '<path d="M6 6l12 12M18 6L6 18"/>';
@@ -254,7 +255,7 @@ export function AddPartyDialog({ open, onClose, onSaved, edit, onDelete }: { ope
                   {ship ? (
                     <>
                       <label className="cb2"><input type="checkbox" id="apSame" checked={same} onChange={(e) => setSame(e.target.checked)} /> Same as billing address</label>
-                      {same ? <p className="aphint" style={{ margin: '6px 0 0' }}>Goods will be shipped to the billing address.</p> : <textarea className="fi ta" data-f="shipping" rows={4} placeholder="Delivery address" value={f.shipping} onChange={set('shipping')}></textarea>}
+                      {same ? <p className="aphint" style={{ margin: ui.sp('6px 0 0') }}>Goods will be shipped to the billing address.</p> : <textarea className="fi ta" data-f="shipping" rows={4} placeholder="Delivery address" value={f.shipping} onChange={set('shipping')}></textarea>}
                       <button type="button" className="aplink" id="apShipX" onClick={() => setShip(false)}>Remove shipping address</button>
                     </>
                   ) : (
@@ -279,7 +280,7 @@ export function AddPartyDialog({ open, onClose, onSaved, edit, onDelete }: { ope
               </div>
               <div>
                 <b className="aph">Credit limit</b>
-                <div className="seg2" role="radiogroup" aria-label="Credit limit" style={{ marginBottom: 12 }}>
+                <div className="seg2" role="radiogroup" aria-label="Credit limit" style={{ marginBottom: ui.sp(12) }}>
                   <button type="button" className={limit === 'none' ? 'on' : ''} data-lim="none" onClick={() => setLimit('none')}>No limit</button>
                   <button type="button" className={limit === 'custom' ? 'on' : ''} data-lim="custom" onClick={() => setLimit('custom')}>Custom limit</button>
                 </div>
@@ -291,7 +292,7 @@ export function AddPartyDialog({ open, onClose, onSaved, edit, onDelete }: { ope
             </div>
           </div>
           <div className="appane" hidden={curTab !== 'extra'}>
-            <p className="aphint" style={{ margin: '0 0 12px' }}>Turn on the fields you want to record for this party. They can also be printed on invoices.</p>
+            <p className="aphint" style={{ margin: ui.sp('0 0 12px') }}>Turn on the fields you want to record for this party. They can also be printed on invoices.</p>
             <div className="apx">
               {APF.map(([label, , t], i) => (
                 <div className="apxr" key={label}>

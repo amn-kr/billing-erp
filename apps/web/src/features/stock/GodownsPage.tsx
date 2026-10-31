@@ -14,6 +14,7 @@ import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type
 import { HIST_ACTION, openHistory } from '../../components/EditHistory';
 import { SlModal, type SlModalProps } from '../sales/SlModal';
 import { editAsk, withPasscode } from '../settings/passcode';
+import { ui } from '../../styles/uiSize';
 
 export interface Godown { id: string; name: string; address: string; manager: string; phone: string; isDefault: boolean; items: number; value: string }
 interface GodownRow { itemId: string; name: string; category: string; unit: string; inGodown: string; total: string; value: string }
@@ -71,7 +72,7 @@ export function GodownsPage() {
         <button className="gdc add" id="gdAdd" onClick={() => setAdding(true)}><Icon name="plus" /><b>Add godown</b><small>Shop, warehouse or store room</small></button>
       </div>
       <div className="gdlay">
-        <div className="card ptxc"><div className="hd" id="gdHead" style={{ margin: 0, padding: '14px 16px' }}>
+        <div className="card ptxc"><div className="hd" id="gdHead" style={{ margin: 0, padding: ui.sp('14px 16px') }}>
           <div><h3 style={{ margin: 0 }}>{g.name}</h3><small style={{ color: 'var(--t2)' }}>{addr(g)} · In charge: {g.manager || '—'}{g.phone ? ` · +91 ${g.phone.slice(0, 5)} ${g.phone.slice(5)}` : ''}</small></div>
         </div>
           <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr><th>Item</th><th>Category</th><th className="n">In this godown</th><th className="n">Total stock</th><th className="n">Value</th><th><span className="vh">Actions</span></th></tr></thead>
@@ -143,13 +144,13 @@ function AddGodownDialog({ open, onClose, onAdded }: { open: boolean; onClose: (
   return (
     <div className="ov c" id="gdm" hidden={!open} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'gdm') onClose(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="gdT">
-        <h3 id="gdT" style={{ margin: '0 0 14px', fontSize: 18 }}>Add godown</h3>
+        <h3 id="gdT" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(18) }}>Add godown</h3>
         <form id="gdForm" noValidate onSubmit={submit}>
           <label className="fl" htmlFor="gdName">Godown name<input className="fi" id="gdName" placeholder="e.g. Chowk store room" autoComplete="off" value={f.name} onChange={set('name')} ref={nameRef} /></label>
           <label className="fl" htmlFor="gdAddr">Address<input className="fi" id="gdAddr" placeholder="Street, area, city, PIN code" autoComplete="off" value={f.address} onChange={set('address')} /></label>
           <div className="two"><label className="fl" htmlFor="gdMgr">Person in charge<input className="fi" id="gdMgr" autoComplete="off" value={f.manager} onChange={set('manager')} /></label><label className="fl" htmlFor="gdPh">Mobile<input className="fi" id="gdPh" inputMode="numeric" autoComplete="off" value={f.phone} onChange={set('phone')} ref={phRef} /></label></div>
           <div className="msg bad" id="gdErr" role="alert">{err}</div>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}><button className="btn" type="button" id="gdCancel" onClick={onClose}>Cancel</button><button className="btn p" type="submit">Add godown</button></div>
+          <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end' }}><button className="btn" type="button" id="gdCancel" onClick={onClose}>Cancel</button><button className="btn p" type="submit">Add godown</button></div>
         </form>
       </div>
     </div>
@@ -207,7 +208,7 @@ function TransferDialog({ open, godowns, items, from: start, onClose }: { open: 
   return (
     <div className="ov c" id="trm" hidden={!open} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'trm') onClose(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="trT">
-        <h3 id="trT" style={{ margin: '0 0 14px', fontSize: 18 }}>{x ? `Edit ${x.number}` : 'Transfer stock'}</h3>
+        <h3 id="trT" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(18) }}>{x ? `Edit ${x.number}` : 'Transfer stock'}</h3>
         <form id="trForm" noValidate onSubmit={submit}>
           <label className="fl" htmlFor="trItem">Item<select className="fi" id="trItem" value={itemId} onChange={(e) => setItemId(e.target.value)}>{items.map((i) => <option value={i.id} key={i.id}>{i.name}</option>)}</select></label>
           <div className="two">
@@ -215,8 +216,8 @@ function TransferDialog({ open, godowns, items, from: start, onClose }: { open: 
             <label className="fl" htmlFor="trTo">To<select className="fi" id="trTo" value={to} onChange={(e) => setTo(e.target.value)}>{godowns.map((x) => <option value={x.id} key={x.id}>{x.name}</option>)}</select></label>
           </div>
           <label className="fl" htmlFor="trQty">Quantity<input className="fi" id="trQty" inputMode="decimal" autoComplete="off" value={qty} onChange={(e) => setQty(e.target.value)} ref={qtyRef} /></label>
-          <div className="hint" id="trAv" style={{ margin: '-4px 0 8px' }}>{item && fromG && here.data ? `Available in ${fromG.name}: ${qfmt(av)} ${item.unit}` : ''}</div><div className="msg bad" id="trErr" role="alert">{err}</div>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}><button className="btn" type="button" id="trCancel" onClick={onClose}>Cancel</button><button className="btn p" type="submit">Transfer</button></div>
+          <div className="hint" id="trAv" style={{ margin: ui.sp('-4px 0 8px') }}>{item && fromG && here.data ? `Available in ${fromG.name}: ${qfmt(av)} ${item.unit}` : ''}</div><div className="msg bad" id="trErr" role="alert">{err}</div>
+          <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end' }}><button className="btn" type="button" id="trCancel" onClick={onClose}>Cancel</button><button className="btn p" type="submit">Transfer</button></div>
         </form>
       </div>
     </div>

@@ -14,6 +14,7 @@ import { useShell } from '../shell/store';
 import { SlModal, type SlModalProps } from '../sales/SlModal';
 import { qfmt } from '../items/ItemsPage';
 import type { Item } from '../items/ItemsPage';
+import { ui } from '../../styles/uiSize';
 
 interface Elec {
   id: string; name: string; phone: string; city: string; partyId: string | null; partyBalance: string | null;
@@ -72,9 +73,9 @@ export function CommissionPage() {
       body: <><div className="tw" style={{ margin: 0, maxHeight: '45vh', overflow: 'auto' }}><table className="ptt2 pyt"><thead><tr><th>Invoice</th><th>Date</th><th>Customer</th><th className="n">Bill</th><th className="n">Commission</th><th className="n">Paid by customer</th><th className="n">Earned</th></tr></thead>
         <tbody>{e.invoices.length ? e.invoices.map((b) => <tr key={b.id}><td className="mono">{b.number}</td><td>{dmy(b.date)}</td><td>{b.partyName}</td><td className="n">{inr2f(b.total)}</td><td className="n">{inr2f(b.comm)}{Number(b.ret) ? <small className="neg" style={{ display: 'block' }}>−{inr2f(b.ret)} returns</small> : null}</td><td className="n">{Math.round(b.f * 100)}%</td><td className="n"><b>{inr2f(b.earned)}</b></td></tr>)
           : <tr><td colSpan={7} className="ptempty">No referred bills yet.</td></tr>}</tbody></table></div>
-        {R.length ? <><h4 style={{ margin: '14px 0 6px' }}>Commission deducted for returns</h4><div className="tw" style={{ margin: 0 }}><table className="ptt2 pyt"><thead><tr><th>Date</th><th>Credit note</th><th>Invoice</th><th>Item returned</th><th>Reason</th><th className="n">Deducted</th></tr></thead>
+        {R.length ? <><h4 style={{ margin: ui.sp('14px 0 6px') }}>Commission deducted for returns</h4><div className="tw" style={{ margin: 0 }}><table className="ptt2 pyt"><thead><tr><th>Date</th><th>Credit note</th><th>Invoice</th><th>Item returned</th><th>Reason</th><th className="n">Deducted</th></tr></thead>
           <tbody>{R.map((x, k) => <tr key={k}><td>{dmy(x.date)}</td><td className="mono">{x.cn}</td><td className="mono">{x.inv}</td><td>{qfmt(x.qty)} × {x.item}</td><td>{x.reason}</td><td className="n neg"><b>−{inr2f(x.amt)}</b></td></tr>)}</tbody></table></div></> : null}
-        {e.payouts.length ? <><h4 style={{ margin: '14px 0 6px' }}>Payments to {e.name}</h4><div className="tw" style={{ margin: 0 }}><table className="ptt2 pyt"><tbody>{e.payouts.map((x) => <tr key={x.number}><td className="mono">{x.number}</td><td>{dmy(x.date)}</td><td>{x.mode}</td><td className="mu">{x.note}</td><td className="n"><b>{inr2f(x.amount)}</b></td></tr>)}</tbody></table></div></> : null}</>,
+        {e.payouts.length ? <><h4 style={{ margin: ui.sp('14px 0 6px') }}>Payments to {e.name}</h4><div className="tw" style={{ margin: 0 }}><table className="ptt2 pyt"><tbody>{e.payouts.map((x) => <tr key={x.number}><td className="mono">{x.number}</td><td>{dmy(x.date)}</td><td>{x.mode}</td><td className="mu">{x.note}</td><td className="n"><b>{inr2f(x.amount)}</b></td></tr>)}</tbody></table></div></> : null}</>,
     });
   };
 
@@ -102,7 +103,7 @@ export function CommissionPage() {
         <div className="cmr" data-cat={c} key={c}><span><b>{c}</b><small className="mu">{items.filter((i) => i.category === c).length} items</small></span>
           <select className="fi sm" data-k="t" defaultValue={t} onChange={(ev) => { const i = ev.target.parentElement!.querySelector<HTMLInputElement>('[data-k="v"]')!; i.disabled = ev.target.value === 'n'; if (ev.target.value === 'n') i.value = ''; else i.focus(); }}><option value="n">No commission</option><option value="p">% of sale price</option><option value="f">Flat ₹ per unit</option></select>
           <input className="fi sm n" data-k="v" inputMode="decimal" defaultValue={t === 'n' ? '' : String(Number(r!.value))} placeholder="0" disabled={t === 'n'} /></div>); })}</div>
-        <p className="hint" style={{ margin: '8px 0 0' }}>Example: purchase 300 + margin 10% = sale price 330 → commission 10% → rate on the bill 363. Electrician earns 33.</p></>,
+        <p className="hint" style={{ margin: ui.sp('8px 0 0') }}>Example: purchase 300 + margin 10% = sale price 330 → commission 10% → rate on the bill 363. Electrician earns 33.</p></>,
       onOk: async () => {
         const rows = [...document.querySelectorAll<HTMLElement>('#slmBody .cmr')].map((r) => { const t = r.querySelector<HTMLSelectElement>('[data-k="t"]')!.value, v = Number(r.querySelector<HTMLInputElement>('[data-k="v"]')!.value.replace(/[^\d.]/g, '')) || 0; return { category: r.dataset.cat!, kind: t === 'n' || !v ? 'none' : t === 'p' ? 'percent' : 'fixed', value: t === 'n' ? 0 : v }; });
         try { for (const r of rows) await api('/commission-rules', { method: 'PUT', body: r }); close(); await refresh(); showToast('Commission rules saved'); }
@@ -115,7 +116,7 @@ export function CommissionPage() {
     <section id="vCom">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Electrician commission</h1><span className="pttot">Added on top of your sale price · paid as customers pay</span><div className="sp"></div><button className="btn" id="cmRules" onClick={() => void rules()}><Icon name="pct" />Commission rules</button><button className="btn p" id="cmAdd" onClick={() => edit(null)}><RawIcon d={PLUS} />Add electrician</button></div>
       <div className="sumrow" id="cmSum"><div><small>Commission on bills{T('ret') ? <> <span className="neg">(−{inr(T('ret').toFixed(2))} returns)</span></> : null}</small><b>{inr(T('comm').toFixed(2))}</b></div><div><small>Earned (customers paid)</small><b>{inr(T('earned').toFixed(2))}</b></div><div><small>Paid to electricians</small><b className="pos">{inr(T('paid').toFixed(2))}</b></div><div><small>Payable now</small><b className={T('due') > 0 ? 'neg' : ''}>{inr(T('due').toFixed(2))}</b></div></div>
-      <div className="card ptxc"><div className="ptfil" style={{ padding: '12px 16px' }}><label className="search" htmlFor="cmQ" style={{ maxWidth: 300, height: 36 }}><RawIcon d={SEARCH} /><input id="cmQ" placeholder="Search electrician" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label></div>
+      <div className="card ptxc"><div className="ptfil" style={{ padding: ui.sp('12px 16px') }}><label className="search" htmlFor="cmQ" style={{ maxWidth: 300, height: ui.h(36) }}><RawIcon d={SEARCH} /><input id="cmQ" placeholder="Search electrician" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label></div>
         <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr><th>Electrician</th><th className="n">Bills</th><th className="n">Business</th><th className="n">Commission</th><th className="n">Returns</th><th className="n">Earned<small className="mu" style={{ display: 'block', fontWeight: 500, textTransform: 'none' }}>on payment received</small></th><th className="n">Paid</th><th className="n">Payable now</th><th className="n"><span className="vh">Actions</span></th></tr></thead>
           <tbody id="cmRows" onKeyDown={(ev) => { const tr = (ev.target as HTMLElement).closest<HTMLElement>('tr[data-cme]'); if (tr && ev.key === 'Enter' && ev.target === tr) { ev.preventDefault(); tr.click(); } }}>
             {L.length ? L.map((e) => {

@@ -20,6 +20,7 @@ import { useDcf } from '../../components/Discard';
 import { RawIcon } from '../../components/Icon';
 import { useShell } from '../shell/store';
 import { errorRowsBlob, ImportFileError, readImportFile, templateBlob } from './importFile';
+import { ui } from '../../styles/uiSize';
 
 type Filter = 'all' | 'error' | 'warning' | 'ok';
 type Result = { done: true; summary: ImportSummary } | { done: false; message: string; checks: RowCheck[] };
@@ -130,7 +131,7 @@ export function ImportPage() {
   const reset = () => { setRows(null); setSummary(null); setFileName(''); setServerMsg(''); };
   const header = (
     <>
-      <button className="lnk" id="imBack" style={{ fontSize: 12, padding: 0 }} onClick={() => go('/items')}>← Products</button>
+      <button className="lnk" id="imBack" style={{ fontSize: ui.fs(12), padding: 0 }} onClick={() => go('/items')}>← Products</button>
       <div className="pthd">
         <h1 className="ptkind" style={{ cursor: 'default' }}>Import products</h1>
         {rows && <div className="pttot" id="imTot"><span>{fileName}</span><span>{plural(rows.length, 'row')}</span></div>}
@@ -150,17 +151,17 @@ export function ImportPage() {
   if (!rows || !shop.data) return (
     <section id="vImport">
       {header}
-      <div className="card" id="imStart" style={{ padding: '22px 24px', maxWidth: 720 }}>
-        <ol style={{ margin: '0 0 18px', paddingLeft: 20, lineHeight: 1.9, fontSize: 13.5 }}>
+      <div className="card" id="imStart" style={{ padding: ui.sp('22px 24px'), maxWidth: 720 }}>
+        <ol style={{ margin: ui.sp('0 0 18px'), paddingLeft: ui.sp(20), lineHeight: 1.9, fontSize: ui.fs(13.5) }}>
           <li><b>Download the template</b> — an Excel file with the columns in the right order and drop-down lists of your units, godowns, categories and GST rates. Its Notes sheet explains every column.</li>
           <li><b>Fill in your products</b> — one per row, up to {n(IMPORT_MAX_ROWS)} rows. Single Range for a single item; Multi Range for many brands and series under one product name.</li>
           <li><b>Upload it</b> — every row is checked and shown here. Correct anything marked, then press <b>Final import</b>. Nothing is saved before that.</li>
         </ol>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: ui.sp(10), flexWrap: 'wrap' }}>
           <button className="btn" id="imTpl" disabled={!shop.data} onClick={() => void download()}><RawIcon d={DOWN} />Download template</button>
           <button className="btn p" id="imUp" disabled={!shop.data || reading} onClick={() => fileRef.current?.click()}><RawIcon d={UP} />{reading ? 'Reading the file…' : 'Upload filled file'}</button>
         </div>
-        <div className="msg bad" id="imFileErr" role="alert" style={{ marginTop: 12 }}>{fileErr}</div>
+        <div className="msg bad" id="imFileErr" role="alert" style={{ marginTop: ui.sp(12) }}>{fileErr}</div>
       </div>
     </section>
   );
@@ -205,26 +206,26 @@ export function ImportPage() {
   return (
     <section id="vImport">
       {header}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', margin: '0 0 14px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: ui.sp(14), flexWrap: 'wrap', margin: ui.sp('0 0 14px') }}>
         <div className="seg2" role="tablist" id="imTabs">
           {([['all', 'All'], ['error', 'Errors'], ['warning', 'Warnings'], ['ok', 'OK']] as const).map(([k, t]) => (
             <button key={k} role="tab" aria-selected={filter === k} className={filter === k ? 'on' : ''} data-imf={k} onClick={() => setFilter(k)}>{t}<span>{n(count[k])}</span></button>
           ))}
         </div>
-        <div id="imCount" style={{ fontSize: 13, fontWeight: 600 }}>
+        <div id="imCount" style={{ fontSize: ui.fs(13), fontWeight: 600 }}>
           {!importable
             ? <span className="stt r">Nothing to import yet: every row has an error. Fix the errors first.</span>
             : count.error && !skip
             ? <span className="stt r">Fix {plural(count.error, 'row')} with errors, or tick “Skip error rows”.</span>
             : <span className="stt g">{plural(importable, 'product')} will be imported{count.error ? `, ${n(count.error)} skipped` : ''}.</span>}
         </div>
-        {count.error > 0 && <label className="cb2" style={{ fontSize: 13 }}><input type="checkbox" id="imSkip" checked={skip} onChange={(e) => setSkip(e.target.checked)} />Skip error rows</label>}
+        {count.error > 0 && <label className="cb2" style={{ fontSize: ui.fs(13) }}><input type="checkbox" id="imSkip" checked={skip} onChange={(e) => setSkip(e.target.checked)} />Skip error rows</label>}
       </div>
       {serverMsg && <div className="msg bad" id="imSrvErr" role="alert">{serverMsg}</div>}
 
       <div className="card ptxc">
-        <div className="ptfil" style={{ padding: '14px 16px', alignItems: 'center' }}>
-          <label className="search" htmlFor="imQ" style={{ height: 34 }}><RawIcon d={SEARCH} /><input id="imQ" placeholder="Search product, brand, series or code" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+        <div className="ptfil" style={{ padding: ui.sp('14px 16px'), alignItems: 'center' }}>
+          <label className="search" htmlFor="imQ" style={{ height: ui.h(34) }}><RawIcon d={SEARCH} /><input id="imQ" placeholder="Search product, brand, series or code" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
           {newBits.length > 0 && <span className="hint" id="imNew" style={{ margin: 0 }}>Will be created on import: {newBits.join(', ')}.</span>}
         </div>
         <EditGrid
@@ -242,7 +243,7 @@ export function ImportPage() {
             const st = c?.status ?? 'ok';
             // the columns to look at, as the grid is wider than the screen
             const where = c && st === 'error' ? IMPORT_COLUMNS.filter((x) => c.cells[x.key]?.some((i) => i.level === 'error')).map((x) => x.title) : [];
-            return <><span className={`stt ${STATUS[st][0]}`} data-st={st}>{STATUS[st][1]}</span>{where.length > 0 && <small className="egm bad" data-where style={{ padding: '4px 0 0', fontWeight: 500 }}>Check: {where.join(', ')}</small>}</>;
+            return <><span className={`stt ${STATUS[st][0]}`} data-st={st}>{STATUS[st][1]}</span>{where.length > 0 && <small className="egm bad" data-where style={{ padding: ui.sp('4px 0 0'), fontWeight: 500 }}>Check: {where.join(', ')}</small>}</>;
           } }}
           empty={filter === 'error' ? 'No rows with errors.' : filter === 'warning' ? 'No rows with warnings.' : 'No rows match.'}
         />
@@ -261,14 +262,14 @@ function ConfirmBody({ busy, count, skipped, withStock, newBits, onCancel, onGo 
   useEscape(!busy, onCancel);
   return (
     <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="imcT">
-      <h3 id="imcT" style={{ margin: '0 0 12px', fontSize: 18 }}>Import {plural(count, 'product')}?</h3>
-      <ul style={{ margin: '0 0 14px', paddingLeft: 18, lineHeight: 1.8, fontSize: 13.5 }}>
+      <h3 id="imcT" style={{ margin: ui.sp('0 0 12px'), fontSize: ui.fs(18) }}>Import {plural(count, 'product')}?</h3>
+      <ul style={{ margin: ui.sp('0 0 14px'), paddingLeft: ui.sp(18), lineHeight: 1.8, fontSize: ui.fs(13.5) }}>
         <li>{plural(count, 'product')} will be added{withStock ? `, ${n(withStock)} with opening stock` : ''}.</li>
         {newBits.length > 0 && <li>New: {newBits.join(', ')}.</li>}
         {skipped > 0 && <li>{plural(skipped, 'row')} with errors will be skipped.</li>}
         <li>Items are never deleted, only made inactive. Check the rows before you import.</li>
       </ul>
-      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end' }}>
         <button className="btn" type="button" id="imcCancel" disabled={busy} onClick={onCancel}>Cancel</button>
         <button className="btn p" type="button" id="imcGo" disabled={busy} onClick={onGo}>{busy ? 'Importing…' : 'Final import'}</button>
       </div>
@@ -279,9 +280,9 @@ function ConfirmBody({ busy, count, skipped, withStock, newBits, onCancel, onGo 
 function Summary({ s, onErrors, onAgain }: { s: ImportSummary; onErrors: () => void; onAgain: () => void }) {
   const line = (t: string, list: string[]) => list.length > 0 && <li><b>{t}:</b> {list.slice(0, 20).join(', ')}{list.length > 20 ? ` and ${n(list.length - 20)} more` : ''}</li>;
   return (
-    <div className="card" id="imDone" style={{ padding: '22px 24px', maxWidth: 820 }}>
-      <h3 style={{ margin: '0 0 12px', fontSize: 18 }}>Import finished</h3>
-      <ul style={{ margin: '0 0 14px', paddingLeft: 18, lineHeight: 1.9, fontSize: 13.5 }}>
+    <div className="card" id="imDone" style={{ padding: ui.sp('22px 24px'), maxWidth: 820 }}>
+      <h3 style={{ margin: ui.sp('0 0 12px'), fontSize: ui.fs(18) }}>Import finished</h3>
+      <ul style={{ margin: ui.sp('0 0 14px'), paddingLeft: ui.sp(18), lineHeight: 1.9, fontSize: ui.fs(13.5) }}>
         <li><b>{plural(s.created, 'product')} created</b>{s.withStock ? `, ${n(s.withStock)} with opening stock` : ''}.</li>
         {line('New parent items', s.newGroups)}
         {line('New brands', s.newBrands)}
@@ -290,14 +291,14 @@ function Summary({ s, onErrors, onAgain }: { s: ImportSummary; onErrors: () => v
         <li>{s.skipped.length ? <span className="stt r">{plural(s.skipped.length, 'row')} skipped because of errors:</span> : 'No rows were skipped.'}</li>
       </ul>
       {s.skipped.length > 0 && (
-        <div className="tw" style={{ margin: '0 0 14px', maxHeight: 320, overflow: 'auto' }}>
+        <div className="tw" style={{ margin: ui.sp('0 0 14px'), maxHeight: ui.h(320), overflow: 'auto' }}>
           <table className="ptt2" id="imSkipped">
             <thead><tr><th>Row</th><th>Why it was skipped</th></tr></thead>
             <tbody>{s.skipped.map((x) => <tr key={x.line}><td>{x.line}</td><td style={{ whiteSpace: 'normal' }}>{x.reasons.join(' · ')}</td></tr>)}</tbody>
           </table>
         </div>
       )}
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: ui.sp(10), flexWrap: 'wrap' }}>
         {s.skipped.length > 0 && <button className="btn" id="imDoneErr" onClick={onErrors}><RawIcon d={DOWN} />Download error rows</button>}
         <button className="btn" id="imAgain" onClick={onAgain}>Import another file</button>
         <button className="btn p" id="imToItems" onClick={() => go('/items')}>Go to items</button>

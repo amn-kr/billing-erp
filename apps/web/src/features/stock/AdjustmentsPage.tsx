@@ -13,6 +13,7 @@ import { qfmt, type Item } from '../items/ItemsPage';
 import { atButton, RowMenu, RowMenuButton, rowMenuHandlers, type RowAction, type RowMenuAt } from '../../components/RowMenu';
 import { HIST_ACTION, openHistory } from '../../components/EditHistory';
 import { SlModal, type SlModalProps } from '../sales/SlModal';
+import { ui } from '../../styles/uiSize';
 
 export interface Adjustment { id: string; number: string; date: string; itemId: string; item: string; unit: string; godown: string; qty: string; rate: string; value: string; reason: string; cancelled: boolean }
 
@@ -67,7 +68,7 @@ export function AdjustmentsPage() {
         <div><small>Net effect on stock value</small><b className={net.lt(0) ? 'neg' : 'pos'}>{net.lt(0) ? '−' : '+'}{cur(inr(net.abs()))}</b></div>
       </div>
       <div className="card ptxc">
-        <div className="ptfil" style={{ padding: '14px 16px', alignItems: 'center' }}><label className="search" htmlFor="adjQ" style={{ maxWidth: 300, height: 36 }}><RawIcon d={SEARCH} /><input id="adjQ" placeholder="Search item or reference" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+        <div className="ptfil" style={{ padding: ui.sp('14px 16px'), alignItems: 'center' }}><label className="search" htmlFor="adjQ" style={{ maxWidth: 300, height: ui.h(36) }}><RawIcon d={SEARCH} /><input id="adjQ" placeholder="Search item or reference" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
           <div className="seg2 sm" id="adjKind">{([['all', 'All'], ['add', 'Added'], ['reduce', 'Reduced']] as const).map(([k, t]) => <button data-ak={k} className={kind === k ? 'on' : ''} key={k} onClick={() => setKind(k)}>{t}</button>)}</div>
           <select className="fi" id="adjWhyF" aria-label="Filter by reason" value={why} onChange={(e) => setWhy(e.target.value)}><option value="all">All reasons</option>{reasons.map((r) => <option key={r}>{r}</option>)}</select></div>
         <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr><th>Date</th><th>Reference</th><th>Item</th><th>Reason</th><th>Type</th><th className="n">Quantity</th><th className="n">Price / unit</th><th className="n">Value</th><th className="slact"><span className="vh">Actions</span></th></tr></thead>

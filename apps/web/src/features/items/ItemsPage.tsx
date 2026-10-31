@@ -20,6 +20,7 @@ import { AdjustStockDialog } from './AdjustStockDialog';
 import { RateTable } from './RateTable';
 import { useStyles } from '../../lib/useStyles';
 import figCss from './item-figures.css?inline';
+import { ui } from '../../styles/uiSize';
 
 export interface Item {
   id: string;
@@ -152,10 +153,10 @@ export function ItemsPage() {
 
   const row = (i: Item, sub: boolean) => (
     <button className={`ptr ${sub ? 'vsub' : ''} ${i.id === selId ? 'on' : ''}`} data-iid={i.id} key={i.id} onClick={() => setSel(i.id)}>
-      <span className="ptn" style={{ textTransform: 'none', fontSize: 13 }}>
+      <span className="ptn" style={{ textTransform: 'none', fontSize: ui.fs(13) }}>
         {sub ? vlabel(i) : i.name}
         {!sub && i.brand && !i.group && <>{' '}<span className="brc">{i.brand}</span></>}
-        {isNew(i) && <>{' '}<span className="st b" style={{ fontSize: 10, padding: '1px 6px' }}>New</span></>}
+        {isNew(i) && <>{' '}<span className="st b" style={{ fontSize: ui.fs(10), padding: ui.sp('1px 6px') }}>New</span></>}
       </span>
       <span className={lvlClass(i.level)}>{i.kind === 'service' ? inr2f(i.sale) : qfmt(i.stock)}{(i.level === 'low' || i.level === 'out') && <>{' '}<i className="ldot"></i></>}</span>
     </button>
@@ -175,7 +176,7 @@ export function ItemsPage() {
       rows.push(
         <button className={`ptr grh ${selId === 'g:' + i.group ? 'on' : ''}`} data-gid={i.group} aria-expanded={isOpen} key={'g:' + i.group}
           onClick={() => { const k = i.group; const nx = new Set(open); if (selId === 'g:' + k && open.has(k)) nx.delete(k); else nx.add(k); setOpen(nx); setSel('g:' + k); }}>
-          <span className="ptn" style={{ textTransform: 'none', fontSize: 13 }}><svg className={`i car2 ${isOpen ? 'op' : ''}`} viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: CAR }} />{i.group}{' '}<span className="brc">{all.length} {word}</span></span>
+          <span className="ptn" style={{ textTransform: 'none', fontSize: ui.fs(13) }}><svg className={`i car2 ${isOpen ? 'op' : ''}`} viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: CAR }} />{i.group}{' '}<span className="brc">{all.length} {word}</span></span>
           <span className={bad ? 'lowq' : 'zero'}>{qfmt(tot)}{bad && <>{' '}<i className="ldot"></i></>}</span>
         </button>,
       );
@@ -263,7 +264,7 @@ export function ItemsPage() {
             ) : null}
           </div>
           <div className="card ptxc" hidden={!!groupSel}>
-            <div className="hd" style={{ margin: 0, padding: '14px 16px' }}>
+            <div className="hd" style={{ margin: 0, padding: ui.sp('14px 16px') }}>
               <h3>Transactions</h3>
               <div className="ptools">
                 <div className={tsOpen ? 'xsr open' : 'xsr'} id="itTsWrap">
@@ -414,7 +415,7 @@ function GroupHead({ g, ms, mrpOn, cur, onPick }: { g: string; ms: Item[]; mrpOn
           <button className="btn sm" data-gprices={g} onClick={() => soon('Price manager')}><Icon name="edit" />Update prices</button>
         </div>
       </div>
-      <div className="tw" style={{ margin: '14px -4px 0', overflowX: 'auto' }}>
+      <div className="tw" style={{ margin: ui.sp('14px -4px 0'), overflowX: 'auto' }}>
         <table className="ptt2 vtab">
           <thead>
             <tr><th>Brand</th><th>Series / size</th><th>Item code</th>{mrpOn && <th className="n">MRP</th>}<th className="n">LP</th><th className="n">Purchase</th><th className="n">Sale</th><th className="n">Margin</th><th className="n">Stock</th><th></th></tr>

@@ -11,6 +11,7 @@ import { useOpenFocus } from '../../lib/useOpenFocus';
 import { Icon } from '../../components/Icon';
 import { useShell } from '../shell/store';
 import { inr2, pct, Sw, useS, useSaveS, type Tax } from './model';
+import { ui } from '../../styles/uiSize';
 
 const T = (c: string) => ({ background: `color-mix(in srgb,${c} 14%,transparent)`, color: c });
 const stName = (c: string) => STATES.find((s) => s[0] === c)?.[1] ?? '';
@@ -136,12 +137,12 @@ export function TaxPreview() {
           <div className="seg2 sm" role="radiogroup" aria-label="Place of supply"><button role="radio" aria-checked={!pv.inter} className={pv.inter ? '' : 'on'} data-pv="0" onClick={() => setPv({ ...pv, inter: false })}>Same state</button><button role="radio" aria-checked={pv.inter} className={pv.inter ? 'on' : ''} data-pv="1" onClick={() => setPv({ ...pv, inter: true })}>Other state</button></div></div>
       )}
       {L.map((l) => <div className="pvl" key={l[0]}><span>{l[0]}</span><b>{inr2(l[1])}</b></div>)}<div className="pvl t"><span>Invoice total</span><b>{inr2(total)}</b></div>
-      {note && <p className="hint" style={{ margin: '10px 0 0' }}>{note}</p>}
+      {note && <p className="hint" style={{ margin: ui.sp('10px 0 0') }}>{note}</p>}
       {t && (
         <>
-          <div className="doc" style={{ marginTop: 22 }}>Supplier payment</div><div className="pvsub">Electrician’s bill, paid under {t.name.split(' ·')[0]}</div>
+          <div className="doc" style={{ marginTop: ui.sp(22) }}>Supplier payment</div><div className="pvsub">Electrician’s bill, paid under {t.name.split(' ·')[0]}</div>
           <div className="pvl"><span>Bill amount</span><b>{inr2(a)}</b></div><div className="pvl"><span>TDS {t.name}</span><b className="neg">−{inr2(d)}</b></div><div className="pvl t"><span>Pay supplier</span><b>{inr2(a - d)}</b></div>
-          <p className="hint" style={{ margin: '10px 0 0' }}>Deposit {inr2(d)} with the government by {depositBy()}.</p>
+          <p className="hint" style={{ margin: ui.sp('10px 0 0') }}>Deposit {inr2(d)} with the government by {depositBy()}.</p>
         </>
       )}
     </aside>
@@ -160,10 +161,10 @@ function ConfirmGstOff({ open, onClose, onYes }: { open: boolean; onClose: () =>
   return (
     <div className="ov c" id="cfm" ref={ref} hidden={!open} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'cfm') onClose(); }}>
       <div className="mdl" role="alertdialog" aria-modal="true" aria-labelledby="cfmT">
-        <div className="ti" style={{ background: 'color-mix(in srgb,var(--red) 14%,transparent)', color: 'var(--red)', marginBottom: 12 }}><svg className="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16v.5" /></svg></div>
-        <h3 id="cfmT" style={{ margin: '0 0 6px', fontSize: 18 }}>Turn off GST?</h3>
-        <p style={{ margin: '0 0 18px', color: 'var(--t2)' }}>New sales will be saved as plain bills without tax, and GST cards and reports will be hidden. Your existing invoices keep their GST details.</p>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}><button className="btn" id="cfmNo" onClick={onClose}>Keep GST on</button><button className="btn dg" id="cfmYes" onClick={onYes}>Turn off GST</button></div>
+        <div className="ti" style={{ background: 'color-mix(in srgb,var(--red) 14%,transparent)', color: 'var(--red)', marginBottom: ui.sp(12) }}><svg className="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16v.5" /></svg></div>
+        <h3 id="cfmT" style={{ margin: ui.sp('0 0 6px'), fontSize: ui.fs(18) }}>Turn off GST?</h3>
+        <p style={{ margin: ui.sp('0 0 18px'), color: 'var(--t2)' }}>New sales will be saved as plain bills without tax, and GST cards and reports will be hidden. Your existing invoices keep their GST details.</p>
+        <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end', flexWrap: 'wrap' }}><button className="btn" id="cfmNo" onClick={onClose}>Keep GST on</button><button className="btn dg" id="cfmYes" onClick={onYes}>Turn off GST</button></div>
       </div>
     </div>
   );
@@ -219,8 +220,8 @@ export function TaxList({ open, onClose }: { open: boolean; onClose: () => void 
   return (
     <div className="ov c" id="tl" ref={ref} hidden={!open} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'tl') onClose(); }}>
       <div className="mdl wide" role="dialog" aria-modal="true" aria-labelledby="tlT">
-        <div className="dh"><div><h3 id="tlT" style={{ margin: 0, fontSize: 18 }}>Tax list</h3><small style={{ color: 'var(--t2)' }}>Rates you can pick on items, invoices and bills.</small></div><button className="ib" id="tlClose" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
-        <div className="seg2" role="tablist" id="tlTabs" style={{ margin: '16px 0 12px' }}>{(['GST', 'TCS', 'TDS'] as const).map((t) => <button role="tab" aria-selected={t === tl} className={t === tl ? 'on' : ''} data-tl={t} key={t} onClick={() => { setTl(t); setM({ c: 'msg', t: '' }); }}>{t} <span>{ofType(t).length}</span></button>)}</div>
+        <div className="dh"><div><h3 id="tlT" style={{ margin: 0, fontSize: ui.fs(18) }}>Tax list</h3><small style={{ color: 'var(--t2)' }}>Rates you can pick on items, invoices and bills.</small></div><button className="ib" id="tlClose" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
+        <div className="seg2" role="tablist" id="tlTabs" style={{ margin: ui.sp('16px 0 12px') }}>{(['GST', 'TCS', 'TDS'] as const).map((t) => <button role="tab" aria-selected={t === tl} className={t === tl ? 'on' : ''} data-tl={t} key={t} onClick={() => { setTl(t); setM({ c: 'msg', t: '' }); }}>{t} <span>{ofType(t).length}</span></button>)}</div>
         <div className="tw stk"><table className="tlt"><thead><tr><th>Name</th><th className="n">Rate</th><th>How it applies</th><th className="n">Used in</th><th className="n"><span className="vh">Delete</span></th></tr></thead>
           <tbody id="tlBody">
             {list.length ? list.map((t) => (
@@ -228,13 +229,13 @@ export function TaxList({ open, onClose }: { open: boolean; onClose: () => void 
                 <td>{tl === 'GST' ? <small style={{ margin: 0 }}>CGST {pct(Number(t.rate) / 2)} + SGST {pct(Number(t.rate) / 2)}<br />or IGST {pct(t.rate)}</small> : <small style={{ margin: 0 }}>{tl === 'TCS' ? 'Added to sale total' : 'Deducted from payment'}</small>}</td>
                 <td className="n">{t.used ? `${t.used} items` : <span style={{ color: 'var(--t2)', fontWeight: 500 }}>Not used</span>}</td>
                 <td className="n"><button className="ix" data-del={t.id} aria-label={`Delete ${t.name}`} onClick={() => void del(t)}><Icon name="x" /></button></td></tr>
-            )) : <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--t2)', padding: 28 }}>No {tl} rates yet. Add one below.</td></tr>}
+            )) : <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--t2)', padding: ui.sp(28) }}>No {tl} rates yet. Add one below.</td></tr>}
           </tbody></table></div>
         <form className="addf" id="tlForm" noValidate onSubmit={add}>
           <label className="fl" htmlFor="tlName">Name<input className="fi" id="tlName" autoComplete="off" placeholder={tl === 'GST' ? 'e.g. GST 18%' : tl === 'TCS' ? 'e.g. TCS 1%' : 'e.g. 194C · 1%'} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} ref={nameRef} /></label>
           <label className="fl" htmlFor="tlRate">Rate %<input className="fi" id="tlRate" type="number" step="0.01" min="0" max="100" inputMode="decimal" value={f.rate} onChange={(e) => setF({ ...f, rate: e.target.value })} ref={rateRef} /></label>
           <label className="fl" htmlFor="tlNote">Used for<input className="fi" id="tlNote" placeholder="Optional" autoComplete="off" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} /></label>
-          <button className="btn p" type="submit" style={{ marginBottom: 8 }}><Icon name="plus" />Add</button>
+          <button className="btn p" type="submit" style={{ marginBottom: ui.sp(8) }}><Icon name="plus" />Add</button>
         </form>
         <div className={m.c} id="tlMsg" aria-live="polite">{m.t}</div>
       </div>

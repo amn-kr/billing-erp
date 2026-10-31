@@ -17,6 +17,7 @@ import { RawIcon } from '../../components/Icon';
 import { useShell } from '../shell/store';
 import { DOWN, ImportHead, num, PARTY_QUERIES, plural, STATUS, Summary, UP, useKeepRows } from './importParts';
 import { PartyFileError, readPartyFile, rejectedBlob, sampleBlob } from './partyFile';
+import { ui } from '../../styles/uiSize';
 
 type Filter = 'all' | PartyRowStatus;
 
@@ -102,17 +103,17 @@ export function ImportExcelPage() {
   if (!rows || !shop.data) return (
     <section id="vPExcel">
       {header}
-      <div className="card" id="pxStart" style={{ padding: '22px 24px', maxWidth: 720 }}>
-        <ol style={{ margin: '0 0 18px', paddingLeft: 20, lineHeight: 1.9, fontSize: 13.5 }}>
+      <div className="card" id="pxStart" style={{ padding: ui.sp('22px 24px'), maxWidth: 720 }}>
+        <ol style={{ margin: ui.sp('0 0 18px'), paddingLeft: ui.sp(20), lineHeight: 1.9, fontSize: ui.fs(13.5) }}>
           <li><b>Download the sample file</b>: an Excel file with the column headings, one example row and drop-down lists. Its Instructions sheet explains every column.</li>
           <li><b>Fill in your parties</b>: one per row, up to {num(PARTY_IMPORT_MAX_ROWS)} rows. Only Party name is required.</li>
           <li><b>Upload it</b> (.xlsx or .csv): every row is checked and shown here. Then press <b>Import</b> to save the OK rows. Nothing is saved before that.</li>
         </ol>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: ui.sp(10), flexWrap: 'wrap' }}>
           <button className="btn" id="pxSample" onClick={() => void download()}><RawIcon d={DOWN} />Download sample file</button>
           <button className="btn p" id="pxUp" disabled={!shop.data || reading} onClick={() => fileRef.current?.click()}><RawIcon d={UP} />{reading ? 'Reading the file…' : 'Upload file'}</button>
         </div>
-        <div className="msg bad" id="pxFileErr" role="alert" style={{ marginTop: 12 }}>{fileErr}</div>
+        <div className="msg bad" id="pxFileErr" role="alert" style={{ marginTop: ui.sp(12) }}>{fileErr}</div>
       </div>
     </section>
   );
@@ -122,13 +123,13 @@ export function ImportExcelPage() {
   return (
     <section id="vPExcel">
       {header}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', margin: '0 0 14px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: ui.sp(14), flexWrap: 'wrap', margin: ui.sp('0 0 14px') }}>
         <div className="seg2" role="tablist" id="pxTabs">
           {([['all', 'All'], ['ok', 'Ready'], ['rejected', 'Rejected'], ['duplicate', 'Duplicates']] as const).map(([k, t]) => (
             <button key={k} role="tab" aria-selected={filter === k} className={filter === k ? 'on' : ''} data-pxf={k} onClick={() => setFilter(k)}>{t}<span>{num(count[k])}</span></button>
           ))}
         </div>
-        <div id="pxCount" style={{ fontSize: 13, fontWeight: 600 }}>
+        <div id="pxCount" style={{ fontSize: ui.fs(13), fontWeight: 600 }}>
           {count.ok
             ? <span className="stt g">{plural(count.ok, 'party', 'parties')} ready to import{count.rejected || count.duplicate + count.example ? `; ${num(count.rejected)} rejected and ${num(count.duplicate + count.example)} skipped rows will not be saved` : ''}.</span>
             : <span className="stt r">{count.example && count.example === count.all ? 'Nothing to import: the file only has the example row. Add your own parties and upload it again.' : 'Nothing to import: no row is OK. Fix the file and upload it again.'}</span>}
@@ -137,7 +138,7 @@ export function ImportExcelPage() {
       {serverMsg && <div className="msg bad" id="pxSrvErr" role="alert">{serverMsg}</div>}
 
       <div className="card ptxc">
-        <div className="tw" style={{ margin: 0, maxHeight: 'calc(100vh - 290px)', overflow: 'auto' }}>
+        <div className="tw" style={{ margin: 0, maxHeight: ui.h('calc(100vh - 290px)'), overflow: 'auto' }}>
           <table className="ptt2" id="pxGrid">
             <thead><tr><th>Row</th><th>Status</th><th>Reason</th>{PARTY_IMPORT_COLUMNS.map((c) => <th key={c.key} className={c.key === 'opening' || c.key === 'limit' ? 'n' : undefined}>{c.title}</th>)}</tr></thead>
             <tbody>

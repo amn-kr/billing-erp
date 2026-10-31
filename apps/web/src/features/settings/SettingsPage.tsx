@@ -17,6 +17,7 @@ import { Sw, useS, useSaveS, useSetTab, type SetTab } from './model';
 import { TxnCards } from './TxnTab';
 import { TaxCards, TaxList, TaxPreview } from './TaxTab';
 import { PrintCards, PrintPreview, PrinterTabs, ThermalSoon, usePrint } from './PrintTab';
+import { ui } from '../../styles/uiSize';
 
 const SUB: [IconName, string, string?][] = [['crown', 'Subscription', 'sub'], ['gear', 'General'], ['receipt', 'Transactions'], ['doc', 'Print & invoice'], ['pct', 'Taxes & GST'], ['chat', 'Messages'], ['users', 'Parties'], ['box', 'Items'], ['bell', 'Reminders'], ['book', 'Accounting'], ['swap', 'Multi-currency']];
 const SETTABS: Record<string, SetTab> = { 'Print & invoice': 'print', 'Taxes & GST': 'tax', Transactions: 'txn', Items: 'items', General: 'gen' };
@@ -108,7 +109,7 @@ function PriceListSwitches() {
   };
   return (
     <>
-      <h3 style={{ margin: '0 0 4px', fontSize: 16 }}>Price lists</h3><p className="mu" style={{ margin: '0 0 14px', fontSize: 13 }}>Turn off the lists you don’t use. A turned-off list is hidden from the Price lists page, Price manager, rate lists and invoices. Its prices are kept, so you can turn it back on any time.</p>
+      <h3 style={{ margin: ui.sp('0 0 4px'), fontSize: ui.fs(16) }}>Price lists</h3><p className="mu" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(13) }}>Turn off the lists you don’t use. A turned-off list is hidden from the Price lists page, Price manager, rate lists and invoices. Its prices are kept, so you can turn it back on any time.</p>
       {(lists.data ?? []).map((p) => (
         <div className="tgl plset" key={p.id}><div className="tx"><b>{p.name}{p.isDefault && <> <span className="st g">Always on</span></>}</b><small>{ruleTxt(p)}{Number(p.roundTo) ? ` · rounded to ₹${Number(p.roundTo)}` : ''}{p.groups.length ? ` · used for ${p.groups.join(', ')}` : ''}</small></div>
           {p.isDefault ? <label className="tgs" title="The default list can’t be turned off"><input type="checkbox" checked disabled aria-label={`${p.name} (always on)`} readOnly /><i></i></label> : <Sw id={`plA_${p.id}`} on={p.active} label={p.name} onChange={(v) => void toggle(p, v)} />}</div>
@@ -132,7 +133,7 @@ function ItemCodePrefix() {
   };
   return (
     <>
-      <h3 style={{ margin: '22px 0 4px', fontSize: 16 }}>Item codes</h3><p className="mu" style={{ margin: '0 0 14px', fontSize: 13 }}>“Assign code” in Add item gives the next free code: this prefix and a 3 to 5 digit number, e.g. {v || ''}001. Changing it affects only new codes; items you already have keep theirs.</p>
+      <h3 style={{ margin: ui.sp('22px 0 4px'), fontSize: ui.fs(16) }}>Item codes</h3><p className="mu" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(13) }}>“Assign code” in Add item gives the next free code: this prefix and a 3 to 5 digit number, e.g. {v || ''}001. Changing it affects only new codes; items you already have keep theirs.</p>
       <div className="two plset"><label className="fl" htmlFor="sItemPrefix">Item code prefix<input className="fi mono" id="sItemPrefix" value={v} placeholder="e.g. JE" maxLength={6} autoComplete="off" onChange={(e) => setV(e.target.value.toUpperCase().replace(/\s/g, ''))} onBlur={commit} onKeyDown={(e) => e.key === 'Enter' && commit()} /></label><span></span></div>
       <p className="xperr" id="sItemPrefixErr" hidden={ok}>Use up to 6 letters (A to Z), e.g. JE.</p>
     </>

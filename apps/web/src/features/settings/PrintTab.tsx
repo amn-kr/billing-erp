@@ -21,6 +21,7 @@ import { usePrintStyles } from '../print/printer';
 import { BOT, COLDEF, COLORS, COLS0, NAMES, PRINT_DEF, TOP, usePrintOpts, type ColSet, type PrintOpts } from '../print/opts';
 import { Sw } from './model';
 import { txnOpts } from '../sales/editor/state';
+import { ui } from '../../styles/uiSize';
 
 export const PRINT_ICON = '<path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z"/>';
 const UP = '<path d="M6 15l6-6 6 6"/>';
@@ -73,9 +74,9 @@ export function ThermalSoon() {
 }
 
 const T = (c: string) => ({ background: `color-mix(in srgb,${c} 14%,transparent)`, color: c });
-const H = ({ t, d, first }: { t: string; d: string; first?: boolean }) => <><h3 style={{ margin: `${first ? 0 : 22}px 0 4px`, fontSize: 16 }}>{t}</h3><p className="mu" style={{ margin: '0 0 14px', fontSize: 13 }}>{d}</p></>;
+const H = ({ t, d, first }: { t: string; d: string; first?: boolean }) => <><h3 style={{ margin: `${first ? 0 : 22}px 0 4px`, fontSize: ui.fs(16) }}>{t}</h3><p className="mu" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(13) }}>{d}</p></>;
 const Seg = <V extends string>({ lbl, v, list, ch }: { lbl: string; v: V; list: [V, string][]; ch: (v: V) => void }) => (
-  <div className="fl">{lbl}<div className="seg2 sm" role="radiogroup" aria-label={lbl} style={{ display: 'flex', marginTop: 6 }}>{list.map(([k, t]) => <button type="button" role="radio" aria-checked={v === k} className={v === k ? 'on' : ''} key={k} style={{ flex: 1 }} onClick={() => ch(k)}>{t}</button>)}</div></div>
+  <div className="fl">{lbl}<div className="seg2 sm" role="radiogroup" aria-label={lbl} style={{ display: 'flex', marginTop: ui.sp(6) }}>{list.map(([k, t]) => <button type="button" role="radio" aria-checked={v === k} className={v === k ? 'on' : ''} key={k} style={{ flex: 1 }} onClick={() => ch(k)}>{t}</button>)}</div></div>
 );
 const Opt = ({ id, on, t, d, ch, extra }: { id: string; on: boolean; t: string; d: string; ch: (v: boolean) => void; extra?: React.ReactNode }) => <div className="opt"><div className="tx"><b>{t}</b><small>{d}</small></div>{extra}<Sw id={id} on={on} label={t} onChange={ch} /></div>;
 
@@ -87,7 +88,7 @@ export function PrintCards() {
   const hid = (k: string, v: boolean) => set({ hide: v ? o.hide.filter((x) => x !== k) : [...o.hide, k] });
   const blocks = <K extends 'top' | 'bot'>(k: K, lbl: Record<string, readonly [string, string]>) => (o[k] as string[]).map((b, i, a) => (
     <Opt key={b} id={`pB_${b}`} on={!o.hide.includes(b)} t={lbl[b]![0]} d={lbl[b]![1]} ch={(v) => hid(b, v)}
-      extra={<span style={{ display: 'flex', gap: 6, marginTop: 2 }}><button type="button" className="ix" aria-label={`Move ${lbl[b]![0]} up`} disabled={!i} onClick={() => move(k, i, -1)}><RawIcon d={UP} /></button><button type="button" className="ix" aria-label={`Move ${lbl[b]![0]} down`} disabled={i === a.length - 1} onClick={() => move(k, i, 1)}><RawIcon d={DN} /></button></span>} />
+      extra={<span style={{ display: 'flex', gap: ui.sp(6), marginTop: ui.sp(2) }}><button type="button" className="ix" aria-label={`Move ${lbl[b]![0]} up`} disabled={!i} onClick={() => move(k, i, -1)}><RawIcon d={UP} /></button><button type="button" className="ix" aria-label={`Move ${lbl[b]![0]} down`} disabled={i === a.length - 1} onClick={() => move(k, i, 1)}><RawIcon d={DN} /></button></span>} />
   ));
   return (
     <>
@@ -98,30 +99,30 @@ export function PrintCards() {
             <button className="po" type="button" role="radio" aria-checked={o.theme === k} key={k} onClick={() => set({ theme: k })}><span><b>{t}{k === 'classic' && <span className="rec g">Default</span>}</b><small>{d}</small></span></button>
           ))}
         </div>
-        <div className="fl" style={{ marginTop: 14 }}>Colour of lines and headings</div>
-        <div className="two" role="radiogroup" aria-label="Invoice colour" style={{ gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 6 }}>
+        <div className="fl" style={{ marginTop: ui.sp(14) }}>Colour of lines and headings</div>
+        <div className="two" role="radiogroup" aria-label="Invoice colour" style={{ gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: ui.sp(6) }}>
           {COLORS.map(([n, c]) => <button className="po" type="button" role="radio" aria-checked={o.color === c} key={c} onClick={() => set({ color: c })}><span className="sw"><i style={{ background: c }}></i></span><span><b>{n}</b></span></button>)}
         </div>
-        <button type="button" className="aplink" id="pNamesBtn" style={{ marginTop: 12 }} onClick={() => open('names')}>Change transaction names<RawIcon d={RT} /></button>
+        <button type="button" className="aplink" id="pNamesBtn" style={{ marginTop: ui.sp(12) }} onClick={() => open('names')}>Change transaction names<RawIcon d={RT} /></button>
       </section>
 
       <section className="card" id="cPrPage">
         <H first t="Page layout" d="Show, hide and order the parts of the invoice. The item table always prints and sits in the middle." />
-        <div className="fl" style={{ margin: '0 0 2px' }}>Top of the page</div>
+        <div className="fl" style={{ margin: ui.sp('0 0 2px') }}>Top of the page</div>
         <div className="opts">{blocks('top', TOP)}</div>
-        <div className="fl" style={{ margin: '14px 0 2px' }}>Under the items</div>
+        <div className="fl" style={{ margin: ui.sp('14px 0 2px') }}>Under the items</div>
         <div className="opts">
           <Opt id="pB_words" on={!o.hide.includes('words')} t="Amount in words" d="Left of the totals box." ch={(v) => hid('words', v)} />
           <Opt id="pB_amts" on={!o.hide.includes('amts')} t="Amounts box" d="Sub total, taxes, total, received and balance." ch={(v) => hid('amts', v)} />
         </div>
-        <div className="fl" style={{ margin: '14px 0 2px' }}>Bottom row (three boxes side by side)</div>
+        <div className="fl" style={{ margin: ui.sp('14px 0 2px') }}>Bottom row (three boxes side by side)</div>
         <div className="opts">{blocks('bot', BOT)}</div>
         <div className="sub"><div style={{ maxWidth: 440 }}>
           <Seg lbl="Item area" v={o.area} list={[['auto', 'Auto'], ['fill', 'Fill page'], ['min', 'Minimum rows']]} ch={(v) => set({ area: v })} />
           {o.area === 'min' ? <label className="fl" htmlFor="pMinRows">Minimum rows<input className="fi" id="pMinRows" type="number" min="1" max="40" inputMode="numeric" value={o.minRows} onChange={(e) => set({ minRows: e.target.value })} /></label> : null}
           <Seg lbl="Page margins" v={o.margin} list={[['narrow', 'Narrow'], ['normal', 'Normal'], ['wide', 'Wide']]} ch={(v) => set({ margin: v })} />
         </div>
-          <p className="hint" style={{ margin: '0 0 14px' }}>Auto: the table is as tall as the items. Fill page: the empty part of the table stretches down so the bottom row sits at the foot of the page. Minimum rows: the table always has at least this many rows. Long bills continue on the next page with the table headings repeated.</p>
+          <p className="hint" style={{ margin: ui.sp('0 0 14px') }}>Auto: the table is as tall as the items. Fill page: the empty part of the table stretches down so the bottom row sits at the foot of the page. Minimum rows: the table always has at least this many rows. Long bills continue on the next page with the table headings repeated.</p>
           <button type="button" className="btn" id="pReset" onClick={() => set({ top: DEF.top, bot: DEF.bot, hide: [], margin: DEF.margin, area: DEF.area, minRows: DEF.minRows, nameSize: DEF.nameSize, textSize: DEF.textSize })}>Reset to default layout</button>
         </div>
       </section>
@@ -145,7 +146,7 @@ export function PrintCards() {
 
       <section className="card" id="cPrTable">
         <H first t="Item table" d="Choose which columns print and what their headings say." />
-        <p className="pvsub" style={{ margin: '0 0 6px' }}>Printing now: {COLDEF.filter(([, k]) => o.cols[k].on).map(([, k]) => o.cols[k].label).join(' · ')}</p>
+        <p className="pvsub" style={{ margin: ui.sp('0 0 6px') }}>Printing now: {COLDEF.filter(([, k]) => o.cols[k].on).map(([, k]) => o.cols[k].label).join(' · ')}</p>
         <button type="button" className="aplink" id="pColsBtn" onClick={() => open('cols')}>Item table customisation<RawIcon d={RT} /></button>
       </section>
 
@@ -192,9 +193,9 @@ function Dialog({ id, title, sub, onClose, children, foot }: { id: string; title
   return (
     <div className="ov c" id={id} onClick={(e) => { if ((e.target as HTMLElement).id === id) onClose(); }}>
       <div className="mdl wide" role="dialog" aria-modal="true" aria-labelledby={id + 'T'}>
-        <div className="dh"><div><h3 id={id + 'T'} style={{ margin: 0, fontSize: 18 }}>{title}</h3><small className="mu">{sub}</small></div><button className="ib" type="button" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
+        <div className="dh"><div><h3 id={id + 'T'} style={{ margin: 0, fontSize: ui.fs(18) }}>{title}</h3><small className="mu">{sub}</small></div><button className="ib" type="button" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
         {children}
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap', marginTop: 18 }}>{foot}</div>
+        <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end', flexWrap: 'wrap', marginTop: ui.sp(18) }}>{foot}</div>
       </div>
     </div>
   );
@@ -211,17 +212,17 @@ function ColsDialog() {
   const close = () => open(null);
   const pcols = columns(sampleDoc(false), { ...o, cols: c }, (v) => inr2f(String(v)));
   const row = ([, k, , , x]: (typeof COLDEF)[number]) => (
-    <div className="mselr" key={k} style={{ padding: '4px 0' }}><input type="checkbox" checked={c[k]!.on} disabled={x?.lock} aria-label={`Print ${COLS0[k]!.label}`} onChange={(e) => setC({ ...c, [k]: { ...c[k]!, on: e.target.checked } })} />
-      <input className="fi" style={{ margin: 0, height: 36, flex: 1, minWidth: 0 }} value={c[k]!.label} aria-label={`Heading for ${COLS0[k]!.label}`} placeholder={COLS0[k]!.label} onChange={(e) => setC({ ...c, [k]: { ...c[k]!, label: e.target.value } })} /></div>
+    <div className="mselr" key={k} style={{ padding: ui.sp('4px 0') }}><input type="checkbox" checked={c[k]!.on} disabled={x?.lock} aria-label={`Print ${COLS0[k]!.label}`} onChange={(e) => setC({ ...c, [k]: { ...c[k]!, on: e.target.checked } })} />
+      <input className="fi" style={{ margin: 0, height: ui.h(36), flex: 1, minWidth: 0 }} value={c[k]!.label} aria-label={`Heading for ${COLS0[k]!.label}`} placeholder={COLS0[k]!.label} onChange={(e) => setC({ ...c, [k]: { ...c[k]!, label: e.target.value } })} /></div>
   );
-  const grp = (g: 1 | 2 | 3, t: string, d: string) => <div><h4 style={{ margin: '0 0 2px', fontSize: 14 }}>{t}</h4><p className="mu" style={{ margin: '0 0 8px', fontSize: 12 }}>{d}</p>{COLDEF.filter((x) => x[0] === g).map(row)}</div>;
+  const grp = (g: 1 | 2 | 3, t: string, d: string) => <div><h4 style={{ margin: ui.sp('0 0 2px'), fontSize: ui.fs(14) }}>{t}</h4><p className="mu" style={{ margin: ui.sp('0 0 8px'), fontSize: ui.fs(12) }}>{d}</p>{COLDEF.filter((x) => x[0] === g).map(row)}</div>;
   return (
     <Dialog id="ictm" title="Item table customisation" sub="Tick the columns to print. Type to change a heading, e.g. “Billed Qty”." onClose={close}
       foot={<><button className="btn" type="button" onClick={() => setC(COLS0)}>Reset columns</button><button className="btn p" type="button" id="ictmDone" onClick={() => { set({ cols: c }); close(); }}>Done</button></>}>
-      <div className="tw" style={{ margin: '14px 0 16px', background: '#fff', borderRadius: 10, border: '1px solid var(--bd)' }}>
+      <div className="tw" style={{ margin: ui.sp('14px 0 16px'), background: '#fff', borderRadius: 10, border: '1px solid var(--bd)' }}>
         <table className="ivtab" style={{ margin: 0 }}><thead><tr>{pcols.map((x) => <th key={x.key} className={x.n ? 'n' : undefined}>{x.label}</th>)}</tr></thead>
           <tbody><tr>{pcols.map((x) => <td key={x.key} className={x.n ? 'n' : undefined}>{x.v(sampleDoc(false).lines[0]!, 0)}</td>)}</tr></tbody></table></div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 18, maxHeight: 'calc(100vh - 360px)', overflow: 'auto' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: ui.sp(18), maxHeight: ui.h('calc(100vh - 360px)'), overflow: 'auto' }}>
         {grp(1, 'Item columns', 'Item Name always prints.')}
         {grp(2, 'Additional columns', 'From the item’s details.')}
         {grp(3, 'Amounts & taxes', 'Amount always prints.')}
@@ -242,15 +243,15 @@ function NamesDialog() {
   return (
     <Dialog id="tnm" title="Change transaction names" sub="The name printed at the top of each document. Your entries keep their numbers." onClose={close}
       foot={<><button className="btn" type="button" onClick={close}>Cancel</button><button className="btn p" type="button" id="tnmSave" onClick={() => { set({ names: n, bos }); close(); }}>Save</button></>}>
-      <div className="two" style={{ marginTop: 16 }}>
+      <div className="two" style={{ marginTop: ui.sp(16) }}>
         {NAMES.map(([k, l, d], i) => (
           <div key={k}>
             <label className="fl" htmlFor={`tn_${k}`}>{l}<input className="fi" id={`tn_${k}`} value={n[k]} placeholder={d} autoComplete="off" onChange={(e) => setN({ ...n, [k]: e.target.value })} /></label>
-            {i === 0 ? <label className="mselr" style={{ padding: '0 0 6px' }}><input type="checkbox" checked={bos} onChange={(e) => setBos(e.target.checked)} /><span>Bill of Supply for sales without tax</span></label> : null}
+            {i === 0 ? <label className="mselr" style={{ padding: ui.sp('0 0 6px') }}><input type="checkbox" checked={bos} onChange={(e) => setBos(e.target.checked)} /><span>Bill of Supply for sales without tax</span></label> : null}
           </div>
         ))}
       </div>
-      <p className="hint" style={{ margin: '6px 0 0' }}>Not listed because the app doesn’t have them yet: Other Income, Sale Order, Proforma Invoice.</p>
+      <p className="hint" style={{ margin: ui.sp('6px 0 0') }}>Not listed because the app doesn’t have them yet: Other Income, Sale Order, Proforma Invoice.</p>
     </Dialog>
   );
 }
@@ -273,7 +274,7 @@ export function PrintPreview() {
       <div className="hd"><h3>Live preview</h3><span className="pill">{o.paper} {o.landscape ? 'landscape' : 'portrait'}</span></div>
       <div className="pvc"><div className="seg2 sm" role="radiogroup" aria-label="Preview with">{opts.map(([k, t]) => <button role="radio" aria-checked={sample === k} className={sample === k ? 'on' : ''} key={k} data-pvs={k} onClick={() => setSample(k)}>{t}</button>)}</div></div>
       <div className="ppframe" id="pvPaper"><PaperFit o={o}><Paper d={d} o={o} biz={biz} states={STATES} /></PaperFit></div>
-      <p className="pvsub" style={{ margin: '10px 0 0' }}>{copies.length ? `Prints ${copies.length === 1 ? '1 copy' : copies.length + ' copies'}: ${copies.map((c) => c.split(' ')[0]).join(', ')}.` : 'No copy chosen: turn on at least one copy in Footer.'}</p>
+      <p className="pvsub" style={{ margin: ui.sp('10px 0 0') }}>{copies.length ? `Prints ${copies.length === 1 ? '1 copy' : copies.length + ' copies'}: ${copies.map((c) => c.split(' ')[0]).join(', ')}.` : 'No copy chosen: turn on at least one copy in Footer.'}</p>
     </aside>
   );
 }

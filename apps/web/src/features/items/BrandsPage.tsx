@@ -15,6 +15,7 @@ import { useFitTables } from '../../lib/useFitTables';
 import { Icon, RawIcon } from '../../components/Icon';
 import { useShell } from '../shell/store';
 import { qfmt } from './ItemsPage';
+import { ui } from '../../styles/uiSize';
 
 export interface Brand { id: string; name: string; notes: string; series: number; items: number; stock: string; value: string; active: boolean; updatedAt: string }
 /** id is null for a series so far typed only on items (it is saved here the first time it is changed) */
@@ -71,7 +72,7 @@ export function BrandsPage() {
 
   return (
     <section id="vBrands" onClick={() => setMenu(null)}>
-      <button className="lnk" id="bsBack" style={{ fontSize: 12, padding: 0 }} onClick={() => go('/items')}>← Products</button>
+      <button className="lnk" id="bsBack" style={{ fontSize: ui.fs(12), padding: 0 }} onClick={() => go('/items')}>← Products</button>
       <div className="pthd">
         <h1 className="ptkind" style={{ cursor: 'default' }}>Brands &amp; Series</h1>
         <div className="pttot" id="bsTot"><span>{plural(B.length, 'brand')}</span><span>{S.length} series</span></div>
@@ -80,14 +81,14 @@ export function BrandsPage() {
           ? <button className="btn p" id="bsAddBrand" onClick={() => setDlg({ k: 'addBrand' })}><Icon name="plus" />Add brand</button>
           : <button className="btn p" id="bsAddSeries" onClick={() => (B.some((b) => b.active) ? setDlg({ k: 'addSeries', brandId: fb?.active ? fb.id : '' }) : showToast('Add a brand first, then its series'))}><Icon name="plus" />Add series</button>}
       </div>
-      <div className="seg2" role="tablist" id="bsTabs" style={{ margin: '0 0 14px' }}>
+      <div className="seg2" role="tablist" id="bsTabs" style={{ margin: ui.sp('0 0 14px') }}>
         <button role="tab" aria-selected={tab === 'b'} className={tab === 'b' ? 'on' : ''} data-bst="brands" onClick={() => show('b')}>Brands<span>{B.length}</span></button>
         <button role="tab" aria-selected={tab === 's'} className={tab === 's' ? 'on' : ''} data-bst="series" onClick={() => show('s', brandF)}>Series<span>{S.length}</span></button>
       </div>
 
       <div className="card ptxc" role="tabpanel">
-        <div className="ptfil" style={{ padding: '14px 16px', alignItems: 'center' }}>
-          <label className="search" htmlFor="bsQ" style={{ height: 34 }}><RawIcon d={SEARCH} /><input id="bsQ" placeholder={tab === 'b' ? 'Search brands' : 'Search series, brand or size'} autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+        <div className="ptfil" style={{ padding: ui.sp('14px 16px'), alignItems: 'center' }}>
+          <label className="search" htmlFor="bsQ" style={{ height: ui.h(34) }}><RawIcon d={SEARCH} /><input id="bsQ" placeholder={tab === 'b' ? 'Search brands' : 'Search series, brand or size'} autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
           {tab === 's' && (
             <select className="fi" id="bsBrand" aria-label="Filter by brand" value={brandF} onChange={(e) => show('s', e.target.value)}>
               <option value="all">All brands</option>
@@ -207,7 +208,7 @@ function BrandDialog({ dlg, brands, onClose, onSaved }: { dlg: Dlg | null; brand
   return (
     <div className="ov c" id="bsm" onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'bsm') onClose(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="bsT">
-        <h3 id="bsT" style={{ margin: '0 0 14px', fontSize: 18 }}>{title}</h3>
+        <h3 id="bsT" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(18) }}>{title}</h3>
         <form id="bsForm" noValidate onSubmit={submit}>
           {(k === 'addSeries' || k === 'moveSeries') && (
             <label className="fl" htmlFor="bsfBrand">{k === 'moveSeries' ? `Move ${s!.brand} ${s!.name} to` : 'Brand'}
@@ -228,11 +229,11 @@ function BrandDialog({ dlg, brands, onClose, onSaved }: { dlg: Dlg | null; brand
           {k !== 'moveSeries' && (
             <label className="fl" htmlFor="bsfNotes">Notes (optional)<input className="fi" id="bsfNotes" autoComplete="off" value={f.notes} onChange={set('notes')} /></label>
           )}
-          {items && k === 'renameSeries' && <div className="hint" style={{ margin: '-2px 0 8px' }}>The {items} in this series {s!.items === 1 ? 'moves' : 'move'} to the new name too.</div>}
-          {k === 'moveSeries' && <div className="hint" style={{ margin: '-2px 0 8px' }}>{items ? `The ${items} in this series ${s!.items === 1 ? 'moves' : 'move'} to the new brand too.` : 'No items use this series yet.'}</div>}
-          {rb && rb.items > 0 && <div className="hint" style={{ margin: '-2px 0 8px' }}>Its {plural(rb.items, 'item')} {rb.items === 1 ? 'keeps' : 'keep'} this brand under the new name.</div>}
+          {items && k === 'renameSeries' && <div className="hint" style={{ margin: ui.sp('-2px 0 8px') }}>The {items} in this series {s!.items === 1 ? 'moves' : 'move'} to the new name too.</div>}
+          {k === 'moveSeries' && <div className="hint" style={{ margin: ui.sp('-2px 0 8px') }}>{items ? `The ${items} in this series ${s!.items === 1 ? 'moves' : 'move'} to the new brand too.` : 'No items use this series yet.'}</div>}
+          {rb && rb.items > 0 && <div className="hint" style={{ margin: ui.sp('-2px 0 8px') }}>Its {plural(rb.items, 'item')} {rb.items === 1 ? 'keeps' : 'keep'} this brand under the new name.</div>}
           <div className="msg bad" id="bsErr" role="alert">{err}</div>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end' }}>
             <button className="btn" type="button" id="bsCancel" onClick={onClose}>Cancel</button>
             <button className="btn p" type="submit">{k.startsWith('add') ? title : 'Save'}</button>
           </div>

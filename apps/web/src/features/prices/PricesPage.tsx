@@ -20,6 +20,7 @@ import { RateList, useRl } from './RateList';
 import { readCsv, readXlsx, saveFile, xlsxBlob } from '../../lib/files';
 import { today } from '../../lib/time';
 import { ruleOf } from './BrandRules';
+import { ui } from '../../styles/uiSize';
 
 const UNDO = '<path d="M9 14L4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3"/>';
 const HIST = '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
@@ -165,9 +166,9 @@ export function PricesPage() {
         <button className="btn" id="pmExport" onClick={exportXlsx}><RawIcon d={DOWN} />Export Excel</button>
         <button className="btn" id="pmNewPl" onClick={openNewPl}><RawIcon d={PLUS} />New price list</button><button className="btn p" id="pmRate" onClick={() => { useRl.getState().set({ pick: null, brands: null }); setRateOpen(true); }}><RawIcon d={DOWN} />Download rate list</button></div>
       <div className="card ptxc">
-        <div className="ptfil" style={{ padding: '14px 16px', alignItems: 'center' }}><h3 className="pmvt"><RawIcon d={VIEW} />Price View</h3><label className="search" htmlFor="pmQ" style={{ maxWidth: 300, height: 36 }}><RawIcon d={SEARCH} /><input id="pmQ" placeholder="Search item or code" autoComplete="off" value={q} onChange={(e) => { usePm.getState().set({ hint: 'view' }); setQ(e.target.value) }} /></label>
+        <div className="ptfil" style={{ padding: ui.sp('14px 16px'), alignItems: 'center' }}><h3 className="pmvt"><RawIcon d={VIEW} />Price View</h3><label className="search" htmlFor="pmQ" style={{ maxWidth: 300, height: ui.h(36) }}><RawIcon d={SEARCH} /><input id="pmQ" placeholder="Search item or code" autoComplete="off" value={q} onChange={(e) => { usePm.getState().set({ hint: 'view' }); setQ(e.target.value) }} /></label>
           <select className="fi" id="pmCat" aria-label="Category" value={cat} onChange={(e) => { usePm.getState().set({ hint: 'view' }); setCat(e.target.value) }}><option value="all">All categories</option>{cats.map((c) => <option key={c}>{c}</option>)}</select><select className="fi" id="pmBrand" aria-label="Brand" value={brand} onChange={(e) => { usePm.getState().set({ hint: 'view' }); setBrand(e.target.value) }}><option value="all">All brands</option>{brands.map((b) => <option key={b}>{b}</option>)}</select>
-          <span className="mu" id="pmHint" style={{ fontSize: 12, flex: 1, minWidth: 0 }}>{hint === 'locked' ? 'Prices are locked. Click the lock to edit.' : hint === 'unlocked' ? 'Click ✎ next to a column name to edit it. Purchase comes from your purchase bills.' : 'Prices are view-only here. Use Price Setup to change them.'}</span><button type="button" className="btn pssbtn" id="pmLock" aria-label="Price Setup (locked with PIN)" title="Set prices with margin %. Needs your price PIN." onClick={openSetup}><RawIcon d={LOCK} />Price Setup</button></div>
+          <span className="mu" id="pmHint" style={{ fontSize: ui.fs(12), flex: 1, minWidth: 0 }}>{hint === 'locked' ? 'Prices are locked. Click the lock to edit.' : hint === 'unlocked' ? 'Click ✎ next to a column name to edit it. Purchase comes from your purchase bills.' : 'Prices are view-only here. Use Price Setup to change them.'}</span><button type="button" className="btn pssbtn" id="pmLock" aria-label="Price Setup (locked with PIN)" title="Set prices with margin %. Needs your price PIN." onClick={openSetup}><RawIcon d={LOCK} />Price Setup</button></div>
         <div className="pmbulk" id="pmBulk" hidden></div>
         <div className="tw" style={{ margin: 0 }} ref={twRef}><table className="ptt2 pmtab" ref={tabRef}>
           <thead id="pmHead"><tr><th rowSpan={2} style={{ minWidth: 200 }}>Item name</th><th rowSpan={2} style={{ minWidth: 150 }}>Brand | Series</th>{mrpOn && th('MRP', true)}{th('LP', true)}<th rowSpan={2} className="n" title="Comes from your purchase bills">Purchase</th><th colSpan={1 + plCols.length} className="c pmsp">SP <small>· sale price</small></th></tr>

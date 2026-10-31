@@ -4,6 +4,7 @@ import { ROLE_LABELS, daysBetween, formatInr2, formatLongDate, type MeResponse }
 import { Icon, RawIcon } from '../../components/Icon';
 import { useShell, type PopId } from './store';
 import { displayLabel } from './display';
+import { ui } from '../../styles/uiSize';
 
 const KEYS = '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>';
 const PROFILE = '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>';
@@ -179,12 +180,12 @@ export function TopBar({ me, today, lowItems = 0, overdue, online, onView, onSoo
         <div className="pop" id="orgPop" hidden={pop !== 'orgPop'}>
           <h4>Your businesses</h4>
           <button className="cur" onClick={() => setPop(null)}>
-            <span className="logo" style={{ width: 28, height: 28, fontSize: 12 }}>{initial(b.name)}</span>
+            <span className="logo" style={{ width: ui.w(28), height: ui.h(28), fontSize: ui.fs(12) }}>{initial(b.name)}</span>
             <span><b>{b.name}</b><small className="needs-gst" id="bizGst" hidden={!b.gstin}>{b.gstin ? 'GSTIN ' + b.gstin : ''}</small></span>
           </button>
           {others.map((m) => (
             <button key={m.businessId} onClick={() => { setPop(null); onSwitch(m.businessId); }}>
-              <span className="logo" style={{ width: 28, height: 28, fontSize: 12, background: '#c2410c' }}>{initial(m.businessName)}</span>
+              <span className="logo" style={{ width: ui.w(28), height: ui.h(28), fontSize: ui.fs(12), background: '#c2410c' }}>{initial(m.businessName)}</span>
               <span><b>{m.businessName}</b><small>{m.city}</small></span>
             </button>
           ))}
@@ -197,8 +198,8 @@ export function TopBar({ me, today, lowItems = 0, overdue, online, onView, onSoo
         </button>
         <div className="pop avp" id="avPop" hidden={pop !== 'avPop'} role="menu">
           <div className="avh">
-            <span className="av" style={{ width: 42, height: 42, fontSize: 16 }}>{initial(ownerName)}</span>
-            <div><b>{me.user.name || me.user.email}</b><small>{me.user.email}</small><span className="st g" style={{ marginTop: 4 }}>{me.role ? ROLE_LABELS[me.role] : ''} · {b.code}</span></div>
+            <span className="av" style={{ width: ui.w(42), height: ui.h(42), fontSize: ui.fs(16) }}>{initial(ownerName)}</span>
+            <div><b>{me.user.name || me.user.email}</b><small>{me.user.email}</small><span className="st g" style={{ marginTop: ui.sp(4) }}>{me.role ? ROLE_LABELS[me.role] : ''} · {b.code}</span></div>
           </div>
           <button role="menuitem" id="miProfile" onClick={() => { setPop(null); onSoon('My profile'); }}><RawIcon d={PROFILE} /><span>My profile<small>Name, mobile, email, password</small></span></button>
           <button role="menuitem" id="miLicense" onClick={() => { setPop(null); onView('sub'); }}><RawIcon d={LICENSE} /><span>License<small id="miLicSub">{lic}</small></span></button>

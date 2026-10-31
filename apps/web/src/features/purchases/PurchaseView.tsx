@@ -11,6 +11,7 @@ import { Icon } from '../../components/Icon';
 import { qfmt } from '../items/ItemsPage';
 import { PE_T, statusOfBill, type PurchaseDoc } from './model';
 import type { PayOpen } from './PayDialog';
+import { ui } from '../../styles/uiSize';
 
 export function PurchaseView({ id, onClose, onPay }: { id: string | null; onClose: () => void; onPay?: (o: PayOpen) => void }) {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ export function PurchaseView({ id, onClose, onPay }: { id: string | null; onClos
   return (
     <div className="ov c" id="pvm" hidden={!d} ref={ref} onClick={(e) => { if ((e.target as HTMLElement).id === 'pvm') onClose(); }}>
       <div className="mdl wide" role="dialog" aria-modal="true" aria-labelledby="pvT" style={{ width: 'min(760px,100%)' }}>
-        <div className="dh"><h3 id="pvT" style={{ margin: 0, fontSize: 18 }}>{d ? `${PE_T[d.kind]} ${d.number}` : ''}</h3><button className="ib" type="button" id="pvClose" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
+        <div className="dh"><h3 id="pvT" style={{ margin: 0, fontSize: ui.fs(18) }}>{d ? `${PE_T[d.kind]} ${d.number}` : ''}</h3><button className="ib" type="button" id="pvClose" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
         <div id="pvBody">{d ? <>
           <div className="pvh"><div><small className="mu">{d.kind === 'order' ? 'To' : 'From'}</small><b>{d.party.name}</b>{d.party.gstin ? <small className="mono mu">GSTIN {d.party.gstin}</small> : null}</div>
             <div className="pvm"><span>Date <b>{dmy(d.date)}</b></span>{d.supplierRef ? <span>Supplier bill <b className="mono">{d.supplierRef}</b></span> : null}{d.kind === 'bill' && d.dueDate ? <span>Due <b>{dmy(d.dueDate)}</b></span> : null}{d.kind === 'order' && d.dueDate ? <span>Expected <b>{dmy(d.dueDate)}</b></span> : null}
