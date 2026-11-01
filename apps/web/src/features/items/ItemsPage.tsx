@@ -4,10 +4,11 @@
  * group with several brands/sizes show as one expandable row with a
  * variants table).
  */
-import { Fragment, useMemo, useState, type MouseEvent as RMouseEvent } from 'react';
+import { Fragment, useEffect, useMemo, useState, type MouseEvent as RMouseEvent } from 'react';
 import { go } from '../../lib/go';
 import { useQuery } from '@tanstack/react-query';
 import { can, formatInr0, money, sumValues, type BatchRow, type RateTable as Rates } from '@billing/shared';
+import { useLocation } from 'react-router-dom';
 import { useFeature } from '../../lib/features';
 import { useMe } from '../../lib/me';
 import { BatchCard } from './BatchCard';
@@ -115,6 +116,9 @@ export function ItemsPage() {
   const [brand, setBrand] = useState('all');
   const [q, setQ] = useState('');
   const [sel, setSel] = useState<string | null>(null);
+  // Reports › Item Batch Report: a row opens its item
+  const openId = (useLocation().state as { open?: string } | null)?.open;
+  useEffect(() => { if (openId) setSel(openId); }, [openId]);
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [pop, setPop] = useState<'kind' | 'more' | 'fil' | null>(null);
   const [tsOpen, setTsOpen] = useState(false);
