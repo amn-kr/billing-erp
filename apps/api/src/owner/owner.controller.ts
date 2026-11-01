@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Req, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { ownerSetupSchema, type OwnerCustomer, type OwnerCustomers, type OwnerMe, type OwnerSetupInput } from '@billing/shared';
+import { ownerPlanSchema, ownerSetupSchema, type OwnerCustomer, type OwnerCustomerDetail, type OwnerCustomers, type OwnerMe, type OwnerPlanInput, type OwnerSetupInput } from '@billing/shared';
 import type { Request, Response } from 'express';
 import { Public } from '../common/decorators';
 import { ZodPipe } from '../common/zod.pipe';
@@ -68,6 +68,24 @@ export class OwnerController {
   @Get('customers')
   list(@Owner() o: OwnerContext): Promise<OwnerCustomers> {
     return this.customers.list(o);
+  }
+
+  @Get('customers/:id')
+  detail(@Owner() o: OwnerContext, @Param('id', ParseUUIDPipe) id: string): Promise<OwnerCustomerDetail> {
+    return this.customers.detail(o, id);
+  }
+
+  /** Activate or renew the paid plan with a payment received. */
+  @HttpCode(200)
+  @Post('customers/:id/plan')
+  plan(@Owner() o: OwnerContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(ownerPlanSchema)) body: OwnerPlanInput & { months: number; reference: string }): Promise<OwnerCustomerDetail> {
+    return this.customers.plan(o, id, body);
+  }
+
+  @HttpCode(200)
+  @Post('customers/:id/extend-trial')
+  extendTrial(@Owner() o: OwnerContext, @Param('id', ParseUUIDPipe) id: string): Promise<OwnerCustomerDetail> {
+    return this.customers.extendTrial(o, id);
   }
 
   @HttpCode(200)

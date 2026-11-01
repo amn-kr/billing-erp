@@ -5,7 +5,7 @@ import { DbService } from '../common/db.service';
 
 export interface OwnerAuditEntry {
   adminId: string | null;
-  action: 'setup' | 'sign_in' | 'sign_in_failed' | 'locked' | 'sign_out' | 'suspend' | 'reactivate';
+  action: 'setup' | 'sign_in' | 'sign_in_failed' | 'locked' | 'sign_out' | 'suspend' | 'reactivate' | 'plan_activated' | 'plan_renewed' | 'trial_extended';
   businessId?: string | null;
   entity: 'super_admin' | 'business';
   entityId?: string | null;
