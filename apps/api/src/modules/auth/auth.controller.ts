@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { changePasswordSchema, loginSchema, makeRecoveryCodesSchema, recoverSchema, registerSchema, type AuthTokens, type ChangePasswordInput, type LoginInput, type MakeRecoveryCodesInput, type RecoverInput, type RegisterInput } from '@billing/shared';
+import { changePasswordSchema, loginSchema, makeRecoveryCodesSchema, recoverSchema, registerSchema, type AuthTokens, type ChangePasswordInput, type OwnerSignIn, type LoginInput, type MakeRecoveryCodesInput, type RecoverInput, type RegisterInput } from '@billing/shared';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { Ctx, Public, WithTempPassword } from '../../common/decorators';
@@ -9,6 +9,7 @@ import type { RequestContext } from '../../common/context';
 import { AuthService } from './auth.service';
 import { TokensService, type Issued } from './tokens.service';
 import { clearRefreshCookie, meta, readRefreshCookie, setRefreshCookie } from './cookies';
+import { clearOwnerCookie, setOwnerCookie } from '../../owner';
 
 const forgotSchema = z.object({ email: z.string().trim().toLowerCase().email('That email doesn’t look right.') });
 const resetSchema = z.object({ token: z.string().min(10), password: registerSchema.shape.password });
@@ -37,7 +38,15 @@ export class AuthController {
   @HttpCode(200)
   @Post('login')
   async login(@Body(new ZodPipe(loginSchema)) body: LoginInput, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    return reply(res, await this.auth.login(body, meta(req)));
+    const t = await this.auth.login(body, meta(req));
+    // a browser holds one sign-in at a time: the panel's or a shop's
+    if ('owner' in t) {
+      clearRefreshCookie(res);
+      setOwnerCookie(res, t);
+      return { accessToken: t.accessToken, expiresIn: t.expiresIn, owner: true } satisfies OwnerSignIn;
+    }
+    clearOwnerCookie(res);
+    return reply(res, t);
   }
 
   @Public()
