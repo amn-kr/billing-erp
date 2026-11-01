@@ -25,6 +25,8 @@ import { Icon, RawIcon } from '../../components/Icon';
 import { SearchSelect } from '../../components/SearchSelect';
 import { useShell } from '../shell/store';
 import { qfmt } from './ItemsPage';
+import { useFeature } from '../../lib/features';
+import { Sw } from '../settings/model';
 import { ui } from '../../styles/uiSize';
 
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>';
@@ -36,7 +38,7 @@ interface Brand { id: string; name: string }
 interface Catalogue { units: Unit[]; categories: { name: string }[]; brands: Brand[]; groups: { name: string }[]; rates: Rate[] }
 /** GET /brands/:id/series: taken = this parent item already has it with this brand (itemId = that item) */
 interface BrandSeries { name: string; taken: boolean; itemId?: string }
-const F0 = { name: '', group: '', hsn: '', unit: 'PCS', sec: '', rate: '', cat: '', code: '', brand: '', series: '', sale: '', mrp: '', saleTax: 'With tax', disc: '', whole: '', wholeQty: '', gst: '18', oq: '', op: '', od: '', min: '', loc: '' };
+const F0 = { name: '', group: '', hsn: '', unit: 'PCS', sec: '', rate: '', cat: '', code: '', brand: '', series: '', sale: '', mrp: '', saleTax: 'With tax', disc: '', whole: '', wholeQty: '', gst: '18', oq: '', op: '', od: '', min: '', loc: '', track: false, ob: '', om: '', oe: '' };
 type Form = typeof F0;
 const num = (x: string) => Number(String(x).replace(/,/g, ''));
 const vname = (g: string, b: string, s: string) => `${g} · ${b}${s ? ' ' + s : ''}`;
@@ -52,12 +54,12 @@ const shown = (v: string | null | undefined) => (v && Number(v) ? String(Number(
 export interface EditItem {
   id: string; kind: 'goods' | 'service'; name: string; code: string; hsn: string; unit: string; secondaryUnit: string; unitRate: string | null;
   category: string; brand: string; group: string; series: string; gstRate: string; sale: string; mrp: string; wholesale: string; wholesaleMinQty: string;
-  minStock: string; location: string; opening: { qty: string; rate: string; date: string } | null;
+  minStock: string; location: string; opening: { qty: string; rate: string; date: string } | null; trackBatch?: boolean;
 }
 const formOf = (i: EditItem): Partial<Form> => ({
   name: i.name, group: i.group, hsn: i.hsn, unit: i.unit || 'PCS', sec: i.secondaryUnit, rate: i.secondaryUnit && i.unitRate ? qty(i.unitRate) : '', cat: i.category, code: i.code,
   brand: i.brand, series: i.series, sale: shown(i.sale), mrp: shown(i.mrp), gst: String(Number(i.gstRate)), whole: shown(i.wholesale), wholeQty: shown(i.wholesaleMinQty),
-  oq: shown(i.opening?.qty), op: shown(i.opening?.rate), od: i.opening?.date ?? '', min: shown(i.minStock), loc: i.location,
+  oq: shown(i.opening?.qty), op: shown(i.opening?.rate), od: i.opening?.date ?? '', min: shown(i.minStock), loc: i.location, track: !!i.trackBatch,
 });
 
 type Pop = 'brand' | 'cat' | 'group' | 'unit' | 'series' | null;
@@ -79,6 +81,7 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
   const [vary, setVary] = useState(false);
   const [tab, setTab] = useState<'price' | 'stock'>('price');
   const [f, setF] = useState<Form>({ ...F0, od: today() });
+  const batchOn = useFeature('batch_expiry');
   const [err, setErr] = useState<Record<string, string>>({});
   const [pop, setPop] = useState<Pop>(null);
   /** what was typed in the drop-down when its "+ Add" row was picked: the popup starts with it */
@@ -181,6 +184,8 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
       gstRate: Number(f.gst) || 0, sale: f.sale || null, mrp: f.mrp || null, wholesale: svc ? null : f.whole || null,
       wholesaleMinQty: svc ? null : f.wholeQty || null, minStock: svc ? null : f.min || null, location: svc ? '' : f.loc,
       ...(!edit && !svc && f.oq && num(f.oq) ? { openingQty: f.oq, openingRate: f.op || null, openingDate: f.od || today() } : {}),
+      ...(batchOn && !svc ? { trackBatch: f.track } : {}),
+      ...(batchOn && !svc && !edit && f.track && f.ob.trim() ? { openingBatchNo: f.ob.trim(), openingMfg: f.om, openingExpiry: f.oe } : {}),
     };
     setBusy(true);
     try {
@@ -340,12 +345,21 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
             <div className="appane" hidden={tab !== 'stock'}>
               <div className="aiprice">
                 <div className="aibox">
+                  {batchOn && (
+                    <div className="tgl" id="aiTrack" style={{ margin: ui.sp('0 0 14px') }}><div className="tx" style={{ flex: 1 }}><b>Track batch and expiry</b><small>Ask for batch no. and expiry on purchases, and pick the earliest expiry first on sales.</small></div><Sw id="aiTrackSw" on={f.track} label="Track batch and expiry" onChange={(v) => setF((x) => ({ ...x, track: v }))} /></div>
+                  )}
                   <b className="aph">Opening stock</b>
                   <div className="two">
                     <label className="apf">Opening quantity<input className={`fi ${bad('oq')}`} data-f="oq" value={f.oq} onChange={set('oq')} disabled={!!edit} inputMode="decimal" placeholder="0" />{E('oq')}</label>
                     <label className="apf">At price / unit<span className={pre}><span>{cur('₹')}</span><input className="fi" data-f="op" value={f.op} onChange={set('op')} disabled={!!edit} inputMode="decimal" placeholder="Purchase price" /></span></label>
                   </div>
                   <label className="apf">As of date<input className="fi" type="date" data-f="od" value={f.od} onChange={set('od')} disabled={!!edit} />{edit && <small className="aphint">Opening stock can’t be changed here. Use Adjust stock.</small>}</label>
+                  {batchOn && f.track && !edit && (
+                    <div className="two">
+                      <label className="apf">Batch no.<input className="fi" data-f="ob" value={f.ob} onChange={set('ob')} placeholder="Blank = No batch" autoComplete="off" /></label>
+                      <label className="apf">Expiry<input className="fi" data-f="oe" value={f.oe} onChange={set('oe')} placeholder="MM/YY" autoComplete="off" /></label>
+                    </div>
+                  )}
                 </div>
                 <div className="aibox">
                   <b className="aph">Stock alerts</b>

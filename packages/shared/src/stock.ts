@@ -14,6 +14,9 @@
  * - A purchase return (debit note) linked to a bill takes stock out of that bill's layer first;
  *   anything else (or one not linked to a bill) is taken oldest first.
  * - Selling more than is in stock leaves a shortfall; the next stock coming in fills it first.
+ * - Batch and expiry (Features › batch_expiry) only label the stock: a move with a batch uses that
+ *   batch's stock first, and a move without one uses stock without a batch first. An item with no
+ *   batches at all therefore runs exactly as above.
  */
 import { money, type Money, type MoneyInput } from './money.js';
 
@@ -31,6 +34,8 @@ export interface LedgerMove {
   sourceId?: string | null;
   /** credit note: the invoices its lines return against; debit note: the bills */
   against?: string[];
+  /** the batch this stock is labelled with; none = No batch */
+  batchId?: string | null;
 }
 
 export interface RateLayer {
@@ -59,17 +64,18 @@ export interface RateTable {
   lastRate: string | null;
 }
 
-interface Move { date: string; at: string; qty: Money; rate: Money; kind: string; n: number; src: string; against: string[] }
+interface Move { date: string; at: string; qty: Money; rate: Money; kind: string; n: number; src: string; against: string[]; batch: string }
 
 /** One document's movements, netted when they cancel each other (cancel / edit / transfer). */
 function effective(moves: LedgerMove[]): Move[] {
   const out: Move[] = [];
   const groups = new Map<string, Move[]>();
   moves.forEach((m, n) => {
-    const v: Move = { date: m.date, at: m.createdAt ?? '', qty: money(m.qty), rate: money(m.rate), kind: m.kind, n, src: m.sourceId ?? '', against: m.against ?? [] };
+    const v: Move = { date: m.date, at: m.createdAt ?? '', qty: money(m.qty), rate: money(m.rate), kind: m.kind, n, src: m.sourceId ?? '', against: m.against ?? [], batch: m.batchId ?? '' };
     if (v.qty.isZero()) return;
     if (!m.sourceId) { out.push(v); return; }
-    const k = `${m.sourceType ?? ''}:${m.sourceId}`;
+    // per batch too, so an edit moving goods to another batch keeps both right
+    const k = `${m.sourceType ?? ''}:${m.sourceId}:${m.batchId ?? ''}`;
     groups.set(k, [...(groups.get(k) ?? []), v]);
   });
   for (const g of groups.values()) {
@@ -87,7 +93,7 @@ function effective(moves: LedgerMove[]): Move[] {
 const order = (a: Move, b: Move) => a.date.localeCompare(b.date) || a.at.localeCompare(b.at) || a.n - b.n;
 
 /** Part of a rate layer, oldest first: `cost` is its real purchase rate, or 0 when it came in without one. */
-interface Part { qty: Money; cost: Money; src: string }
+interface Part { qty: Money; cost: Money; src: string; batch: string }
 interface Layer { rate: Money; qty: Money; since: string; srcs: Set<string>; parts: Part[] }
 /** one piece of what a sale took: from a lot (`cost` its rate), from stock with no rate (0), or still short (0) */
 interface Slice { qty: Money; cost: Money; kind: SliceKind }
@@ -103,7 +109,7 @@ function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
   const fb = money(fallbackRate), zero = money(0);
   const layers: Layer[] = [];
   /** what sales took from which layer and at what cost, newest last, so a sale return can put it back */
-  const sold: { i: number; qty: Money; src: string; cost: Money }[] = [];
+  const sold: { i: number; qty: Money; src: string; cost: Money; batch: string }[] = [];
   /** stock that went out beyond what was in, oldest first; the next stock coming in fills it */
   const short: { qty: Money; src: string; sale: boolean }[] = [];
   /** per sale or sale return: its quantity and the cost of the goods it took out or put back */
@@ -118,13 +124,13 @@ function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
     if (cost.isZero()) x.free = x.free.plus(qty);
   };
 
-  const addLayer = (rate: Money, qty: Money, since: string, src: string, cost: Money) => {
+  const addLayer = (rate: Money, qty: Money, since: string, src: string, cost: Money, batch: string) => {
     const top = layers.at(-1);
     if (top && top.rate.eq(rate)) top.qty = top.qty.plus(qty);
     else layers.push({ rate, qty, since, srcs: new Set(), parts: [] });
     const l = layers.at(-1)!;
     if (src) l.srcs.add(src);
-    l.parts.push({ qty, cost, src });
+    l.parts.push({ qty, cost, src, batch });
   };
   /** takes up to `want` from layer i, oldest part first (only the parts `pick` accepts) */
   const take = (i: number, want: Money, m: Move, pick?: (p: Part) => boolean) => {
@@ -138,7 +144,7 @@ function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
       l.qty = l.qty.minus(t);
       want = want.minus(t);
       if (m.kind === 'sale') {
-        sold.push({ i, qty: t, src: m.src, cost: p.cost });
+        sold.push({ i, qty: t, src: m.src, cost: p.cost, batch: p.batch });
         priced(g(m.src), t, p.cost);
         g(m.src).slices.push({ qty: t, cost: p.cost, kind: p.cost.isZero() ? 'none' : 'lot' });
       }
@@ -146,15 +152,18 @@ function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
     l.parts = l.parts.filter((p) => p.qty.gt(0));
     return want;
   };
-  /** puts back up to `want` of what sales took (newest first), only those sales `pick` accepts */
-  const putBack = (want: Money, pick: (src: string) => boolean, m: Move) => {
+  /**
+   * Puts back up to `want` of what sales took (newest first), only those sales `pick` accepts. A return
+   * naming a batch takes what was sold from that batch first (`sameBatch`), and its goods carry that label.
+   */
+  const putBack = (want: Money, pick: (src: string) => boolean, m: Move, sameBatch = false) => {
     for (let k = sold.length - 1; k >= 0 && want.gt(0); k--) {
       const s = sold[k]!;
-      if (!pick(s.src)) continue;
+      if (!pick(s.src) || (sameBatch && s.batch !== m.batch)) continue;
       const t = want.lt(s.qty) ? want : s.qty;
       const l = layers[s.i]!;
       l.qty = l.qty.plus(t);
-      l.parts.unshift({ qty: t, cost: s.cost, src: s.src });
+      l.parts.unshift({ qty: t, cost: s.cost, src: s.src, batch: m.batch || s.batch });
       priced(g(m.src), t, s.cost);
       s.qty = s.qty.minus(t);
       if (s.qty.isZero()) sold.splice(k, 1);
@@ -186,18 +195,25 @@ function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
         q = q.minus(t);
       }
       if (m.kind === 'return') {
+        if (m.batch) {
+          if (m.against.length) q = putBack(q, (src) => m.against.includes(src), m, true);
+          q = putBack(q, () => true, m, true);
+        }
         if (m.against.length) q = putBack(q, (src) => m.against.includes(src), m);
         q = putBack(q, () => true, m);
-        if (q.gt(0)) { addLayer(fb, q, m.date, m.src, zero); priced(g(m.src), q, zero); }
-      } else addLayer(m.rate.gt(0) ? m.rate : fb, q, m.date, m.src, cost);
+        if (q.gt(0)) { addLayer(fb, q, m.date, m.src, zero, m.batch); priced(g(m.src), q, zero); }
+      } else addLayer(m.rate.gt(0) ? m.rate : fb, q, m.date, m.src, cost, m.batch);
     } else {
       let q = m.qty.neg();
+      const sameBatch = (p: Part) => p.batch === m.batch;
+      if (m.batch) for (let i = 0; i < layers.length && q.gt(0); i++) q = take(i, q, m, sameBatch);
       if (m.kind === 'purchase_return' && m.against.length)
         for (let i = layers.length - 1; i >= 0 && q.gt(0); i--)
           if (m.against.some((b) => layers[i]!.srcs.has(b))) {
             q = take(i, q, m, (p) => m.against.includes(p.src));
             q = take(i, q, m);
           }
+      if (!m.batch) for (let i = 0; i < layers.length && q.gt(0); i++) q = take(i, q, m, sameBatch);
       for (let i = 0; i < layers.length && q.gt(0); i++) q = take(i, q, m);
       if (q.gt(0)) {
         short.push({ qty: q, src: m.src, sale: m.kind === 'sale' });
@@ -231,6 +247,29 @@ export function stockByPurchaseRate(moves: LedgerMove[], fallbackRate: MoneyInpu
     value: value.toDecimalPlaces(2).toFixed(2),
     lastRate,
   };
+}
+
+/**
+ * What is left of an item per batch, from the same run as stockByPurchaseRate, so the values always
+ * add up to its stock value: the last row takes what rounding left over. batchId null = No batch.
+ */
+export function stockByBatch(moves: LedgerMove[], fallbackRate: MoneyInput): { rows: { batchId: string | null; qty: string; rate: string; value: string }[]; shortQty: string } {
+  const { layers, short } = runLots(moves, fallbackRate);
+  const by = new Map<string, { qty: Money; value: Money }>();
+  for (const l of layers)
+    for (const p of l.parts) {
+      if (!p.qty.gt(0)) continue;
+      const x = by.get(p.batch) ?? { qty: money(0), value: money(0) };
+      by.set(p.batch, { qty: x.qty.plus(p.qty), value: x.value.plus(p.qty.times(l.rate)) });
+    }
+  const all = [...by.values()].reduce((a, x) => a.plus(x.value), money(0)).toDecimalPlaces(2);
+  let left = all;
+  const rows = [...by].map(([batch, x], k) => {
+    const value = k === by.size - 1 ? left : x.value.toDecimalPlaces(2);
+    left = left.minus(value);
+    return { batchId: batch || null, qty: x.qty.toDecimalPlaces(3).toFixed(3), rate: x.value.div(x.qty).toDecimalPlaces(2).toFixed(2), value: value.toFixed(2) };
+  });
+  return { rows, shortQty: short.toDecimalPlaces(3).toFixed(3) };
 }
 
 /** The cost of the goods one sale took out, or one sale return (credit note) put back, for one item. */

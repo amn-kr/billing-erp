@@ -406,6 +406,56 @@ describe('restore', () => {
     expect((await http().get('/api/me').set(auth(n)).expect(200)).body.business.features).toEqual([]);
   });
 
+  it('restored books keep batches and their stock under new ids — from the full copy and from later changes', async () => {
+    const { o } = await shop();
+    await http().put('/api/settings/features').set(auth(o)).send({ enabled: ['batch_expiry'] }).expect(200);
+    const it = (await http().post('/api/items').set(auth(o)).send({ name: 'Tablet', kind: 'goods', unit: 'PCS', gstRate: 0, trackBatch: true }).expect(201)).body as { id: string };
+    const sup = (await http().post('/api/parties').set(auth(o)).send({ name: 'Ram Pharma', kind: 'supplier' }).expect(201)).body as { id: string };
+    const buy = (batchNo: string, expiry: string, qty: string) => http().post('/api/purchases').set(auth(o)).send({ kind: 'bill', date: D, dueDate: D, partyId: sup.id, transport: '0', labour: '0', lines: [{ itemId: it.id, name: 'Tablet', qty, rate: '10', discPct: '0', gstRate: '0', batchNo, expiry }] }).expect(201);
+    await buy('B1', '03/30', '4');
+    await useDrive(o);
+    await svc.runDue();
+    await buy('B2', '03/31', '6');
+    await svc.runDue();
+    const before = (await http().get(`/api/items/${it.id}`).set(auth(o)).expect(200)).body as { batches: { rows: { id: string; no: string; expiry: string; qty: string; value: string }[] } };
+    const r = (await http().post('/api/backup/restore').set(auth(o)).send({ from: 'drive', confirm: true }).expect(200)).body;
+    const n = { token: (await http().post('/api/businesses/switch').set(auth(o)).send({ businessId: r.businessId }).expect(201)).body.accessToken as string };
+    const newIt = ((await http().get('/api/items').set(auth(n)).expect(200)).body as { id: string; name: string; trackBatch: boolean }[]).find((i) => i.name === 'Tablet')!;
+    expect(newIt.trackBatch).toBe(true);
+    expect(newIt.id).not.toBe(it.id);
+    const after = (await http().get(`/api/items/${newIt.id}`).set(auth(n)).expect(200)).body as typeof before;
+    expect(after.batches.rows.map((x) => [x.no, x.expiry, x.qty, x.value])).toEqual(before.batches.rows.map((x) => [x.no, x.expiry, x.qty, x.value]));
+    // new ids everywhere, and the links between rows follow them
+    const oldIds = before.batches.rows.map((x) => x.id);
+    for (const x of after.batches.rows) expect(oldIds).not.toContain(x.id);
+    const moved = await asShop(r.businessId, (tx) => tx.stockMovement.findMany({ where: { batchId: { not: null } }, select: { batchId: true } }));
+    expect(moved).toHaveLength(2);
+    for (const m of moved) expect(after.batches.rows.map((x) => x.id)).toContain(m.batchId);
+    const lines = await asShop(r.businessId, (tx) => tx.purchaseDocumentLine.findMany({ where: { batchId: { not: null } }, select: { batchId: true } }));
+    for (const l of lines) expect(after.batches.rows.map((x) => x.id)).toContain(l.batchId);
+    expect(lines).toHaveLength(2);
+  });
+
+  it('an old backup, made before batches existed, restores with items untracked and stock as No batch', async () => {
+    const { o } = await shop();
+    await useDrive(o);
+    await svc.runDue();
+    const snap = (await files(o)).find((f) => f.kind === 'snapshot')!;
+    const { header, body } = openFile<SnapshotBody>(KEY, o.businessId, drive.files.get(snap.ref)!);
+    for (const row of body.tables.items!) delete row.track_batch;
+    for (const row of body.tables.stock_movements!) delete row.batch_id;
+    delete body.tables.batches;
+    const old = lockFile(KEY, { business: header.business, kind: header.kind, afterSeq: header.afterSeq, toSeq: header.toSeq, createdAt: header.createdAt }, body);
+    drive.files.set(snap.ref, old);
+    await asShop(o.businessId, (tx) => tx.backupFile.update({ where: { id: snap.id }, data: { sha256: sha256(old) } }));
+    const r = (await http().post('/api/backup/restore').set(auth(o)).send({ from: 'drive', confirm: true }).expect(200)).body;
+    const n = { token: (await http().post('/api/businesses/switch').set(auth(o)).send({ businessId: r.businessId }).expect(201)).body.accessToken as string };
+    const items = (await http().get('/api/items').set(auth(n)).expect(200)).body as { trackBatch: boolean; stock: string | null }[];
+    expect(items.length).toBeGreaterThan(0);
+    expect(items.every((i) => i.trackBatch === false)).toBe(true);
+    expect(await asShop(r.businessId, (tx) => tx.stockMovement.count({ where: { batchId: { not: null } } }))).toBe(0);
+  });
+
   it('deleted documents stay deleted (hidden, kept) in the restored books — from the full copy and from later changes', async () => {
     const { o, inv, fan, verma } = await shop();
     const line = { itemId: fan.id, name: fan.name, qty: '2', price: '1890', discPct: '0', gstRate: '18' };

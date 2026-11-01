@@ -23,25 +23,25 @@ datasource db {
 
 /// A person who can sign in. Not owned by a shop: one person can belong to several shops.
 model User {
-  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email         String    @unique
-  name          String    @default("")
-  phone         String    @default("")
-  passwordHash  String    @map("password_hash")
-  emailVerified DateTime? @map("email_verified_at") @db.Timestamptz(6)
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                 String    @unique
+  name                  String    @default("")
+  phone                 String    @default("")
+  passwordHash          String    @map("password_hash")
+  emailVerified         DateTime? @map("email_verified_at") @db.Timestamptz(6)
   /// signed in next with a temporary password from the shop owner: must choose a new one first
   mustChangePassword    Boolean   @default(false) @map("must_change_password")
   /// the temporary password stops working after this
   tempPasswordExpiresAt DateTime? @map("temp_password_expires_at") @db.Timestamptz(6)
-  lastLoginAt   DateTime? @map("last_login_at") @db.Timestamptz(6)
+  lastLoginAt           DateTime? @map("last_login_at") @db.Timestamptz(6)
   /// this person's display choices: comfortable | compact, and small | normal | large
-  uiDensity     String    @default("comfortable") @map("ui_density")
-  uiTextSize    String    @default("normal") @map("ui_text_size")
+  uiDensity             String    @default("comfortable") @map("ui_density")
+  uiTextSize            String    @default("normal") @map("ui_text_size")
   /// wrong recovery codes in a row, and until when recovery codes for this account are refused
-  recoveryFails     Int       @default(0) @map("recovery_fails")
-  recoveryWaitUntil DateTime? @map("recovery_wait_until") @db.Timestamptz(6)
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  recoveryFails         Int       @default(0) @map("recovery_fails")
+  recoveryWaitUntil     DateTime? @map("recovery_wait_until") @db.Timestamptz(6)
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   memberships    Membership[]
   sessions       Session[]
@@ -109,6 +109,7 @@ model Business {
   categories            Category[]
   brands                Brand[]
   brandSeries           BrandSeries[]
+  batches               Batch[]
   itemGroups            ItemGroup[]
   hsnCodes              HsnCode[]
   items                 Item[]
@@ -455,7 +456,7 @@ model DocumentSeries {
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  business      Business      @relation(fields: [businessId], references: [id])
+  business      Business       @relation(fields: [businessId], references: [id])
   financialYear FinancialYear? @relation(fields: [financialYearId], references: [id])
 
   @@unique([businessId, docType, prefix])
@@ -751,6 +752,8 @@ model Item {
   location        String    @default("")
   /// free text about the item (Items › Bulk update items)
   description     String    @default("")
+  /// Features › batch_expiry: ask for batch no. and expiry on this item's stock
+  trackBatch      Boolean   @default(false) @map("track_batch")
   imageUrl        String    @default("") @map("image_url")
   legacyId        String?   @map("legacy_id")
   archivedAt      DateTime? @map("archived_at") @db.Timestamptz(6)
@@ -761,17 +764,18 @@ model Item {
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  business    Business          @relation(fields: [businessId], references: [id])
-  unit          Unit?           @relation("ItemUnit", fields: [unitId], references: [id])
-  secondaryUnit Unit?           @relation("ItemSecondaryUnit", fields: [secondaryUnitId], references: [id])
-  category    Category?         @relation(fields: [categoryId], references: [id])
-  brand       Brand?            @relation(fields: [brandId], references: [id])
-  itemGroup   ItemGroup?        @relation(fields: [itemGroupId], references: [id])
-  movements   StockMovement[]
-  prices      ItemPrice[]
-  history     PriceHistory[]
-  adjustments StockAdjustment[]
-  transfers   StockTransfer[]
+  business      Business          @relation(fields: [businessId], references: [id])
+  unit          Unit?             @relation("ItemUnit", fields: [unitId], references: [id])
+  secondaryUnit Unit?             @relation("ItemSecondaryUnit", fields: [secondaryUnitId], references: [id])
+  category      Category?         @relation(fields: [categoryId], references: [id])
+  brand         Brand?            @relation(fields: [brandId], references: [id])
+  itemGroup     ItemGroup?        @relation(fields: [itemGroupId], references: [id])
+  movements     StockMovement[]
+  batches       Batch[]
+  prices        ItemPrice[]
+  history       PriceHistory[]
+  adjustments   StockAdjustment[]
+  transfers     StockTransfer[]
 
   @@index([businessId, name])
   @@index([businessId, legacyId])
@@ -804,6 +808,28 @@ model Godown {
 }
 
 /// The stock ledger. Insert-only: a mistake is corrected with a new, opposite movement.
+/// Features › batch_expiry: a label on an item's stock. The stock itself is in stock_movements (batch_id). Never deleted.
+model Batch {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String    @map("business_id") @db.Uuid
+  itemId     String    @map("item_id") @db.Uuid
+  batchNo    String    @map("batch_no")
+  mfgDate    DateTime? @map("mfg_date") @db.Date
+  expiryDate DateTime? @map("expiry_date") @db.Date
+  createdBy  String    @map("created_by") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business      Business               @relation(fields: [businessId], references: [id])
+  item          Item                   @relation(fields: [itemId], references: [id])
+  movements     StockMovement[]
+  adjustments   StockAdjustment[]
+  purchaseLines PurchaseDocumentLine[]
+
+  @@index([businessId, itemId])
+  @@map("batches")
+}
+
 model StockMovement {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   businessId String   @map("business_id") @db.Uuid
@@ -819,11 +845,14 @@ model StockMovement {
   sourceType String   @default("") @map("source_type")
   sourceId   String?  @map("source_id") @db.Uuid
   note       String   @default("")
+  /// Features › batch_expiry: empty = No batch
+  batchId    String?  @map("batch_id") @db.Uuid
   createdBy  String   @map("created_by") @db.Uuid
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   item   Item   @relation(fields: [itemId], references: [id])
   godown Godown @relation(fields: [godownId], references: [id])
+  batch  Batch? @relation(fields: [batchId], references: [id], onDelete: Restrict)
 
   @@index([businessId, itemId])
   @@index([businessId, sourceType, sourceId])
@@ -842,6 +871,7 @@ model StockAdjustment {
   qty         Decimal   @db.Decimal(14, 3)
   rate        Decimal   @default(0) @db.Decimal(14, 2)
   reason      String    @default("")
+  batchId     String?   @map("batch_id") @db.Uuid
   cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(6)
   cancelledBy String?   @map("cancelled_by") @db.Uuid
   createdBy   String    @map("created_by") @db.Uuid
@@ -850,6 +880,7 @@ model StockAdjustment {
 
   item   Item   @relation(fields: [itemId], references: [id])
   godown Godown @relation(fields: [godownId], references: [id])
+  batch  Batch? @relation(fields: [batchId], references: [id], onDelete: Restrict)
 
   @@unique([businessId, number])
   @@map("stock_adjustments")
@@ -1240,9 +1271,12 @@ model PurchaseDocumentLine {
   amount     Decimal @default(0) @db.Decimal(14, 2)
   /// debit note line: the bill it returns against
   againstId  String? @map("against_id") @db.Uuid
+  /// Features › batch_expiry
+  batchId    String? @map("batch_id") @db.Uuid
 
   business Business         @relation(fields: [businessId], references: [id])
   document PurchaseDocument @relation(fields: [documentId], references: [id])
+  batch    Batch?           @relation(fields: [batchId], references: [id], onDelete: Restrict)
 
   @@index([businessId, documentId])
   @@map("purchase_document_lines")
@@ -1250,35 +1284,35 @@ model PurchaseDocumentLine {
 
 /// Money received (in) or paid (out); allocations say which documents it settles.
 model Payment {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  businessId  String    @map("business_id") @db.Uuid
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId   String    @map("business_id") @db.Uuid
   /// in | out
-  direction   String
-  number      String
-  date        DateTime  @db.Date
-  partyId     String?   @map("party_id") @db.Uuid
-  amount      Decimal   @db.Decimal(14, 2)
+  direction    String
+  number       String
+  date         DateTime  @db.Date
+  partyId      String?   @map("party_id") @db.Uuid
+  amount       Decimal   @db.Decimal(14, 2)
   /// Cash | UPI | Bank transfer | Cheque | Card | Commission adjust …
-  mode        String
-  accountId   String?   @map("account_id") @db.Uuid
-  reference   String    @default("")
-  notes       String    @default("")
+  mode         String
+  accountId    String?   @map("account_id") @db.Uuid
+  reference    String    @default("")
+  notes        String    @default("")
   /// money taken on the invoice screen itself (part of that sale)
-  atSale      Boolean   @default(false) @map("at_sale")
+  atSale       Boolean   @default(false) @map("at_sale")
   /// the sale it was taken on (atSale), or the credit note it refunds
-  sourceId    String?   @map("source_id") @db.Uuid
+  sourceId     String?   @map("source_id") @db.Uuid
   /// split across modes: [{mode, amount, ref}]
-  splits      Json      @default("[]")
-  cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(6)
-  cancelledBy String?   @map("cancelled_by") @db.Uuid
+  splits       Json      @default("[]")
+  cancelledAt  DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  cancelledBy  String?   @map("cancelled_by") @db.Uuid
   /// deleted (payments received): hidden from the lists, kept for good (cancelled_at is set too)
-  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
-  deletedBy   String?   @map("deleted_by") @db.Uuid
-  deleteReason String   @default("") @map("delete_reason")
-  legacyId    String?   @map("legacy_id")
-  createdBy   String    @map("created_by") @db.Uuid
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy    String?   @map("deleted_by") @db.Uuid
+  deleteReason String    @default("") @map("delete_reason")
+  legacyId     String?   @map("legacy_id")
+  createdBy    String    @map("created_by") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   business    Business            @relation(fields: [businessId], references: [id])
   party       Party?              @relation(fields: [partyId], references: [id])

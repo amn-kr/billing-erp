@@ -12,6 +12,8 @@ import { lineCommission, money, saleTotals, type CommRule, type TaxMode } from '
 export interface EItem {
   id: string; name: string; code: string; hsn: string; unit: string; cat: string; gst: number; stock: number | null; svc: boolean;
   brand: string; series: string; grp: string; purch: number; sale: number;
+  /** Features › batch_expiry: this item's stock has batches */
+  track?: boolean;
   /** price on each active price list */
   pl: Record<string, number>;
 }

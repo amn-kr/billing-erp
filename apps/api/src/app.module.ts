@@ -31,6 +31,7 @@ import { ItemImportService } from './modules/items/item-import.service';
 import { BrandsController } from './modules/items/brands.controller';
 import { BrandsService } from './modules/items/brands.service';
 import { StockController } from './modules/stock/stock.controller';
+import { BatchesController } from './modules/stock/batches.controller';
 import { StockService } from './modules/stock/stock.service';
 import { PricingController } from './modules/pricing/pricing.controller';
 import { PricingService } from './modules/pricing/pricing.service';
@@ -71,7 +72,7 @@ import { OWNER_CONTROLLERS, OWNER_PROVIDERS } from './owner';
     }),
   ],
   controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HistoryController, HealthController, ImportsController,
-    PartiesController, ItemsController, BrandsController, StockController, PricingController, SettingsController, PrefixesController, PasscodeController, FeaturesController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController, BackupController, DriveController, ...OWNER_CONTROLLERS],
+    PartiesController, ItemsController, BrandsController, StockController, BatchesController, PricingController, SettingsController, PrefixesController, PasscodeController, FeaturesController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController, BackupController, DriveController, ...OWNER_CONTROLLERS],
   providers: [
     DbService,
     BackupService,

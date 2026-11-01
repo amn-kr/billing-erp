@@ -15,7 +15,7 @@ import { HIST_ACTION, openHistory } from '../../components/EditHistory';
 import { SlModal, type SlModalProps } from '../sales/SlModal';
 import { ui } from '../../styles/uiSize';
 
-export interface Adjustment { id: string; number: string; date: string; itemId: string; item: string; unit: string; godown: string; qty: string; rate: string; value: string; reason: string; cancelled: boolean }
+export interface Adjustment { batchId?: string | null; batchNo?: string; mfg?: string | null; expiry?: string | null; id: string; number: string; date: string; itemId: string; item: string; unit: string; godown: string; qty: string; rate: string; value: string; reason: string; cancelled: boolean }
 
 const ADJ_ACT: RowAction[] = [['edit', 'Edit'], HIST_ACTION];
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
