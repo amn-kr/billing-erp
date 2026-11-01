@@ -5,7 +5,7 @@ import type { Tx } from './db.service';
 export interface AuditEntry {
   businessId: string;
   userId: string | null;
-  action: 'create' | 'update' | 'cancel' | 'delete' | 'sign_in' | 'invite' | 'revoke_invite' | 'join' | 'role_change' | 'remove_member' | 'switch_business' | 'test_restore' | 'restore' | 'passcode_failed' | 'passcode_used' | 'reset_password' | 'password_changed' | 'recovery_codes_made' | 'password_recovered';
+  action: 'create' | 'update' | 'cancel' | 'delete' | 'sign_in' | 'invite' | 'revoke_invite' | 'join' | 'role_change' | 'remove_member' | 'switch_business' | 'test_restore' | 'restore' | 'passcode_failed' | 'passcode_used' | 'reset_password' | 'password_changed' | 'recovery_codes_made' | 'password_recovered' | 'sold_expired';
   entity: string;
   entityId?: string | null;
   before?: unknown;

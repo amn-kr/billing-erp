@@ -88,7 +88,8 @@ export async function draftSaleCosts(tx: Tx, d: SaleCostInput) {
     if (!rows.length) continue;
     const moves: LedgerMove[] = [
       ...(ledger.get(itemId) ?? []).filter((m) => !d.id || m.sourceId !== d.id),
-      ...rows.map((k) => ({ date: d.date, createdAt: at, qty: money(d.lines[k]!.qty).neg().toFixed(3), rate: '0', kind: 'sale', sourceType: 'sales_document', sourceId: src })),
+      // one move per batch the line uses, so its cost is that batch's (no batches: one move, as always)
+      ...rows.flatMap((k) => (d.lines[k]!.batches?.length ? d.lines[k]!.batches!.map((b) => ({ qty: b.qty, batchId: b.batchId })) : [{ qty: d.lines[k]!.qty, batchId: null }]).map((b) => ({ date: d.date, createdAt: at, qty: money(b.qty).neg().toFixed(3), rate: '0', kind: 'sale', sourceType: 'sales_document', sourceId: src, batchId: b.batchId }))),
     ];
     const per = costRows(costOfGoods(moves).get(src), rows.map((k) => d.lines[k]!.qty));
     rows.forEach((k, j) => (out[k] = per[j]!));

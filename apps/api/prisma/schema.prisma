@@ -1185,6 +1185,8 @@ model SalesDocumentLine {
   commType     String   @default("none") @map("comm_type")
   commValue    Decimal  @default(0) @map("comm_value") @db.Decimal(14, 2)
   commAmount   Decimal  @default(0) @map("comm_amount") @db.Decimal(14, 2)
+  /// Features › batch_expiry: [{ batchId, qty }], the batches this line's stock moved in (batchId null = No batch)
+  batchAlloc   Json?    @map("batch_alloc")
   /// credit note line: the invoice it returns against
   againstId    String?  @map("against_id") @db.Uuid
 

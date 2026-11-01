@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { Prisma, type SalesDocument } from '@prisma/client';
 import {
   amountInWords, lineCommission, money, saleTotals, taxModeOf, toDb, todayIst, type CommRule, type Money, type SaleCostInput, type SaleInput, type TaxMode,
+  type BatchAlloc,
 } from '@billing/shared';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
@@ -16,6 +17,7 @@ import { ALREADY_DELETED, deleteMark } from '../../common/deleting';
 import { reconciledIn, reconciledMessage, refuseIfReconciled } from '../../common/editing';
 import { refuseIfSoldSince, reverseStock } from './stock-back';
 import { draftSaleCosts } from '../stock/stock-value';
+import { allocateSale, allocsOf, batchesOn, refuseIfBatchShort } from '../stock/batches';
 
 const q3 = (v: { toString(): string }) => money(v.toString()).toDecimalPlaces(3).toFixed(3);
 const d2 = (v: { toString(): string } | null | undefined) => (v === null || v === undefined ? null : toDb(v.toString()));
@@ -162,6 +164,12 @@ export class SalesService {
         throw new ConflictException({ code: 'over_credit_limit', message: 'This sale goes over the credit limit. Press Save again to save anyway.' });
     }
 
+    /* batch and expiry (Features › batch_expiry): which batches an invoice's tracked lines use */
+    const batchOn = isInv && (await batchesOn(tx, businessId));
+    const picked = batchOn
+      ? await allocateSale(tx, { date: input.date, confirmExpired: input.confirmExpired, docId: id, savedLines: before?.lines, lines: lines.map(({ l, it }) => ({ item: it, qty: l.qty, batches: l.batches })) })
+      : { allocs: lines.map(() => null), expired: [] };
+
     /* referral commission per line */
     const rules = input.referrerId ? await this.commissionRules(tx) : new Map<string, CommRule>();
     const byCat = input.extra.commByCategory ?? {};
@@ -198,6 +206,7 @@ export class SalesService {
         return {
           businessId, documentId: doc.id, position: k, itemId: it.id, name: l.name || it.name, hsn: l.hsn || it.hsn, qty: money(l.qty).toFixed(3), unit: it.unit?.code ?? l.unit,
           price: toDb(l.price), discPct: money(l.discPct).toDecimalPlaces(8).toFixed(8), gstRate: money(gst).toFixed(2), taxable: r.tv.toFixed(2), tax: r.tx.toFixed(2), amount: r.amt.toFixed(2),
+          batchAlloc: picked.allocs[k] ? (picked.allocs[k] as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
           basePrice: input.referrerId && l.basePrice !== null ? toDb(l.basePrice) : null, commOverride: l.commOverride ? (l.commOverride as Prisma.InputJsonValue) : Prisma.DbNull,
           commType: rule ? { n: 'none', p: 'p', f: 'f' }[rule.t] : 'none', commValue: rule ? money(rule.v).toFixed(2) : '0', commAmount: comm.toFixed(2),
         };
@@ -207,7 +216,8 @@ export class SalesService {
     let settledOld = money(0);
     let advance = money(0);
     if (isInv) {
-      await this.moveStock(tx, ctx, doc.id, number, input.date, lines.map(({ l, it }, k) => ({ it, qty: money(l.qty), rate: t.rows[k]!.amt.div(money(l.qty)) })), !!before);
+      await this.moveStock(tx, ctx, doc.id, number, input.date, lines.map(({ l, it }, k) => ({ it, qty: money(l.qty), rate: t.rows[k]!.amt.div(money(l.qty)), allocs: picked.allocs[k] })), !!before);
+      if (picked.expired.length) await this.audit.log(tx, { businessId, userId: ctx.userId, action: 'sold_expired', entity: 'sales_document', entityId: doc.id, after: { number, lines: picked.expired }, ip: ctx.ip });
       await this.ledger.repost(tx, { businessId, userId: ctx.userId }, {
         date: input.date, sourceType: 'sales_document', sourceId: doc.id, number, narration: `Sale ${number} · ${party?.name ?? head.cashName}`,
         lines: invoiceLines(t, party?.id ?? null),
@@ -247,14 +257,14 @@ export class SalesService {
   }
 
   /** Items leave the default godown; an edit first puts the old quantities back. */
-  private async moveStock(tx: Tx, ctx: RequestContext, docId: string, number: string, date: string, lines: { it: { id: string; kind: string }; qty: Money; rate: Money }[], edited: boolean) {
+  private async moveStock(tx: Tx, ctx: RequestContext, docId: string, number: string, date: string, lines: { it: { id: string; kind: string }; qty: Money; rate: Money; allocs?: BatchAlloc[] | null }[], edited: boolean) {
     const base = { businessId: ctx.businessId!, createdBy: ctx.userId, sourceType: 'sales_document', sourceId: docId };
     if (edited) await this.reverseStock(tx, ctx, docId, date, `Edited ${number}`);
     const godown = await tx.godown.findFirstOrThrow({ where: { isDefault: true, archivedAt: null } });
     const goods = lines.filter((l) => l.it.kind !== 'service');
     if (goods.length)
       await tx.stockMovement.createMany({
-        data: goods.map((l) => ({ ...base, itemId: l.it.id, godownId: godown.id, date: day(date), qty: l.qty.neg().toFixed(3), rate: l.rate.toDecimalPlaces(2).toFixed(2), kind: 'sale', note: number })),
+        data: goods.flatMap((l) => (l.allocs?.length ? l.allocs : [{ batchId: null, qty: l.qty.toFixed(3) }]).map((a) => ({ ...base, itemId: l.it.id, godownId: godown.id, date: day(date), qty: money(a.qty).neg().toFixed(3), rate: l.rate.toDecimalPlaces(2).toFixed(2), kind: 'sale', note: number, batchId: a.batchId }))),
       });
   }
 
@@ -300,6 +310,7 @@ export class SalesService {
       // the returned goods go out of stock again and its entry (credit or refund) no longer counts
       await this.ledger.cancel(tx, 'sales_document', d.id);
       await this.reverseStock(tx, ctx, d.id, today, `Cancelled ${d.number}`);
+      await refuseIfBatchShort(tx, (await tx.salesDocumentLine.findMany({ where: { documentId: d.id }, select: { batchAlloc: true } })).flatMap((l) => allocsOf(l.batchAlloc).map((a) => a.batchId)), d.number);
     }
     await tx.salesDocument.update({ where: { id }, data: { cancelledAt: at, cancelledBy: ctx.userId, cancelReason: reason, ...(d.kind === 'challan' && { status: 'cancelled' }) } });
     await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'cancel', entity: 'sales_document', entityId: id, before: d, after: { reason, movedToAdvance: movedToAdvance.toFixed(2) }, ip: ctx.ip });
@@ -363,6 +374,7 @@ export class SalesService {
       });
       if (!d || d.deletedAt) throw new NotFoundException({ message: 'That document was not found.' });
       const items = new Map((await tx.item.findMany({ where: { id: { in: d.lines.flatMap((l) => (l.itemId ? [l.itemId] : [])) } }, include: { brand: true, category: true, itemGroup: true } })).map((i) => [i.id, i]));
+      const lineBatches = new Map((await tx.batch.findMany({ where: { id: { in: d.lines.flatMap((l) => allocsOf(l.batchAlloc).flatMap((a) => (a.batchId ? [a.batchId] : []))) } } })).map((b) => [b.id, b]));
       const bal = d.kind === 'invoice' ? ((await invoiceBalances(tx, [d.id])).get(d.id) ?? money(0)) : money(d.total.toString());
       const allocs = await tx.paymentAllocation.findMany({ where: { OR: [{ salesDocumentId: d.id }, { noteId: d.id }] }, include: { payment: true }, orderBy: { createdAt: 'asc' } });
       const notes = await tx.salesDocument.findMany({ where: { id: { in: allocs.flatMap((a) => (a.noteId && a.noteId !== d.id ? [a.noteId] : [])) } }, select: { id: true, number: true, date: true, cancelledAt: true } });
@@ -384,6 +396,7 @@ export class SalesService {
           return {
             id: l.id, itemId: l.itemId, name: l.name, hsn: l.hsn, qty: q3(l.qty), unit: l.unit, price: d2(l.price), discPct: l.discPct.toString(), gstRate: l.gstRate.toString(),
             taxable: d2(l.taxable), tax: d2(l.tax), amount: d2(l.amount), basePrice: d2(l.basePrice), commOverride: l.commOverride, commType: l.commType, commValue: d2(l.commValue), commAmount: d2(l.commAmount),
+            batches: allocsOf(l.batchAlloc).map((a) => { const b = a.batchId ? lineBatches.get(a.batchId) : undefined; return { batchId: a.batchId, no: b?.batchNo ?? 'No batch', expiry: isoOf(b?.expiryDate ?? null), qty: a.qty }; }),
             againstId: l.againstId, code: it?.code ?? '', brand: it?.brand?.name ?? '', series: it?.series ?? '', group: it?.itemGroup?.name ?? '', category: it?.category?.name ?? '', categoryId: it?.categoryId ?? null,
             // today's item prices, for the optional MRP / list / wholesale columns and "You saved" on the printed invoice
             mrp: d2(it?.mrp ?? null), listPrice: d2(it?.listPrice ?? null), wholesalePrice: d2(it?.wholesalePrice ?? null),

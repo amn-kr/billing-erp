@@ -1,5 +1,5 @@
-import { BadRequestException } from '@nestjs/common';
-import { batchMonth, formatQty, money, parseBatchDate, sortBatches, stockByBatch, todayIst, type BatchRow, type Money } from '@billing/shared';
+import { BadRequestException, ConflictException } from '@nestjs/common';
+import { batchDay, batchMonth, billAllocs, expiryState, formatQty, money, parseBatchDate, sortBatches, stockByBatch, todayIst, type BatchAlloc, type BatchRow, type Money, type MoneyInput } from '@billing/shared';
 import type { AuditService } from '../../common/audit.service';
 import type { Tx } from '../../common/db.service';
 import { day, isoOf } from '../../common/lookups';
@@ -48,16 +48,78 @@ export async function resolveBatch(tx: Tx, who: Who, audit: AuditService, item: 
   return old.id;
 }
 
-/** An item's stock by batch from its stock ledger (the one lot calculation), in the order they are used. */
-export async function batchRows(tx: Tx, item: { id: string; purchasePrice: { toString(): string } }): Promise<{ rows: BatchRow[]; shortQty: string }> {
-  const moves = (await ledgerOf(tx, [item.id])).get(item.id) ?? [];
-  const { rows, shortQty } = stockByBatch(moves, item.purchasePrice.toString());
-  const info = new Map((await tx.batch.findMany({ where: { itemId: item.id } })).map((b) => [b.id, b]));
-  const out: BatchRow[] = rows.map((r) => {
-    const b = r.batchId ? info.get(r.batchId) : undefined;
-    return { id: r.batchId, no: b?.batchNo ?? 'No batch', mfg: isoOf(b?.mfgDate ?? null), expiry: isoOf(b?.expiryDate ?? null), qty: r.qty, rate: r.rate, value: r.value };
+/** Items' stock by batch from their stock ledger (the one lot calculation), in the order they are used; `exceptDoc` leaves out one document's own stock. */
+export async function batchRowsOf(tx: Tx, items: { id: string; purchasePrice: { toString(): string } }[], exceptDoc?: string): Promise<Map<string, { rows: BatchRow[]; shortQty: string }>> {
+  const ids = items.map((i) => i.id);
+  const ledger = await ledgerOf(tx, ids);
+  const info = new Map((await tx.batch.findMany({ where: { itemId: { in: ids } } })).map((b) => [b.id, b]));
+  return new Map(items.map((item) => {
+    const moves = (ledger.get(item.id) ?? []).filter((m) => !exceptDoc || m.sourceId !== exceptDoc);
+    const { rows, shortQty } = stockByBatch(moves, item.purchasePrice.toString());
+    const out: BatchRow[] = rows.map((r) => {
+      const b = r.batchId ? info.get(r.batchId) : undefined;
+      return { id: r.batchId, no: b?.batchNo ?? 'No batch', mfg: isoOf(b?.mfgDate ?? null), expiry: isoOf(b?.expiryDate ?? null), qty: r.qty, rate: r.rate, value: r.value };
+    });
+    return [item.id, { rows: sortBatches(out, todayIst()), shortQty }];
+  }));
+}
+
+export async function batchRows(tx: Tx, item: { id: string; purchasePrice: { toString(): string } }, exceptDoc?: string): Promise<{ rows: BatchRow[]; shortQty: string }> {
+  return (await batchRowsOf(tx, [item], exceptDoc)).get(item.id)!;
+}
+
+export const allocsOf = (v: unknown): BatchAlloc[] => (Array.isArray(v) ? (v as BatchAlloc[]) : []);
+
+/**
+ * The batches a bill's lines use (Features › batch_expiry): what the screen sent, checked, or earliest
+ * expiry first when it sent none (Quick sale, the API). The bill's own goods are counted as back in
+ * stock when it is edited. Expired batches need "Sell anyway", unless the saved bill already has them.
+ */
+export async function allocateSale(
+  tx: Tx,
+  o: { date: string; confirmExpired?: boolean; docId?: string; savedLines?: { batchAlloc: unknown }[]; lines: { item: { id: string; name: string; kind: string; trackBatch: boolean; purchasePrice: { toString(): string } }; qty: MoneyInput; batches?: { batchId: string | null; qty: MoneyInput }[] }[] },
+): Promise<{ allocs: (BatchAlloc[] | null)[]; expired: { item: string; batch: string; expiry: string; qty: string }[] }> {
+  const tracked = [...new Map(o.lines.filter((l) => l.item.kind !== 'service' && l.item.trackBatch).map((l) => [l.item.id, l.item])).values()];
+  if (!tracked.length) return { allocs: o.lines.map(() => null), expired: [] };
+  const stock = await batchRowsOf(tx, tracked, o.docId);
+  const rows: Record<string, BatchRow[]> = Object.fromEntries([...stock].map(([id, s]) => [id, s.rows]));
+  const known = new Map((await tx.batch.findMany({ where: { itemId: { in: tracked.map((i) => i.id) } } })).map((b) => [b.id, b]));
+  const used = new Map<string, Money>();
+  for (const l of o.lines) {
+    if (!rows[l.item.id] || !l.batches?.length) continue;
+    const total = l.batches.reduce((a, b) => a.plus(money(b.qty)), money(0));
+    if (!total.eq(money(l.qty))) throw new BadRequestException({ message: `The batches picked for “${l.item.name}” add up to ${formatQty(total)}, but its quantity is ${formatQty(l.qty)}. Pick again.`, field: 'lines' });
+    for (const b of l.batches) {
+      if (!b.batchId) continue;
+      const info = known.get(b.batchId);
+      if (!info || info.itemId !== l.item.id) throw new BadRequestException({ message: `That batch isn’t a batch of “${l.item.name}”. Pick again.`, field: 'lines' });
+      const want = (used.get(b.batchId) ?? money(0)).plus(money(b.qty));
+      used.set(b.batchId, want);
+      const have = money(rows[l.item.id]!.find((r) => r.id === b.batchId)?.qty ?? 0);
+      if (have.lt(want)) throw new BadRequestException({ message: `Only ${formatQty(have)} of “${l.item.name}” left in batch ${info.batchNo}. Pick again.`, field: 'lines', code: 'batch_short' });
+    }
+  }
+  const allocs = billAllocs(o.lines.map((l) => ({ itemId: l.item.id, qty: l.qty, hand: l.batches?.map((b) => ({ batchId: b.batchId, qty: money(b.qty).toFixed(3) })) })), rows, o.date).map((a, k) => (o.lines[k]!.item.kind === 'service' ? null : a));
+  // expired stock: compared with the bill's date; what the saved bill already sold isn't asked again
+  const saved = new Map<string, Money>();
+  for (const l of o.savedLines ?? []) for (const a of allocsOf(l.batchAlloc)) if (a.batchId) saved.set(a.batchId, (saved.get(a.batchId) ?? money(0)).plus(a.qty));
+  const expired: { item: string; batch: string; expiry: string; qty: string }[] = [];
+  allocs.forEach((list, k) => {
+    for (const a of list ?? []) {
+      const b = a.batchId ? known.get(a.batchId) : undefined;
+      const exp = isoOf(b?.expiryDate ?? null);
+      if (!b || !exp || expiryState(exp, o.date) !== 'expired') continue;
+      const had = saved.get(b.id) ?? money(0);
+      const fresh = money(a.qty).minus(had);
+      saved.set(b.id, had.minus(a.qty).lt(0) ? money(0) : had.minus(a.qty));
+      if (fresh.gt(0)) expired.push({ item: o.lines[k]!.item.name, batch: b.batchNo, expiry: exp, qty: fresh.toFixed(3) });
+    }
   });
-  return { rows: sortBatches(out, todayIst()), shortQty };
+  if (expired.length && !o.confirmExpired) {
+    const e = expired[0]!;
+    throw new ConflictException({ code: 'expired_batch', message: `${e.item}: batch ${e.batch} expired on ${batchDay(e.expiry)}. Press “Sell anyway” to sell it.`, expired });
+  }
+  return { allocs, expired };
 }
 
 /** How much is in a batch (or with no batch), refused if it is less than wanted. */

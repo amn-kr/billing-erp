@@ -45,6 +45,7 @@ export const CN_REASONS = ['Damaged goods', 'Wrong item', 'Extra quantity', 'Cus
 export const commRuleSchema = z.object({ t: z.enum(['n', 'p', 'f']), v: z.coerce.number().min(0).max(1_000_000).default(0) });
 export type CommRule = z.infer<typeof commRuleSchema>;
 
+const batchAllocsSchema = z.array(z.object({ batchId: z.string().uuid().nullable(), qty: num('Enter the quantity.') })).max(100).optional();
 export const saleLineSchema = z.object({
   itemId: z.string().uuid().nullable().optional(),
   name: opt(200),
@@ -58,6 +59,8 @@ export const saleLineSchema = z.object({
   /** referral: the rate before commission, and a rule set for this line only */
   basePrice: optNum,
   commOverride: commRuleSchema.nullable().optional(),
+  /** Features › batch_expiry: the batches this line uses; left out, the server picks earliest expiry first */
+  batches: batchAllocsSchema,
 });
 export type SaleLineInput = z.infer<typeof saleLineSchema>;
 
@@ -97,6 +100,8 @@ export const saleSchema = z.object({
   labour: num(),
   bankCharge: num(),
   lines: z.array(saleLineSchema).max(500),
+  /** Features › batch_expiry: "Sell anyway" was pressed for expired stock */
+  confirmExpired: z.boolean().optional(),
   payments: z.array(payPartSchema).max(10).optional().default([]),
   notes: opt(2000),
   extra: saleExtraSchema,
@@ -116,7 +121,7 @@ export type SaleInput = z.infer<typeof saleSchema>;
 export const saleCostSchema = z.object({
   id: z.string().uuid().nullable().optional(),
   date: isoDate,
-  lines: z.array(z.object({ itemId: z.string().uuid().nullable().optional(), qty: num('Enter the quantity.') })).max(500),
+  lines: z.array(z.object({ itemId: z.string().uuid().nullable().optional(), qty: num('Enter the quantity.'), batches: batchAllocsSchema })).max(500),
 });
 export type SaleCostInput = z.infer<typeof saleCostSchema>;
 
@@ -141,7 +146,7 @@ export const creditNoteSchema = z.object({
   settle: z.enum(['adjust', 'refund']).default('adjust'),
   refundMode: z.enum(['Cash', 'UPI', 'Bank transfer']).default('Cash'),
   lines: z
-    .array(z.object({ invoiceId: z.string().uuid().nullable().optional(), itemId: z.string().uuid(), qty: num('Enter the quantity.'), price: num('Enter the rate.'), gstRate: num() }))
+    .array(z.object({ batchId: z.string().uuid().nullable().optional(), invoiceId: z.string().uuid().nullable().optional(), itemId: z.string().uuid(), qty: num('Enter the quantity.'), price: num('Enter the rate.'), gstRate: num() }))
     .max(500),
 });
 export type CreditNoteInput = z.infer<typeof creditNoteSchema>;
