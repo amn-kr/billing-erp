@@ -41,6 +41,20 @@ export class BatchesController {
     });
   }
 
+  /** Reports › Item Batch Report: every batch with stock, earliest expiry first; stock without a batch last. */
+  @RequirePermission('reports.view')
+  @Get('reports/batches')
+  report(@Ctx() ctx: RequestContext) {
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      if (!(await batchesOn(tx, ctx.businessId!))) return [];
+      const items = await tx.item.findMany({ where: { kind: { not: 'service' }, deletedAt: null, OR: [{ trackBatch: true }, { batches: { some: {} } }] }, select: { id: true, name: true, code: true, purchasePrice: true, unit: { select: { code: true } } } });
+      const stock = await batchRowsOf(tx, items);
+      const rows = items.flatMap((i) => stock.get(i.id)!.rows.map((r) => ({ ...r, itemId: i.id, item: i.name, code: i.code, unit: i.unit?.code ?? '' })));
+      const rank = (r: { id: string | null; expiry: string | null }) => (r.expiry ? 0 : r.id ? 1 : 2);
+      return rows.sort((a, b) => rank(a) - rank(b) || (a.expiry ?? '').localeCompare(b.expiry ?? '') || a.item.localeCompare(b.item) || a.no.localeCompare(b.no));
+    });
+  }
+
   @RequirePermission('masters.manage')
   @Patch('batches/:id')
   edit(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(batchEditSchema)) body: BatchEditInput) {
