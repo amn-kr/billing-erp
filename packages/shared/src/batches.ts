@@ -149,7 +149,10 @@ export function allocText(allocs: readonly BatchAlloc[], rows: readonly Pick<Pic
   return allocs.map((a) => `${a.batchId ? rows.find((r) => r.id === a.batchId)?.no ?? '—' : 'No batch'} × ${formatQty(a.qty)}`).join(', ');
 }
 
-/** "Batch A123 × 3 (Exp 03/2040), No batch × 1", for the printed invoice. */
-export function batchPrintLine(list: readonly { no: string; expiry: string | null; qty: MoneyInput }[]): string {
-  return list.length ? `Batch ${list.map((b) => `${b.no} × ${formatQty(b.qty)}${b.expiry ? ` (Exp ${b.expiry.slice(5, 7)}/${b.expiry.slice(0, 4)})` : ''}`).join(', ')}` : '';
+/** "Batch A123 × 3 (Exp 03/2040), No batch × 1", for the printed invoice; nothing when no batch is named. */
+export function batchPrintLine(list: readonly { batchId: string | null; no: string; expiry: string | null; qty: MoneyInput }[]): string {
+  const named = list.filter((b) => b.batchId), none = list.filter((b) => !b.batchId);
+  if (!named.length) return '';
+  const text = (b: (typeof list)[number]) => `${b.no} × ${formatQty(b.qty)}${b.expiry ? ` (Exp ${b.expiry.slice(5, 7)}/${b.expiry.slice(0, 4)})` : ''}`;
+  return `Batch ${[...named, ...none].map(text).join(', ')}`;
 }

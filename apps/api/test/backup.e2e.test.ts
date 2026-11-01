@@ -436,6 +436,26 @@ describe('restore', () => {
     expect(lines).toHaveLength(2);
   });
 
+  it('restored books keep which batches a sale used, under the new ids, inside the saved list too', async () => {
+    const { o } = await shop();
+    await http().put('/api/settings/features').set(auth(o)).send({ enabled: ['batch_expiry'] }).expect(200);
+    const it = (await http().post('/api/items').set(auth(o)).send({ name: 'Tablet', kind: 'goods', unit: 'PCS', gstRate: 0, trackBatch: true }).expect(201)).body as { id: string };
+    const sup = (await http().post('/api/parties').set(auth(o)).send({ name: 'Ram Pharma', kind: 'supplier' }).expect(201)).body as { id: string };
+    await http().post('/api/purchases').set(auth(o)).send({ kind: 'bill', date: D, dueDate: D, partyId: sup.id, transport: '0', labour: '0', lines: [{ itemId: it.id, name: 'Tablet', qty: '5', rate: '10', discPct: '0', gstRate: '0', batchNo: 'B1', expiry: '03/40' }] }).expect(201);
+    const cust = (await http().post('/api/parties').set(auth(o)).send({ name: 'Raju Stores' }).expect(201)).body as { id: string };
+    await useDrive(o);
+    await svc.runDue();
+    await http().post('/api/sales').set(auth(o)).send({ kind: 'invoice', date: D, dueDate: D, mode: 'credit', partyId: cust.id, transport: '0', labour: '0', bankCharge: '0', pricesInclTax: true, roundOff: false, notes: '', extra: {}, payments: [], fromQuotationIds: [], lines: [{ itemId: it.id, name: 'Tablet', qty: '2', unit: 'PCS', price: '20', discPct: '0', gstRate: '0' }] }).expect(201);
+    await svc.runDue();
+    const r = (await http().post('/api/backup/restore').set(auth(o)).send({ from: 'drive', confirm: true }).expect(200)).body;
+    const n = { token: (await http().post('/api/businesses/switch').set(auth(o)).send({ businessId: r.businessId }).expect(201)).body.accessToken as string };
+    const newIt = ((await http().get('/api/items').set(auth(n)).expect(200)).body as { id: string; name: string }[]).find((i) => i.name === 'Tablet')!;
+    const rows = ((await http().get(`/api/items/${newIt.id}`).set(auth(n)).expect(200)).body as { batches: { rows: { id: string; no: string; qty: string }[] } }).batches.rows;
+    expect(rows).toMatchObject([{ no: 'B1', qty: '3.000' }]);
+    const saved = await asShop(r.businessId, (tx) => tx.salesDocumentLine.findMany({ where: { itemId: newIt.id } }));
+    expect(saved[0]!.batchAlloc).toEqual([{ batchId: rows[0]!.id, qty: '2.000' }]);
+  });
+
   it('an old backup, made before batches existed, restores with items untracked and stock as No batch', async () => {
     const { o } = await shop();
     await useDrive(o);
