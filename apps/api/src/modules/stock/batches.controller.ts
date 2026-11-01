@@ -6,7 +6,7 @@ import { DbService } from '../../common/db.service';
 import type { RequestContext } from '../../common/context';
 import { day } from '../../common/lookups';
 import { ZodPipe } from '../../common/zod.pipe';
-import { batchDates, batchesOn, batchRows } from './batches';
+import { batchDates, batchesOn, batchRows, batchRowsOf } from './batches';
 
 /** Features › batch_expiry: an item's stock by batch, and correcting a batch's no. or dates. */
 @Controller()
@@ -27,6 +27,17 @@ export class BatchesController {
       const item = await tx.item.findFirst({ where: { id }, select: { id: true, purchasePrice: true } });
       if (!item) throw new NotFoundException({ message: 'That item was not found.' });
       return (await batchesOn(tx, ctx.businessId!)) ? batchRows(tx, item) : { rows: [], shortQty: '0.000' };
+    });
+  }
+
+  /** The sale editor: every tracked item's stock by batch, by item id. */
+  @RequirePermission('masters.view')
+  @Get('batches')
+  all(@Ctx() ctx: RequestContext) {
+    return this.db.scoped(this.scope(ctx), async (tx) => {
+      if (!(await batchesOn(tx, ctx.businessId!))) return {};
+      const items = await tx.item.findMany({ where: { trackBatch: true, archivedAt: null, kind: { not: 'service' } }, select: { id: true, purchasePrice: true } });
+      return Object.fromEntries([...(await batchRowsOf(tx, items))].map(([id, s]) => [id, s.rows]));
     });
   }
 

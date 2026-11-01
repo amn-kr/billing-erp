@@ -115,6 +115,13 @@ describe('stock by batch', () => {
     expect(costOfGoods([...two, sale, ret]).get('c1')!.cost).toBe('240.00');
   });
 
+  it('a sale return naming no batch goes to No batch, at the cost that sale used', () => {
+    const sale: LedgerMove = { date: '2026-03-01', qty: '-3', rate: '200', kind: 'sale', sourceType: 'sales_document', sourceId: 's1', batchId: 'B' };
+    const ret: LedgerMove = { date: '2026-03-02', qty: '1', rate: '200', kind: 'return', sourceType: 'sales_document', sourceId: 'c1', against: ['s1'] };
+    expect(rows([...two, sale, ret])).toEqual([['A', '10.000', '1000.00'], [null, '1.000', '120.00'], ['B', '2.000', '240.00']]);
+    expect(costOfGoods([...two, sale, ret]).get('c1')!.cost).toBe('120.00');
+  });
+
   it('a debit note against a bill takes out of the batch it names', () => {
     const dn: LedgerMove = { date: '2026-03-01', qty: '-2', rate: '100', kind: 'purchase_return', sourceType: 'purchase_document', sourceId: 'd1', batchId: 'A', against: ['b1'] };
     expect(rows([...two, dn])).toEqual([['A', '8.000', '800.00'], ['B', '5.000', '600.00']]);

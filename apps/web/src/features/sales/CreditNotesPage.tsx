@@ -4,6 +4,8 @@
  * money is refunded); the same goods can't be returned twice.
  */
 import { useEffect, useRef, useState } from 'react';
+import { batchMonth, type BatchRow } from '@billing/shared';
+import { useFeature } from '../../lib/features';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { CN_REASONS, money } from '@billing/shared';
@@ -34,10 +36,11 @@ interface CreditNote {
 }
 interface CnDoc {
   id: string; number: string; date: string; partyId: string | null; reason: string; settle: 'adjust' | 'refund'; refundMode: string; cancelled: boolean;
-  lines: { invoiceId: string | null; itemId: string; name: string; unit: string; qty: string; price: string; gstRate: string }[];
+  lines: { batchId?: string | null; invoiceId: string | null; itemId: string; name: string; unit: string; qty: string; price: string; gstRate: string }[];
 }
-interface Returnable { itemId: string; name: string; unit: string; sold: string; max: string; price: string; gstRate: string }
-interface CnLine { inv: string; invNo: string; id: string; name: string; sold?: number; max?: number; qty: number; unit: string; price: number; gst: number; amt: number }
+interface SoldBatch { batchId: string | null; no: string; expiry: string | null; qty: string }
+interface Returnable { soldBatches?: SoldBatch[]; itemId: string; name: string; unit: string; sold: string; max: string; price: string; gstRate: string }
+interface CnLine { /** Features › batch_expiry: '' = as the invoice sold it, '__none' = No batch, else a batch */ batch?: string; sold0?: SoldBatch[]; inv: string; invNo: string; id: string; name: string; sold?: number; max?: number; qty: number; unit: string; price: number; gst: number; amt: number }
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const PLUS = '<path d="M12 5v14M5 12h14"/>';
@@ -109,6 +112,22 @@ export function CreditNotesPage() {
   );
 }
 
+/** Where a tracked item's returned goods go (Features › batch_expiry; owner-approved mock): the batch the invoice sold them from, or another. */
+function CnBatch({ itemId, line, onChange }: { itemId: string; line: CnLine; onChange: (batch: string) => void }) {
+  const all = useQuery({ queryKey: ['items', 'batches'], queryFn: () => api<Record<string, BatchRow[]>>('/batches') }).data?.[itemId] ?? [];
+  const sold = (line.sold0 ?? []).filter((b) => b.batchId);
+  const label = (no: string, exp: string | null | undefined) => `Back to ${no}${exp ? ` · Exp ${batchMonth(exp)}` : ''}`;
+  const others = [...sold.map((b) => ({ id: b.batchId!, no: b.no, expiry: b.expiry })), ...all.flatMap((r) => (r.id ? [{ id: r.id, no: r.no, expiry: r.expiry }] : []))].filter((b, k, a) => a.findIndex((x) => x.id === b.id) === k);
+  const only = (line.sold0 ?? []).length === 1 ? line.sold0![0]! : null;
+  return (
+    <select aria-label={`Batch for ${line.name}`} data-cnbatch={line.name} value={line.batch ?? ''} onChange={(e) => onChange(e.target.value)} style={{ display: 'block', fontSize: ui.fs(11.5), fontWeight: 600, color: 'var(--ac)', background: 'none', border: 0, padding: 0, marginTop: ui.sp(2), maxWidth: '100%', cursor: 'pointer' }}>
+      {line.inv ? <option value="">{only ? label(only.no, only.expiry) : 'Back to the batches sold'}</option> : <option value="">Back to No batch</option>}
+      {only?.batchId === null ? null : line.inv ? <option value="__none">Back to No batch</option> : null}
+      {others.filter((b) => b.id !== only?.batchId).map((b) => <option value={b.id} key={b.id}>{label(b.no, b.expiry)}</option>)}
+    </select>
+  );
+}
+
 /** New credit note (#cnm). `open.invoice` starts with that invoice ticked; `open.edit` edits a saved one (same number, passcode when it is on). */
 export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string; edit?: string } | null; onClose: () => void }) {
   const qc = useQueryClient();
@@ -116,6 +135,7 @@ export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string; 
   const gst = !!useSettings().data?.gstEnabled;
   const ref = useRef<HTMLDivElement>(null);
   const isOpen = !!open;
+  const batchOn = useFeature('batch_expiry');
   const parties = useQuery({ queryKey: ['parties'], queryFn: () => api<Party[]>('/parties'), enabled: isOpen });
   const items = useQuery({ queryKey: ['items'], queryFn: () => api<Item[]>('/items'), enabled: isOpen });
   const sales = useSales('invoice');
@@ -155,7 +175,7 @@ export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string; 
       // editing: what this credit note returned can be returned again
       const ret = await qc.fetchQuery({ queryKey: ['returnable', s.id, editId], queryFn: () => api<Returnable[]>(`/sales/${s.id}/returnable${editId ? `?except=${editId}` : ''}`), staleTime: 0 });
       setInvs((x) => [...x, s.id]);
-      setLines((x) => [...x, ...ret.map((l) => ({ inv: s.id, invNo: s.number, id: l.itemId, name: l.name, sold: Number(l.sold), max: Number(l.max), qty: 0, unit: l.unit, price: Number(l.price), gst: Number(l.gstRate), amt: 0 }))]);
+      setLines((x) => [...x, ...ret.map((l) => ({ sold0: l.soldBatches, inv: s.id, invNo: s.number, id: l.itemId, name: l.name, sold: Number(l.sold), max: Number(l.max), qty: 0, unit: l.unit, price: Number(l.price), gst: Number(l.gstRate), amt: 0 }))]);
     } else {
       setInvs((x) => x.filter((i) => i !== s.id));
       setLines((x) => x.filter((l) => l.inv !== s.id));
@@ -189,7 +209,7 @@ export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string; 
           const mine = d.lines.find((x) => x.invoiceId === inv && x.itemId === l.itemId);
           const qty = mine ? Number(mine.qty) : 0;
           const price = mine ? Number(mine.price) : Number(l.price);
-          out.push({ inv, invNo, id: l.itemId, name: l.name, sold: Number(l.sold), max: Number(l.max), qty, unit: l.unit, price, gst: Number(l.gstRate), amt: r2(qty * price) });
+          out.push({ batch: mine?.batchId === null ? '__none' : mine?.batchId ?? '', sold0: l.soldBatches, inv, invNo, id: l.itemId, name: l.name, sold: Number(l.sold), max: Number(l.max), qty, unit: l.unit, price, gst: Number(l.gstRate), amt: r2(qty * price) });
         }
       }
       for (const l of d.lines.filter((x) => !x.invoiceId)) out.push({ inv: '', invNo: '', id: l.itemId, name: l.name, qty: Number(l.qty), unit: l.unit, price: Number(l.price), gst: Number(l.gstRate), amt: r2(Number(l.qty) * Number(l.price)) });
@@ -215,7 +235,7 @@ export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string; 
     if (party === '__cash' && settle !== 'refund') return fail('Counter sales have no customer account. Choose “Refund now”.');
     setBusy(true);
     try {
-      const body = { partyId: party === '__cash' ? null : party, date, reason, settle, refundMode: refMode, lines: L.map((l) => ({ invoiceId: l.inv || null, itemId: l.id, qty: String(l.qty), price: String(l.price), gstRate: String(l.gst) })) };
+      const body = { partyId: party === '__cash' ? null : party, date, reason, settle, refundMode: refMode, lines: L.map((l) => ({ ...(l.batch === '__none' ? { batchId: null } : l.batch ? { batchId: l.batch } : {}), invoiceId: l.inv || null, itemId: l.id, qty: String(l.qty), price: String(l.price), gstRate: String(l.gst) })) };
       if (editId) { if (!(await withPasscode(qc, editAsk(editNo), (h) => api(`/credit-notes/${editId}`, { method: 'PUT', body, headers: h })))) return; }
       else await api('/credit-notes', { method: 'POST', body });
       onClose();
@@ -225,7 +245,7 @@ export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string; 
     finally { setBusy(false); }
   };
   const row = ([l, k]: [CnLine, number]) => (
-    <tr data-cnk={k} className={l.qty > 0 ? 'cnon' : ''} key={k}><td><b>{l.name}</b></td><td className="n mu">{l.max !== undefined ? <>{qfmt(l.max)} {l.unit}{l.max < (l.sold ?? 0) ? <small style={{ display: 'block' }}>of {qfmt(l.sold ?? 0)} sold</small> : null}</> : '—'}</td>
+    <tr data-cnk={k} className={l.qty > 0 ? 'cnon' : ''} key={k}><td><b>{l.name}</b>{batchOn && items.data?.find((i) => i.id === l.id)?.trackBatch ? <CnBatch itemId={l.id} line={l} onChange={(batch) => setLine(k, { batch })} /> : null}</td><td className="n mu">{l.max !== undefined ? <>{qfmt(l.max)} {l.unit}{l.max < (l.sold ?? 0) ? <small style={{ display: 'block' }}>of {qfmt(l.sold ?? 0)} sold</small> : null}</> : '—'}</td>
       <td className="n"><input className="fi sm n" data-cnq value={l.qty || ''} placeholder="0" inputMode="decimal" style={{ width: 72 }} disabled={l.max === 0} title={l.max === 0 ? 'Already returned' : undefined}
         onChange={(e) => { const v = Number(e.target.value.replace(/[^\d.]/g, '')) || 0; if (l.max !== undefined && v > l.max) { setLine(k, { qty: l.max, amt: r2(l.max * l.price) }); showToast(`Only ${qfmt(l.max)} can be returned on ${l.invNo}`); } else setLine(k, { qty: v, amt: r2(v * l.price) }); }} /></td>
       <td className="n"><input className="fi sm n" data-cnp value={l.price || ''} inputMode="decimal" style={{ width: 88 }} onChange={(e) => { const v = Number(e.target.value.replace(/[^\d.]/g, '')) || 0; setLine(k, { price: v, amt: r2(l.qty * v) }); }} /></td>

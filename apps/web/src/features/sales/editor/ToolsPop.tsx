@@ -2,6 +2,8 @@
  * The invoice extras pop-up (#siPop, prototype dgPopBody / plBody): transport details,
  * terms & conditions, description, attachments and profit & loss on this bill.
  */
+import { useEditorData } from './data';
+import { saleAllocs } from './batches';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { formatQty, money, profitRows, type LineCost } from '@billing/shared';
 import { Icon } from '../../../components/Icon';
@@ -65,7 +67,10 @@ export function ToolBody({ k, s, ctx, up, onFiles, toast }: { k: ToolKey; s: SI;
 function PlBody({ s, ctx }: { s: SI; ctx: Ctx }) {
   const c = calc(ctx, s);
   const L = s.lines.map((l, i) => ({ l, r: c.rows[i]! })).filter((x) => x.l.item && Number(x.l.qty) > 0);
-  const body = { id: s.doc === 'sale' ? s.editId : null, date: s.date, lines: L.map(({ l }) => ({ itemId: l.item!.id, qty: String(l.qty) })) };
+  // Features › batch_expiry: a line's cost is the cost of the batches it uses
+  const d = useEditorData();
+  const allocs = d ? saleAllocs(d, s) : [];
+  const body = { id: s.doc === 'sale' ? s.editId : null, date: s.date, lines: L.map(({ l }) => { const a = allocs[s.lines.indexOf(l)]; return { itemId: l.item!.id, qty: String(l.qty), ...(a?.length ? { batches: a } : {}) }; }) };
   const q = useQuery({ queryKey: ['sale-cost', body], queryFn: () => api<{ lines: LineCost[] }>('/sales/cost', { method: 'POST', body }), enabled: L.length > 0, placeholderData: keepPreviousData });
   const head = <div className="dgph"><b>Profit &amp; loss · this bill</b><small className="mu">Before GST · after discounts</small></div>;
   if (!L.length) return <>{head}<div className="ptempty">Add items to see the profit on this bill.</div></>;

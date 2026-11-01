@@ -4,6 +4,7 @@
  * is "No batch". Dates are ISO; shops mostly type them as printed on the pack, MM/YY.
  */
 import { daysBetween } from './dates.js';
+import { formatQty, money, type Money, type MoneyInput } from './money.js';
 
 export type BatchDateKind = 'mfg' | 'expiry';
 /** expiring within this many days shows as "soon" */
@@ -72,4 +73,86 @@ export interface BatchRow { id: string | null; no: string; mfg: string | null; e
 export function sortBatches<T extends { id: string | null; no: string; expiry: string | null }>(rows: readonly T[], on: string): T[] {
   const rank = (r: T) => (r.expiry && expiryState(r.expiry, on) === 'expired' ? 0 : r.id === null ? 1 : r.expiry ? 2 : 3);
   return [...rows].sort((a, b) => rank(a) - rank(b) || (a.expiry ?? '').localeCompare(b.expiry ?? '') || a.no.localeCompare(b.no));
+}
+
+/* ───────── which batches a sale uses ───────── */
+
+/** Part of a line taken from one batch. batchId null = stock without a batch, or more than is in stock. */
+export interface BatchAlloc { batchId: string | null; qty: string }
+export type PickRow = Pick<BatchRow, 'id' | 'no' | 'expiry' | 'qty'>;
+export interface BillLine { itemId: string; qty: MoneyInput; /** chosen by hand, or saved on the bill */ hand?: readonly BatchAlloc[] | null }
+
+const keyOf = (item: string, batch: string | null) => `${item}|${batch ?? ''}`;
+const q3 = (v: Money) => v.toDecimalPlaces(3).toFixed(3);
+const merged = (list: { batchId: string | null; qty: Money }[]): BatchAlloc[] => {
+  const by = new Map<string | null, Money>();
+  for (const a of list) by.set(a.batchId, (by.get(a.batchId) ?? money(0)).plus(a.qty));
+  return [...by].filter(([, q]) => q.gt(0)).map(([batchId, q]) => ({ batchId, qty: q3(q) }));
+};
+
+/**
+ * The batches a bill's lines use (owner, 1 Nov 2026): lines chosen by hand first, then the others in
+ * order, each taking what is left. Automatic picking goes in the shown order (sortBatches), never uses
+ * an expired batch, and anything beyond the stock goes to No batch, as selling more than is in stock
+ * always has. A hand choice that no longer matches its quantity is topped up the same way, or trimmed
+ * from the end of the order. `on` is the bill's date. Lines of items not in `rows` get null.
+ */
+export function billAllocs(lines: readonly BillLine[], rows: Readonly<Record<string, readonly PickRow[] | undefined>>, on: string): (BatchAlloc[] | null)[] {
+  const taken = new Map<string, Money>();
+  const reserve = (item: string, batch: string | null, q: Money) => taken.set(keyOf(item, batch), (taken.get(keyOf(item, batch)) ?? money(0)).plus(q));
+  const auto = (item: string, want: Money): { batchId: string | null; qty: Money }[] => {
+    const out: { batchId: string | null; qty: Money }[] = [];
+    let left = want;
+    for (const r of sortBatches(rows[item] ?? [], on)) {
+      if (left.lte(0)) break;
+      if (expiryState(r.expiry, on) === 'expired') continue;
+      const have = money(r.qty).minus(taken.get(keyOf(item, r.id)) ?? 0);
+      if (have.lte(0)) continue;
+      const t = have.lt(left) ? have : left;
+      out.push({ batchId: r.id, qty: t });
+      reserve(item, r.id, t);
+      left = left.minus(t);
+    }
+    if (left.gt(0)) { out.push({ batchId: null, qty: left }); reserve(item, null, left); }
+    return out;
+  };
+  const out: (BatchAlloc[] | null)[] = lines.map(() => null);
+  const need = lines.map((l) => (money(l.qty).gt(0) ? money(l.qty) : money(0)));
+  // what was chosen by hand is reserved before anything is picked automatically
+  const kept = lines.map((l, k) => {
+    if (!rows[l.itemId] || !l.hand?.length) return null;
+    const order = [...l.hand].sort((a, b) => {
+      const list = sortBatches(rows[l.itemId]!, on), at = (id: string | null) => list.findIndex((r) => r.id === id);
+      return at(a.batchId) - at(b.batchId);
+    });
+    let left = need[k]!;
+    const keep: { batchId: string | null; qty: Money }[] = [];
+    for (const a of order) {
+      if (left.lte(0)) break;
+      const t = money(a.qty).lt(left) ? money(a.qty) : left;
+      keep.push({ batchId: a.batchId, qty: t });
+      reserve(l.itemId, a.batchId, t);
+      left = left.minus(t);
+    }
+    return { keep, left };
+  });
+  lines.forEach((l, k) => {
+    if (!rows[l.itemId]) return;
+    const h = kept[k];
+    out[k] = merged(h ? [...h.keep, ...(h.left.gt(0) ? auto(l.itemId, h.left) : [])] : auto(l.itemId, need[k]!));
+  });
+  return out;
+}
+
+/** "A123 × 3, No batch × 1", for the sale line. */
+export function allocText(allocs: readonly BatchAlloc[], rows: readonly Pick<PickRow, 'id' | 'no'>[]): string {
+  return allocs.map((a) => `${a.batchId ? rows.find((r) => r.id === a.batchId)?.no ?? '—' : 'No batch'} × ${formatQty(a.qty)}`).join(', ');
+}
+
+/** "Batch A123 × 3 (Exp 03/2040), No batch × 1", for the printed invoice; nothing when no batch is named. */
+export function batchPrintLine(list: readonly { batchId: string | null; no: string; expiry: string | null; qty: MoneyInput }[]): string {
+  const named = list.filter((b) => b.batchId), none = list.filter((b) => !b.batchId);
+  if (!named.length) return '';
+  const text = (b: (typeof list)[number]) => `${b.no} × ${formatQty(b.qty)}${b.expiry ? ` (Exp ${b.expiry.slice(5, 7)}/${b.expiry.slice(0, 4)})` : ''}`;
+  return `Batch ${[...named, ...none].map(text).join(', ')}`;
 }

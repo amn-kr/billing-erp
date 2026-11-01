@@ -154,7 +154,8 @@ function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
   };
   /**
    * Puts back up to `want` of what sales took (newest first), only those sales `pick` accepts. A return
-   * naming a batch takes what was sold from that batch first (`sameBatch`), and its goods carry that label.
+   * naming a batch takes what was sold from that batch first (`sameBatch`); its goods carry the label the
+   * return names (none = No batch), and the cost that sale used.
    */
   const putBack = (want: Money, pick: (src: string) => boolean, m: Move, sameBatch = false) => {
     for (let k = sold.length - 1; k >= 0 && want.gt(0); k--) {
@@ -163,7 +164,7 @@ function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
       const t = want.lt(s.qty) ? want : s.qty;
       const l = layers[s.i]!;
       l.qty = l.qty.plus(t);
-      l.parts.unshift({ qty: t, cost: s.cost, src: s.src, batch: m.batch || s.batch });
+      l.parts.unshift({ qty: t, cost: s.cost, src: s.src, batch: m.batch });
       priced(g(m.src), t, s.cost);
       s.qty = s.qty.minus(t);
       if (s.qty.isZero()) sold.splice(k, 1);

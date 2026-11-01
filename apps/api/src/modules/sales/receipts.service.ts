@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { money, toDb, todayIst, type CreditNoteInput, type ChallanInput, type Money, type ReceiptInput } from '@billing/shared';
+import { money, toDb, todayIst, type BatchAlloc, type CreditNoteInput, type ChallanInput, type Money, type ReceiptInput } from '@billing/shared';
 import { Prisma } from '@prisma/client';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
@@ -10,6 +10,7 @@ import { day, isoOf } from '../../common/lookups';
 import { invoiceBalances, openDues, unusedAmounts } from './dues';
 import { accountFor, cashBankFor, cancelPayment, cancelPendingCheques, moneyInLines } from './money-in';
 import { reverseStock } from './stock-back';
+import { allocsOf, batchesOn, refuseIfBatchShort } from '../stock/batches';
 import { linkedToInvoice } from './sales.service';
 import { ALREADY_DELETED, deleteMark } from '../../common/deleting';
 import { reconciledIn, reconciledMessage } from '../../common/editing';
@@ -184,11 +185,13 @@ export class ReceiptsService {
       const inv = await tx.salesDocument.findFirst({ where: { id: invoiceId, kind: 'invoice', deletedAt: null }, include: { lines: { orderBy: { position: 'asc' } } } });
       if (!inv) throw new NotFoundException({ message: 'That invoice was not found.' });
       const back = await this.returned(tx, invoiceId, except);
+      const lineBatches = new Map((await tx.batch.findMany({ where: { id: { in: inv.lines.flatMap((l) => allocsOf(l.batchAlloc).flatMap((a) => (a.batchId ? [a.batchId] : []))) } } })).map((b) => [b.id, b]));
       return inv.lines.map((l) => {
         const sold = money(l.qty.toString());
         const left = sold.minus(back.get(l.itemId ?? '') ?? 0);
         const price = money(l.price.toString()).times(money(1).minus(money(l.discPct.toString()).div(100)));
-        return { itemId: l.itemId, name: l.name, unit: l.unit, sold: q3(sold), max: q3(left.isNegative() ? 0 : left), price: price.toDecimalPlaces(2).toFixed(2), gstRate: l.gstRate.toString() };
+        return { itemId: l.itemId, name: l.name, unit: l.unit, sold: q3(sold), max: q3(left.isNegative() ? 0 : left), price: price.toDecimalPlaces(2).toFixed(2), gstRate: l.gstRate.toString(),
+          soldBatches: allocsOf(l.batchAlloc).map((a) => ({ batchId: a.batchId, no: a.batchId ? lineBatches.get(a.batchId)?.batchNo ?? '' : 'No batch', expiry: a.batchId ? isoOf(lineBatches.get(a.batchId)?.expiryDate ?? null) : null, qty: a.qty })) };
       });
     });
   }
@@ -219,7 +222,9 @@ export class ReceiptsService {
       await tx.paymentAllocation.deleteMany({ where: { noteId: id } });
       await reverseStock(tx, { businessId: ctx.businessId!, userId: ctx.userId }, id, isoOf(d.date)!, `Edited ${d.number}`);
       await tx.salesDocumentLine.deleteMany({ where: { documentId: id } });
-      return this.writeCreditNote(tx, ctx, input, { ...d, settled });
+      const out = await this.writeCreditNote(tx, ctx, input, { ...d, settled });
+      await refuseIfBatchShort(tx, d.lines.flatMap((l) => allocsOf(l.batchAlloc).map((a) => a.batchId)), d.number);
+      return out;
     });
   }
 
@@ -231,7 +236,7 @@ export class ReceiptsService {
       const x = d.extra as Record<string, string>;
       return {
         id: d.id, number: d.number, date: isoOf(d.date), partyId: d.partyId, reason: d.reason, settle: d.status, refundMode: x.refundMode || 'Cash', cancelled: !!d.cancelledAt,
-        lines: d.lines.map((l) => ({ invoiceId: l.againstId, itemId: l.itemId, name: l.name, unit: l.unit, qty: q3(l.qty), price: toDb(l.price.toString()), gstRate: l.gstRate.toString() })),
+        lines: d.lines.map((l) => ({ batchId: allocsOf(l.batchAlloc).length === 1 ? allocsOf(l.batchAlloc)[0]!.batchId : undefined, invoiceId: l.againstId, itemId: l.itemId, name: l.name, unit: l.unit, qty: q3(l.qty), price: toDb(l.price.toString()), gstRate: l.gstRate.toString() })),
       };
     });
   }
@@ -286,12 +291,65 @@ export class ReceiptsService {
     const cn = before
       ? await tx.salesDocument.update({ where: { id: before.id }, data: head })
       : await tx.salesDocument.create({ data: { ...head, businessId, createdBy: ctx.userId, kind: 'credit_note', number } });
+    /*
+     * Features › batch_expiry: a tracked item's goods go back to the batch chosen; left to itself, to the
+     * batches that invoice sold them from, what was returned already taken off; none = No batch.
+     */
+    const cnAllocs: (BatchAlloc[] | null)[] = rows.map(() => null);
+    if (await batchesOn(tx, businessId)) {
+      const left = new Map<string, BatchAlloc[]>();
+      const fromInvoice = async (invoiceId: string, itemId: string) => {
+        const key = `${invoiceId}|${itemId}`;
+        if (!left.has(key)) {
+          const sold = (await tx.salesDocumentLine.findMany({ where: { documentId: invoiceId, itemId }, orderBy: { position: 'asc' } })).flatMap((l) => allocsOf(l.batchAlloc));
+          const back = (await tx.salesDocumentLine.findMany({ where: { againstId: invoiceId, itemId, document: { kind: 'credit_note', cancelledAt: null, ...(before && { id: { not: before.id } }) } } })).flatMap((l) => allocsOf(l.batchAlloc));
+          const list = sold.map((a) => ({ ...a }));
+          for (const b of back) {
+            let q = money(b.qty);
+            for (const a of list) {
+              if (a.batchId !== b.batchId || q.lte(0)) continue;
+              const t = q.lt(a.qty) ? q : money(a.qty);
+              a.qty = money(a.qty).minus(t).toFixed(3);
+              q = q.minus(t);
+            }
+          }
+          left.set(key, list);
+        }
+        return left.get(key)!;
+      };
+      for (const [k, r] of rows.entries()) {
+        const it = items.get(r.l.itemId)!;
+        if (it.kind === 'service' || !it.trackBatch) continue;
+        const want = money(r.l.qty);
+        if (r.l.batchId) {
+          if (!(await tx.batch.findFirst({ where: { id: r.l.batchId, itemId: it.id } }))) throw new BadRequestException({ message: `That batch isn’t a batch of “${it.name}”. Pick again.` });
+          cnAllocs[k] = [{ batchId: r.l.batchId, qty: want.toFixed(3) }];
+        } else if (r.l.batchId === null || !r.l.invoiceId) cnAllocs[k] = [{ batchId: null, qty: want.toFixed(3) }];
+        else {
+          // newest piece of the invoice first, as the lot calculation puts goods back
+          const list = await fromInvoice(r.l.invoiceId, it.id);
+          const out: BatchAlloc[] = [];
+          let q = want;
+          for (const a of [...list].reverse()) {
+            if (q.lte(0)) break;
+            const t = q.lt(a.qty) ? q : money(a.qty);
+            if (t.lte(0)) continue;
+            out.push({ batchId: a.batchId, qty: t.toFixed(3) });
+            a.qty = money(a.qty).minus(t).toFixed(3);
+            q = q.minus(t);
+          }
+          if (q.gt(0)) out.push({ batchId: null, qty: q.toFixed(3) });
+          cnAllocs[k] = out;
+        }
+      }
+    }
     await tx.salesDocumentLine.createMany({
       data: rows.map((r, k) => {
         const it = items.get(r.l.itemId)!;
         return {
           businessId, documentId: cn.id, position: k, itemId: it.id, name: it.name, hsn: it.hsn, qty: money(r.l.qty).toFixed(3), unit: it.unit?.code ?? '',
           price: toDb(r.l.price), gstRate: r.g.toFixed(2), taxable: r.tv.toFixed(2), tax: r.tx.toFixed(2), amount: r.amt.toFixed(2), againstId: r.l.invoiceId ?? null,
+          batchAlloc: cnAllocs[k] ? (cnAllocs[k] as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
         };
       }),
     });
@@ -301,10 +359,10 @@ export class ReceiptsService {
     const goods = rows.filter((r) => items.get(r.l.itemId)!.kind !== 'service');
     if (goods.length)
       await tx.stockMovement.createMany({
-        data: goods.map((r) => ({
-          businessId, createdBy: ctx.userId, itemId: r.l.itemId, godownId: godown.id, date: day(input.date), qty: money(r.l.qty).toFixed(3), rate: toDb(r.l.price),
-          kind: 'return', sourceType: 'sales_document', sourceId: cn.id, note: number,
-        })),
+        data: goods.flatMap((r) => (cnAllocs[rows.indexOf(r)] ?? [{ batchId: null, qty: money(r.l.qty).toFixed(3) }]).map((a) => ({
+          businessId, createdBy: ctx.userId, itemId: r.l.itemId, godownId: godown.id, date: day(input.date), qty: money(a.qty).toFixed(3), rate: toDb(r.l.price),
+          kind: 'return', sourceType: 'sales_document', sourceId: cn.id, note: number, batchId: a.batchId,
+        }))),
       });
 
     /* settle: adjust against the invoices it returns, or refund now */
