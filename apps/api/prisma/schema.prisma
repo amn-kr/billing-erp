@@ -372,6 +372,8 @@ model BusinessSettings {
   gstEnabled Boolean  @default(false) @map("gst_enabled")
   /// Everything else from the prototype's Settings screens, filled in by later phases.
   data       Json     @default("{}")
+  /// Settings › Features: kept apart from data, so the settings save (open to managers) can't change it.
+  features   String[] @default([])
   createdBy  String   @map("created_by") @db.Uuid
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
