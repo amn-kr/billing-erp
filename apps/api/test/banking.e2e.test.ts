@@ -1,4 +1,5 @@
 import type { INestApplication } from '@nestjs/common';
+import { addDays, todayIst } from '@billing/shared';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { auth, member, owner, startApp } from './helpers';
@@ -97,7 +98,8 @@ describe('the money book', () => {
     const o = await owner(app);
     const h = (await http().post('/api/banking/accounts').set(auth(o)).send({ name: 'HDFC Bank', openingBalance: '1000' }).expect(201)).body;
     const r0 = (await http().get(`/api/banking/accounts/${h.id}/reconciliation`).set(auth(o)).expect(200)).body;
-    expect(r0).toEqual({ asOf: '2026-09-30', statement: null, ticked: [] });
+    // the last day of last month (API tests run on the real date)
+    expect(r0).toEqual({ asOf: addDays(todayIst().slice(0, 8) + '01', -1), statement: null, ticked: [] });
     await move(o, { kind: 'in', accountId: h.id, amount: '412', category: 'Interest received', date: '2026-09-29' }).expect(201);
     const line = (await book(o, h.id)).entries[0].key;
     await http().put(`/api/banking/accounts/${h.id}/reconciliation`).set(auth(o)).send({ asOf: '2026-09-30', statement: '1412', ticked: [line] }).expect(200);

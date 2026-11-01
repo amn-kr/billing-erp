@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { addDays, formatInr2, money, todayIst, type BankEntryInput, type CashBankAccountInput, type Money } from '@billing/shared';
+import { planToday } from '../../config';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import { NumberingService } from '../../common/numbering.service';
@@ -234,7 +235,8 @@ export class BankingService {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const r = await tx.reconciliation.findFirst({ where: { accountId }, orderBy: { updatedAt: 'desc' } });
       if (r) return { asOf: isoOf(r.statementDate)!, statement: r.statementBalance === null ? null : money(r.statementBalance.toString()).toFixed(2), ticked: (r.cleared as string[]) ?? [] };
-      const t = todayIst();
+      // the test date under NODE_ENV=test, like the rest of the tests' "today"
+      const t = planToday();
       return { asOf: addDays(t.slice(0, 8) + '01', -1), statement: null, ticked: [] as string[] };
     });
   }
