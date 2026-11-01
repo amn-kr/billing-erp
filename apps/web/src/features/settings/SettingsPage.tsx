@@ -6,11 +6,13 @@ import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { api, ApiError } from '../../lib/api';
-import { Icon } from '../../components/Icon';
+import { Icon, RawIcon } from '../../components/Icon';
 import type { IconName } from '../../components/icon-paths';
 import { soon, useShell } from '../shell/store';
 import type { PriceList } from '../prices/model';
+import { useMe } from '../../lib/me';
 import { GeneralTab } from './GeneralTab';
+import { FeatureCards } from './FeaturesTab';
 import { showCard } from './BackupCard';
 import { ITEM_PREFIX } from '@billing/shared';
 import { Sw, useS, useSaveS, useSetTab, type SetTab } from './model';
@@ -22,12 +24,14 @@ import { ui } from '../../styles/uiSize';
 const SUB: [IconName, string, string?][] = [['crown', 'Subscription', 'sub'], ['gear', 'General'], ['receipt', 'Transactions'], ['doc', 'Print & invoice'], ['pct', 'Taxes & GST'], ['chat', 'Messages'], ['users', 'Parties'], ['box', 'Items'], ['bell', 'Reminders'], ['book', 'Accounting'], ['swap', 'Multi-currency']];
 const SETTABS: Record<string, SetTab> = { 'Print & invoice': 'print', 'Taxes & GST': 'tax', Transactions: 'txn', Items: 'items', General: 'gen' };
 const LIST = '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>';
+const FEATURES_ICON = '<path d="M4 7h16M4 12h16M4 17h10"/>';
 const HEAD = {
   tax: ['Taxes & GST', 'Turn tax features on or off. Changes save on their own and apply across the app.'],
   txn: ['Transactions', 'How sales, purchases and payments are numbered and what their header shows. Changes save on their own.'],
   items: ['Items & prices', 'Choose which price lists you use. Changes save on their own and apply across the app.'],
   gen: ['General', 'App-wide display preferences. Changes save on their own.'],
   print: ['Print & invoice', 'Choose how your printed invoices look. Changes save on their own and apply to every preview, print and PDF.'],
+  features: ['Features', 'Choose what this shop uses. Only the shop owner can change this. Changes save on their own.'],
 } as const;
 /** back from Google's sign-in (Settings › General › Backup & restore › Connect Google Drive) */
 const DRIVE_BACK: Record<string, string> = {
@@ -38,7 +42,10 @@ const DRIVE_BACK: Record<string, string> = {
 const ruleTxt = (p: PriceList) => (p.rule === 'base' ? 'Same as item sale price' : p.rule === 'disc' ? `${Number(p.value)}% off sale price` : `Purchase price + ${Number(p.value)}%`);
 
 export function SettingsPage() {
-  const { tab, set } = useSetTab();
+  const { tab: openTab, set } = useSetTab();
+  // Features is for the shop's owner only, also when the owner left it open in this browser and someone else signed in
+  const owner = useMe().data?.role === 'owner';
+  const tab = openTab === 'features' && !owner ? 'tax' : openTab;
   const { S, taxes, ready } = useS();
   const navigate = useNavigate();
   const location = useLocation();
@@ -76,6 +83,7 @@ export function SettingsPage() {
                 onClick={() => (t ? set(t) : view ? soon('Subscription') : soon(`${label} settings`))}><Icon name={ic} />{label}</button>
             );
           })}
+          {owner && <button className={tab === 'features' ? 'on' : ''} aria-current={tab === 'features' ? 'page' : undefined} data-settab={tab === 'features' ? undefined : 'features'} onClick={() => set('features')}><RawIcon d={FEATURES_ICON} />Features</button>}
         </nav>
         <div className="setc">
           {isTax ? <TaxCards /> : null}
@@ -83,6 +91,7 @@ export function SettingsPage() {
           {tab === 'gen' && <GeneralTab />}
           {tab === 'print' && <><PrinterTabs />{pr ? <PrintCards /> : <ThermalSoon />}</>}
           {tab === 'txn' && <TxnCards />}
+          {tab === 'features' && <FeatureCards />}
         </div>
         {isTax ? <TaxPreview /> : pr ? <PrintPreview /> : <aside className="card pv" id="pv" hidden></aside>}
       </div>
