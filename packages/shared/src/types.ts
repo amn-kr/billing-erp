@@ -1,4 +1,5 @@
 import type { Permission, RoleKey } from './permissions.js';
+import type { FeatureKey } from './features.js';
 
 /** How tightly each person's screens are laid out (Settings › General › Display); Comfortable is the prototype's look. */
 export const DENSITY_KEYS = ['comfortable', 'compact'] as const;
@@ -40,6 +41,8 @@ export interface MeBusiness {
   plan: 'trial' | 'paid' | 'expired';
   /** ISO date the trial or paid plan ends (inclusive). */
   planEndsOn: string;
+  /** What the shop's owner turned on in Settings › Features. */
+  features: FeatureKey[];
 }
 
 export interface MeResponse {

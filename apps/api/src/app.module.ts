@@ -37,6 +37,7 @@ import { PricingService } from './modules/pricing/pricing.service';
 import { SettingsController } from './modules/settings/settings.controller';
 import { PrefixesController } from './modules/settings/prefixes.controller';
 import { PasscodeController } from './modules/settings/passcode.controller';
+import { FeaturesController } from './modules/settings/features.controller';
 import { PasscodeService } from './modules/settings/passcode.service';
 import { PasscodeInterceptor } from './modules/settings/passcode.interceptor';
 import { CommissionController } from './modules/commission/commission.controller';
@@ -70,7 +71,7 @@ import { OWNER_CONTROLLERS, OWNER_PROVIDERS } from './owner';
     }),
   ],
   controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HistoryController, HealthController, ImportsController,
-    PartiesController, ItemsController, BrandsController, StockController, PricingController, SettingsController, PrefixesController, PasscodeController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController, BackupController, DriveController, ...OWNER_CONTROLLERS],
+    PartiesController, ItemsController, BrandsController, StockController, PricingController, SettingsController, PrefixesController, PasscodeController, FeaturesController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController, BackupController, DriveController, ...OWNER_CONTROLLERS],
   providers: [
     DbService,
     BackupService,

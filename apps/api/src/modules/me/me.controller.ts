@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Patch } from '@nestjs/common';
-import { DENSITY_KEYS, TEXT_SIZE_KEYS, daysBetween, type Density, type MeBusiness, type MeResponse, type RoleKey, type TextSize } from '@billing/shared';
+import { DENSITY_KEYS, TEXT_SIZE_KEYS, daysBetween, enabledFeatures, type Density, type MeBusiness, type MeResponse, type RoleKey, type TextSize } from '@billing/shared';
 import { z } from 'zod';
 import { Ctx, WithTempPassword } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
@@ -44,7 +44,7 @@ export class MeController {
         const plan: MeBusiness['plan'] = daysBetween(today, ends) < 0 ? 'expired' : b.planStatus === 'paid' ? 'paid' : 'trial';
         business = {
           id: b.id, code: b.code, name: b.name, short: b.shortName, city: b.city, gstin: b.gstin, state: b.stateCode,
-          gstEnabled: !!b.settings?.gstEnabled, plan, planEndsOn: ends,
+          gstEnabled: !!b.settings?.gstEnabled, plan, planEndsOn: ends, features: enabledFeatures(b.settings?.features),
         };
       }
       return {
