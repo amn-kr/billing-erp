@@ -10,7 +10,7 @@ export interface PurchaseRow {
   party: { id: string; name: string; gstin: string }; partyName: string; total: string; paid: string; balance: string;
   items: number; qty: string; status: 'open' | 'received' | 'cancelled'; cancelled: boolean; reason: string; against: string; fromOrder: string; bill: string; legacy: boolean;
 }
-export interface PurchaseLine { id: string; itemId: string; name: string; hsn: string; qty: string; unit: string; rate: string; discPct: string; gstRate: string; taxable: string; tax: string; amount: string }
+export interface PurchaseLine { batchId?: string | null; batchNo?: string; mfg?: string | null; expiry?: string | null; id: string; itemId: string; name: string; hsn: string; qty: string; unit: string; rate: string; discPct: string; gstRate: string; taxable: string; tax: string; amount: string }
 export interface PurchaseDoc {
   id: string; kind: PKind; number: string; supplierRef: string; date: string; dueDate: string | null;
   party: { id: string; name: string; gstin: string; phone: string }; taxMode: string; pricesInclTax: boolean; interState: boolean; roundOff: boolean;

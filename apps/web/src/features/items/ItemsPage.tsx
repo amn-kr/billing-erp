@@ -7,7 +7,10 @@
 import { Fragment, useMemo, useState, type MouseEvent as RMouseEvent } from 'react';
 import { go } from '../../lib/go';
 import { useQuery } from '@tanstack/react-query';
-import { formatInr0, money, sumValues, type RateTable as Rates } from '@billing/shared';
+import { can, formatInr0, money, sumValues, type BatchRow, type RateTable as Rates } from '@billing/shared';
+import { useFeature } from '../../lib/features';
+import { useMe } from '../../lib/me';
+import { BatchCard } from './BatchCard';
 import { api } from '../../lib/api';
 import { dmy, inr, inr2f } from '../../lib/format';
 import { useCur, useSettings } from '../../lib/settings';
@@ -43,6 +46,8 @@ export interface Item {
   wholesale: string;
   wholesaleMinQty: string;
   minStock: string;
+  /** Features › batch_expiry */
+  trackBatch?: boolean;
   location: string;
   stock: string | null;
   /** what is left × its own purchase rate (first in, first out); null for a service */
@@ -56,7 +61,7 @@ export interface Item {
 }
 
 interface Movement { id: string; date: string; kind: string; qty: string; rate: string; note: string; ref: string; sourceType: string; party: string; status: string; createdAt: string }
-interface ItemDetail extends Item { movements: Movement[]; rateTable: Rates | null; bought: boolean }
+interface ItemDetail extends Item { movements: Movement[]; rateTable: Rates | null; bought: boolean; batches: { rows: BatchRow[]; shortQty: string } | null }
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const FILTER = '<path d="M4 5h16l-6 8v6l-4-2v-4z"/>';
@@ -101,6 +106,8 @@ export function ItemsPage() {
   useFitTables();
   const cur = useCur();
   const mrpOn = !!useSettings().data?.data?.mrp;
+  const batchOn = useFeature('batch_expiry');
+  const me = useMe().data;
   const { showToast } = useShell();
   const list = useQuery({ queryKey: ['items'], queryFn: () => api<Item[]>('/items') });
   const [kind, setKind] = useState<'p' | 's'>('p');
@@ -263,6 +270,7 @@ export function ItemsPage() {
               <div className="ptempty">No item selected.</div>
             ) : null}
           </div>
+          {batchOn && item?.batches && !groupSel ? <BatchCard rows={item.batches.rows} shortQty={item.batches.shortQty} unit={item.unit} canEdit={can(me?.permissions, 'masters.manage')} /> : null}
           <div className="card ptxc" hidden={!!groupSel}>
             <div className="hd" style={{ margin: 0, padding: ui.sp('14px 16px') }}>
               <h3>Transactions</h3>

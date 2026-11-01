@@ -1,7 +1,7 @@
 /** Adjust stock (#adj) — same markup and checks as the prototype; saves a numbered stock adjustment. */
 import { useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { stockAfterAdjustment, stockBeforeAdjustment } from '@billing/shared';
+import { batchDateText, formatQty, money, stockAfterAdjustment, stockBeforeAdjustment } from '@billing/shared';
 import { api, ApiError } from '../../lib/api';
 import { useCur } from '../../lib/settings';
 import { today } from '../../lib/time';
@@ -9,6 +9,8 @@ import { useShell } from '../shell/store';
 import { useDiscardGuard } from '../../components/Discard';
 import { qfmt, type Item } from './ItemsPage';
 import { editAsk, withPasscode } from '../settings/passcode';
+import { useFeature } from '../../lib/features';
+import { batchOption, useItemBatches } from '../purchases/BatchRow';
 import type { Adjustment } from '../stock/AdjustmentsPage';
 import { ui } from '../../styles/uiSize';
 
@@ -36,13 +38,21 @@ export function AdjustStockDialog({ item, choices, edit, onClose }: { item: Item
   const closeRef = useRef(close);
   closeRef.current = close;
   const [picked, setPicked] = useState(false);
+  // Features › batch_expiry: a tracked item's adjustment names its batch
+  const batchOn = useFeature('batch_expiry');
+  const track = batchOn && !!it?.trackBatch;
+  const [batchNo, setBatchNo] = useState('');
+  const [expiry, setExpiry] = useState('');
+  const [batchId, setBatchId] = useState('');
+  const batches = useItemBatches(it?.id, track && mode === 'reduce').data?.rows ?? [];
 
   // reset before the window is painted, so nothing typed straight away is lost
   useLayoutEffect(() => {
     if (!item) return;
     setIt(item); setPicked(false);
-    setMode('add'); setQty(''); setPrice(String(Number(item.purchase))); setDate(today()); setWhy(REASONS[0]!); setErr('');
+    setMode('add'); setQty(''); setPrice(String(Number(item.purchase))); setDate(today()); setWhy(REASONS[0]!); setErr(''); setBatchNo(''); setExpiry(''); setBatchId('');
     if (edit) {
+      setBatchNo(edit.batchNo ?? ''); setExpiry(batchDateText(edit.expiry, 'expiry')); setBatchId(edit.batchId ?? '');
       const q = Number(edit.qty);
       setMode(q < 0 ? 'reduce' : 'add'); setQty(String(Math.abs(q))); setPrice(String(Number(edit.rate))); setDate(edit.date); setWhy(edit.reason);
     }
@@ -62,8 +72,12 @@ export function AdjustStockDialog({ item, choices, edit, onClose }: { item: Item
     if (!it) return;
     if (!(q > 0)) { setErr('Enter a quantity more than 0.'); return qtyRef.current?.focus(); }
     if (mode === 'reduce' && q > s) { setErr(`You only have ${qfmt(s)} ${it.unit} in stock.`); return qtyRef.current?.focus(); }
+    if (track && mode === 'reduce' && !edit) {
+      const have = money(batches.find((b) => (b.id ?? '') === batchId)?.qty ?? 0);
+      if (have.lt(q)) { setErr(`Only ${formatQty(have)} ${it.unit} in that batch.`); return qtyRef.current?.focus(); }
+    }
     try {
-      const body = { itemId: it.id, mode, qty: q, rate: price || null, date, reason: why, ...(edit && { number: edit.number }) };
+      const body = { itemId: it.id, mode, qty: q, rate: price || null, date, reason: why, ...(edit && { number: edit.number }), ...(track && (mode === 'add' ? { batchNo: batchNo.trim(), expiry, mfg: edit ? batchDateText(edit.mfg, 'mfg') : '' } : { batchId: batchId || null })) };
       const call = (h?: Record<string, string>) => api(edit ? `/stock-adjustments/${edit.id}` : '/stock-adjustments', { method: edit ? 'PUT' : 'POST', body, headers: h });
       if (!(edit ? await withPasscode(qc, editAsk(edit.number), call) : { value: await call() })) return;
       await Promise.all(['items', 'item', 'stock-adjustments', 'godowns', 'godown-items'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
@@ -85,6 +99,17 @@ export function AdjustStockDialog({ item, choices, edit, onClose }: { item: Item
             <button type="button" data-am="add" className={mode === 'add' ? 'on' : ''} onClick={() => setMode('add')}>Add stock</button>
             <button type="button" data-am="reduce" className={mode === 'reduce' ? 'on' : ''} onClick={() => setMode('reduce')}>Reduce stock</button>
           </div>
+          {track && mode === 'reduce' ? (
+            <label className="fl" htmlFor="bxAdj">Batch<select className="fi" id="bxAdj" value={batchId} onChange={(e) => setBatchId(e.target.value)}>
+              {batches.some((b) => !b.id) || !batches.length ? <option value="">{batches.find((b) => !b.id) ? batchOption(batches.find((b) => !b.id)!) : 'No batch'}</option> : null}
+              {batches.filter((b) => b.id).map((b) => <option value={b.id!} key={b.id}>{batchOption(b)}</option>)}
+            </select></label>
+          ) : track ? (
+            <div className="two">
+              <label className="fl" htmlFor="bxAdjNo">Batch no.<input className="fi" id="bxAdjNo" value={batchNo} placeholder="Blank = No batch" autoComplete="off" onChange={(e) => setBatchNo(e.target.value)} /></label>
+              <label className="fl" htmlFor="bxAdjExp">Expiry<input className="fi" id="bxAdjExp" value={expiry} placeholder="MM/YY" autoComplete="off" onChange={(e) => setExpiry(e.target.value)} /></label>
+            </div>
+          ) : null}
           <div className="two">
             <label className="fl" htmlFor="adjQty">Quantity<input className="fi" id="adjQty" inputMode="decimal" autoComplete="off" value={qty} onChange={(e) => setQty(e.target.value)} ref={qtyRef} /></label>
             <label className="fl" htmlFor="adjPrice">Price / unit<span className={cur('₹') ? 'pre2' : 'pre2 ncur'}><span>{cur('₹')}</span><input className="fi" id="adjPrice" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} /></span></label>
