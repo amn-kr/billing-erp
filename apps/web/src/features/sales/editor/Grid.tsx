@@ -4,6 +4,8 @@
  * the keyboard rules: Enter moves along the row, then to the next row.
  */
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { ui } from '../../../styles/uiSize';
 import { Icon } from '../../../components/Icon';
 import { inr, inr2f } from '../../../lib/format';
 import { qfmt } from '../../items/ItemsPage';
@@ -11,6 +13,9 @@ import { pct } from '../InvoicePreview';
 import { usePriceHistory } from './PriceHistory';
 import { blankLine, calc, finalRate, frSet, lineFor, r2, useTab, type Ctx, type EItem, type EParty, type Line, type SI } from './state';
 import type { EditorData } from './data';
+import { BatchPicker, type PickFor } from './BatchPicker';
+import { batchRowsFor, saleAllocs } from './batches';
+import { allocText, expiryState } from '@billing/shared';
 
 const BOLT = '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>';
 
@@ -95,6 +100,8 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
   const [qe, setQe] = useState<{ item: EItem | null; qty: string; fr: string; disc: string; q: string }>({ item: null, qty: '1', fr: '', disc: '', q: '' });
   const [qk, setQk] = useState(0);
   const [hi, setHi] = useState<number | null>(null);
+  // Features › batch_expiry: the line whose batches are being chosen
+  const [pickAt, setPickAt] = useState<number | null>(null);
   const tbody = useRef<HTMLTableSectionElement>(null);
   // last prices this customer got, under the price when its quantity or price is clicked into
   const ph = usePriceHistory(si, (i, h) => {
@@ -107,6 +114,15 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
   const G = ctx.mode === 'gst';
   const gstCol = d.gstOn;
   const t = calc(ctx, si);
+  const allocs = saleAllocs(d, si);
+  const pickFor = (i: number): PickFor | null => {
+    const l = si.lines[i], rows = l ? batchRowsFor(d, si, l.item?.id) : undefined;
+    if (!l || !rows) return null;
+    // automatic for this line alone, after what the other lines use
+    const others = si.lines.map((x, k) => (k === i ? { ...x, batches: undefined } : x));
+    const auto = saleAllocs(d, { ...si, lines: [...others.filter((_, k) => k !== i), others[i]!] }).at(-1) ?? [];
+    return { name: l.name, qty: l.qty, unit: l.unit, rows, allocs: allocs[i] ?? [], auto, date: si.date };
+  };
   const up2 = (fn: (s: SI) => void) => up((s) => { fn(s); s.warnOk = false; s.dirty = true; });
   const pickItem = (i: number, v: unknown) => {
     if (v === '__add') { c.hide(); onAddItem(si.lines[i]?.name ?? '', (it) => { up2((s) => { s.lines[i] = lineFor(ctx, s, it); if (i === s.lines.length - 1) s.lines.push(blankLine()); }); full(); focusRow(i, 'qty'); }); return; }
@@ -233,7 +249,8 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
             <tr data-ln={i} key={`${rk}-${i}`} className={hi === i ? 'qenew' : undefined}>
               <td className="c">{i + 1}</td>
               <td><div className="gic"><div className="combo"><input className="gi si-item" data-f="name" defaultValue={l.item && l.item.grp && l.item.brand ? l.item.grp : l.name} title={l.name} placeholder={`Search item${d.gstOn ? ', code or HSN' : ' or code'}`} autoComplete="off" aria-label={`Item ${i + 1}`} /><ComboList c={c} k={`row:${i}`} grid /></div>
-                {st !== null ? <small title="In stock" className={left < 0 ? 'neg' : 'mu'}>{left < 0 ? `Only ${qfmt(st)}` : `${qfmt(st)} ${l.unit}`}</small> : null}</div></td>
+                {st !== null ? <small title="In stock" className={left < 0 ? 'neg' : 'mu'}>{left < 0 ? `Only ${qfmt(st)}` : `${qfmt(st)} ${l.unit}`}</small> : null}</div>
+                {allocs[i] ? <button type="button" className="bxl" data-bxl={i} title="Choose batch" style={{ display: 'block', fontSize: ui.fs(11.5), fontWeight: 600, textAlign: 'left', background: 'none', border: 0, padding: ui.sp('1px 0 0 10px'), cursor: 'pointer', whiteSpace: 'nowrap', color: (batchRowsFor(d, si, l.item?.id) ?? []).some((r) => r.expiry && expiryState(r.expiry, si.date) === 'expired' && allocs[i]!.some((a) => a.batchId === r.id)) ? 'var(--red)' : 'var(--ac)' }} onClick={() => setPickAt(i)}>{allocs[i]!.length ? allocText(allocs[i]!, batchRowsFor(d, si, l.item?.id) ?? []) : 'Choose batch'} ▾</button> : null}</td>
               <td className="ro l mono dgc1">{l.item?.code ?? ''}</td><td className="ro l dgc2">{l.item?.brand ?? ''}</td><td className="ro l dgc2">{l.item?.series ?? ''}</td>
               {gstCol ? <td><input className="gi" data-f="hsn" defaultValue={l.hsn} inputMode="numeric" aria-label="HSN" /></td> : null}
               <td><input className="gi n" data-f="qty" defaultValue={String(l.qty)} inputMode="decimal" aria-label="Quantity" /></td>
@@ -250,6 +267,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
         })}
       </tbody>
       {ph.pop}
+      {d.batches ? createPortal(<BatchPicker pick={pickAt === null ? null : pickFor(pickAt)} onClose={() => setPickAt(null)} onDone={(a) => { const i = pickAt!; up2((s) => { if (a) s.lines[i]!.batches = a; else delete s.lines[i]!.batches; }); setPickAt(null); full(); }} />, document.body) : null}
       <tfoot id="siFoot">
         <tr><td></td><td><div className="dgft"><button type="button" className="btn sm" id="siAddRow" onClick={() => { up2((s) => { s.lines.push(blankLine()); }); full(); focusRow(si.lines.length, 'name'); }}><Icon name="plus" />Add row</button>
           {si.doc === 'sale' ? <button type="button" className="btn sm" id="siImpQ" title="Add items from a saved quotation" data-impq><Icon name="doc" />Import quotation</button> : null}<b>Total</b></div></td>

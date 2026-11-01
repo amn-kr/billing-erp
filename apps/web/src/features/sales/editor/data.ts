@@ -1,4 +1,6 @@
 /** Everything the editor reads: items with their list prices, parties with balances, the shop's tax set-up. */
+import type { BatchRow } from '@billing/shared';
+import { useFeature } from '../../../lib/features';
 import { useQuery } from '@tanstack/react-query';
 import { taxModeOf, type CommRule } from '@billing/shared';
 import { api } from '../../../lib/api';
@@ -22,7 +24,10 @@ export function useEditorData() {
   const refs = useQuery({ queryKey: ['referrers'], queryFn: () => api<Referrer[]>('/referrers') });
   const settings = useSettings();
   const biz = useBiz();
-  if (!items.data || !parties.data || !lists.data || !prices.data || !settings.data || !biz.data || !rules.data || !refs.data) return null;
+  // Features › batch_expiry: every tracked item's stock by batch; not asked for with the feature off
+  const batchOn = useFeature('batch_expiry');
+  const batches = useQuery({ queryKey: ['items', 'batches'], queryFn: () => api<Record<string, BatchRow[]>>('/batches'), enabled: batchOn });
+  if (!items.data || !parties.data || !lists.data || !prices.data || !settings.data || !biz.data || !rules.data || !refs.data || (batchOn && !batches.data)) return null;
   const data = settings.data.data as { reg?: string; tcs?: boolean; tcsRate?: string };
   const mode = taxModeOf(settings.data.gstEnabled, data.reg);
   const tcs = mode === 'gst' && data.tcs && data.tcsRate ? settings.data.taxes.find((t) => t.id === data.tcsRate) : undefined;
@@ -47,6 +52,6 @@ export function useEditorData() {
     limit: Number(p.creditLimit ?? 0), supplier: p.kind === 'supplier', balance: Number(p.balance), billingName: p.billingName ?? '',
   }));
   const gstRates = settings.data.taxes.filter((t) => t.kind === 'GST').map((t) => Number(t.rate));
-  return { ctx, IT, PT, gstRates, refs: refs.data, gstOn: settings.data.gstEnabled };
+  return { ctx, IT, PT, gstRates, refs: refs.data, gstOn: settings.data.gstEnabled, batches: batchOn ? batches.data : undefined };
 }
 export type EditorData = NonNullable<ReturnType<typeof useEditorData>>;

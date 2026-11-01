@@ -17,6 +17,7 @@ export interface SaleRow {
 export interface SaleLine {
   id: string; itemId: string | null; name: string; hsn: string; qty: string; unit: string; price: string; discPct: string; gstRate: string;
   taxable: string; tax: string; amount: string; basePrice: string | null; commOverride: { t: string; v: number } | null; commType: string; commValue: string; commAmount: string;
+  batches?: { batchId: string | null; no: string; expiry: string | null; qty: string }[];
   againstId: string | null; code: string; brand: string; series: string; group: string; category: string; categoryId: string | null;
 }
 

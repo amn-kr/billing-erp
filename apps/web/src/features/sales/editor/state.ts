@@ -7,7 +7,7 @@
 import { createContext, useCallback, useContext } from 'react';
 import { create } from 'zustand';
 import { tokenOwner, useSession } from '../../../lib/session';
-import { lineCommission, money, saleTotals, type CommRule, type TaxMode } from '@billing/shared';
+import { lineCommission, money, saleTotals, type BatchAlloc, type BatchRow, type CommRule, type TaxMode } from '@billing/shared';
 
 export interface EItem {
   id: string; name: string; code: string; hsn: string; unit: string; cat: string; gst: number; stock: number | null; svc: boolean;
@@ -28,12 +28,16 @@ export interface Line {
   bp?: number; cmT?: 'p' | 'f'; cmV?: number; cmO?: CommRule;
   /** came from this quotation */
   fromQ?: string;
+  /** Features › batch_expiry: batches chosen by hand or saved on the bill; none = earliest expiry first */
+  batches?: BatchAlloc[];
 }
 /** acct: the bank account picked for UPI / bank transfer / card ('' = the default bank) */
 export interface Pay { mode: string; amt: string | number; ref: string; acct?: string }
 export interface QRef { no: string; date: string; cust: string; brand: string; id?: string }
 
 export interface SI {
+  /** a saved bill being edited: what it took from each batch, by item (back in stock while it is edited) */
+  batchWas?: Record<string, (BatchAlloc & { row?: BatchRow })[]>;
   doc: 'sale' | 'quote';
   /** number shown is the next in the series and follows it until saved (nothing is used up before saving) */
   autoNo: boolean;
