@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allocText, batchDateText, batchDay, batchMonth, batchPrintLine, billAllocs, expiryLabel, expiryState, parseBatchDate, sortBatches } from '../src';
+import { allocText, matchesExpiry, batchDateText, batchDay, batchMonth, batchPrintLine, billAllocs, expiryLabel, expiryState, parseBatchDate, sortBatches } from '../src';
 
 describe('typing a batch date', () => {
   it('MM/YY: an expiry is the month’s last day, a mfg date its first', () => {
@@ -123,5 +123,22 @@ describe('which batches a sale uses', () => {
     expect(batchPrintLine([{ batchId: null, no: 'No batch', expiry: null, qty: '1.000' }, { batchId: 'a', no: 'A123', expiry: '2040-03-31', qty: '2.000' }])).toBe('Batch A123 × 2 (Exp 03/2040), No batch × 1');
     expect(batchPrintLine([{ batchId: null, no: 'No batch', expiry: null, qty: '1.000' }])).toBe('');
     expect(batchPrintLine([])).toBe('');
+  });
+});
+
+describe('Item Batch Report filters', () => {
+  const ON = '2026-11-01';
+  it('expired is before today; so many days counts today up to that day; no expiry shows only under All', () => {
+    expect(matchesExpiry('2026-10-31', ON, 'expired')).toBe(true);
+    expect(matchesExpiry('2026-11-01', ON, 'expired')).toBe(false);
+    expect(matchesExpiry('2026-11-01', ON, 30)).toBe(true);
+    expect(matchesExpiry('2026-12-01', ON, 30)).toBe(true);
+    expect(matchesExpiry('2026-12-02', ON, 30)).toBe(false);
+    expect(matchesExpiry('2026-12-02', ON, 60)).toBe(true);
+    expect(matchesExpiry('2027-01-30', ON, 90)).toBe(true);
+    expect(matchesExpiry('2026-10-31', ON, 30)).toBe(false);
+    expect(matchesExpiry(null, ON, 'all')).toBe(true);
+    expect(matchesExpiry(null, ON, 'expired')).toBe(false);
+    expect(matchesExpiry(null, ON, 90)).toBe(false);
   });
 });
