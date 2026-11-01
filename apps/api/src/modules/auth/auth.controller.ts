@@ -1,6 +1,6 @@
-import { Body, Controller, HttpCode, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { changePasswordSchema, loginSchema, registerSchema, type AuthTokens, type ChangePasswordInput, type LoginInput, type RegisterInput } from '@billing/shared';
+import { changePasswordSchema, loginSchema, makeRecoveryCodesSchema, recoverSchema, registerSchema, type AuthTokens, type ChangePasswordInput, type LoginInput, type MakeRecoveryCodesInput, type RecoverInput, type RegisterInput } from '@billing/shared';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { Ctx, Public, WithTempPassword } from '../../common/decorators';
@@ -93,6 +93,29 @@ export class AuthController {
   @Post('change-password')
   async changePassword(@Ctx() ctx: RequestContext, @Body(new ZodPipe(changePasswordSchema)) body: ChangePasswordInput) {
     await this.auth.changePassword(ctx, body);
+  }
+
+  /** Recovery codes card: how many unused codes are left (never the codes). */
+  @Get('recovery-codes')
+  recoveryState(@Ctx() ctx: RequestContext) {
+    return this.auth.recoveryState(ctx);
+  }
+
+  /** Ten new recovery codes for the person's own account, after their password; shown once. */
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @HttpCode(200)
+  @Post('recovery-codes')
+  makeRecoveryCodes(@Ctx() ctx: RequestContext, @Body(new ZodPipe(makeRecoveryCodesSchema)) body: MakeRecoveryCodesInput) {
+    return this.auth.makeRecoveryCodes(ctx, body);
+  }
+
+  /** "Use a recovery code" on the sign-in page: email, code and a new password; signs the person in. */
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @HttpCode(200)
+  @Post('recover')
+  async recover(@Body(new ZodPipe(recoverSchema)) body: RecoverInput, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    return reply(res, await this.auth.recover(body, meta(req)));
   }
 
   /** Sign out every other device. */

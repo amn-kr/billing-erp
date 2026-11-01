@@ -1,13 +1,14 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { verify } from '@node-rs/argon2';
 import { randomBytes } from 'node:crypto';
-import type { ChangePasswordInput, LoginInput, RegisterInput } from '@billing/shared';
+import type { ChangePasswordInput, LoginInput, MakeRecoveryCodesInput, RecoverInput, RecoveryCodes, RecoveryCodesState, RegisterInput } from '@billing/shared';
 import type { RequestContext } from '../../common/context';
 import { config } from '../../config';
 import { DbService } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import { Issued, sha256, TokensService } from './tokens.service';
 import { hashPassword } from './password';
+import { hashRecoveryCode, makeRecoveryCode, RECOVERY_CODE_COUNT, RECOVERY_MAX_TRIES, RECOVERY_WAIT_MINUTES } from './recovery-codes';
 
 /** Used so a wrong email takes as long as a wrong password. */
 let DUMMY_HASH: Promise<string> | null = null;
@@ -111,5 +112,76 @@ export class AuthService {
         this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'password_changed', entity: 'user', entityId: ctx.userId, ip: ctx.ip }),
       );
     }
+  }
+
+  /** Recovery codes card: unused codes left from the person's last set (a set shares its createdAt). */
+  async recoveryState(ctx: RequestContext): Promise<RecoveryCodesState> {
+    const last = await this.db.recoveryCode.findFirst({ where: { userId: ctx.userId }, orderBy: { createdAt: 'desc' }, select: { createdAt: true } });
+    if (!last) return { left: 0, total: 0, madeAt: null };
+    const codes = await this.db.recoveryCode.findMany({ where: { userId: ctx.userId, createdAt: last.createdAt }, select: { usedAt: true, replacedAt: true } });
+    return { left: codes.filter((c) => !c.usedAt && !c.replacedAt).length, total: codes.length, madeAt: last.createdAt.toISOString() };
+  }
+
+  /**
+   * Makes ten new recovery codes for the person's own account (after their password) and returns them
+   * once; the unused old ones stop working. The shared demo account can't have codes.
+   */
+  async makeRecoveryCodes(ctx: RequestContext, input: MakeRecoveryCodesInput): Promise<RecoveryCodes> {
+    const user = await this.db.user.findUniqueOrThrow({ where: { id: ctx.userId } });
+    if (user.email === config().DEMO_EMAIL) throw new BadRequestException({ message: 'The demo shop can’t have recovery codes.' });
+    if (!(await verify(user.passwordHash, input.password).catch(() => false))) throw new BadRequestException({ message: 'Your password is wrong.', field: 'password' });
+    const codes = Array.from({ length: RECOVERY_CODE_COUNT }, makeRecoveryCode);
+    const now = new Date();
+    await this.db.$transaction([
+      this.db.recoveryCode.updateMany({ where: { userId: user.id, usedAt: null, replacedAt: null }, data: { replacedAt: now } }),
+      this.db.recoveryCode.createMany({ data: codes.map((c) => ({ userId: user.id, codeHash: hashRecoveryCode(user.id, c), createdAt: now })) }),
+    ]);
+    if (ctx.businessId) {
+      await this.db.scoped({ businessId: ctx.businessId, userId: ctx.userId, email: ctx.email }, (tx) =>
+        this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'recovery_codes_made', entity: 'user', entityId: ctx.userId, after: { count: codes.length }, ip: ctx.ip }),
+      );
+    }
+    return { codes, madeAt: now.toISOString() };
+  }
+
+  /**
+   * "Use a recovery code" on the sign-in page: the email, one unused code and a new password. The code is
+   * used up, every other sign-in ends, and the person is signed in. Five wrong codes in a row make the
+   * account's codes wait 15 minutes; a wrong email gets the same answer as a wrong code.
+   */
+  async recover(input: RecoverInput, meta: { ua: string; ip: string }): Promise<Issued> {
+    const wrong = () => new BadRequestException({ message: 'That email and recovery code don’t match.' });
+    const user = await this.db.user.findUnique({ where: { email: input.email } });
+    if (!user || user.email === config().DEMO_EMAIL) throw wrong();
+    const now = new Date();
+    if (user.recoveryWaitUntil && user.recoveryWaitUntil > now) {
+      throw new BadRequestException({ message: `Too many wrong codes. Try again in ${Math.ceil((user.recoveryWaitUntil.getTime() - now.getTime()) / 60_000)} minutes.` });
+    }
+    const code = await this.db.recoveryCode.findFirst({ where: { userId: user.id, codeHash: hashRecoveryCode(user.id, input.code), usedAt: null, replacedAt: null } });
+    if (!code) {
+      const fails = user.recoveryFails + 1;
+      await this.db.user.update({
+        where: { id: user.id },
+        data: fails >= RECOVERY_MAX_TRIES ? { recoveryFails: 0, recoveryWaitUntil: new Date(now.getTime() + RECOVERY_WAIT_MINUTES * 60_000) } : { recoveryFails: fails },
+      });
+      throw wrong();
+    }
+    const passwordHash = await this.hashPassword(input.password);
+    await this.db.$transaction([
+      this.db.recoveryCode.update({ where: { id: code.id }, data: { usedAt: now } }),
+      this.db.user.update({ where: { id: user.id }, data: { passwordHash, mustChangePassword: false, tempPasswordExpiresAt: null, recoveryFails: 0, recoveryWaitUntil: null, lastLoginAt: now } }),
+      this.db.session.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: now } }),
+      this.db.passwordReset.updateMany({ where: { userId: user.id, usedAt: null }, data: { usedAt: now } }),
+    ]);
+    const left = await this.db.recoveryCode.count({ where: { userId: user.id, usedAt: null, replacedAt: null } });
+    const shops = await this.db.scoped({ userId: user.id, email: user.email }, (tx) =>
+      tx.membership.findMany({ where: { userId: user.id, status: 'active' }, select: { businessId: true } }),
+    );
+    for (const m of shops) {
+      await this.db.scoped({ businessId: m.businessId, userId: user.id, email: user.email }, (tx) =>
+        this.audit.log(tx, { businessId: m.businessId, userId: user.id, action: 'password_recovered', entity: 'user', entityId: user.id, after: { codesLeft: left }, ip: meta.ip }),
+      );
+    }
+    return this.tokens.start(user, await this.defaultBusiness(user.id, user.email), meta);
   }
 }

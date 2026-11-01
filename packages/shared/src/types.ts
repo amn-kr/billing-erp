@@ -78,3 +78,16 @@ export interface TempPassword {
   temporaryPassword: string;
   expiresAt: string;
 }
+
+/** Recovery codes card: how many unused codes are left from the last set (never the codes themselves). */
+export interface RecoveryCodesState {
+  left: number;
+  total: number;
+  madeAt: string | null;
+}
+
+/** A new set of recovery codes, shown once right after "Make codes". */
+export interface RecoveryCodes {
+  codes: string[];
+  madeAt: string;
+}

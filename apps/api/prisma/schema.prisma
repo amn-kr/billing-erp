@@ -37,12 +37,16 @@ model User {
   /// this person's display choices: comfortable | compact, and small | normal | large
   uiDensity     String    @default("comfortable") @map("ui_density")
   uiTextSize    String    @default("normal") @map("ui_text_size")
+  /// wrong recovery codes in a row, and until when recovery codes for this account are refused
+  recoveryFails     Int       @default(0) @map("recovery_fails")
+  recoveryWaitUntil DateTime? @map("recovery_wait_until") @db.Timestamptz(6)
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   memberships    Membership[]
   sessions       Session[]
   passwordResets PasswordReset[]
+  recoveryCodes  RecoveryCode[]
 
   @@map("users")
 }
@@ -217,6 +221,22 @@ model PasswordReset {
   user User @relation(fields: [userId], references: [id])
 
   @@map("password_resets")
+}
+
+/// Recovery codes: one-time codes a person keeps to choose a new password when they forget theirs (hash only)
+model RecoveryCode {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  codeHash   String    @unique @map("code_hash")
+  usedAt     DateTime? @map("used_at") @db.Timestamptz(6)
+  /// "Make new codes" was used: this unused code stopped working
+  replacedAt DateTime? @map("replaced_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("recovery_codes")
 }
 
 /// Plans you sell (global).
