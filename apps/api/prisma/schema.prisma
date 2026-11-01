@@ -266,6 +266,8 @@ model Subscription {
   status                 String
   /// month | year
   billingPeriod          String   @map("billing_period")
+  /// the period's length in months (1, 3, 6 or 12; owner panel)
+  months                 Int      @default(1)
   startsOn               DateTime @map("starts_on") @db.Date
   endsOn                 DateTime @map("ends_on") @db.Date
   razorpaySubscriptionId String?  @map("razorpay_subscription_id")
@@ -290,6 +292,11 @@ model SubscriptionPayment {
   status            String
   razorpayPaymentId String?   @map("razorpay_payment_id")
   paidAt            DateTime? @map("paid_at") @db.Timestamptz(6)
+  /// owner panel: the day the money came in (India), how it was paid and its reference
+  paidOn            DateTime? @map("paid_on") @db.Date
+  /// UPI | Bank transfer | Cash | Cheque
+  paidBy            String    @default("") @map("paid_by")
+  reference         String    @default("")
   createdBy         String    @map("created_by") @db.Uuid
   createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)

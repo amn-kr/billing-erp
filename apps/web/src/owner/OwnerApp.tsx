@@ -2,15 +2,16 @@
  * The software owner's panel (/owner): customers table, status chips, search and the customer drawer.
  * Same markup, classes and wording as reference/design/owner-panel.html, backed by /api/owner.
  * Owner's choices (1 Nov 2026): no "Sample data" label or browser note; one "Paid" plan (no fixed prices);
- * Business type shows the shop's mode ("General" until modes are added). Plans and payments come next.
+ * Business type shows the shop's mode ("General" until modes are added). The drawer is OwnerDrawer.tsx.
  */
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type RefObject } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
 import type { OwnerCustomer, OwnerCustomers, OwnerMe } from '@billing/shared';
 import { useStyles } from '../lib/useStyles';
 import { APP_LETTER, APP_NAME } from '../lib/brand';
 import { ownerApi, ownerSignOut, OwnerApiError } from './api';
+import { OwnerDrawer } from './OwnerDrawer';
 import { OwnerIcon, type OwnerIconName } from './Icon';
-import { daysLeft, fmt, groupOf, mobileOf, PAID_PLAN, status, TRIAL_DAYS, VIA, type Group } from './format';
+import { daysLeft, fmt, groupOf, mobileOf, PAID_PLAN, status, VIA, type Group } from './format';
 import css from './owner.css?inline';
 
 const NAV: ([OwnerIconName, string, true?] | [null, string])[] = [['users', 'Customers', true], ['layers', 'Plans'], ['rupee', 'Payments'], ['cal', 'Renewals'], [null, 'Account'], ['gear', 'Settings']];
@@ -25,7 +26,6 @@ export function OwnerApp() {
   const [q, setQ] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
   const [sideOpen, setSideOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [toastText, setToastText] = useState('');
   const [toastOn, setToastOn] = useState(false);
   const toastTimer = useRef<number>(0);
@@ -82,17 +82,9 @@ export function OwnerApp() {
     };
   });
 
-  async function setShop(c: OwnerCustomer, action: 'suspend' | 'reactivate') {
-    setBusy(true);
-    try {
-      const next = await ownerApi<OwnerCustomer>(`/customers/${c.id}/${action}`, { method: 'POST' });
-      setData((d) => d && { ...d, customers: d.customers.map((x) => (x.id === next.id ? next : x)) });
-      toast(action === 'suspend' ? `${c.code} suspended. They can’t sign in until you reactivate.` : `${c.code} reactivated`);
-    } catch (e) {
-      toast(msgOf(e));
-    } finally {
-      setBusy(false);
-    }
+  /** a customer changed in the drawer (plan, trial, status): the table and chips follow */
+  function changed(next: OwnerCustomer) {
+    setData((d) => d && { ...d, customers: d.customers.map((x) => (x.id === next.id ? next : x)) });
   }
 
   function soon(e: MouseEvent, what: string) {
@@ -157,7 +149,7 @@ export function OwnerApp() {
 
       <div className="ov" id="ov" hidden={!cur} onClick={(e) => { if ((e.target as HTMLElement).id === 'ov') close(); }}>
         <aside className="drw" id="drw" role="dialog" aria-modal="true" aria-labelledby="dT">
-          {cur && <Drawer c={cur} today={today} busy={busy} closeRef={closeRef} onClose={close} onSet={setShop} />}
+          {cur && <OwnerDrawer key={cur.id} c={cur} today={today} closeRef={closeRef} onClose={close} onChanged={changed} toast={toast} />}
         </aside>
       </div>
       <div className={toastOn ? 'toast on' : 'toast'} id="toast" role="status">{toastText}</div>
@@ -184,46 +176,5 @@ function Row({ c, today, onOpen }: { c: OwnerCustomer; today: string; onOpen: (i
       </td>
       <td><span className="via"><OwnerIcon name={v[0] as OwnerIconName} />{v[1]}</span><small>{fmt(c.enrolled)}</small></td>
     </tr>
-  );
-}
-
-function Drawer({ c, today, busy, closeRef, onClose, onSet }: {
-  c: OwnerCustomer; today: string; busy: boolean; closeRef: RefObject<HTMLButtonElement>;
-  onClose: () => void; onSet: (c: OwnerCustomer, a: 'suspend' | 'reactivate') => void;
-}) {
-  const s = status(c, today);
-  const v = VIA[c.via];
-  let box;
-  if (c.plan === 'paid' && c.paidUntil) {
-    const tot = Math.max(1, daysLeft(c.paidUntil, c.enrolled));
-    const left = Math.max(0, daysLeft(c.paidUntil, today));
-    box = (
-      <div className="subbox"><span className={`st ${s.k}`}>{s.t}</span><div className="big">{PAID_PLAN} plan</div>
-        <div style={{ color: 'var(--t2)', fontSize: '12.5px' }}>{daysLeft(c.paidUntil, today) >= 0 ? `Valid till ${fmt(c.paidUntil)} · ${left} days left` : `Ended on ${fmt(c.paidUntil)}`}</div>
-        <div className="meter"><i style={{ width: `${Math.min(100, (left / tot) * 100)}%`, background: s.k === 'active' ? 'var(--green)' : s.k === 'soon' ? 'var(--amber)' : 'var(--red)' }} /></div></div>
-    );
-  } else {
-    const d = daysLeft(c.trialEndsOn, today);
-    box = (
-      <div className="subbox"><span className={`st ${s.k}`}>{s.t}</span><div className="big">Free trial</div>
-        <div style={{ color: 'var(--t2)', fontSize: '12.5px' }}>{d >= 0 ? `All features open until ${fmt(c.trialEndsOn)}` : `Ended on ${fmt(c.trialEndsOn)}. The shop sees a reminder to choose a plan.`}</div>
-        <div className="meter"><i style={{ width: `${Math.max(0, Math.min(100, ((d + 1) / TRIAL_DAYS) * 100))}%`, background: 'var(--blue)' }} /></div></div>
-    );
-  }
-  return (
-    <>
-      <div className="dh"><div><span className="cid">{c.code}</span><h2 id="dT">{c.name}</h2><div style={{ color: 'var(--t2)', fontSize: '13px' }}>{c.ownerName}</div></div><button className="ib" id="dClose" aria-label="Close" ref={closeRef} onClick={onClose}><OwnerIcon name="x" /></button></div>
-      <div className="sec">Customer</div>
-      <div className="kv"><span>Business type</span><b>{c.businessType}</b></div>
-      <div className="kv"><span>Mobile</span><b>{c.mobile ? mobileOf(c.mobile) : '—'}</b></div>
-      <div className="kv"><span>Email</span><b>{c.email || '—'}</b></div>
-      <div className="kv"><span>Enrolled via</span><b>{v[1]} · {fmt(c.enrolled)}</b></div>
-      <div className="sec">Subscription</div>{box}
-      {c.status === 'suspended' ? (
-        <div className="acts" style={{ gridTemplateColumns: '1fr' }}><button className="btn p" id="unsusp" disabled={busy} onClick={() => onSet(c, 'reactivate')}>Reactivate account</button></div>
-      ) : (
-        <div className="acts"><span></span><button className="btn dg" id="susp" disabled={busy} onClick={() => onSet(c, 'suspend')}>Suspend account</button></div>
-      )}
-    </>
   );
 }
