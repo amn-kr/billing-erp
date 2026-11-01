@@ -3,10 +3,11 @@
  * Same markup and wording as reference/firebase-site/public/index.html, backed by our API.
  * "Choose a new password" (vPass) uses the same card after a temporary password from the shop owner.
  * "Forgot password?" opens "Use a recovery code" (vRec): the email, one recovery code and a new password.
+ * The software owner signs in here too and goes to the owner panel (/owner); /login?setup is the panel's one-time setup.
  */
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { STATES, createBusinessSchema, firstError, type MeResponse } from '@billing/shared';
+import { STATES, createBusinessSchema, firstError, type AuthTokens, type MeResponse, type OwnerSignIn } from '@billing/shared';
 import { api, apiWithToken, ApiError, refreshSession, signOut } from '../../lib/api';
 import { useSession } from '../../lib/session';
 import { meKey } from '../../lib/me';
@@ -15,8 +16,9 @@ import { goToApp } from '../../lib/nav';
 import { AUTH_STYLES } from '../../styles';
 import { APP_LETTER, APP_NAME } from '../../lib/brand';
 import { ui } from '../../styles/uiSize';
+import { OwnerSetup } from '../../owner/OwnerSetup';
 
-type View = 'vLoad' | 'vAuth' | 'vPass' | 'vRec' | 'vJoin' | 'vShop';
+type View = 'vLoad' | 'vAuth' | 'vPass' | 'vRec' | 'vJoin' | 'vShop' | 'vSetup';
 const APP = APP_NAME;
 const TRIAL = Number(import.meta.env.VITE_TRIAL_DAYS ?? 14);
 const msgOf = (e: unknown) => (e instanceof ApiError ? e.message : 'Something went wrong.');
@@ -88,6 +90,7 @@ export function LoginPage() {
 
   useEffect(() => {
     void (async () => {
+      if (params.has('setup')) return setView('vSetup');
       if (token || (await refreshSession())) await route();
       else setView('vAuth');
     })();
@@ -108,7 +111,14 @@ export function LoginPage() {
     setBusy(true);
     try {
       if (mode === 'up') await apiWithToken('/auth/register', { email, password, name: nameRef.current!.value.trim() });
-      else await apiWithToken('/auth/login', { email, password });
+      else {
+        const r = await apiWithToken<AuthTokens & Partial<OwnerSignIn>>('/auth/login', { email, password });
+        // the software owner: the panel signs itself in from its own cookie; this page keeps no token
+        if (r.owner) {
+          useSession.getState().setToken(null);
+          return window.location.replace('/owner');
+        }
+      }
       signedWith.current = password;
       await route();
     } catch (x) {
@@ -274,6 +284,7 @@ export function LoginPage() {
           <div className="note" style={{ marginTop: ui.sp(14) }} id="rNote">No recovery codes? Please contact support to reset your password.</div>
           <p className="mu" style={{ margin: ui.sp('14px 0 0'), textAlign: 'center' }}><button className="lnk" type="button" id="rBack" onClick={() => setView('vAuth')}>Back to sign in</button></p>
         </div>
+        {view === 'vSetup' && <div id="vSetup"><OwnerSetup /></div>}
         <div id="vJoin" hidden={view !== 'vJoin'}>
           <h2>Join <span id="jShop">{invite?.businessName ?? 'the shop'}</span></h2><p className="mu">You were invited as staff. Your entries will go into this shop’s books.</p>
           <label style={{ marginTop: ui.sp(16) }}>Your name<input id="jName" autoComplete="name" ref={jNameRef} /></label>
