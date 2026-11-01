@@ -9,12 +9,12 @@ import { day } from '../../common/lookups';
  * exactly what a cancel would.
  */
 export async function reverseStock(tx: Tx, who: { businessId: string; userId: string }, docId: string, date: string, note: string, sourceType: 'sales_document' | 'purchase_document' = 'sales_document') {
-  const net = await tx.stockMovement.groupBy({ by: ['itemId', 'godownId'], where: { sourceType, sourceId: docId }, _sum: { qty: true } });
+  const net = await tx.stockMovement.groupBy({ by: ['itemId', 'godownId', 'batchId'], where: { sourceType, sourceId: docId }, _sum: { qty: true } });
   const back = net.filter((n) => n._sum.qty && !n._sum.qty.isZero());
   if (back.length)
     await tx.stockMovement.createMany({
       data: back.map((n) => ({
-        businessId: who.businessId, createdBy: who.userId, sourceType, sourceId: docId, itemId: n.itemId, godownId: n.godownId,
+        businessId: who.businessId, createdBy: who.userId, sourceType, sourceId: docId, itemId: n.itemId, godownId: n.godownId, batchId: n.batchId,
         date: day(date), qty: n._sum.qty!.neg().toFixed(3), kind: 'cancel', note,
       })),
     });

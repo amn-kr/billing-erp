@@ -7,6 +7,7 @@ import type { RequestContext } from '../../common/context';
 import { day, isoOf, uniqueMessage } from '../../common/lookups';
 import { fieldChanges, keepNumber } from '../../common/editing';
 import { rateTables } from './stock-value';
+import { batchesOn, batchRows, refuseIfBatchShort, refuseOverBatch, resolveBatch } from './batches';
 
 const q3 = (v: { toString(): string } | number | string) => money(v.toString()).toDecimalPlaces(3).toFixed(3);
 type Who = { businessId: string; userId: string };
@@ -128,7 +129,9 @@ export class StockService {
   adjustments(ctx: RequestContext) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const rows = await tx.stockAdjustment.findMany({ include: { item: { include: { unit: true } }, godown: true }, orderBy: [{ date: 'desc' }, { createdAt: 'desc' }] });
+      const batches = new Map((await tx.batch.findMany({ where: { id: { in: rows.flatMap((a) => (a.batchId ? [a.batchId] : [])) } } })).map((b) => [b.id, b]));
       return rows.map((a) => ({
+        batchId: a.batchId, batchNo: a.batchId ? batches.get(a.batchId)?.batchNo ?? '' : '', mfg: a.batchId ? isoOf(batches.get(a.batchId)?.mfgDate ?? null) : null, expiry: a.batchId ? isoOf(batches.get(a.batchId)?.expiryDate ?? null) : null,
         id: a.id, number: a.number, date: isoOf(a.date), itemId: a.itemId, item: a.item.name, unit: a.item.unit?.code ?? '', godown: a.godown.name,
         qty: q3(a.qty), rate: toDb(a.rate.toString()), value: toDb(money(a.qty.toString()).abs().times(a.rate.toString())), reason: a.reason, cancelled: !!a.cancelledAt,
       }));
@@ -154,6 +157,7 @@ export class StockService {
       await this.undoAdjustment(tx, this.who(ctx), a, `Edited ${a.number}`);
       const out = await this.writeAdjustment(tx, ctx, { ...input, godownId: input.godownId ?? a.godownId }, a);
       await this.notBelowZero(tx, a.itemId, a.godownId, before, 'Saving this would make stock negative. Some of it has been sold since.');
+      if (money(a.qty.toString()).gt(0)) await refuseIfBatchShort(tx, [a.batchId], a.number);
       return out;
     });
   }
@@ -168,17 +172,26 @@ export class StockService {
       const have = await this.stockIn(tx, item.id, godownId);
       if (have.lt(qty)) throw new BadRequestException({ message: `Only ${formatQty(have)} in stock. You can’t reduce by more than that.` });
     }
+    /* a tracked item (Features › batch_expiry): adding goes into the batch typed, reducing comes out of the batch chosen; none = No batch */
+    let batchId: string | null = null;
+    if (item.trackBatch && (await batchesOn(tx, ctx.businessId!))) {
+      if (input.mode === 'add') batchId = input.batchNo ? await resolveBatch(tx, { businessId: ctx.businessId!, userId: ctx.userId, ip: ctx.ip }, this.audit, item, input) : null;
+      else {
+        batchId = input.batchId ?? null;
+        refuseOverBatch((await batchRows(tx, item)).rows, batchId, qty, item.name, 'in stock to reduce');
+      }
+    }
     const number = old?.number ?? (await this.numbers.next(tx, ctx.businessId!, ctx.userId, 'stock_adjustment', input.date));
     const rate = toDb(input.rate ?? item.purchasePrice.toString());
-    const data = { date: day(input.date), itemId: item.id, godownId, qty: signed.toFixed(3), rate, reason: input.reason };
+    const data = { date: day(input.date), itemId: item.id, godownId, qty: signed.toFixed(3), rate, reason: input.reason, batchId };
     const a = old
       ? await tx.stockAdjustment.update({ where: { id: old.id }, data })
       : await tx.stockAdjustment.create({ data: { ...data, businessId: ctx.businessId!, createdBy: ctx.userId, number } });
     await tx.stockMovement.create({
-      data: { businessId: ctx.businessId!, createdBy: ctx.userId, itemId: item.id, godownId, date: day(input.date), qty: signed.toFixed(3), rate, kind: 'adjustment', sourceType: 'stock_adjustment', sourceId: a.id, note: input.reason },
+      data: { businessId: ctx.businessId!, createdBy: ctx.userId, itemId: item.id, godownId, date: day(input.date), qty: signed.toFixed(3), rate, batchId, kind: 'adjustment', sourceType: 'stock_adjustment', sourceId: a.id, note: input.reason },
     });
     await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: old ? 'update' : 'create', entity: 'stock_adjustment', entityId: a.id, before: old, ip: ctx.ip,
-      after: old ? { ...a, changes: fieldChanges(old, a, ['date', 'itemId', 'godownId', 'qty', 'rate', 'reason']) } : a });
+      after: old ? { ...a, changes: fieldChanges(old, a, ['date', 'itemId', 'godownId', 'qty', 'rate', 'reason', 'batchId']) } : a });
     return { id: a.id, number, stock: q3(await this.stockIn(tx, item.id, godownId)) };
   }
 
@@ -192,6 +205,7 @@ export class StockService {
         throw new BadRequestException({ message: 'Cancelling this would make stock negative. Some of it has been sold since.' });
       await tx.stockAdjustment.update({ where: { id }, data: { cancelledAt: new Date(), cancelledBy: ctx.userId } });
       await this.undoAdjustment(tx, this.who(ctx), a, `Cancelled ${a.number}`);
+      if (money(a.qty.toString()).gt(0)) await refuseIfBatchShort(tx, [a.batchId], a.number);
       await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'cancel', entity: 'stock_adjustment', entityId: id, before: a, ip: ctx.ip });
     });
   }
@@ -199,7 +213,7 @@ export class StockService {
   /** The opposite of an adjustment's movement, on its own date and rate (used by cancel and edit). */
   private async undoAdjustment(tx: Tx, who: Who, a: AdjustmentRow, note: string) {
     await tx.stockMovement.create({
-      data: { businessId: who.businessId, createdBy: who.userId, itemId: a.itemId, godownId: a.godownId, date: a.date, qty: money(a.qty.toString()).neg().toFixed(3), rate: a.rate, kind: 'cancel', sourceType: 'stock_adjustment', sourceId: a.id, note },
+      data: { businessId: who.businessId, createdBy: who.userId, itemId: a.itemId, godownId: a.godownId, date: a.date, qty: money(a.qty.toString()).neg().toFixed(3), rate: a.rate, batchId: a.batchId, kind: 'cancel', sourceType: 'stock_adjustment', sourceId: a.id, note },
     });
   }
 

@@ -10,12 +10,13 @@ import { day, isoOf, namedId, unitIdFor, uniqueMessage } from '../../common/look
 import { invoiceBalances } from '../sales/dues';
 import { withoutEditedLines } from './item-history';
 import { itemLots, rateTables } from '../stock/stock-value';
+import { batchesOn, batchRows, resolveBatch } from '../stock/batches';
 
 const include = { unit: true, secondaryUnit: true, category: true, brand: true, itemGroup: true } satisfies Prisma.ItemInclude;
 type Row = Prisma.ItemGetPayload<{ include: typeof include }>;
 const q3 = (v: Prisma.Decimal | string | number) => money(v.toString()).toDecimalPlaces(3).toFixed(3);
 /** the fields of an item whose old and new values an edit's audit entry keeps */
-const ITEM_AUDIT_FIELDS = ['name', 'kind', 'code', 'hsn', 'unit', 'secondaryUnit', 'unitRate', 'category', 'brand', 'group', 'series', 'gstRate', 'sale', 'purchase', 'mrp', 'listPrice', 'wholesale', 'wholesaleMinQty', 'minStock', 'location', 'description'];
+const ITEM_AUDIT_FIELDS = ['name', 'kind', 'code', 'hsn', 'unit', 'secondaryUnit', 'unitRate', 'category', 'brand', 'group', 'series', 'gstRate', 'sale', 'purchase', 'mrp', 'listPrice', 'wholesale', 'wholesaleMinQty', 'minStock', 'location', 'description', 'trackBatch'];
 
 export function itemView(i: Row, stock: Prisma.Decimal | string | null) {
   const st = i.kind === 'service' ? null : q3(stock ?? '0');
@@ -29,7 +30,7 @@ export function itemView(i: Row, stock: Prisma.Decimal | string | null) {
     stock: st,
     /** ok | low (at or below minimum) | out (none left) — prototype lvl() */
     level: st === null ? 'ok' : money(st).lte(0) ? 'out' : min.gt(0) && money(st).lt(min) ? 'low' : 'ok',
-    archived: !!i.archivedAt, createdAt: i.createdAt, legacyId: i.legacyId,
+    archived: !!i.archivedAt, createdAt: i.createdAt, legacyId: i.legacyId, trackBatch: i.trackBatch,
   };
 }
 
@@ -124,6 +125,8 @@ export class ItemsService {
         ...item,
         /** what is left in stock by the purchase rate it was bought at (first in, first out) */
         ...(item.kind === 'service' ? { rateTable: null, bought: false } : await itemLots(tx, id, item.purchase)),
+        /** Features › batch_expiry: stock by batch, for a tracked item or one that has batches */
+        batches: item.kind !== 'service' && (await batchesOn(tx, ctx.businessId!)) && (item.trackBatch || (await tx.batch.count({ where: { itemId: id } })) > 0) ? await batchRows(tx, { id, purchasePrice: item.purchase }) : null,
         godowns: godowns.map((g) => ({ id: g.id, name: g.name, stock: q3(byGodown.find((b) => b.godownId === g.id)?._sum.qty ?? '0') })),
         // a deleted document's movements (taken out and put back) still count in the stock, but aren't listed;
         // nor are the lines an edit replaced (its reversal and what that put back: see item-history.ts)
@@ -221,8 +224,10 @@ export class ItemsService {
     try {
       return await this.db.scoped(this.scope(ctx), async (tx) => {
         await this.clash(tx, input);
+        // Features › batch_expiry: only with it on, and only goods have batches
+        const track = input.kind === 'goods' && !!input.trackBatch && (await batchesOn(tx, ctx.businessId!));
         const it = await tx.item.create({
-          data: { businessId: ctx.businessId!, createdBy: ctx.userId, ...this.fields(input), name: input.name, kind: input.kind, ...(await this.refs(tx, ctx, { ...input, unit: input.unit || 'PCS' })), ...(opening && money(opening.rate).gt(0) && { purchasePrice: opening.rate }) },
+          data: { businessId: ctx.businessId!, createdBy: ctx.userId, trackBatch: track, ...this.fields(input), name: input.name, kind: input.kind, ...(await this.refs(tx, ctx, { ...input, unit: input.unit || 'PCS' })), ...(opening && money(opening.rate).gt(0) && { purchasePrice: opening.rate }) },
         });
         if (opening) {
           const g = await tx.godown.findFirstOrThrow({ where: { isDefault: true, archivedAt: null } });
@@ -230,6 +235,7 @@ export class ItemsService {
             data: {
               businessId: ctx.businessId!, createdBy: ctx.userId, itemId: it.id, godownId: g.id, date: day(input.openingDate ?? todayIst()),
               qty: money(input.openingQty!).toDecimalPlaces(3).toFixed(3), rate: opening.rate, kind: 'opening', note: 'Opening stock',
+              batchId: track && input.openingBatchNo ? await resolveBatch(tx, { businessId: ctx.businessId!, userId: ctx.userId, ip: ctx.ip }, this.audit, it, { batchNo: input.openingBatchNo, mfg: input.openingMfg, expiry: input.openingExpiry }) : null,
             },
           });
         }
@@ -253,7 +259,8 @@ export class ItemsService {
     await this.clash(tx, input, id);
     if (input.kind === 'service' && before.kind === 'goods' && before.stock && !money(before.stock).isZero())
       throw new BadRequestException({ message: 'This item has stock. Bring its stock to zero before making it a service.' });
-    await tx.item.update({ where: { id }, data: { ...this.fields(input), ...(await this.refs(tx, ctx, input)) } });
+    const track = input.trackBatch !== undefined && (await batchesOn(tx, ctx.businessId!)) ? { trackBatch: input.trackBatch && before.kind !== 'service' } : {};
+    await tx.item.update({ where: { id }, data: { ...this.fields(input), ...track, ...(await this.refs(tx, ctx, input)) } });
     const after = await this.view(tx, id);
     for (const [f, field] of [['sale', 'sale'], ['purchase', 'purchase'], ['mrp', 'mrp'], ['listPrice', 'list'], ['wholesale', 'wholesale']] as const) {
       if (before[f] !== after[f])

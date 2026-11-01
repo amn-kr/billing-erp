@@ -13,9 +13,9 @@ export async function ledgerOf(tx: Tx, itemIds?: string[]): Promise<Map<string, 
   // plain text columns: thousands of rows read much faster than as Prisma Decimal objects (row-level security still applies)
   const filter = itemIds ? Prisma.sql`WHERE item_id = ANY(${itemIds}::uuid[])` : Prisma.empty;
   const [moves, sLines, pLines] = await Promise.all([
-    tx.$queryRaw<{ item_id: string; date: string; created_at: string; qty: string; rate: string; kind: string; source_type: string; source_id: string | null }[]>`
+    tx.$queryRaw<{ item_id: string; date: string; created_at: string; qty: string; rate: string; kind: string; source_type: string; source_id: string | null; batch_id: string | null }[]>`
       SELECT item_id::text, date::text AS date, to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS created_at,
-             qty::text, rate::text, kind, source_type, source_id::text
+             qty::text, rate::text, kind, source_type, source_id::text, batch_id::text
       FROM stock_movements ${filter} ORDER BY date, created_at`,
     tx.salesDocumentLine.findMany({ where: { ...where, againstId: { not: null } }, select: { itemId: true, documentId: true, againstId: true } }),
     tx.purchaseDocumentLine.findMany({ where: { ...where, againstId: { not: null } }, select: { itemId: true, documentId: true, againstId: true } }),
@@ -28,7 +28,7 @@ export async function ledgerOf(tx: Tx, itemIds?: string[]): Promise<Map<string, 
   const out = new Map<string, LedgerMove[]>();
   for (const m of moves) {
     const list = out.get(m.item_id) ?? [];
-    list.push({ date: m.date, createdAt: m.created_at, qty: m.qty, rate: m.rate, kind: m.kind, sourceType: m.source_type, sourceId: m.source_id, against: m.source_id ? against.get(`${m.item_id}|${m.source_id}`) : undefined });
+    list.push({ date: m.date, createdAt: m.created_at, qty: m.qty, rate: m.rate, kind: m.kind, sourceType: m.source_type, sourceId: m.source_id, against: m.source_id ? against.get(`${m.item_id}|${m.source_id}`) : undefined, batchId: m.batch_id });
     out.set(m.item_id, list);
   }
   return out;

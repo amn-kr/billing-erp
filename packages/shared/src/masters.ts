@@ -79,9 +79,14 @@ export const itemSchema = z.object({
   openingQty: amount(),
   openingRate: amount(),
   openingDate: isoDate.optional(),
+  /** Features › batch_expiry: ask for batch no. and expiry on this item's stock */
+  trackBatch: z.boolean().optional(),
+  openingBatchNo: z.string().trim().max(40).optional(),
+  openingMfg: z.string().trim().max(12).optional(),
+  openingExpiry: z.string().trim().max(12).optional(),
 });
 export type ItemInput = z.infer<typeof itemSchema>;
-export const itemUpdateSchema = itemSchema.omit({ openingQty: true, openingRate: true, openingDate: true }).partial();
+export const itemUpdateSchema = itemSchema.omit({ openingQty: true, openingRate: true, openingDate: true, openingBatchNo: true, openingMfg: true, openingExpiry: true }).partial();
 
 export const godownSchema = z.object({
   name: trim.min(1, 'Enter the godown name.').max(80),
@@ -102,7 +107,15 @@ export const stockAdjustmentSchema = z.object({
   reason: opt(200),
   /** sent back unchanged when a saved one is edited: the server refuses a different number */
   number: z.string().trim().max(40).optional(),
+  /** Features › batch_expiry. Reducing: the batch it comes out of (none = No batch). Adding: the batch no. it goes into. */
+  batchId: z.string().uuid().nullable().optional(),
+  batchNo: z.string().trim().max(40).optional(),
+  mfg: z.string().trim().max(12).optional(),
+  expiry: z.string().trim().max(12).optional(),
 });
+/** Item card › Stock by batch › Edit. */
+export const batchEditSchema = z.object({ batchNo: z.string().trim().min(1, 'Enter the batch no.').max(40), mfg: opt(12), expiry: opt(12) }).strict();
+export type BatchEditInput = z.infer<typeof batchEditSchema>;
 export type StockAdjustmentInput = z.infer<typeof stockAdjustmentSchema>;
 
 export const stockTransferSchema = z
