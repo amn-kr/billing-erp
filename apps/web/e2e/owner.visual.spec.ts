@@ -4,21 +4,24 @@
  * through its API answer). Owner's decisions (1 Nov 2026), applied to the design before comparing:
  * no "Sample data" label or browser note; one "Paid" plan; Business type shows the mode ("General");
  * "Enrolled via" is Email; the trial bar counts the 14-day trial; the trial-ended text is the new one;
- * the plan form and payment history come with plans and payments (not built yet), so they are left out.
- * New parts with no design (the setup card, the Sign out link, the paused message) have owner-approved pictures.
+ * the plan form has one "Paid plan" box and a typed "Amount received (₹)" (owner-approved mock), so no prices.
+ * New parts with no design (the setup card, the Sign out link, the paused message, the plan form's changes)
+ * have owner-approved pictures.
  */
 import { expect, test, type Page } from '@playwright/test';
-import type { OwnerCustomer } from '@billing/shared';
+import type { OwnerCustomer, OwnerPayment } from '@billing/shared';
 import { compare } from './compare';
 import { approvedShot, shot } from './shots';
 import { APP, PROTOTYPE_OWNER, WIDTHS, newPage, panelAccount, signInPanel } from './setup';
 
 const TODAY = '2026-10-01';
 
-interface Seed { id: string; mob: string; email: string; biz: string; owner: string; enrolled: string; trialEnd: string; plan: string | null; till: string | null; susp: boolean }
+interface Seed { id: string; mob: string; email: string; biz: string; owner: string; enrolled: string; trialEnd: string; plan: string | null; till: string | null; susp: boolean; pay: { d: string; m: number; amt: number; mode: string; ref: string }[] }
+
+const idOf = (code: string) => `00000000-0000-4000-8000-${code.replace('BE-', '').padStart(12, '0')}`;
 
 /** The design's sample customers, as both pages will show them (the owner's decisions above). */
-async function prototypeWithDecisions(proto: Page): Promise<OwnerCustomer[]> {
+async function prototypeWithDecisions(proto: Page): Promise<{ customers: OwnerCustomer[]; payments: Record<string, OwnerPayment[]> }> {
   await proto.goto(PROTOTYPE_OWNER);
   await proto.evaluate(() => localStorage.clear());
   await proto.reload();
@@ -26,27 +29,37 @@ async function prototypeWithDecisions(proto: Page): Promise<OwnerCustomer[]> {
   await proto.evaluate(() => {
     const w = globalThis as unknown as { eval: (s: string) => unknown };
     w.eval(`PLANS.paid={n:'Paid',pm:0,d:''};
-      C=SEED.map(c=>({...c,type:'General',via:'email',plan:c.plan?'paid':null,pay:[]}));
+      C=SEED.map(c=>({...c,type:'General',via:'email',plan:c.plan?'paid':null,pay:c.pay.map(p=>({...p,p:'paid'}))}));
       render();`);
     document.querySelector('.hero .sample')?.remove();
     document.querySelector('.page > .note')?.remove();
   });
-  return seed.map((c) => ({
-    id: `00000000-0000-4000-8000-${c.id.replace('BE-', '').padStart(12, '0')}`,
+  const customers: OwnerCustomer[] = seed.map((c) => ({
+    id: idOf(c.id),
     code: c.id, name: c.biz, ownerName: c.owner, mobile: c.mob, email: c.email, businessType: 'General', via: 'email', enrolled: c.enrolled,
     plan: c.plan ? 'paid' : 'trial', trialEndsOn: c.trialEnd, paidUntil: c.till, status: c.susp ? 'suspended' : 'active',
   }));
+  // the payment history, newest first, as the API gives it
+  const payments = Object.fromEntries(seed.map((c) => [idOf(c.id), c.pay.slice().reverse().map((p, i) => ({
+    id: `${c.id}-${i}`, paidOn: p.d, months: p.m, amount: p.amt.toFixed(2), paidBy: p.mode, reference: p.ref, startsOn: p.d, endsOn: p.d,
+  }))]));
+  return { customers, payments };
 }
 
-/** The design's drawer without the parts that come later, with the owner's trial wording and 14-day bar. */
-async function trimPrototypeDrawer(proto: Page): Promise<void> {
+/**
+ * The design's drawer with the owner's decisions: one "Paid plan" box and the "Amount received (₹)" box
+ * (owner-approved mock, its own pictures), "₹0" until an amount is typed, the new trial wording and 14-day bar.
+ */
+async function prototypeDrawerWithDecisions(proto: Page): Promise<void> {
   await proto.evaluate(() => {
     const d = document.getElementById('drw')!;
-    const secs = [...d.querySelectorAll('.sec')];
-    for (const s of secs) if (/plan|Payment history/i.test(s.textContent ?? '') && s.textContent !== 'Subscription') s.remove();
-    d.querySelector('#af')?.remove();
-    d.querySelector('.hist')?.remove();
-    d.querySelector('#ext')?.replaceWith(document.createElement('span'));
+    const plans = d.querySelector<HTMLElement>('#af .plans');
+    if (plans) {
+      plans.style.gridTemplateColumns = '1fr';
+      plans.innerHTML = '<button type="button" role="radio" aria-checked="true" class="on" data-plan="paid"><b>Paid plan</b><small>All features · you set the amount</small></button>';
+      d.querySelector('#af .two')!.insertAdjacentHTML('afterend', '<label class="fl" for="aAmt">Amount received (₹)<input class="fi" id="aAmt" inputmode="decimal" autocomplete="off"></label>');
+      d.querySelector('#af .sum .tt b')!.textContent = '₹0';
+    }
     const box = d.querySelector('.subbox');
     const text = box?.querySelector('div:nth-of-type(2)');
     if (text) text.textContent = text.textContent!.replace('The account is locked until you activate a plan.', 'The shop sees a reminder to choose a plan.');
@@ -56,8 +69,12 @@ async function trimPrototypeDrawer(proto: Page): Promise<void> {
   });
 }
 
-async function panelWith(app: Page, customers: OwnerCustomer[]): Promise<void> {
+async function panelWith(app: Page, { customers, payments }: { customers: OwnerCustomer[]; payments: Record<string, OwnerPayment[]> }): Promise<void> {
   await app.route('**/api/owner/customers', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ today: TODAY, customers }) }));
+  await app.route('**/api/owner/customers/*', (r) => {
+    const id = new URL(r.request().url()).pathname.split('/').pop()!;
+    return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ customer: customers.find((c) => c.id === id), payments: payments[id] ?? [] }) });
+  });
   await signInPanel(app);
   await app.waitForSelector('#rows tr[data-id="BE-1012"]');
 }
@@ -77,8 +94,8 @@ for (const width of WIDTHS) {
       await panelAccount(request);
       const proto = await newPage(browser, width);
       const app = await newPage(browser, width);
-      const customers = await prototypeWithDecisions(proto);
-      await panelWith(app, customers);
+      const data = await prototypeWithDecisions(proto);
+      await panelWith(app, data);
       await quiet(proto);
       await quiet(app);
 
@@ -105,11 +122,14 @@ for (const width of WIDTHS) {
       for (const code of ['BE-1012', 'BE-1010', 'BE-1008', 'BE-1002', 'BE-1003']) {
         await proto.click(`#rows tr[data-id="${code}"]`);
         await app.click(`#rows tr[data-id="${code}"]`);
-        await trimPrototypeDrawer(proto);
-        for (const p of [proto, app]) await p.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+        await prototypeDrawerWithDecisions(proto);
+        await app.waitForSelector('#drw .hist > div');
+        for (const p of [proto, app]) await p.evaluate(() => { (document.activeElement as HTMLElement | null)?.blur(); document.getElementById('drw')!.scrollTop = 0; });
         await proto.mouse.move(0, 0);
         await app.mouse.move(0, 0);
         await same(`owner-drawer-${code}-${width}`, await shot(proto, '#drw'), await shot(app, '#drw'));
+        // the plan form's new parts: one "Paid plan" box and the amount box (owner-approved mock); taken last, as it scrolls the drawer
+        if (code === 'BE-1012') await approvedShot(`owner-plan-form-${width}`, app, '#af');
         await proto.keyboard.press('Escape');
         await app.keyboard.press('Escape');
       }

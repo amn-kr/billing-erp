@@ -98,3 +98,57 @@ test('a wrong password for the owner shows the usual words', async ({ browser, r
   await expect(p.locator('#aErr')).toHaveText('Email or password is wrong.');
   expect(new URL(p.url()).pathname).toBe('/login');
 });
+
+test('activate a paid plan with a payment; the shop sees “Paid”; extend a trial', async ({ browser, request }) => {
+  test.setTimeout(120_000);
+  await panelAccount(request);
+  const shop = await freshShop(request);
+  const other = await freshShop(request);
+
+  const p = await newPage(browser, 1280);
+  await signInPanel(p);
+  await p.fill('#q', shop.email);
+  await p.locator('#rows tr[data-id]').click();
+  await expect(p.locator('#drw .sec').nth(2)).toHaveText('Activate a plan');
+  await expect(p.locator('#drw .hist')).toHaveText('No payments yet');
+
+  // the form's rules, in the design's words
+  await p.click('#af button[type="submit"]');
+  await expect(p.locator('#aErr')).toHaveText('Enter the amount received.');
+  await p.fill('#aAmt', '1500');
+  await expect(p.locator('#af .sum .tt b')).toHaveText('₹1,500');
+  await p.click('#af button[type="submit"]');
+  await expect(p.locator('#aErr')).toHaveText('Enter the UPI reference so you can match this payment later.');
+  await expect(p.locator('#aRef')).toBeFocused();
+
+  // 3 months from the frozen "today" (1 Oct 2026): valid till 31 Dec 2026
+  await p.click('#af [data-m="3"]');
+  await expect(p.locator('#af .sum')).toContainText('Valid till31 Dec 2026');
+  await p.fill('#aRef', 'UPI 4521 8890');
+  await p.click('#af button[type="submit"]');
+  await expect(p.locator('#toast')).toContainText('activated: Paid till 31 Dec 2026');
+  await expect(p.locator('#drw .hist > div')).toHaveCount(1);
+  await expect(p.locator('#drw .hist')).toContainText('1 Oct 2026 · Paid, 3 mo');
+  await expect(p.locator('#drw .hist')).toContainText('UPI · UPI 4521 8890');
+  await expect(p.locator('#drw .hist')).toContainText('₹1,500');
+  await expect(p.locator('#drw .sec').nth(2)).toHaveText('Renew or change plan');
+  await expect(p.locator('#ext')).toHaveCount(0);
+  await p.keyboard.press('Escape');
+  await expect(p.locator('#rows tr[data-id]')).toContainText('Valid till 31 Dec 2026');
+
+  // the shop's own app: the account menu's License line says Paid
+  const s = await newPage(browser, 1280);
+  await s.goto(APP + '/login');
+  await s.waitForSelector('#vAuth:not([hidden])');
+  await s.fill('#aEmail', shop.email);
+  await s.fill('#aPass', shop.password);
+  await s.click('#aGo');
+  await s.waitForSelector('#app');
+  await expect(s.locator('#miLicSub')).toHaveText('Paid · till 31 Dec 2026');
+
+  // another shop on trial: Extend trial by 7 days
+  await p.fill('#q', other.email);
+  await p.locator('#rows tr[data-id]').click();
+  await p.click('#ext');
+  await expect(p.locator('#toast')).toContainText('extended to');
+});
