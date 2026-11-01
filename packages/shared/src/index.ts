@@ -19,3 +19,4 @@ export * from './numbering.js';
 export * from './brand.js';
 export * from './bulk-items.js';
 export * from './party-import.js';
+export * from './owner.js';

@@ -45,6 +45,11 @@ const schema = z.object({
   GOOGLE_ACCOUNTS_URL: z.string().url().default('https://accounts.google.com'),
   GOOGLE_OAUTH2_URL: z.string().url().default('https://oauth2.googleapis.com'),
   GOOGLE_API_URL: z.string().url().default('https://www.googleapis.com'),
+  /**
+   * Owner panel: the one-time setup code for /login?setup (making the software owner's account). Set it in
+   * Render yourself, use it once, then delete it. Without it, or once an owner account exists, setup is closed.
+   */
+  OWNER_SETUP_CODE: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(12, 'OWNER_SETUP_CODE must be at least 12 characters').optional()),
   /** Browser tests only (ignored unless NODE_ENV=test): the date the plan's days left are counted from, matching the tests' frozen clock. */
   TEST_TODAY: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });

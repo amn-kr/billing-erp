@@ -58,6 +58,7 @@ import { BackupController } from './modules/backup/backup.controller';
 import { BackupService } from './modules/backup/backup.service';
 import { BackupWorker } from './modules/backup/backup.worker';
 import { DriveController, DriveSender } from './modules/backup/drive';
+import { OWNER_CONTROLLERS, OWNER_PROVIDERS } from './owner';
 
 @Module({
   imports: [
@@ -69,7 +70,7 @@ import { DriveController, DriveSender } from './modules/backup/drive';
     }),
   ],
   controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HistoryController, HealthController, ImportsController,
-    PartiesController, ItemsController, BrandsController, StockController, PricingController, SettingsController, PrefixesController, PasscodeController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController, BackupController, DriveController],
+    PartiesController, ItemsController, BrandsController, StockController, PricingController, SettingsController, PrefixesController, PasscodeController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController, BackupController, DriveController, ...OWNER_CONTROLLERS],
   providers: [
     DbService,
     BackupService,
@@ -102,6 +103,7 @@ import { DriveController, DriveSender } from './modules/backup/drive';
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
     PasscodeService,
+    ...OWNER_PROVIDERS,
     { provide: APP_INTERCEPTOR, useClass: PasscodeInterceptor },
   ],
 })

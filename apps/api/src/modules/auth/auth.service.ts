@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { verify } from '@node-rs/argon2';
 import { randomBytes } from 'node:crypto';
 import type { ChangePasswordInput, LoginInput, MakeRecoveryCodesInput, RecoverInput, RecoveryCodes, RecoveryCodesState, RegisterInput } from '@billing/shared';
@@ -6,6 +6,9 @@ import type { RequestContext } from '../../common/context';
 import { config } from '../../config';
 import { DbService } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
+import { SHOP_PAUSED } from '../../common/auth.guard';
+import { OwnerAuthService } from '../../owner';
+import type { OwnerIssued } from '../../owner/owner-tokens.service';
 import { Issued, sha256, TokensService } from './tokens.service';
 import { hashPassword } from './password';
 import { hashRecoveryCode, makeRecoveryCode, RECOVERY_CODE_COUNT, RECOVERY_MAX_TRIES, RECOVERY_WAIT_MINUTES } from './recovery-codes';
@@ -20,31 +23,43 @@ export class AuthService {
     private readonly db: DbService,
     private readonly tokens: TokensService,
     private readonly audit: AuditService,
+    private readonly owner: OwnerAuthService,
   ) {}
 
   hashPassword(pw: string): Promise<string> {
     return hashPassword(pw);
   }
 
-  /** The shop a person lands in after signing in: the one they used last, else their first. */
+  /**
+   * The shop a person lands in after signing in: the one they used last, else their first. Shops suspended in
+   * the owner panel are skipped; someone whose every shop is suspended can't sign in.
+   */
   private async defaultBusiness(userId: string, email: string): Promise<string | null> {
     const last = await this.db.session.findFirst({ where: { userId, businessId: { not: null } }, orderBy: { createdAt: 'desc' } });
-    const ms = await this.db.scoped({ userId, email }, (tx) =>
-      tx.membership.findMany({ where: { userId, status: 'active' }, orderBy: { createdAt: 'asc' }, select: { businessId: true } }),
+    const all = await this.db.scoped({ userId, email }, (tx) =>
+      tx.membership.findMany({ where: { userId, status: 'active' }, orderBy: { createdAt: 'asc' }, select: { businessId: true, business: { select: { status: true } } } }),
     );
+    const ms = all.filter((m) => m.business.status !== 'suspended');
+    if (all.length && !ms.length) throw new ForbiddenException({ message: SHOP_PAUSED, code: 'suspended' });
     if (last?.businessId && ms.some((m) => m.businessId === last.businessId)) return last.businessId;
     return ms[0]?.businessId ?? null;
   }
 
   async register(input: RegisterInput, meta: { ua: string; ip: string }): Promise<Issued> {
-    const exists = await this.db.user.findUnique({ where: { email: input.email } });
+    // the software owner's email can't become a shop account either (same answer, so nothing is given away)
+    const exists = (await this.db.user.findUnique({ where: { email: input.email } })) ?? (await this.owner.findAdmin(input.email));
     if (exists) throw new ConflictException({ message: 'An account with this email already exists. Sign in instead.' });
     const user = await this.db.user.create({ data: { email: input.email, name: input.name, passwordHash: await this.hashPassword(input.password), lastLoginAt: new Date() } });
     return this.tokens.start(user, null, meta);
   }
 
-  async login(input: LoginInput, meta: { ua: string; ip: string }): Promise<Issued> {
-    const user = await this.db.user.findUnique({ where: { email: input.email } });
+  /**
+   * One sign-in page for everyone: shop users get shop tokens; the software owner (a separate table) gets a
+   * panel sign-in instead. A wrong email or password gives the same words and takes the same time either way.
+   */
+  async login(input: LoginInput, meta: { ua: string; ip: string }): Promise<Issued | ({ owner: true } & OwnerIssued)> {
+    const [user, admin] = await Promise.all([this.db.user.findUnique({ where: { email: input.email } }), this.owner.findAdmin(input.email)]);
+    if (admin) return { owner: true, ...(await this.owner.signIn(admin, input.password, meta)) };
     if (!user) {
       DUMMY_HASH ??= this.hashPassword('not-a-real-password');
       await verify(await DUMMY_HASH, input.password).catch(() => false);

@@ -6,6 +6,10 @@ import type { Request } from 'express';
 import { DbService } from './db.service';
 import { IS_PUBLIC, PERMISSION, WITH_TEMP_PASSWORD } from './decorators';
 import type { RequestContext } from './context';
+import { OWNER_ROUTE } from '../owner/owner.guard';
+
+/** A shop suspended in the owner panel. */
+export const SHOP_PAUSED = 'This shop’s account is paused. Please contact support.';
 
 export interface AccessClaims {
   sub: string;
@@ -30,6 +34,8 @@ export class AuthGuard implements CanActivate {
   async canActivate(ec: ExecutionContext): Promise<boolean> {
     const targets = [ec.getHandler(), ec.getClass()];
     if (this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, targets)) return true;
+    // the owner panel's routes are checked by OwnerGuard, which accepts only panel tokens
+    if (this.reflector.getAllAndOverride<boolean>(OWNER_ROUTE, targets)) return true;
     const req = ec.switchToHttp().getRequest<Request & { ctx?: RequestContext }>();
     const header = req.headers.authorization ?? '';
     const token = header.startsWith('Bearer ') ? header.slice(7) : '';
@@ -48,10 +54,12 @@ export class AuthGuard implements CanActivate {
       const m = await this.db.scoped({ businessId: claims.bid, userId: claims.sub, email: claims.email }, (tx) =>
         tx.membership.findFirst({
           where: { businessId: claims.bid!, userId: claims.sub, status: 'active' },
-          include: { role: { include: { permissions: true } }, user: { select: { mustChangePassword: true } } },
+          include: { role: { include: { permissions: true } }, user: { select: { mustChangePassword: true } }, business: { select: { status: true } } },
         }),
       );
       if (!m) throw new ForbiddenException({ message: 'You no longer have access to that shop.', code: 'removed' });
+      // suspended in the owner panel: checked on every request, so it takes effect at once (nothing is deleted)
+      if (m.business.status === 'suspended') throw new ForbiddenException({ message: SHOP_PAUSED, code: 'suspended' });
       role = m.role.key as RoleKey;
       permissions = m.role.permissions.map((p) => p.permission as Permission);
       mustChangePassword = m.user.mustChangePassword;

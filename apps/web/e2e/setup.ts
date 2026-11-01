@@ -148,6 +148,32 @@ export async function prototypeWithBackup(page: Page, fixture = 'fresh-shop'): P
   await page.evaluate(() => document.fonts.ready);
 }
 
+/** The software owner's panel account in the browser tests (made once per run through the setup page's API). */
+export const PANEL = { name: 'Aman Kumar', email: 'owner.panel@example.com', password: 'owner panel pass 1', code: 'e2e-owner-setup-code-0001' };
+export const PROTOTYPE_OWNER = 'file://' + path.join(ROOT, 'reference/design/owner-panel.html');
+
+/** Make the panel account if this run hasn't yet (start-api.sh sets OWNER_SETUP_CODE). */
+export async function panelAccount(request: APIRequestContext): Promise<typeof PANEL> {
+  const open = (await (await request.get(APP + '/api/owner/setup')).json()) as { open: boolean };
+  if (open.open) {
+    const r = await request.post(APP + '/api/owner/setup', { data: { code: PANEL.code, name: PANEL.name, email: PANEL.email, password: PANEL.password, password2: PANEL.password } });
+    if (!r.ok()) throw new Error(`owner setup failed: ${r.status()} ${await r.text()}`);
+  }
+  return PANEL;
+}
+
+/** Sign in as the software owner on the shared sign-in page; lands on /owner. */
+export async function signInPanel(page: Page): Promise<void> {
+  await page.goto(APP + '/login');
+  await page.waitForSelector('#vAuth:not([hidden])');
+  await page.fill('#aEmail', PANEL.email);
+  await page.fill('#aPass', PANEL.password);
+  await page.click('#aGo');
+  await page.waitForURL('**/owner');
+  await page.waitForSelector('#rows tr');
+  await page.evaluate(() => document.fonts.ready);
+}
+
 export async function signInAs(page: Page, who: { email: string; password: string }): Promise<void> {
   await page.goto(APP + '/login');
   await page.waitForSelector('#vAuth:not([hidden])');

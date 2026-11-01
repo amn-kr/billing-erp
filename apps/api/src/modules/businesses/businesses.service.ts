@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { SHOP_PAUSED } from '../../common/auth.guard';
 import { namedId, unitIdFor } from '../../common/lookups';
 import {
   addDays, DEFAULT_CATEGORIES, DEFAULT_COMMISSION, DEFAULT_EXPENSE_CATEGORIES, LEDGER_ACCOUNTS, DEFAULT_PARTY_GROUPS, DEFAULT_PRICE_LISTS, DEFAULT_TAXES, DEFAULT_UNITS,
@@ -122,9 +123,10 @@ export class BusinessesService {
 
   async assertMember(ctx: Pick<RequestContext, 'userId' | 'email'>, businessId: string): Promise<void> {
     const m = await this.db.scoped({ userId: ctx.userId, email: ctx.email }, (tx) =>
-      tx.membership.findFirst({ where: { businessId, userId: ctx.userId, status: 'active' } }),
+      tx.membership.findFirst({ where: { businessId, userId: ctx.userId, status: 'active' }, include: { business: { select: { status: true } } } }),
     );
     if (!m) throw new ForbiddenException({ message: 'You are not a member of that shop.' });
+    if (m.business.status === 'suspended') throw new ForbiddenException({ message: SHOP_PAUSED, code: 'suspended' });
   }
 
   /** The shop, with its owner's name and the next invoice number (Settings › Business details). */

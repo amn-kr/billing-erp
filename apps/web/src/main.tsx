@@ -6,16 +6,27 @@ import { Boot } from './app/Boot';
 import { router } from './app/router';
 import { blockBrowserMenu } from './lib/browserMenu';
 
-blockBrowserMenu();
+const root = document.getElementById('root')!;
 
-const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } });
+// the software owner's panel lives in its own folder and is loaded only at /owner
+if (window.location.pathname === '/owner' || window.location.pathname.startsWith('/owner/')) {
+  void import('./owner/main').then((m) => m.startOwner(root));
+} else {
+  startShop();
+}
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <Boot>
-        <RouterProvider router={router} />
-      </Boot>
-    </QueryClientProvider>
-  </StrictMode>,
-);
+function startShop() {
+  blockBrowserMenu();
+
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } });
+
+  createRoot(root).render(
+    <StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <Boot>
+          <RouterProvider router={router} />
+        </Boot>
+      </QueryClientProvider>
+    </StrictMode>,
+  );
+}

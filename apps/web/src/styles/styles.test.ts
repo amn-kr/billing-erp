@@ -28,6 +28,9 @@ describe('stylesheets are unchanged copies of the prototype', () => {
   it('expenses.css, extras.css and sync.css appear verbatim in the prototype', () => {
     for (const f of ['expenses.css', 'extras.css', 'sync.css']) expect(proto.includes(css(f)), f).toBe(true);
   });
+  it('owner/owner.css = the <style> block of reference/design/owner-panel.html (the software owner’s panel)', () => {
+    expect(fs.readFileSync(path.join(__dirname, '../owner/owner.css'), 'utf8')).toBe(between(read('reference/design/owner-panel.html'), '<style>', '</style>'));
+  });
   it('palette.css = what the prototype generates from PAL', () => {
     const src = 'const PAL=' + between(proto, 'const PAL=', '];') + '];return PAL;';
     const PAL = new Function(src)() as Array<{ id: string; l: Record<string, string>; d: Record<string, string> }>;
