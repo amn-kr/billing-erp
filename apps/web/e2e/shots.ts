@@ -83,6 +83,7 @@ export async function approvedShot(name: string, app: Page, sel: string): Promis
  */
 export async function sameShot(name: string, proto: Page, app: Page, sel: string): Promise<void> {
   await withRowHeight(proto);
+  await withFeaturesRow(proto, app);
   let d = compare(name, await shot(proto, sel), await shot(app, sel));
   for (let n = 0; n < 2 && !(d.sizeMatches && d.ratio <= MAX_RATIO); n++) {
     await proto.waitForTimeout(700);
@@ -90,6 +91,17 @@ export async function sameShot(name: string, proto: Page, app: Page, sel: string
   }
   expect.soft(d.sizeMatches, `${name}: size ${d.width}×${d.height} must match`).toBe(true);
   expect.soft(d.ratio, `${name}: ${d.diffPixels} pixels differ (see test-results/visual/${name}-diff.png)`).toBeLessThanOrEqual(MAX_RATIO);
+}
+
+/**
+ * Deliberate difference (owner's request, 1 Nov 2026): the shop owner's Settings menu ends with a Features
+ * row. Put the same row into the prototype's menu, so everything else is still compared pixel for pixel.
+ */
+async function withFeaturesRow(proto: Page, app: Page): Promise<void> {
+  const row = app.locator('#subnav [data-settab="features"]');
+  if (!(await row.count())) return;
+  const html = await row.evaluate((e) => e.outerHTML);
+  await proto.evaluate((html) => { const nav = document.getElementById('subnav')!; if (!nav.querySelector('[data-settab="features"]')) nav.insertAdjacentHTML('beforeend', html); }, html);
 }
 
 /**

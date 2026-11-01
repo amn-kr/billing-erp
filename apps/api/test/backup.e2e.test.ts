@@ -377,6 +377,35 @@ describe('restore', () => {
     await http().post(`/api/sales/${id}/cancel`).set(auth(n)).set('x-txn-passcode', '4826').send({}).expect(200);
   });
 
+  it('restored books keep the features that were on — from the full copy and from later changes', async () => {
+    const { o } = await shop();
+    await http().put('/api/settings/features').set(auth(o)).send({ enabled: ['batch_expiry'] }).expect(200);
+    await useDrive(o);
+    await svc.runDue();
+    await http().put('/api/settings/features').set(auth(o)).send({ enabled: ['batch_expiry', 'mrp_pack', 'medical'] }).expect(200);
+    await svc.runDue();
+    const r = (await http().post('/api/backup/restore').set(auth(o)).send({ from: 'drive', confirm: true }).expect(200)).body;
+    const n = { token: (await http().post('/api/businesses/switch').set(auth(o)).send({ businessId: r.businessId }).expect(201)).body.accessToken as string };
+    expect((await http().get('/api/me').set(auth(n)).expect(200)).body.business.features).toEqual(['batch_expiry', 'mrp_pack', 'medical']);
+  });
+
+  it('an old backup, made before Features existed, restores with everything off', async () => {
+    const { o } = await shop();
+    await useDrive(o);
+    await svc.runDue();
+    // take the new column out of the full copy, as an older version of the app wrote it
+    const snap = (await files(o)).find((f) => f.kind === 'snapshot')!;
+    const { header, body } = openFile<SnapshotBody>(KEY, o.businessId, drive.files.get(snap.ref)!);
+    expect(body.tables.business_settings).toHaveLength(1);
+    for (const row of body.tables.business_settings!) delete row.features;
+    const old = lockFile(KEY, { business: header.business, kind: header.kind, afterSeq: header.afterSeq, toSeq: header.toSeq, createdAt: header.createdAt }, body);
+    drive.files.set(snap.ref, old);
+    await asShop(o.businessId, (tx) => tx.backupFile.update({ where: { id: snap.id }, data: { sha256: sha256(old) } }));
+    const r = (await http().post('/api/backup/restore').set(auth(o)).send({ from: 'drive', confirm: true }).expect(200)).body;
+    const n = { token: (await http().post('/api/businesses/switch').set(auth(o)).send({ businessId: r.businessId }).expect(201)).body.accessToken as string };
+    expect((await http().get('/api/me').set(auth(n)).expect(200)).body.business.features).toEqual([]);
+  });
+
   it('deleted documents stay deleted (hidden, kept) in the restored books — from the full copy and from later changes', async () => {
     const { o, inv, fan, verma } = await shop();
     const line = { itemId: fan.id, name: fan.name, qty: '2', price: '1890', discPct: '0', gstRate: '18' };
