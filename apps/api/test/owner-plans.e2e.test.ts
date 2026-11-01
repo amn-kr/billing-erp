@@ -7,6 +7,7 @@ import type { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { planEndsOn, todayIst } from '@billing/shared';
 import { auth, owner, startApp, uniqueEmail } from './helpers';
 import { TEST_DB } from './env';
 
@@ -29,7 +30,6 @@ async function panel(): Promise<{ id: string; token: string }> {
   const r = await http().post('/api/auth/login').send({ email: a.email, password: OWNER_PW }).expect(200);
   return { id: a.id, token: r.body.accessToken };
 }
-const { todayIst } = await import('@billing/shared');
 const today = () => todayIst();
 const plus = (iso: string, days: number) => new Date(Date.parse(iso + 'T00:00:00Z') + days * 86_400_000).toISOString().slice(0, 10);
 const pay = (p: { token: string }, id: string, body: Record<string, unknown>) => http().post(`/api/owner/customers/${id}/plan`).set(auth(p)).send({ months: 1, startsOn: today(), paidBy: 'UPI', amount: '1500', reference: 'UPI 4521 8890', ...body });
@@ -40,7 +40,7 @@ describe('plans and payments', () => {
     const o = await owner(app);
     const start = today();
     const r = await pay(p, o.businessId, { months: 3, startsOn: start, amount: '1,499.50' }).expect(200);
-    const end = (await import('@billing/shared')).planEndsOn(start, 3);
+    const end = planEndsOn(start, 3);
     expect(r.body.customer).toMatchObject({ plan: 'paid', paidUntil: end, status: 'active' });
     expect(r.body.payments).toEqual([{ id: expect.any(String), paidOn: start, months: 3, amount: '1499.50', paidBy: 'UPI', reference: 'UPI 4521 8890', startsOn: start, endsOn: end }]);
     expect((await http().get(`/api/owner/customers/${o.businessId}`).set(auth(p)).expect(200)).body).toEqual(r.body);
