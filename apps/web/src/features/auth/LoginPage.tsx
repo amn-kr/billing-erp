@@ -2,6 +2,7 @@
  * Sign in · create account · join a shop · set up your shop.
  * Same markup and wording as reference/firebase-site/public/index.html, backed by our API.
  * "Choose a new password" (vPass) uses the same card after a temporary password from the shop owner.
+ * "Forgot password?" opens "Use a recovery code" (vRec): the email, one recovery code and a new password.
  */
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -15,7 +16,7 @@ import { AUTH_STYLES } from '../../styles';
 import { APP_LETTER, APP_NAME } from '../../lib/brand';
 import { ui } from '../../styles/uiSize';
 
-type View = 'vLoad' | 'vAuth' | 'vPass' | 'vJoin' | 'vShop';
+type View = 'vLoad' | 'vAuth' | 'vPass' | 'vRec' | 'vJoin' | 'vShop';
 const APP = APP_NAME;
 const TRIAL = Number(import.meta.env.VITE_TRIAL_DAYS ?? 14);
 const msgOf = (e: unknown) => (e instanceof ApiError ? e.message : 'Something went wrong.');
@@ -36,6 +37,11 @@ export function LoginPage() {
   const [jErr, setJErr] = useState('');
   const [sErr, setSErr] = useState('');
   const [pErr, setPErr] = useState('');
+  const [rErr, setRErr] = useState('');
+  const rEmailRef = useRef<HTMLInputElement>(null);
+  const rCodeRef = useRef<HTMLInputElement>(null);
+  const rNewRef = useRef<HTMLInputElement>(null);
+  const rNew2Ref = useRef<HTMLInputElement>(null);
   /** the password just typed to sign in, so the temporary one isn't asked again (kept only in memory) */
   const signedWith = useRef('');
   const [askCurrent, setAskCurrent] = useState(true);
@@ -112,15 +118,34 @@ export function LoginPage() {
     }
   }
 
-  async function onForgot() {
-    const email = emailRef.current!.value.trim();
-    if (!email) return setAErr({ text: 'Type your email above first.' });
+  /** No email service is connected yet: "Forgot password?" uses a recovery code (or support). */
+  function onForgot() {
+    setAErr({ text: '' });
+    setRErr('');
+    for (const r of [rCodeRef, rNewRef, rNew2Ref]) if (r.current) r.current.value = '';
+    if (rEmailRef.current) rEmailRef.current.value = emailRef.current!.value.trim();
+    setView('vRec');
+    setTimeout(() => (rEmailRef.current?.value ? rCodeRef : rEmailRef).current?.focus(), 30);
+  }
+
+  async function onRecover(e: FormEvent) {
+    e.preventDefault();
+    const email = rEmailRef.current!.value.trim();
+    const code = rCodeRef.current!.value.trim();
+    const password = rNewRef.current!.value;
+    setRErr('');
+    if (!email) return setRErr('Enter your email.');
+    if (!code) return setRErr('Enter one of your recovery codes.');
+    if (password.length < 8) return setRErr('Use at least 8 characters for the password.');
+    if (password !== rNew2Ref.current!.value) return setRErr('The two passwords don’t match.');
+    setBusy(true);
     try {
-      await api('/auth/forgot', { body: { email } });
-      // No email service is connected yet, so say so plainly instead of promising an email.
-      setAErr({ text: 'Password reset by email isn’t switched on yet. Please contact support to reset your password.' });
+      await apiWithToken('/auth/recover', { email, code, password });
+      await route();
     } catch (x) {
-      setAErr({ text: msgOf(x) });
+      setRErr(msgOf(x));
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -235,6 +260,19 @@ export function LoginPage() {
             <div className="msg bad" id="pErr" role="alert">{pErr}</div>
           </form>
           <p className="mu" style={{ margin: ui.sp('14px 0 0'), textAlign: 'center' }}><button className="lnk" type="button" data-out onClick={out}>Sign out</button></p>
+        </div>
+        <div id="vRec" hidden={view !== 'vRec'}>
+          <h2>Use a recovery code</h2><p className="mu">Type your email, one of your recovery codes and a new password. Each code works once.</p>
+          <form id="fRec" noValidate onSubmit={onRecover}>
+            <label>Email<input id="rEmail" type="email" autoComplete="email" ref={rEmailRef} /></label>
+            <label>Recovery code<input id="rCode" style={{ fontFamily: 'ui-monospace,Menlo,Consolas,monospace', letterSpacing: '.08em', fontWeight: 600, textTransform: 'uppercase' }} autoComplete="one-time-code" autoCapitalize="characters" spellCheck={false} placeholder="XXXX-XXXX" ref={rCodeRef} /></label>
+            <label>New password<input id="rNew" type="password" autoComplete="new-password" minLength={8} ref={rNewRef} /></label>
+            <label>Type it again<input id="rNew2" type="password" autoComplete="new-password" minLength={8} ref={rNew2Ref} /></label>
+            <button className="btn p" id="rGo" type="submit" disabled={busy}>Save and sign in</button>
+            <div className="msg bad" id="rErr" role="alert">{rErr}</div>
+          </form>
+          <div className="note" style={{ marginTop: ui.sp(14) }} id="rNote">No recovery codes? Please contact support to reset your password.</div>
+          <p className="mu" style={{ margin: ui.sp('14px 0 0'), textAlign: 'center' }}><button className="lnk" type="button" id="rBack" onClick={() => setView('vAuth')}>Back to sign in</button></p>
         </div>
         <div id="vJoin" hidden={view !== 'vJoin'}>
           <h2>Join <span id="jShop">{invite?.businessName ?? 'the shop'}</span></h2><p className="mu">You were invited as staff. Your entries will go into this shop’s books.</p>

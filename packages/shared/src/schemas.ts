@@ -53,6 +53,14 @@ export const acceptInviteSchema = z.object({ name: z.string().trim().min(1, 'Ent
 export const changePasswordSchema = z.object({ current: z.string().min(1, 'Enter your current password.').max(200), password });
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
+/** Recovery codes: the person's own password before making them (shown once). */
+export const makeRecoveryCodesSchema = z.object({ password: z.string().min(1, 'Enter your password.').max(200) });
+export type MakeRecoveryCodesInput = z.infer<typeof makeRecoveryCodesSchema>;
+
+/** "Use a recovery code" on the sign-in page: email, one code and a new password. */
+export const recoverSchema = z.object({ email, code: z.string().trim().min(1, 'Enter a recovery code.').max(40), password });
+export type RecoverInput = z.infer<typeof recoverSchema>;
+
 export const changeRoleSchema = z.object({ role: z.enum(ROLE_KEYS) });
 
 export const switchBusinessSchema = z.object({ businessId: z.string().uuid() });

@@ -1,6 +1,6 @@
 /**
  * Settings › General (#cGen) in the order the prototype finally builds it:
- * Business details, Display (₹, MRP), Payment links, Modules, Team, Backup & restore,
+ * Business details, Display (₹, MRP), Payment links, Modules, Team, Recovery codes, Backup & restore,
  * Start fresh, Cloud sync. "Restore from file" takes the old app's backup and
  * imports it (Phase 2 import upload). Start fresh never deletes: it starts new books.
  */
@@ -23,6 +23,7 @@ import { useQuick } from '../sales/QuickSale';
 import { Sw, useS, useSaveS } from './model';
 import { BackupLive } from './BackupCard';
 import { TeamCard } from './TeamCard';
+import { RecoveryCard } from './RecoveryCard';
 import { ui } from '../../styles/uiSize';
 
 const BOLT = '<path d="M13 3L5 13h6l-1 8 8-10h-6z"/>';
@@ -167,6 +168,7 @@ export function GeneralTab() {
       <h3 style={{ margin: ui.sp('22px 0 4px'), fontSize: ui.fs(16) }}>Modules</h3><p className="mu" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(13) }}>Turn off parts of the app you don’t use. Your data is kept.</p>
       <div className="tgl"><div className="ti" style={T('var(--blue,#2563eb)')}><Icon name="book" /></div><div className="tx"><b>Accounting</b><small>Chart of accounts, journal vouchers and day book in the side menu.</small></div><Sw id="sAcct" on={S.acct} label="Accounting" onChange={(v) => { void save({ data: { acct: v } }); showToast(v ? 'Accounting turned on' : 'Accounting turned off'); }} /></div>
       <TeamCard />
+      <RecoveryCard />
       <div id="bkpCard"><h3 style={{ margin: ui.sp('26px 0 4px'), fontSize: ui.fs(16) }}>Backup &amp; restore</h3><p className="mu" style={{ margin: ui.sp('0 0 12px'), fontSize: ui.fs(13) }}>Keep a copy of your books outside the app. If entries are lost or deleted by mistake, restore the copy.</p>
         <BackupLive onDownload={() => void download()}>
           <div className="synccard"><div className="sx"><b>Backup file</b><span id="bkpLastTxt">{l ? `Last downloaded on this device ${when(new Date(l).toISOString())}${days! >= 7 ? ` — ${days} days ago, take a new one` : ''}.` : 'No backup downloaded on this device yet.'}</span></div><button className="btn" type="button" id="bkpRestoreBtn" onClick={() => fileRef.current?.click()}>Restore from file…</button><button className="btn p" type="button" id="bkpDlBtn" onClick={() => void download()}>Download backup</button></div>
