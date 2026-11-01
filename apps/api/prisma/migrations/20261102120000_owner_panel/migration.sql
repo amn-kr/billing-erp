@@ -39,11 +39,13 @@ CREATE INDEX "owner_sessions_admin_id_idx" ON "owner_sessions"("admin_id");
 ALTER TABLE "owner_sessions" ADD CONSTRAINT "owner_sessions_admin_id_fkey" FOREIGN KEY ("admin_id") REFERENCES "super_admins"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- everything done in or to the panel: who, when, which shop, what changed. Append-only.
+-- The shop column is shop_id, not business_id: tables with business_id are a shop's own data (its backups
+-- copy them), and this log belongs to the software owner, not to the shop.
 CREATE TABLE "owner_audit_log" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "admin_id" UUID,
     "action" TEXT NOT NULL,
-    "business_id" UUID,
+    "shop_id" UUID,
     "entity" TEXT NOT NULL,
     "entity_id" TEXT,
     "before" JSONB,
@@ -54,7 +56,7 @@ CREATE TABLE "owner_audit_log" (
     CONSTRAINT "owner_audit_log_pkey" PRIMARY KEY ("id")
 );
 CREATE INDEX "owner_audit_log_created_at_idx" ON "owner_audit_log"("created_at");
-CREATE INDEX "owner_audit_log_business_id_idx" ON "owner_audit_log"("business_id");
+CREATE INDEX "owner_audit_log_shop_id_idx" ON "owner_audit_log"("shop_id");
 
 GRANT SELECT, INSERT, UPDATE ON "super_admins", "owner_sessions" TO erp_app;
 GRANT SELECT, INSERT ON "owner_audit_log" TO erp_app;

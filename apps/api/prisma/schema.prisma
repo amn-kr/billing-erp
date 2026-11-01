@@ -344,7 +344,8 @@ model OwnerAuditLog {
   adminId    String?  @map("admin_id") @db.Uuid
   /// setup | sign_in | sign_in_failed | locked | sign_out | suspend | reactivate | ...
   action     String
-  businessId String?  @map("business_id") @db.Uuid
+  /// the shop concerned (shop_id, not business_id: this log is the owner's, never part of a shop's backup)
+  businessId String?  @map("shop_id") @db.Uuid
   entity     String
   entityId   String?  @map("entity_id")
   before     Json?
@@ -353,7 +354,7 @@ model OwnerAuditLog {
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@index([createdAt])
-  @@index([businessId])
+  @@index([businessId], map: "owner_audit_log_shop_id_idx")
   @@map("owner_audit_log")
 }
 
