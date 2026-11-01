@@ -112,7 +112,8 @@ export function RecoveryCard() {
         <div className="synccard"><div className="sx"><b>Your recovery codes{warn && <> <span className="st a" id="rcWarn">{made ? 'Few left' : 'Not set up'}</span></>}</b><span id="rcState">{status}</span></div>
           <button className={`btn${made && !warn ? '' : ' p'}`} type="button" id="rcMake" disabled={!s} onClick={open}>{made ? 'Make new codes' : 'Make codes'}</button></div>
       </div>
-      <SlModal m={modal} onClose={() => setStep(null)} />
+      {/* only while open: the Team card above has its own #slm, and two would share the ids */}
+      {modal && <SlModal m={modal} onClose={() => setStep(null)} />}
     </>
   );
 }
