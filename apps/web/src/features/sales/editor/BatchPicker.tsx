@@ -22,7 +22,12 @@ export function BatchPicker({ pick, onClose, onDone }: { pick: PickFor | null; o
   const [err, setErr] = useState('');
   useOpenFocus(!!pick, ref);
   useEscape(!!pick, onClose);
-  useEffect(() => { if (pick) { setTake(fill(pick.allocs)); setAuto(false); setErr(''); } }, [pick]);
+  // filled when the window opens only: the sale behind it can be drawn again at any time, and what is typed here stays
+  const open = !!pick;
+  useEffect(() => {
+    if (pick) { setTake(fill(pick.allocs)); setAuto(false); setErr(''); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
   if (!pick) return <div className="ov c" id="bxPick" hidden ref={ref}><div className="mdl" role="dialog" aria-modal="true" aria-labelledby="bxPickT"></div></div>;
   // No batch is always offered, and so is a batch already on the line
   const rows: BatchRow[] = [...pick.rows];
