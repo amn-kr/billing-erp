@@ -60,7 +60,11 @@ test('a purchase bill asks for the batch of a tracked item; the item card shows 
   expect(await rows(page)).toEqual([['No batch', '1'], ['C789', '6']]);
   await expect(page.locator('#itBatches tfoot')).toContainText('7');
 
-  // Edit corrects the dates
+  // Edit corrects the dates; Escape closes it unchanged
+  await page.click('[data-batchedit="C789"]');
+  await expect(page.locator('#bxEdit')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#bxEdit')).toBeHidden();
   await page.click('[data-batchedit="C789"]');
   await expect(page.locator('#bxExp')).toHaveValue('02/40');
   await page.fill('#bxExp', 'soon');

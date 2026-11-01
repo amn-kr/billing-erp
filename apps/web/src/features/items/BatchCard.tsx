@@ -8,6 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { batchDateText, batchMonth, expiryLabel, expiryState, formatInr2, formatQty, money, sumValues, type BatchRow } from '@billing/shared';
 import { api, ApiError } from '../../lib/api';
 import { today } from '../../lib/time';
+import { useEscape } from '../../lib/useEscape';
 import { useOpenFocus } from '../../lib/useOpenFocus';
 import { useShell } from '../shell/store';
 import { ui } from '../../styles/uiSize';
@@ -59,13 +60,12 @@ function EditBatch({ batch, onClose }: { batch: BatchRow | null; onClose: () => 
   const [err, setErr] = useState('');
   const ref = useRef<HTMLDivElement>(null);
   useOpenFocus(!!batch, ref);
+  useEscape(!!batch, onClose);
+  // what is typed stays when the page behind is drawn again
   useEffect(() => {
     if (!batch) return;
     setNo(batch.no); setMfg(batchDateText(batch.mfg, 'mfg')); setExp(batchDateText(batch.expiry, 'expiry')); setErr('');
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    document.addEventListener('keydown', esc);
-    return () => document.removeEventListener('keydown', esc);
-  }, [batch, onClose]);
+  }, [batch]);
   const save = async (e: FormEvent) => {
     e.preventDefault();
     try {
