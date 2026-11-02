@@ -189,3 +189,53 @@ test('Forgot passcode: the owner sets a new one with the account password; a pur
   await expect(page.locator('#toast')).toHaveText(`${no} cancelled`);
   await expect(page.locator(`#poRows tr[data-pono="${no}"] .stt`)).toHaveText('Cancelled');
 });
+
+test('typing that starts the moment the box changes step stays in the box it was typed in', async ({ browser, request }) => {
+  // The box puts the cursor in its first field shortly after each step opens. That must not pull the
+  // cursor away from a field the user (or a test) is already typing in, or the digits land in the
+  // password field and the box says "Enter 4 to 6 digits." (seen once in CI on the Forgot test above).
+  const page = await newPage(browser, 1366);
+  const who = await freshShop(request, 'sales-shop');
+  await turnOn(request, who);
+  await signInAs(page, who);
+  await openTxn(page);
+  await page.click('#tPassChange');
+  await expect(page.locator('#pcT')).toHaveText('Enter current passcode');
+  await page.click('#pcForgot');
+  await page.focus('#pcPin');
+  await page.waitForTimeout(100); // longer than the box's own delay before it moves the cursor
+  await page.keyboard.insertText(NEW);
+  await expect(page.locator('#pcPin')).toHaveValue(NEW);
+  await expect(page.locator('#pcPw')).toHaveValue('');
+});
+
+test('a passcode box that opens again starts empty: the passcode typed for the last change is not kept', async ({ browser, request }) => {
+  // Seen once in CI: the cancel box first showed the passcode typed for the edit just before, and only
+  // emptied itself a moment later, wiping what was typed meanwhile ("Enter 4 to 6 digits.").
+  const page = await newPage(browser, 1366);
+  const who = await freshShop(request, 'bank-shop');
+  await turnOn(request, who);
+  await signInAs(page, who);
+  await page.goto(APP + '/expenses');
+  const first = page.locator('#exRows tr[data-exk^="EX:"]').first();
+  const no = (await first.getAttribute('data-exk'))!.slice(3);
+  await first.locator('td').first().click();
+  await page.click('#xpSave');
+  await enter(page, PASS);
+  await expect(page.locator('#toast')).toHaveText('Expense saved successfully');
+  await page.locator(`#exRows tr[data-exk="EX:${no}"] td`).first().click();
+  await page.click('#xpDel');
+  // note what the box holds the moment its new title is drawn, before anything else runs
+  await page.evaluate(() => {
+    const w = window as unknown as { pcSeen?: string };
+    const mo = new MutationObserver(() => {
+      if (w.pcSeen === undefined && document.getElementById('pcT')?.textContent?.startsWith('Cancel')) w.pcSeen = (document.getElementById('pcPin') as HTMLInputElement).value;
+    });
+    mo.observe(document.body, { subtree: true, childList: true, characterData: true });
+  });
+  await page.click('#slmOk');
+  await expect(page.locator('#pcT')).toHaveText(`Cancel ${no}?`);
+  expect(await page.evaluate(() => (window as unknown as { pcSeen?: string }).pcSeen)).toBe('');
+  await enter(page, PASS);
+  await expect(page.locator('#toast')).toHaveText(`${no} cancelled`);
+});

@@ -98,11 +98,22 @@ export function PasscodeBox() {
   const shown = !!mode;
   useOpenFocus(shown, ovRef);
 
-  // every time the box opens or changes step: empty fields, first field focused
+  // every time the box opens, closes or changes step: empty fields. Done while drawing, not after, so the
+  // box never shows (or keeps) the passcode typed for the last step and never wipes what is typed next
+  const [shownMode, setShownMode] = useState(mode);
+  if (shownMode !== mode) {
+    setShownMode(mode);
+    setPin(''); setPin2(''); setPw(''); setErr('');
+  }
+  // …and the first field focused, unless typing has already started in one of the box's fields
   useEffect(() => {
     if (!mode) return;
-    setPin(''); setPin2(''); setPw(''); setErr('');
-    setTimeout(() => (mode === 'forgot' ? pwRef : pinRef).current?.focus(), 30);
+    const t = setTimeout(() => {
+      const a = document.activeElement;
+      if (a instanceof HTMLInputElement && mdlRef.current?.contains(a)) return;
+      (mode === 'forgot' ? pwRef : pinRef).current?.focus();
+    }, 30);
+    return () => clearTimeout(t);
   }, [mode]);
   const dismiss = () => { const a = ask; close(); a?.done(false); };
   useEffect(() => {
