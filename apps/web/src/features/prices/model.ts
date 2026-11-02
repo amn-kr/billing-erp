@@ -36,7 +36,7 @@ export function usePriceData() {
   if (!items.data || !lists.data || !prices.data) return null;
   const pm = new Map(prices.data.items.map((p) => [p.id, p.lists]));
   const IT: PItem[] = items.data.map((i) => ({
-    id: i.id, name: i.name, grp: i.group, code: i.code, svc: i.kind === 'service', brand: i.brand, series: i.series, cat: i.category, unit: i.unit,
+    id: i.id, name: i.name, grp: i.group, code: i.code, svc: i.kind === 'service', brand: i.brand, series: i.series, cat: i.category, unit: i.packUnit || i.unit,
     hsn: i.hsn, gst: Number(i.gstRate), stock: Number(i.stock ?? 0), legacy: i.legacyId ?? null,
     mrp: Number(i.mrp), lp: Number(i.listPrice), purch: Number(i.purchase), sale: Number(i.sale),
     pl: Object.fromEntries(Object.entries(pm.get(i.id) ?? {}).map(([k, v]) => [k, { p: Number(v.price), own: v.fixed }])),

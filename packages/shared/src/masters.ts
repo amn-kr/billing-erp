@@ -61,6 +61,9 @@ export const itemSchema = z.object({
   /** optional second unit: 1 unit = unitRate secondaryUnit, e.g. 1 COIL = 90 MTR */
   secondaryUnit: opt(20).transform((v) => v.toUpperCase()),
   unitRate: amount(),
+  /** Features › mrp_pack: 1 packUnit = packSize of `unit`, the unit stock is counted in; '' = no pack */
+  packUnit: opt(20).transform((v) => v.toUpperCase()).optional(),
+  packSize: amount(),
   category: opt(80),
   brand: opt(80),
   group: opt(160),

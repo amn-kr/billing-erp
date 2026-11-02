@@ -8,7 +8,7 @@ import { useMrpOn } from '../../lib/settings';
 import { Fragment, useEffect, useMemo, useState, type MouseEvent as RMouseEvent } from 'react';
 import { go } from '../../lib/go';
 import { useQuery } from '@tanstack/react-query';
-import { can, formatInr0, money, sumValues, type BatchRow, type RateTable as Rates } from '@billing/shared';
+import { can, formatInr0, money, sumValues, type BatchRow, type RateTable as Rates, packQtyText, type PackInfo } from '@billing/shared';
 import { useLocation } from 'react-router-dom';
 import { useFeature } from '../../lib/features';
 import { useMe } from '../../lib/me';
@@ -36,6 +36,9 @@ export interface Item {
   unit: string;
   secondaryUnit: string;
   unitRate: string | null;
+  /** Features › mrp_pack: 1 packUnit = packSize of unit; prices are then per pack, stock in unit */
+  packUnit?: string;
+  packSize?: string | null;
   category: string;
   brand: string;
   group: string;
@@ -80,6 +83,9 @@ const n = (v: string) => Number(v);
 const isNew = (i: Item) => Math.abs(Date.now() - Date.parse(i.createdAt)) < 7 * 86_400_000;
 const vlabel = (i: Item) => `${i.brand || ''}${i.series ? ' ' + i.series : ''}`.trim() || i.name;
 const lvlClass = (l: Item['level']) => (l === 'out' ? 'neg' : l === 'low' ? 'lowq' : 'zero');
+
+/** Features › mrp_pack: an item's pack, for its stock figures. */
+export const packOf = (i: { packUnit?: string; packSize?: string | null }): PackInfo | null => (i.packUnit && i.packSize ? { packUnit: i.packUnit, packSize: i.packSize } : null);
 
 /** Prototype item transaction rows, from the stock ledger: invoice / bill number, party and status come from the API. */
 function txRows(i: ItemDetail) {
@@ -275,7 +281,7 @@ export function ItemsPage() {
               <div className="ptempty">No item selected.</div>
             ) : null}
           </div>
-          {batchOn && item?.batches && !groupSel ? <BatchCard rows={item.batches.rows} shortQty={item.batches.shortQty} unit={item.unit} canEdit={can(me?.permissions, 'masters.manage')} /> : null}
+          {batchOn && item?.batches && !groupSel ? <BatchCard rows={item.batches.rows} shortQty={item.batches.shortQty} unit={item.unit} pack={packOf(item)} canEdit={can(me?.permissions, 'masters.manage')} /> : null}
           <div className="card ptxc" hidden={!!groupSel}>
             <div className="hd" style={{ margin: 0, padding: ui.sp('14px 16px') }}>
               <h3>Transactions</h3>
@@ -380,7 +386,7 @@ function ItemHead({ i, mrpOn, onBack, onAdjust, onEdit }: { i: ItemDetail; mrpOn
             {i.code && <span className="mono">{i.code}</span>}
             {i.hsn && <span className="needs-gst">{i.kind === 'service' ? 'SAC' : 'HSN'} {i.hsn}</span>}
             <span>{i.category || 'No category'}</span>
-            <span>Unit: {i.unit}</span>
+            <span>Unit: {i.packUnit ? `1 ${i.packUnit} = ${qfmt(i.packSize ?? 0)} ${i.unit}` : i.unit}</span>
             <span className="needs-gst">GST {gst(i)}%</span>
             {i.location && <span>{i.location}</span>}
           </div>
@@ -398,12 +404,12 @@ function ItemHead({ i, mrpOn, onBack, onAdjust, onEdit }: { i: ItemDetail; mrpOn
             <>
               <div><small>Purchase Price</small><span><b>{latestAvg(i)}</b><span className="tagw n">Latest/Avg</span></span></div>
               {/* with MRP switched off the prototype strips every red .neg from this header (its MRP patch), so "Out of stock" quantity isn't red */}
-              <div><small>In Stock</small><span><b className={l === 'out' ? (mrpOn ? 'neg' : '') : l === 'low' ? 'lowq' : ''}>{qfmt(s)} {i.unit}</b>{l === 'low' ? <span className="tagw">Below {qfmt(i.minStock)}</span> : l === 'out' ? <span className="tagw r">Out of stock</span> : null}</span></div>
+              <div><small>In Stock</small><span><b className={l === 'out' ? (mrpOn ? 'neg' : '') : l === 'low' ? 'lowq' : ''}>{i.packUnit ? packQtyText(s, i.unit, packOf(i)) : `${qfmt(s)} ${i.unit}`}</b>{l === 'low' ? <span className="tagw">Below {qfmt(i.minStock)}</span> : l === 'out' ? <span className="tagw r">Out of stock</span> : null}</span></div>
               <div><small>Stock Value</small><span><b>{inr2f(i.rateTable?.value ?? '0')}</b></span></div>
             </>
           )}
         </div>
-        {i.kind !== 'service' && i.rateTable && <RateTable t={i.rateTable} unit={i.unit} />}
+        {i.kind !== 'service' && i.rateTable && <RateTable t={i.rateTable} unit={i.unit} pack={packOf(i)} />}
       </div>
     </>
   );

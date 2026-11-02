@@ -1,9 +1,9 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { batchDay, batchMonth, billAllocs, effectiveMrp, expiryState, formatQty, isAboveMrp, money, ratePerUnit, parseBatchDate, sortBatches, stockByBatch, todayIst, type BatchAlloc, type BatchRow, type Money, type MoneyInput } from '@billing/shared';
+import { batchDay, batchMonth, billAllocs, effectiveMrp, expiryState, formatQty, isAboveMrp, loosePrice, money, ratePerUnit, parseBatchDate, sortBatches, stockByBatch, stockQtyOf, todayIst, type BatchAlloc, type BatchRow, type Money, type MoneyInput } from '@billing/shared';
 import type { AuditService } from '../../common/audit.service';
 import type { Tx } from '../../common/db.service';
 import { day, isoOf } from '../../common/lookups';
-import { ledgerOf } from './stock-value';
+import { fallbackRate, ledgerOf, type Priced } from './stock-value';
 
 interface Who { businessId: string; userId: string; ip?: string }
 export interface BatchEntry { batchNo?: string | null; mfg?: string | null; expiry?: string | null; /** only with Features › mrp_pack on */ mrp?: string | null }
@@ -66,13 +66,13 @@ export async function resolveBatch(tx: Tx, who: Who, audit: AuditService, item: 
 }
 
 /** Items' stock by batch from their stock ledger (the one lot calculation), in the order they are used; `exceptDoc` leaves out one document's own stock. */
-export async function batchRowsOf(tx: Tx, items: { id: string; purchasePrice: { toString(): string } }[], exceptDoc?: string): Promise<Map<string, { rows: BatchRow[]; shortQty: string }>> {
+export async function batchRowsOf(tx: Tx, items: ({ id: string } & Priced)[], exceptDoc?: string): Promise<Map<string, { rows: BatchRow[]; shortQty: string }>> {
   const ids = items.map((i) => i.id);
   const ledger = await ledgerOf(tx, ids);
   const info = new Map((await tx.batch.findMany({ where: { itemId: { in: ids } } })).map((b) => [b.id, b]));
   return new Map(items.map((item) => {
     const moves = (ledger.get(item.id) ?? []).filter((m) => !exceptDoc || m.sourceId !== exceptDoc);
-    const { rows, shortQty } = stockByBatch(moves, item.purchasePrice.toString());
+    const { rows, shortQty } = stockByBatch(moves, fallbackRate(item), item.packSize?.toString() ?? 1);
     const out: BatchRow[] = rows.map((r) => {
       const b = r.batchId ? info.get(r.batchId) : undefined;
       return { id: r.batchId, no: b?.batchNo ?? 'No batch', mfg: isoOf(b?.mfgDate ?? null), expiry: isoOf(b?.expiryDate ?? null), qty: r.qty, rate: r.rate, value: r.value, mrp: b?.mrp ? b.mrp.toFixed(2) : null };
@@ -81,7 +81,7 @@ export async function batchRowsOf(tx: Tx, items: { id: string; purchasePrice: { 
   }));
 }
 
-export async function batchRows(tx: Tx, item: { id: string; purchasePrice: { toString(): string } }, exceptDoc?: string): Promise<{ rows: BatchRow[]; shortQty: string }> {
+export async function batchRows(tx: Tx, item: { id: string } & Priced, exceptDoc?: string): Promise<{ rows: BatchRow[]; shortQty: string }> {
   return (await batchRowsOf(tx, [item], exceptDoc)).get(item.id)!;
 }
 
@@ -94,7 +94,7 @@ export const allocsOf = (v: unknown): BatchAlloc[] => (Array.isArray(v) ? (v as 
  */
 export async function allocateSale(
   tx: Tx,
-  o: { date: string; confirmExpired?: boolean; docId?: string; savedLines?: { batchAlloc: unknown }[]; lines: { item: { id: string; name: string; kind: string; trackBatch: boolean; purchasePrice: { toString(): string } }; qty: MoneyInput; batches?: { batchId: string | null; qty: MoneyInput }[] }[] },
+  o: { date: string; confirmExpired?: boolean; docId?: string; savedLines?: { batchAlloc: unknown }[]; lines: { item: { id: string; name: string; kind: string; trackBatch: boolean } & Priced; qty: MoneyInput; batches?: { batchId: string | null; qty: MoneyInput }[] }[] },
 ): Promise<{ allocs: (BatchAlloc[] | null)[]; expired: { item: string; batch: string; expiry: string; qty: string }[] }> {
   const tracked = [...new Map(o.lines.filter((l) => l.item.kind !== 'service' && l.item.trackBatch).map((l) => [l.item.id, l.item])).values()];
   if (!tracked.length) return { allocs: o.lines.map(() => null), expired: [] };
@@ -163,21 +163,24 @@ export async function refuseIfBatchShort(tx: Tx, batchIds: (string | null | unde
 
 /**
  * Lines whose rate is above MRP (Features › mrp_pack): they need "Save anyway". What an edited bill already sold
- * at that rate or higher isn't asked again.
+ * at that rate or higher isn't asked again. A line's rate is compared with the MRP for its own unit: the pack's, or
+ * the pack's ÷ its size when sold loose (the MRP is per pack); `qty` is in the line's unit and `stockQty` in stock.
  */
 export async function aboveMrpLines(
   tx: Tx,
-  o: { lines: { item: { id: string; name: string; kind: string; mrp: { toString(): string } }; qty: MoneyInput; amount: MoneyInput; allocs: BatchAlloc[] | null }[]; savedLines?: { itemId: string | null; qty: { toString(): string }; amount: { toString(): string } }[] },
+  o: { lines: { item: { id: string; name: string; kind: string; mrp: { toString(): string }; packSize?: { toString(): string } | null }; qty: MoneyInput; stockQty: MoneyInput; inPacks: boolean; amount: MoneyInput; allocs: BatchAlloc[] | null }[]; savedLines?: { itemId: string | null; qty: { toString(): string }; packSize: { toString(): string } | null; amount: { toString(): string } }[] },
 ): Promise<{ item: string; rate: string; mrp: string }[]> {
   const ids = o.lines.flatMap((l) => (l.allocs ?? []).flatMap((a) => (a.batchId ? [a.batchId] : [])));
   const known = new Map((await tx.batch.findMany({ where: { id: { in: ids } }, select: { id: true, mrp: true } })).map((b) => [b.id, b.mrp?.toFixed(2) ?? null]));
   const out: { item: string; rate: string; mrp: string }[] = [];
   for (const l of o.lines) {
     if (l.item.kind === 'service') continue;
-    const mrp = effectiveMrp(l.item.mrp.toString(), (l.allocs ?? []).map((a) => (a.batchId ? known.get(a.batchId) : null)));
+    const packMrp = effectiveMrp(l.item.mrp.toString(), (l.allocs ?? []).map((a) => (a.batchId ? known.get(a.batchId) : null)));
+    const mrp = packMrp && !l.inPacks && l.item.packSize ? loosePrice(packMrp, l.item.packSize.toString()) : packMrp;
     if (!isAboveMrp(l.amount, l.qty, mrp)) continue;
     const rate = ratePerUnit(l.amount, l.qty);
-    const asked = (o.savedLines ?? []).some((s) => s.itemId === l.item.id && !ratePerUnit(s.amount.toString(), s.qty.toString()).lt(rate));
+    const perStock = ratePerUnit(l.amount, l.stockQty);
+    const asked = (o.savedLines ?? []).some((s) => s.itemId === l.item.id && !ratePerUnit(s.amount.toString(), stockQtyOf(s.qty.toString(), s.packSize?.toString())).lt(perStock));
     if (!asked) out.push({ item: l.item.name, rate: rate.toFixed(2), mrp: mrp!.toFixed(2) });
   }
   return out;

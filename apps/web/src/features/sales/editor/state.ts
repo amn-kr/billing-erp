@@ -7,7 +7,7 @@
 import { createContext, useCallback, useContext } from 'react';
 import { create } from 'zustand';
 import { tokenOwner, useSession } from '../../../lib/session';
-import { lineCommission, money, saleTotals, type BatchAlloc, type BatchRow, type CommRule, type TaxMode } from '@billing/shared';
+import { lineCommission, loosePrice, money, packQtyText, saleTotals, stockQtyOf, type BatchAlloc, type BatchRow, type CommRule, type TaxMode } from '@billing/shared';
 
 export interface EItem {
   id: string; name: string; code: string; hsn: string; unit: string; cat: string; gst: number; stock: number | null; svc: boolean;
@@ -16,6 +16,8 @@ export interface EItem {
   track?: boolean;
   /** Features › mrp_pack */
   mrp?: number;
+  /** Features › mrp_pack: sold by the pack too; `sale`, `purch`, `mrp` and `pl` are then per pack, `stock` in `unit` */
+  pack?: { unit: string; size: number };
   /** price on each active price list */
   pl: Record<string, number>;
 }
@@ -80,6 +82,8 @@ export interface Ctx {
   rules: Record<string, CommRule>;
   /** Settings › Transactions › Transaction header */
   txn?: TxnOpts;
+  /** Features › mrp_pack: lines of an item with a pack start in packs and can change unit */
+  packOn?: boolean;
 }
 export interface TxnOpts { showNo: boolean; time: boolean; cashDefault: boolean; billName: boolean }
 /** the switches as saved in settings (Invoice / bill no. is on unless turned off) */
@@ -93,6 +97,27 @@ export function unitPrice(c: Ctx, it: EItem, p: EParty | null): number {
   const pl = priceListFor(c, p);
   return pl && it.pl[pl] !== undefined ? it.pl[pl]! : it.sale;
 }
+/* ───────── Features › mrp_pack ───────── */
+
+/** A line's pack size: only in its item's pack unit. */
+export const linePack = (l: Pick<Line, 'item' | 'unit'>): number | null => (l.item?.pack && l.unit === l.item.pack.unit ? l.item.pack.size : null);
+/** How much stock a line moves. */
+export const lineStock = (l: Pick<Line, 'item' | 'unit' | 'qty'>): number => stockQtyOf(Number(l.qty) || 0, linePack(l)).toNumber();
+/** A stock figure: "5 STRIP 3 TAB" for an item sold by the pack, as today for any other. */
+export const stockText = (it: EItem, qty: number): string => packQtyText(qty, it.unit, it.pack ? { packUnit: it.pack.unit, packSize: it.pack.size } : null);
+/** The list price of an item in a unit: the pack's, or the pack's ÷ its size for a loose unit. */
+export function priceFor(c: Ctx, it: EItem, p: EParty | null, unit: string): number {
+  const v = unitPrice(c, it, p);
+  return it.pack && unit !== it.pack.unit ? loosePrice(v, it.pack.size).toNumber() : v;
+}
+/** A line moved to another unit: the list price of that unit, its batches picked afresh. */
+export function setLineUnit(c: Ctx, si: SI, l: Line, unit: string) {
+  if (!l.item) return;
+  l.unit = unit; l.price = priceFor(c, l.item, si.party, unit);
+  delete l.bp; delete l.cmT; delete l.cmV; delete l.batches;
+  cmApply(c, si, l);
+}
+
 export function partyState(c: Ctx, p: EParty | null) {
   if (!p) return c.state;
   if (p.gstin && /^\d{2}/.test(p.gstin)) return p.gstin.slice(0, 2);
@@ -106,14 +131,18 @@ export function cmApply(c: Ctx, si: SI, l: Line) {
   if (!l.item) return;
   const base = l.bp !== undefined ? l.bp : l.price || 0;
   const r = si.ref ? siRule(c, si, l) : { t: 'n' as const, v: 0 };
-  if (si.ref && r.t !== 'n' && r.v > 0) { l.bp = base; l.cmT = r.t; l.cmV = r.v; l.price = r2(r.t === 'p' ? base * (1 + r.v / 100) : base + r.v); }
+  // a fixed commission is per pack on an item sold by the pack, so a loose unit carries its share
+  const fixed = r.t === 'f' && l.item.pack && !linePack(l) ? r.v / l.item.pack.size : r.v;
+  if (si.ref && r.t !== 'n' && r.v > 0) { l.bp = base; l.cmT = r.t; l.cmV = r.v; l.price = r2(r.t === 'p' ? base * (1 + r.v / 100) : base + fixed); }
   else if (l.bp !== undefined) { l.price = base; delete l.bp; delete l.cmT; delete l.cmV; }
 }
 export const lineComm = (l: Line, incl: boolean) =>
   !l.item || l.bp === undefined ? 0 : lineCommission({ qty: l.qty || 0, discPct: l.disc || 0, price: l.price || 0, basePrice: l.bp, gstRate: l.gst || 0 }, incl).toNumber();
 
 export function lineFor(c: Ctx, si: SI, it: EItem): Line {
-  const L: Line = { item: it, name: it.name, hsn: it.hsn || '', qty: 1, unit: it.unit, price: unitPrice(c, it, si.party), disc: 0, gst: c.mode === 'gst' ? it.gst || 0 : 0 };
+  // an item sold by the pack starts on the pack; with the feature off it is sold loose, at the loose price
+  const unit = it.pack && c.packOn ? it.pack.unit : it.unit;
+  const L: Line = { item: it, name: it.name, hsn: it.hsn || '', qty: 1, unit, price: priceFor(c, it, si.party, unit), disc: 0, gst: c.mode === 'gst' ? it.gst || 0 : 0 };
   if (si.ref) cmApply(c, si, L);
   return L;
 }

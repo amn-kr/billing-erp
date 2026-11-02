@@ -11,11 +11,11 @@ import { inr, inr2f } from '../../../lib/format';
 import { qfmt } from '../../items/ItemsPage';
 import { pct } from '../InvoicePreview';
 import { usePriceHistory } from './PriceHistory';
-import { blankLine, calc, finalRate, frSet, lineFor, r2, useTab, type Ctx, type EItem, type EParty, type Line, type SI } from './state';
+import { blankLine, calc, finalRate, frSet, lineFor, linePack, lineStock, r2, setLineUnit, stockText, useTab, type Ctx, type EItem, type EParty, type Line, type SI } from './state';
 import type { EditorData } from './data';
 import { BatchPicker, type PickFor } from './BatchPicker';
-import { batchRowsFor, lineMrp, saleAllocs } from './batches';
-import { allocText, expiryState, isAboveMrp, money } from '@billing/shared';
+import { batchRowsFor, lineMrp, lineOverMrp, saleAllocs } from './batches';
+import { allocText, expiryState } from '@billing/shared';
 
 const BOLT = '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>';
 
@@ -121,7 +121,8 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
     // automatic for this line alone, after what the other lines use
     const others = si.lines.map((x, k) => (k === i ? { ...x, batches: undefined } : x));
     const auto = saleAllocs(d, { ...si, lines: [...others.filter((_, k) => k !== i), others[i]!] }).at(-1) ?? [];
-    return { name: l.name, qty: l.qty, unit: l.unit, rows, allocs: allocs[i] ?? [], auto, date: si.date, showMrp: !!d.mrpOn, itemMrp: l.item?.mrp };
+    const pack = l.item?.pack;
+    return { name: l.name, qty: lineStock(l), unit: pack ? l.item!.unit : l.unit, rows, allocs: allocs[i] ?? [], auto, date: si.date, showMrp: !!d.mrpOn, itemMrp: l.item?.mrp, ...(pack ? { pack: { packUnit: pack.unit, packSize: pack.size }, sold: linePack(l) ? `${qfmt(l.qty)} ${l.unit} = ${qfmt(lineStock(l))} ${l.item!.unit}` : undefined } : {}) };
   };
   const up2 = (fn: (s: SI) => void) => up((s) => { fn(s); s.warnOk = false; s.dirty = true; });
   const pickItem = (i: number, v: unknown) => {
@@ -222,10 +223,10 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
             onFocus={(e) => { if (!qe.item) { const el = e.target; setTimeout(() => { if (document.activeElement === el) c.show('qe', itemOpts(d, si, el.value, priceOf), qePick); }, 0); } }} /* the box's text when the list opens, not when it got focus: typing may come first */
             onBlur={() => setTimeout(() => { const a = document.activeElement as HTMLElement | null; if (!a?.closest('.cbl') && a?.id !== 'qeItem') c.hide(); }, 150)}
             onKeyDown={(e) => { if (c.cb?.key === 'qe' && comboKey(c, e)) return; if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); if (qe.item) document.getElementById('qeQty')?.focus(); else c.show('qe', itemOpts(d, si, (e.target as HTMLInputElement).value, priceOf), qePick); } }} /><ComboList c={c} k="qe" grid /></div>
-            {qe.item && !qe.item.svc ? <small className={(qe.item.stock ?? 0) - (Number(qe.qty) || 0) < 0 ? 'neg' : 'mu'}>{(qe.item.stock ?? 0) - (Number(qe.qty) || 0) < 0 ? `Only ${qfmt(qe.item.stock ?? 0)}` : `${qfmt(qe.item.stock ?? 0)} ${qe.item.unit}`}</small> : null}</div></td>
+            {qe.item && !qe.item.svc ? <small className={(qe.item.stock ?? 0) - lineStock({ item: qe.item, unit: qL?.unit ?? '', qty: qe.qty }) < 0 ? 'neg' : 'mu'}>{(qe.item.stock ?? 0) - lineStock({ item: qe.item, unit: qL?.unit ?? '', qty: qe.qty }) < 0 ? `Only ${qe.item.pack && d.mrpOn ? stockText(qe.item, qe.item.stock ?? 0) : qfmt(qe.item.stock ?? 0)}` : qe.item.pack && d.mrpOn ? stockText(qe.item, qe.item.stock ?? 0) : `${qfmt(qe.item.stock ?? 0)} ${qe.item.unit}`}</small> : null}</div></td>
           <td className="ro l mono">{qe.item?.code ?? ''}</td><td className="ro l">{qe.item?.brand ?? ''}</td><td className="ro l">{qe.item?.series ?? ''}</td>{gstCol ? <td className="ro l">{qe.item?.hsn ?? ''}</td> : null}
           <QeIn id="qeQty" val={qe.qty} label="Quick add quantity" set={(v) => setQe({ ...qe, qty: v })} onKey={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); if (e.ctrlKey || e.metaKey) return qeCommit(); const f = document.getElementById('qeFr') as HTMLInputElement; f.focus(); f.select(); } else if (e.key === 'Escape') { e.stopPropagation(); setQe({ item: null, qty: '1', fr: '', disc: '', q: '' }); setQk((k) => k + 1); setTimeout(() => document.getElementById('qeItem')?.focus(), 0); } }} />
-          <td className="ro l">{qe.item?.unit ?? ''}</td><td className="ro" id="qePrice">{qL ? inr2f(qL.price || 0) : ''}</td>
+          <td className="ro l">{qL?.unit ?? qe.item?.unit ?? ''}</td><td className="ro" id="qePrice">{qL ? inr2f(qL.price || 0) : ''}</td>
           <QeIn id="qeDisc" val={qe.disc} label="Quick add discount percent" placeholder="0" set={(v) => setQe({ ...qe, disc: v, fr: '' })} onKey={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); qeCommit(); } }} shown={qe.disc === '' && qe.fr !== '' && qL?.disc ? String(r2(qL.disc)) : undefined} />
           <td className="ro" id="qeDamt">{qr?.disc ? inr2f(qr.disc) : ''}</td>
           <QeIn id="qeFr" cls="fr" val={qe.fr} label="Quick add rate" placeholder="Rate" set={(v) => setQe({ ...qe, fr: v, disc: '' })} onKey={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); qeCommit(); } }} shown={qe.fr === '' && qL ? finalRate(qL).toFixed(2) : undefined} />
@@ -244,28 +245,28 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
         {si.lines.map((l, i) => {
           const r = t.rows[i]!;
           const st = l.item && !l.item.svc ? l.item.stock ?? 0 : null;
-          const left = st !== null ? st - (Number(l.qty) || 0) : 0;
+          const left = st !== null ? st - lineStock(l) : 0;
           return (
             <tr data-ln={i} key={`${rk}-${i}`} className={hi === i ? 'qenew' : undefined}>
               <td className="c">{i + 1}</td>
               <td><div className="gic"><div className="combo"><input className="gi si-item" data-f="name" defaultValue={l.item && l.item.grp && l.item.brand ? l.item.grp : l.name} title={l.name} placeholder={`Search item${d.gstOn ? ', code or HSN' : ' or code'}`} autoComplete="off" aria-label={`Item ${i + 1}`} /><ComboList c={c} k={`row:${i}`} grid /></div>
-                {st !== null ? <small title="In stock" className={left < 0 ? 'neg' : 'mu'}>{left < 0 ? `Only ${qfmt(st)}` : `${qfmt(st)} ${l.unit}`}</small> : null}</div>
+                {st !== null ? <small title="In stock" className={left < 0 ? 'neg' : 'mu'}>{left < 0 ? `Only ${l.item!.pack && d.mrpOn ? stockText(l.item!, st) : qfmt(st)}` : l.item!.pack && d.mrpOn ? stockText(l.item!, st) : `${qfmt(st)} ${l.unit}`}</small> : null}</div>
                 {(() => {
                   const mrp = lineMrp(d, si, l, allocs[i]);
-                  const over = !!mrp && isAboveMrp(r.amt, Number(l.qty) || 0, money(mrp));
+                  const over = lineOverMrp(d, si, l, allocs[i], r.amt);
                   const mrpTxt = mrp ? <span data-mrp={i} style={over ? { color: 'var(--red)' } : undefined}>{allocs[i] ? ' · ' : ''}{over ? `MRP ${inr2f(mrp)}, rate is above it` : `MRP ${inr2f(mrp)}`}</span> : null;
                   const rows = batchRowsFor(d, si, l.item?.id) ?? [];
                   if (!allocs[i]) return mrp ? <small className="mu" style={{ display: 'block', fontWeight: 600, padding: ui.sp('1px 0 0 10px'), whiteSpace: 'nowrap' }}>{mrpTxt}</small> : null;
-                  return <button type="button" className="bxl" data-bxl={i} title="Choose batch" style={{ display: 'block', fontSize: ui.fs(11.5), fontWeight: 600, textAlign: 'left', background: 'none', border: 0, padding: ui.sp('1px 0 0 10px'), cursor: 'pointer', whiteSpace: 'nowrap', color: rows.some((b) => b.expiry && expiryState(b.expiry, si.date) === 'expired' && allocs[i]!.some((x) => x.batchId === b.id)) ? 'var(--red)' : 'var(--ac)' }} onClick={() => setPickAt(i)}>{allocs[i]!.length ? allocText(allocs[i]!, rows) : 'Choose batch'}{mrpTxt} ▾</button>;
+                  return <button type="button" className="bxl" data-bxl={i} title="Choose batch" style={{ display: 'block', fontSize: ui.fs(11.5), fontWeight: 600, textAlign: 'left', background: 'none', border: 0, padding: ui.sp('1px 0 0 10px'), cursor: 'pointer', whiteSpace: 'nowrap', color: rows.some((b) => b.expiry && expiryState(b.expiry, si.date) === 'expired' && allocs[i]!.some((x) => x.batchId === b.id)) ? 'var(--red)' : 'var(--ac)' }} onClick={() => setPickAt(i)}>{allocs[i]!.length ? allocText(allocs[i]!, rows, l.item?.pack ? l.item.unit : undefined) : 'Choose batch'}{mrpTxt} ▾</button>;
                 })()}</td>
               <td className="ro l mono dgc1">{l.item?.code ?? ''}</td><td className="ro l dgc2">{l.item?.brand ?? ''}</td><td className="ro l dgc2">{l.item?.series ?? ''}</td>
               {gstCol ? <td><input className="gi" data-f="hsn" defaultValue={l.hsn} inputMode="numeric" aria-label="HSN" /></td> : null}
               <td><input className="gi n" data-f="qty" defaultValue={String(l.qty)} inputMode="decimal" aria-label="Quantity" /></td>
-              <td className="ro l">{l.unit || '—'}</td>
+              {l.item?.pack && d.mrpOn ? <td><select className="gi" data-f="unit" aria-label={`Unit for row ${i + 1}`} style={{ color: 'var(--ac)', fontWeight: 600 }} value={l.unit} onChange={(e) => { const v = e.target.value; up2((s) => { setLineUnit(ctx, s, s.lines[i]!, v); }); full(); }}><option value={l.item.pack.unit}>{l.item.pack.unit}</option><option value={l.item.unit}>{l.item.unit}</option></select></td> : <td className="ro l">{l.unit || '—'}</td>}
               <td className="prlk"><input className="gi n" data-f="price" value={String(l.price)} readOnly aria-readonly="true" title={l.item && l.price > 0 ? 'From the price list. Change it in Price manager.' : 'Set the rate in Final rate'} aria-label="Sale price (from price list)" /></td>
               <td><input className="gi n" data-f="disc" defaultValue={l.disc ? String(r2(l.disc)) : ''} placeholder="0" inputMode="decimal" aria-label="Discount percent" /></td>
               <td><input className="gi n" data-f="damt" defaultValue={r.disc ? String(r2(r.disc)) : ''} placeholder="0" inputMode="decimal" aria-label="Discount amount" /></td>
-              <td className="frc" data-mrpbad={(() => { const m = lineMrp(d, si, l, allocs[i]); return m && isAboveMrp(r.amt, Number(l.qty) || 0, money(m)) ? '1' : undefined; })()} style={(() => { const m = lineMrp(d, si, l, allocs[i]); return m && isAboveMrp(r.amt, Number(l.qty) || 0, money(m)) ? { outline: '1px solid var(--red)', outlineOffset: -1 } : undefined; })()}><input className="gi n" data-f="fr" defaultValue={l.item || l.price ? finalRate(l).toFixed(2) : ''} placeholder="0.00" inputMode="decimal" aria-label="Final rate" title="Type the selling rate. The discount is worked out from the price-list rate." /></td>
+              <td className="frc" data-mrpbad={lineOverMrp(d, si, l, allocs[i], r.amt) ? '1' : undefined} style={lineOverMrp(d, si, l, allocs[i], r.amt) ? { outline: '1px solid var(--red)', outlineOffset: -1 } : undefined}><input className="gi n" data-f="fr" defaultValue={l.item || l.price ? finalRate(l).toFixed(2) : ''} placeholder="0.00" inputMode="decimal" aria-label="Final rate" title="Type the selling rate. The discount is worked out from the price-list rate." /></td>
               {G ? <><td><select className="gi" data-f="gst" aria-label="GST rate" defaultValue={String(l.gst)}>{d.gstRates.map((g) => <option value={g} key={g}>{pct(g)}</option>)}</select></td><td className="ro" data-o="tx">{inr2f(r.tx)}</td></> : null}
               <td className="ro b" data-o="amt">{inr2f(r.amt)}</td>
               <td className="x"><button type="button" className="ix" data-del={i} aria-label={`Remove row ${i + 1}`} disabled={si.lines.length === 1} onMouseDown={() => up((s) => { s.dirty = true; })} onClick={() => { up2((s) => { s.lines.splice(i, 1); }); full(); }}><Icon name="x" /></button></td>

@@ -227,11 +227,13 @@ function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
 
 /**
  * @param moves the item's stock ledger, all godowns, any order
- * @param fallbackRate the item's purchase price, used where the ledger has no rate
+ * @param fallbackRate the item's purchase price, used where the ledger has no rate (per stock unit)
+ * @param packSize Features › mrp_pack: the rates are shown per pack; quantities and values stay as they are
  */
-export function stockByPurchaseRate(moves: LedgerMove[], fallbackRate: MoneyInput): RateTable {
+export function stockByPurchaseRate(moves: LedgerMove[], fallbackRate: MoneyInput, packSize: MoneyInput = 1): RateTable {
   const { layers, short } = runLots(moves, fallbackRate);
-  const lastRate = layers.length ? layers.at(-1)!.rate.toFixed(2) : null;
+  const shownRate = (r: Money) => r.times(money(packSize)).toDecimalPlaces(2).toFixed(2);
+  const lastRate = layers.length ? shownRate(layers.at(-1)!.rate) : null;
   const first = layers.findIndex((l) => l.qty.gt(0));
   if (first < 0) return { layers: [], hidden: layers.length, totalQty: '0.000', shortQty: short.toDecimalPlaces(3).toFixed(3), avgRate: '0.00', value: '0.00', lastRate };
   // sold-out rates before the first one with stock are hidden, except the newest of them
@@ -240,11 +242,11 @@ export function stockByPurchaseRate(moves: LedgerMove[], fallbackRate: MoneyInpu
   const qty = shown.reduce((a, l) => a.plus(l.qty), money(0));
   const value = shown.reduce((a, l) => a.plus(l.qty.times(l.rate)), money(0));
   return {
-    layers: shown.map((l) => ({ rate: l.rate.toFixed(2), qty: l.qty.toDecimalPlaces(3).toFixed(3), since: l.since })),
+    layers: shown.map((l) => ({ rate: shownRate(l.rate), qty: l.qty.toDecimalPlaces(3).toFixed(3), since: l.since })),
     hidden: start,
     totalQty: qty.toDecimalPlaces(3).toFixed(3),
     shortQty: '0.000',
-    avgRate: value.div(qty).toDecimalPlaces(2).toFixed(2),
+    avgRate: shownRate(value.div(qty)),
     value: value.toDecimalPlaces(2).toFixed(2),
     lastRate,
   };
@@ -254,7 +256,7 @@ export function stockByPurchaseRate(moves: LedgerMove[], fallbackRate: MoneyInpu
  * What is left of an item per batch, from the same run as stockByPurchaseRate, so the values always
  * add up to its stock value: the last row takes what rounding left over. batchId null = No batch.
  */
-export function stockByBatch(moves: LedgerMove[], fallbackRate: MoneyInput): { rows: { batchId: string | null; qty: string; rate: string; value: string }[]; shortQty: string } {
+export function stockByBatch(moves: LedgerMove[], fallbackRate: MoneyInput, packSize: MoneyInput = 1): { rows: { batchId: string | null; qty: string; rate: string; value: string }[]; shortQty: string } {
   const { layers, short } = runLots(moves, fallbackRate);
   const by = new Map<string, { qty: Money; value: Money }>();
   for (const l of layers)
@@ -268,7 +270,7 @@ export function stockByBatch(moves: LedgerMove[], fallbackRate: MoneyInput): { r
   const rows = [...by].map(([batch, x], k) => {
     const value = k === by.size - 1 ? left : x.value.toDecimalPlaces(2);
     left = left.minus(value);
-    return { batchId: batch || null, qty: x.qty.toDecimalPlaces(3).toFixed(3), rate: x.value.div(x.qty).toDecimalPlaces(2).toFixed(2), value: value.toFixed(2) };
+    return { batchId: batch || null, qty: x.qty.toDecimalPlaces(3).toFixed(3), rate: x.value.div(x.qty).times(money(packSize)).toDecimalPlaces(2).toFixed(2), value: value.toFixed(2) };
   });
   return { rows, shortQty: short.toDecimalPlaces(3).toFixed(3) };
 }
@@ -386,10 +388,10 @@ export function profitRows(lines: ProfitLineIn[]): { lines: ProfitRow[][]; sale:
  * opening stock's rate; null when neither has a rate. Cancelled bills leave no trace and an edited
  * bill counts at its new rate (the same netting as stockByPurchaseRate).
  */
-export function autoPurchasePrice(moves: LedgerMove[]): string | null {
+export function autoPurchasePrice(moves: LedgerMove[], packSize: MoneyInput = 1): string | null {
   const eff = effective(moves).filter((m) => m.qty.gt(0) && m.rate.gt(0));
   const last = eff.filter((m) => m.kind === 'purchase').at(-1) ?? eff.filter((m) => m.kind === 'opening').at(-1);
-  return last ? last.rate.toFixed(2) : null;
+  return last ? last.rate.times(money(packSize)).toDecimalPlaces(2).toFixed(2) : null;
 }
 
 /**

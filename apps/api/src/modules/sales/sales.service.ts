@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, type SalesDocument } from '@prisma/client';
 import {
-  amountInWords, lineCommission, money, saleTotals, taxModeOf, toDb, todayIst, type CommRule, type Money, type SaleCostInput, type SaleInput, type TaxMode,
+  amountInWords, lineCommission, loosePrice, money, saleTotals, stockQtyOf, taxModeOf, toDb, todayIst, type CommRule, type Money, type SaleCostInput, type SaleInput, type TaxMode,
   type BatchAlloc,
 } from '@billing/shared';
 import { DbService, type Tx } from '../../common/db.service';
@@ -23,6 +23,17 @@ const q3 = (v: { toString(): string }) => money(v.toString()).toDecimalPlaces(3)
 const d2 = (v: { toString(): string } | null | undefined) => (v === null || v === undefined ? null : toDb(v.toString()));
 const KIND_WORD = { invoice: 'Invoice', quotation: 'Quotation' } as const;
 const RULE_KIND: Record<string, CommRule['t']> = { none: 'n', percent: 'p', fixed: 'f' };
+
+/** Features › mrp_pack: the pack size of a line in this unit: only an item sold by the pack, only in its pack unit. */
+export function linePackSize(it: { packSize: { toString(): string } | null; packUnit?: { code: string } | null }, unit: string | null | undefined): string | null {
+  return it.packSize && it.packUnit && unit === it.packUnit.code ? it.packSize.toString() : null;
+}
+
+/** An item's prices for the printed invoice's optional columns and "You saved", per the line's unit. */
+function perLine(it: { mrp: { toString(): string }; listPrice: { toString(): string }; wholesalePrice: { toString(): string }; packSize: { toString(): string } | null } | undefined, packSize: { toString(): string } | null) {
+  const of = (v: { toString(): string } | undefined) => (v === undefined ? null : it?.packSize && !packSize ? loosePrice(v.toString(), it.packSize.toString()).toFixed(2) : d2(v));
+  return { mrp: of(it?.mrp), listPrice: of(it?.listPrice), wholesalePrice: of(it?.wholesalePrice) };
+}
 
 /** The shop's tax set-up when a document is saved. */
 export async function booksOf(tx: Tx, businessId: string): Promise<{ mode: TaxMode; state: string; tcsRate: Money | null }> {
@@ -120,7 +131,7 @@ export class SalesService {
     if (!cash && !party) throw new BadRequestException({ message: 'That party was not found.', field: 'partyId' });
     const rows = input.lines.filter((l) => l.itemId || l.name.trim());
     if (!rows.length) throw new BadRequestException({ message: 'Add at least one item.', field: 'lines' });
-    const items = new Map((await tx.item.findMany({ where: { id: { in: rows.flatMap((l) => (l.itemId ? [l.itemId] : [])) } }, include: { unit: true, category: true } })).map((i) => [i.id, i]));
+    const items = new Map((await tx.item.findMany({ where: { id: { in: rows.flatMap((l) => (l.itemId ? [l.itemId] : [])) } }, include: { unit: true, packUnit: true, category: true } })).map((i) => [i.id, i]));
     const qtyBad = rows.find((l) => !money(l.qty).gt(0));
     const unknown = rows.find((l) => !l.itemId || !items.has(l.itemId));
     const qtyMsg = (l: (typeof rows)[number]) => `Enter a quantity for “${l.name || items.get(l.itemId!)?.name || ''}”.`;
@@ -147,7 +158,9 @@ export class SalesService {
     const pos = books.mode === 'gst' ? input.placeOfSupply || (party ? partyState(party, books.state) : books.state) : books.state;
     const lines = rows.map((l) => {
       const it = items.get(l.itemId!)!;
-      return { l, it, gst: books.mode === 'gst' ? l.gstRate : '0' };
+      // Features › mrp_pack: a line in the item's pack unit moves that many packs' worth of stock
+      const packSize = linePackSize(it, l.unit);
+      return { l, it, gst: books.mode === 'gst' ? l.gstRate : '0', packSize, stockQty: stockQtyOf(l.qty, packSize) };
     });
     const t = saleTotals({
       mode: books.mode, incl: input.pricesInclTax, inter: pos !== books.state,
@@ -167,12 +180,12 @@ export class SalesService {
     /* batch and expiry (Features › batch_expiry): which batches an invoice's tracked lines use */
     const batchOn = isInv && (await batchesOn(tx, businessId));
     const picked = batchOn
-      ? await allocateSale(tx, { date: input.date, confirmExpired: input.confirmExpired, docId: id, savedLines: before?.lines, lines: lines.map(({ l, it }) => ({ item: it, qty: l.qty, batches: l.batches })) })
+      ? await allocateSale(tx, { date: input.date, confirmExpired: input.confirmExpired, docId: id, savedLines: before?.lines, lines: lines.map(({ l, it, stockQty }) => ({ item: it, qty: stockQty, batches: l.batches })) })
       : { allocs: lines.map(() => null), expired: [] };
 
     /* MRP (Features › mrp_pack): a rate above it needs "Save anyway", noted in the audit log */
     const overMrp = isInv && (await mrpOn(tx, businessId))
-      ? await aboveMrpLines(tx, { savedLines: before?.lines, lines: lines.map(({ l, it }, k) => ({ item: it, qty: l.qty, amount: t.rows[k]!.amt, allocs: picked.allocs[k] ?? null })) })
+      ? await aboveMrpLines(tx, { savedLines: before?.lines, lines: lines.map(({ l, it, packSize, stockQty }, k) => ({ item: it, qty: l.qty, stockQty, inPacks: !!packSize, amount: t.rows[k]!.amt, allocs: picked.allocs[k] ?? null })) })
       : [];
     if (overMrp.length && !input.confirmAboveMrp)
       throw new ConflictException({ code: 'above_mrp', message: `${overMrp[0]!.item}: ${overMrp[0]!.rate} is above its MRP ${overMrp[0]!.mrp}. Press “Save anyway” to save it.`, overMrp });
@@ -206,12 +219,12 @@ export class SalesService {
       : await tx.salesDocument.create({ data: { ...head, businessId, kind, createdBy: ctx.userId, status: 'open', sourceId: input.fromChallanId ?? input.fromQuotationIds[0] ?? null } });
     if (before) await tx.salesDocumentLine.deleteMany({ where: { documentId: doc.id } });
     await tx.salesDocumentLine.createMany({
-      data: lines.map(({ l, it, gst }, k) => {
+      data: lines.map(({ l, it, gst, packSize }, k) => {
         const r = t.rows[k]!;
         const rule: CommRule | null = !input.referrerId || l.basePrice === null ? null : (l.commOverride ?? byCat[it.category?.name ?? ''] ?? rules.get(it.categoryId ?? '') ?? { t: 'n', v: 0 });
         const comm = input.referrerId ? lineCommission({ qty: l.qty, discPct: l.discPct, price: l.price, basePrice: l.basePrice, gstRate: gst }, inclGst) : money(0);
         return {
-          businessId, documentId: doc.id, position: k, itemId: it.id, name: l.name || it.name, hsn: l.hsn || it.hsn, qty: money(l.qty).toFixed(3), unit: it.unit?.code ?? l.unit,
+          businessId, documentId: doc.id, position: k, itemId: it.id, name: l.name || it.name, hsn: l.hsn || it.hsn, qty: money(l.qty).toFixed(3), unit: packSize ? it.packUnit!.code : it.unit?.code ?? l.unit, packSize,
           price: toDb(l.price), discPct: money(l.discPct).toDecimalPlaces(8).toFixed(8), gstRate: money(gst).toFixed(2), taxable: r.tv.toFixed(2), tax: r.tx.toFixed(2), amount: r.amt.toFixed(2),
           batchAlloc: picked.allocs[k] ? (picked.allocs[k] as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
           basePrice: input.referrerId && l.basePrice !== null ? toDb(l.basePrice) : null, commOverride: l.commOverride ? (l.commOverride as Prisma.InputJsonValue) : Prisma.DbNull,
@@ -223,7 +236,7 @@ export class SalesService {
     let settledOld = money(0);
     let advance = money(0);
     if (isInv) {
-      await this.moveStock(tx, ctx, doc.id, number, input.date, lines.map(({ l, it }, k) => ({ it, qty: money(l.qty), rate: t.rows[k]!.amt.div(money(l.qty)), allocs: picked.allocs[k] })), !!before);
+      await this.moveStock(tx, ctx, doc.id, number, input.date, lines.map(({ it, stockQty }, k) => ({ it, qty: stockQty, rate: t.rows[k]!.amt.div(stockQty), allocs: picked.allocs[k] })), !!before);
       if (overMrp.length) await this.audit.log(tx, { businessId, userId: ctx.userId, action: 'sold_above_mrp', entity: 'sales_document', entityId: doc.id, after: { number, lines: overMrp }, ip: ctx.ip });
       if (picked.expired.length) await this.audit.log(tx, { businessId, userId: ctx.userId, action: 'sold_expired', entity: 'sales_document', entityId: doc.id, after: { number, lines: picked.expired }, ip: ctx.ip });
       await this.ledger.repost(tx, { businessId, userId: ctx.userId }, {
@@ -349,7 +362,7 @@ export class SalesService {
   list(ctx: RequestContext, kind: string) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const docs = await tx.salesDocument.findMany({
-        where: { kind, deletedAt: null }, include: { party: { select: { id: true, name: true, gstin: true, addresses: { where: { kind: 'billing' }, select: { city: true } } } }, lines: { select: { qty: true, name: true } } },
+        where: { kind, deletedAt: null }, include: { party: { select: { id: true, name: true, gstin: true, addresses: { where: { kind: 'billing' }, select: { city: true } } } }, lines: { select: { qty: true, packSize: true, name: true } } },
         orderBy: [{ date: 'desc' }, { number: 'desc' }],
       });
       const bal = kind === 'invoice' ? await invoiceBalances(tx, docs.map((d) => d.id)) : new Map<string, Money>();
@@ -365,7 +378,7 @@ export class SalesService {
           cancelled: !!d.cancelledAt, status: d.status,
           // a brand-wise quotation has no lines: its counts were kept when it was saved
           items: x.type === 'brand' ? Number(x.items ?? 0) : d.lines.length,
-          qty: x.type === 'brand' ? q3(String(x.pcs ?? 0)) : q3(d.lines.reduce((a, l) => a.plus(money(l.qty.toString())), money(0))),
+          qty: x.type === 'brand' ? q3(String(x.pcs ?? 0)) : q3(d.lines.reduce((a, l) => a.plus(stockQtyOf(l.qty.toString(), l.packSize?.toString())), money(0))),
           lineNames: d.lines.slice(0, 3).map((l) => l.name), transport: (x.transport as string) ?? '', vehicle: (x.vehicle as string) ?? '', note: d.notes,
           invoiceNo: (x.invoiceNo as string) ?? '', legacy: !!d.legacyId, referrerId: d.referrerId,
           ...(kind === 'quotation' && { qtype: x.type === 'brand' ? 'brand' : 'items', invoiceBrand: (x.invoiceBrand as string) ?? '', brandQuote: x.type === 'brand' ? { cust: x.cust ?? '', priceListId: x.priceListId ?? null, disc: x.disc ?? 0, sel: x.sel ?? [], qty: x.qty ?? {}, low: x.low ?? null } : null }),
@@ -381,7 +394,7 @@ export class SalesService {
         include: { party: { include: { addresses: { where: { kind: 'billing' } } } }, lines: { orderBy: { position: 'asc' } } },
       });
       if (!d || d.deletedAt) throw new NotFoundException({ message: 'That document was not found.' });
-      const items = new Map((await tx.item.findMany({ where: { id: { in: d.lines.flatMap((l) => (l.itemId ? [l.itemId] : [])) } }, include: { brand: true, category: true, itemGroup: true } })).map((i) => [i.id, i]));
+      const items = new Map((await tx.item.findMany({ where: { id: { in: d.lines.flatMap((l) => (l.itemId ? [l.itemId] : [])) } }, include: { unit: true, brand: true, category: true, itemGroup: true } })).map((i) => [i.id, i]));
       const lineBatches = new Map((await tx.batch.findMany({ where: { id: { in: d.lines.flatMap((l) => allocsOf(l.batchAlloc).flatMap((a) => (a.batchId ? [a.batchId] : []))) } } })).map((b) => [b.id, b]));
       const bal = d.kind === 'invoice' ? ((await invoiceBalances(tx, [d.id])).get(d.id) ?? money(0)) : money(d.total.toString());
       const allocs = await tx.paymentAllocation.findMany({ where: { OR: [{ salesDocumentId: d.id }, { noteId: d.id }] }, include: { payment: true }, orderBy: { createdAt: 'asc' } });
@@ -402,12 +415,13 @@ export class SalesService {
         lines: d.lines.map((l) => {
           const it = l.itemId ? items.get(l.itemId) : undefined;
           return {
-            id: l.id, itemId: l.itemId, name: l.name, hsn: l.hsn, qty: q3(l.qty), unit: l.unit, price: d2(l.price), discPct: l.discPct.toString(), gstRate: l.gstRate.toString(),
+            id: l.id, itemId: l.itemId, name: l.name, hsn: l.hsn, qty: q3(l.qty), unit: l.unit, packSize: l.packSize ? q3(l.packSize) : null, /* an item sold by the pack: its loose unit, its batches are counted in it; a line sold loose: its pack size, for the batches' MRP */ batchUnit: it?.packSize ? it.unit?.code ?? '' : '', looseOf: it?.packSize && !l.packSize ? q3(it.packSize) : null, price: d2(l.price), discPct: l.discPct.toString(), gstRate: l.gstRate.toString(),
             taxable: d2(l.taxable), tax: d2(l.tax), amount: d2(l.amount), basePrice: d2(l.basePrice), commOverride: l.commOverride, commType: l.commType, commValue: d2(l.commValue), commAmount: d2(l.commAmount),
             batches: allocsOf(l.batchAlloc).map((a) => { const b = a.batchId ? lineBatches.get(a.batchId) : undefined; return { batchId: a.batchId, no: b?.batchNo ?? 'No batch', expiry: isoOf(b?.expiryDate ?? null), qty: a.qty, mrp: b?.mrp ? b.mrp.toFixed(2) : null }; }),
             againstId: l.againstId, code: it?.code ?? '', brand: it?.brand?.name ?? '', series: it?.series ?? '', group: it?.itemGroup?.name ?? '', category: it?.category?.name ?? '', categoryId: it?.categoryId ?? null,
             // today's item prices, for the optional MRP / list / wholesale columns and "You saved" on the printed invoice
-            mrp: d2(it?.mrp ?? null), listPrice: d2(it?.listPrice ?? null), wholesalePrice: d2(it?.wholesalePrice ?? null),
+            // per the line's unit: an item's prices are per pack, so a line sold loose shows the pack's ÷ its size (Features › mrp_pack)
+            ...perLine(it, l.packSize),
           };
         }),
         payment: atSale ? { id: atSale.id, number: atSale.number, amount: d2(atSale.amount), mode: atSale.mode, reference: atSale.reference, splits: atSale.splits } : null,

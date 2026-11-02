@@ -1,4 +1,4 @@
-import { autoPurchasePrice, costOfGoods, costRows, hasPurchaseLot, money, stockByPurchaseRate, type GoodsCost, type LedgerMove, type LineCost, type RateTable, type SaleCostInput } from '@billing/shared';
+import { autoPurchasePrice, costOfGoods, costRows, hasPurchaseLot, looseCost, money, stockByPurchaseRate, type GoodsCost, type LedgerMove, type LineCost, type RateTable, type SaleCostInput } from '@billing/shared';
 import { Prisma } from '@prisma/client';
 import type { Tx } from '../../common/db.service';
 
@@ -15,7 +15,7 @@ export async function ledgerOf(tx: Tx, itemIds?: string[]): Promise<Map<string, 
   const [moves, sLines, pLines] = await Promise.all([
     tx.$queryRaw<{ item_id: string; date: string; created_at: string; qty: string; rate: string; kind: string; source_type: string; source_id: string | null; batch_id: string | null }[]>`
       SELECT item_id::text, date::text AS date, to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS created_at,
-             qty::text, rate::text, kind, source_type, source_id::text, batch_id::text
+             qty::text, COALESCE(unit_cost, rate)::text AS rate, kind, source_type, source_id::text, batch_id::text
       FROM stock_movements ${filter} ORDER BY date, created_at`,
     tx.salesDocumentLine.findMany({ where: { ...where, againstId: { not: null } }, select: { itemId: true, documentId: true, againstId: true } }),
     tx.purchaseDocumentLine.findMany({ where: { ...where, againstId: { not: null } }, select: { itemId: true, documentId: true, againstId: true } }),
@@ -34,10 +34,15 @@ export async function ledgerOf(tx: Tx, itemIds?: string[]): Promise<Map<string, 
   return out;
 }
 
+/** An item's prices are per pack (Features › mrp_pack); the lots run in the loose unit its stock is counted in. */
+export interface Priced { purchasePrice: { toString(): string }; packSize?: { toString(): string } | null }
+export const fallbackRate = (i: Priced): string => looseCost(i.purchasePrice.toString(), i.packSize?.toString()).toString();
+const sizeOf = (i: Priced) => i.packSize?.toString() ?? 1;
+
 /** What is left of each item by purchase rate (first in, first out), with its stock value. */
-export async function rateTables(tx: Tx, items: { id: string; purchasePrice: { toString(): string } }[], all = false): Promise<Map<string, RateTable>> {
+export async function rateTables(tx: Tx, items: ({ id: string } & Priced)[], all = false): Promise<Map<string, RateTable>> {
   const ledger = await ledgerOf(tx, all ? undefined : items.map((i) => i.id));
-  return new Map(items.map((i) => [i.id, stockByPurchaseRate(ledger.get(i.id) ?? [], i.purchasePrice.toString())]));
+  return new Map(items.map((i) => [i.id, stockByPurchaseRate(ledger.get(i.id) ?? [], fallbackRate(i), sizeOf(i))]));
 }
 
 /**
@@ -45,9 +50,9 @@ export async function rateTables(tx: Tx, items: { id: string; purchasePrice: { t
  * a purchase rate (a bill, opening stock or added stock with a rate); without one the card shows no
  * latest / average purchase price.
  */
-export async function itemLots(tx: Tx, id: string, purchasePrice: { toString(): string }): Promise<{ rateTable: RateTable; bought: boolean }> {
+export async function itemLots(tx: Tx, id: string, item: Priced): Promise<{ rateTable: RateTable; bought: boolean }> {
   const moves = (await ledgerOf(tx, [id])).get(id) ?? [];
-  return { rateTable: stockByPurchaseRate(moves, purchasePrice.toString()), bought: hasPurchaseLot(moves) };
+  return { rateTable: stockByPurchaseRate(moves, fallbackRate(item), sizeOf(item)), bought: hasPurchaseLot(moves) };
 }
 
 /**
@@ -125,11 +130,11 @@ async function priceBeforeAuto(tx: Tx, itemId: string): Promise<string | null> {
 export async function refreshPurchasePrices(tx: Tx, who: { businessId: string; userId: string }, itemIds: (string | null)[], how: string, opts: { history?: boolean } = {}): Promise<number> {
   const ids = [...new Set(itemIds.filter((i): i is string => !!i))];
   if (!ids.length) return 0;
-  const [ledger, items] = await Promise.all([ledgerOf(tx, ids), tx.item.findMany({ where: { id: { in: ids } }, select: { id: true, purchasePrice: true } })]);
+  const [ledger, items] = await Promise.all([ledgerOf(tx, ids), tx.item.findMany({ where: { id: { in: ids } }, select: { id: true, purchasePrice: true, packSize: true } })]);
   let changed = 0;
   for (const it of items) {
     const ov = it.purchasePrice.toFixed(2);
-    const nv = autoPurchasePrice(ledger.get(it.id) ?? []) ?? (await priceBeforeAuto(tx, it.id));
+    const nv = autoPurchasePrice(ledger.get(it.id) ?? [], sizeOf(it)) ?? (await priceBeforeAuto(tx, it.id));
     if (nv === null || nv === ov) continue;
     await tx.item.update({ where: { id: it.id }, data: { purchasePrice: nv } });
     if (opts.history !== false) await tx.priceHistory.create({ data: { businessId: who.businessId, itemId: it.id, field: 'purchase', oldValue: ov, newValue: nv, how: `${AUTO}${how}`, createdBy: who.userId } });

@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
-import { ITEM_PREFIX, ITEM_PREFIX_DEFAULT, money, todayIst, toDb, type BulkActiveInput, type BulkActiveResult, type BulkItemsInput, type BulkItemsResult, type ItemInput } from '@billing/shared';
+import { ITEM_PREFIX, ITEM_PREFIX_DEFAULT, money, todayIst, toDb, type BulkActiveInput, type BulkActiveResult, type BulkItemsInput, type BulkItemsResult, type ItemInput, looseCost } from '@billing/shared';
 import type { Prisma } from '@prisma/client';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
@@ -10,13 +10,14 @@ import { day, isoOf, namedId, unitIdFor, uniqueMessage } from '../../common/look
 import { invoiceBalances } from '../sales/dues';
 import { withoutEditedLines } from './item-history';
 import { itemLots, rateTables } from '../stock/stock-value';
-import { batchesOn, batchRows, resolveBatch } from '../stock/batches';
+import { batchesOn, batchRows, resolveBatch, mrpOn } from '../stock/batches';
 
-const include = { unit: true, secondaryUnit: true, category: true, brand: true, itemGroup: true } satisfies Prisma.ItemInclude;
+const PACK_HAS_HISTORY = 'This item already has stock history, so its unit can’t change. Make a new item with pack and loose, and move the stock with an adjustment on each.';
+const include = { unit: true, secondaryUnit: true, packUnit: true, category: true, brand: true, itemGroup: true } satisfies Prisma.ItemInclude;
 type Row = Prisma.ItemGetPayload<{ include: typeof include }>;
 const q3 = (v: Prisma.Decimal | string | number) => money(v.toString()).toDecimalPlaces(3).toFixed(3);
 /** the fields of an item whose old and new values an edit's audit entry keeps */
-const ITEM_AUDIT_FIELDS = ['name', 'kind', 'code', 'hsn', 'unit', 'secondaryUnit', 'unitRate', 'category', 'brand', 'group', 'series', 'gstRate', 'sale', 'purchase', 'mrp', 'listPrice', 'wholesale', 'wholesaleMinQty', 'minStock', 'location', 'description', 'trackBatch'];
+const ITEM_AUDIT_FIELDS = ['name', 'kind', 'code', 'hsn', 'unit', 'secondaryUnit', 'unitRate', 'packUnit', 'packSize', 'category', 'brand', 'group', 'series', 'gstRate', 'sale', 'purchase', 'mrp', 'listPrice', 'wholesale', 'wholesaleMinQty', 'minStock', 'location', 'description', 'trackBatch'];
 
 export function itemView(i: Row, stock: Prisma.Decimal | string | null) {
   const st = i.kind === 'service' ? null : q3(stock ?? '0');
@@ -24,6 +25,7 @@ export function itemView(i: Row, stock: Prisma.Decimal | string | null) {
   return {
     id: i.id, kind: i.kind, name: i.name, code: i.code, hsn: i.hsn, unit: i.unit?.code ?? '', category: i.category?.name ?? '',
     secondaryUnit: i.secondaryUnit?.code ?? '', unitRate: i.unitRate ? q3(i.unitRate) : null,
+    packUnit: i.packUnit?.code ?? '', packSize: i.packSize ? q3(i.packSize) : null,
     brand: i.brand?.name ?? '', group: i.itemGroup?.name ?? '', series: i.series, gstRate: money(i.gstRate.toString()).toFixed(2),
     sale: toDb(i.salePrice.toString()), purchase: toDb(i.purchasePrice.toString()), mrp: toDb(i.mrp.toString()), listPrice: toDb(i.listPrice.toString()),
     wholesale: toDb(i.wholesalePrice.toString()), wholesaleMinQty: q3(i.wholesaleMinQty), minStock: q3(i.minStock), location: i.location, description: i.description,
@@ -123,10 +125,12 @@ export class ItemsService {
       };
       return {
         ...item,
+        /** Features › mrp_pack: with stock movements its pack can't change */
+        hasStockHistory: movements.length > 0,
         /** what is left in stock by the purchase rate it was bought at (first in, first out) */
-        ...(item.kind === 'service' ? { rateTable: null, bought: false } : await itemLots(tx, id, item.purchase)),
+        ...(item.kind === 'service' ? { rateTable: null, bought: false } : await itemLots(tx, id, { purchasePrice: item.purchase, packSize: item.packSize })),
         /** Features › batch_expiry: stock by batch, for a tracked item or one that has batches */
-        batches: item.kind !== 'service' && (await batchesOn(tx, ctx.businessId!)) && (item.trackBatch || (await tx.batch.count({ where: { itemId: id } })) > 0) ? await batchRows(tx, { id, purchasePrice: item.purchase }) : null,
+        batches: item.kind !== 'service' && (await batchesOn(tx, ctx.businessId!)) && (item.trackBatch || (await tx.batch.count({ where: { itemId: id } })) > 0) ? await batchRows(tx, { id, purchasePrice: item.purchase, packSize: item.packSize }) : null,
         godowns: godowns.map((g) => ({ id: g.id, name: g.name, stock: q3(byGodown.find((b) => b.godownId === g.id)?._sum.qty ?? '0') })),
         // a deleted document's movements (taken out and put back) still count in the stock, but aren't listed;
         // nor are the lines an edit replaced (its reversal and what that put back: see item-history.ts)
@@ -168,6 +172,33 @@ export class ItemsService {
       // the rate belongs to the secondary unit: no secondary unit, no rate
       ...(input.secondaryUnit !== undefined && { unitRate: input.secondaryUnit && input.unitRate ? q(input.unitRate) : null }),
     };
+  }
+
+  /**
+   * Features › mrp_pack: what an item's pack set-up becomes. Only with the feature on, and only an item with no stock
+   * history can change it (owner, 2 Nov 2026): its history is counted in its unit, and old records are never rewritten.
+   * Nothing asked for, or the feature off: nothing changes.
+   */
+  private async packChange(tx: Tx, ctx: RequestContext, input: Partial<ItemInput>, before: { id?: string; kind: string; unit: string; packUnit: string; packSize: string | null } | null) {
+    const unit = input.unit !== undefined ? input.unit || 'PCS' : before?.unit ?? 'PCS';
+    const wasPack = !!before?.packUnit;
+    if (input.packUnit === undefined) {
+      if (before?.id && wasPack && unit !== before.unit && (await tx.stockMovement.count({ where: { itemId: before.id } }))) throw new BadRequestException({ message: PACK_HAS_HISTORY, field: 'unit' });
+      if (wasPack && unit === before!.packUnit) throw new BadRequestException({ message: 'The pack unit and the loose unit must be different.', field: 'unit' });
+      return {};
+    }
+    if (!(await mrpOn(tx, ctx.businessId!))) return {};
+    const on = !!input.packUnit;
+    const size = on ? money(input.packSize ?? 0).toDecimalPlaces(3) : null;
+    const same = on ? before?.packUnit === input.packUnit && !!before.packSize && size!.eq(before.packSize) && unit === before.unit : !wasPack;
+    if (same) return {};
+    if (on) {
+      if ((input.kind ?? before?.kind) === 'service') throw new BadRequestException({ message: 'A service has no stock, so it can’t have a pack.', field: 'unit' });
+      if (input.packUnit === unit) throw new BadRequestException({ message: 'The pack unit and the loose unit must be different.', field: 'unit' });
+      if (!size!.gt(1)) throw new BadRequestException({ message: 'Enter how many loose units are in a pack: more than 1.', field: 'unit' });
+    }
+    if (before?.id && (await tx.stockMovement.count({ where: { itemId: before.id } }))) throw new BadRequestException({ message: PACK_HAS_HISTORY, field: 'unit' });
+    return on ? { packUnitId: await unitIdFor(tx, ctx.businessId!, ctx.userId, input.packUnit!), packSize: size!.toFixed(3) } : { packUnitId: null, packSize: null };
   }
 
   /** Clear messages before the database's own unique indexes (which stay as the guard against two saves at once). */
@@ -226,15 +257,16 @@ export class ItemsService {
         await this.clash(tx, input);
         // Features › batch_expiry: only with it on, and only goods have batches
         const track = input.kind === 'goods' && !!input.trackBatch && (await batchesOn(tx, ctx.businessId!));
+        const pack = await this.packChange(tx, ctx, input, null);
         const it = await tx.item.create({
-          data: { businessId: ctx.businessId!, createdBy: ctx.userId, trackBatch: track, ...this.fields(input), name: input.name, kind: input.kind, ...(await this.refs(tx, ctx, { ...input, unit: input.unit || 'PCS' })), ...(opening && money(opening.rate).gt(0) && { purchasePrice: opening.rate }) },
+          data: { businessId: ctx.businessId!, createdBy: ctx.userId, trackBatch: track, ...pack, ...this.fields(input), name: input.name, kind: input.kind, ...(await this.refs(tx, ctx, { ...input, unit: input.unit || 'PCS' })), ...(opening && money(opening.rate).gt(0) && { purchasePrice: opening.rate }) },
         });
         if (opening) {
           const g = await tx.godown.findFirstOrThrow({ where: { isDefault: true, archivedAt: null } });
           await tx.stockMovement.create({
             data: {
               businessId: ctx.businessId!, createdBy: ctx.userId, itemId: it.id, godownId: g.id, date: day(input.openingDate ?? todayIst()),
-              qty: money(input.openingQty!).toDecimalPlaces(3).toFixed(3), rate: opening.rate, kind: 'opening', note: 'Opening stock',
+              qty: money(input.openingQty!).toDecimalPlaces(3).toFixed(3), ...(it.packSize ? { rate: looseCost(opening.rate, it.packSize.toString()).toDecimalPlaces(2).toFixed(2), unitCost: looseCost(opening.rate, it.packSize.toString()).toFixed(6) } : { rate: opening.rate }), kind: 'opening', note: 'Opening stock',
               batchId: track && input.openingBatchNo ? await resolveBatch(tx, { businessId: ctx.businessId!, userId: ctx.userId, ip: ctx.ip }, this.audit, it, { batchNo: input.openingBatchNo, mfg: input.openingMfg, expiry: input.openingExpiry }) : null,
             },
           });
@@ -257,10 +289,11 @@ export class ItemsService {
     if ((await this.find(tx, id)).deletedAt) throw new BadRequestException({ message: ALREADY_DELETED });
     const before = await this.view(tx, id);
     await this.clash(tx, input, id);
+    const pack = await this.packChange(tx, ctx, input, before);
     if (input.kind === 'service' && before.kind === 'goods' && before.stock && !money(before.stock).isZero())
       throw new BadRequestException({ message: 'This item has stock. Bring its stock to zero before making it a service.' });
     const track = input.trackBatch !== undefined && (await batchesOn(tx, ctx.businessId!)) ? { trackBatch: input.trackBatch && before.kind !== 'service' } : {};
-    await tx.item.update({ where: { id }, data: { ...this.fields(input), ...track, ...(await this.refs(tx, ctx, input)) } });
+    await tx.item.update({ where: { id }, data: { ...this.fields(input), ...track, ...pack, ...(await this.refs(tx, ctx, input)) } });
     const after = await this.view(tx, id);
     for (const [f, field] of [['sale', 'sale'], ['purchase', 'purchase'], ['mrp', 'mrp'], ['listPrice', 'list'], ['wholesale', 'wholesale']] as const) {
       if (before[f] !== after[f])

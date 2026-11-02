@@ -471,6 +471,24 @@ describe('restore', () => {
     expect(((await http().get(`/api/items/${newIt.id}`).set(auth(n)).expect(200)).body as { batches: { rows: { mrp: string }[] } }).batches.rows[0]!.mrp).toBe('120.00');
   });
 
+  it('restored books keep an item’s pack, a line’s unit and the exact cost', async () => {
+    const { o } = await shop();
+    await http().put('/api/settings/features').set(auth(o)).send({ enabled: ['batch_expiry', 'mrp_pack'] }).expect(200);
+    const it = (await http().post('/api/items').set(auth(o)).send({ name: 'Strip tablet', kind: 'goods', unit: 'TAB', packUnit: 'STRIP', packSize: '15', gstRate: 0, sale: '150' }).expect(201)).body as { id: string };
+    const sup = (await http().post('/api/parties').set(auth(o)).send({ name: 'Ram Pharma', kind: 'supplier' }).expect(201)).body as { id: string };
+    await http().post('/api/purchases').set(auth(o)).send({ kind: 'bill', date: D, dueDate: D, partyId: sup.id, transport: '0', labour: '0', pricesInclTax: false, roundOff: false, lines: [{ itemId: it.id, name: 'Strip tablet', qty: '3', unit: 'STRIP', rate: '100', discPct: '0', gstRate: '0' }] }).expect(201);
+    await useDrive(o);
+    await svc.runDue();
+    const r = (await http().post('/api/backup/restore').set(auth(o)).send({ from: 'drive', confirm: true }).expect(200)).body;
+    const n = { token: (await http().post('/api/businesses/switch').set(auth(o)).send({ businessId: r.businessId }).expect(201)).body.accessToken as string };
+    const newIt = ((await http().get('/api/items').set(auth(n)).expect(200)).body as { id: string; name: string }[]).find((i) => i.name === 'Strip tablet')!;
+    const c = (await http().get(`/api/items/${newIt.id}`).set(auth(n)).expect(200)).body as { unit: string; packUnit: string; packSize: string; stock: string; purchase: string; rateTable: { value: string; avgRate: string } };
+    expect(c).toMatchObject({ unit: 'TAB', packUnit: 'STRIP', packSize: '15.000', stock: '45.000', purchase: '100.00' });
+    expect(c.rateTable).toMatchObject({ value: '300.00', avgRate: '100.00' });
+    const bill = ((await http().get('/api/purchases?kind=bill').set(auth(n)).expect(200)).body as { id: string }[])[0]!;
+    expect(((await http().get(`/api/purchases/${bill.id}`).set(auth(n)).expect(200)).body as { lines: { unit: string; packSize: string }[] }).lines[0]).toMatchObject({ unit: 'STRIP', packSize: '15.000' });
+  });
+
   it('an old backup, made before batches existed, restores with items untracked and stock as No batch', async () => {
     const { o } = await shop();
     await useDrive(o);

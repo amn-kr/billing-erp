@@ -1,7 +1,7 @@
 /** Adjust stock (#adj) — same markup and checks as the prototype; saves a numbered stock adjustment. */
 import { useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { batchDateText, formatQty, money, stockAfterAdjustment, stockBeforeAdjustment } from '@billing/shared';
+import { batchDateText, formatQty, money, stockAfterAdjustment, stockBeforeAdjustment, looseCost } from '@billing/shared';
 import { api, ApiError } from '../../lib/api';
 import { useCur } from '../../lib/settings';
 import { today } from '../../lib/time';
@@ -50,7 +50,7 @@ export function AdjustStockDialog({ item, choices, edit, onClose }: { item: Item
   useLayoutEffect(() => {
     if (!item) return;
     setIt(item); setPicked(false);
-    setMode('add'); setQty(''); setPrice(String(Number(item.purchase))); setDate(today()); setWhy(REASONS[0]!); setErr(''); setBatchNo(''); setExpiry(''); setBatchId('');
+    setMode('add'); setQty(''); setPrice(String(item.packSize ? looseCost(item.purchase, item.packSize).toDecimalPlaces(2).toNumber() : Number(item.purchase))); setDate(today()); setWhy(REASONS[0]!); setErr(''); setBatchNo(''); setExpiry(''); setBatchId('');
     if (edit) {
       setBatchNo(edit.batchNo ?? ''); setExpiry(batchDateText(edit.expiry, 'expiry')); setBatchId(edit.batchId ?? '');
       const q = Number(edit.qty);
@@ -94,7 +94,7 @@ export function AdjustStockDialog({ item, choices, edit, onClose }: { item: Item
         <h3 id="adjT" style={{ margin: ui.sp('0 0 4px'), fontSize: ui.fs(18) }}>{edit ? `Edit ${edit.number}` : 'Adjust stock'}</h3>
         <p id="adjFor" style={{ margin: ui.sp('0 0 14px'), color: 'var(--t2)', fontSize: ui.fs(13) }}>{it ? (picked ? `In stock ${qfmt(s)} ${it.unit}` : `${it.name} · in stock ${qfmt(s)} ${it.unit}`) : ''}</p>
         <form id="adjForm" noValidate onSubmit={submit}>
-          <label className="fl" id="adjItemRow" htmlFor="adjItem" hidden={!choices}>Item<select className="fi" id="adjItem" ref={pickRef} value={it?.id ?? ''} onChange={(e) => { const i = choices?.find((x) => x.id === e.target.value); if (!i) return; setIt(i); setPicked(true); setPrice(String(Number(i.purchase))); }}>{choices?.map((i) => <option value={i.id} key={i.id}>{i.name} · {qfmt(i.stock)} {i.unit}</option>)}</select></label>
+          <label className="fl" id="adjItemRow" htmlFor="adjItem" hidden={!choices}>Item<select className="fi" id="adjItem" ref={pickRef} value={it?.id ?? ''} onChange={(e) => { const i = choices?.find((x) => x.id === e.target.value); if (!i) return; setIt(i); setPicked(true); setPrice(String(i.packSize ? looseCost(i.purchase, i.packSize).toDecimalPlaces(2).toNumber() : Number(i.purchase))); }}>{choices?.map((i) => <option value={i.id} key={i.id}>{i.name} · {qfmt(i.stock)} {i.unit}</option>)}</select></label>
           <div className="seg2" id="adjSeg" style={{ marginBottom: ui.sp(14) }}>
             <button type="button" data-am="add" className={mode === 'add' ? 'on' : ''} onClick={() => setMode('add')}>Add stock</button>
             <button type="button" data-am="reduce" className={mode === 'reduce' ? 'on' : ''} onClick={() => setMode('reduce')}>Reduce stock</button>

@@ -5,7 +5,7 @@
  */
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { batchDateText, batchMonth, expiryLabel, expiryState, formatInr2, formatQty, money, sumValues, type BatchRow } from '@billing/shared';
+import { batchDateText, batchMonth, expiryLabel, expiryState, formatInr2, formatQty, money, packQtyText, sumValues, type BatchRow, type PackInfo } from '@billing/shared';
 import { api, ApiError } from '../../lib/api';
 import { today } from '../../lib/time';
 import { useFeature } from '../../lib/features';
@@ -19,7 +19,7 @@ export function ExpiryTag({ expiry, on }: { expiry: string | null; on: string })
   return label ? <span className={`st ${expiryState(expiry, on) === 'expired' ? 'r' : 'a'}`}>{label}</span> : null;
 }
 
-export function BatchCard({ rows, shortQty, unit, canEdit }: { rows: BatchRow[]; shortQty: string; unit: string; canEdit: boolean }) {
+export function BatchCard({ rows, shortQty, unit, canEdit, pack }: { rows: BatchRow[]; shortQty: string; unit: string; canEdit: boolean; /** Features › mrp_pack */ pack?: PackInfo | null }) {
   const [editing, setEditing] = useState<BatchRow | null>(null);
   const on = today();
   const showMrp = useFeature('mrp_pack');
@@ -28,7 +28,7 @@ export function BatchCard({ rows, shortQty, unit, canEdit }: { rows: BatchRow[];
     <div className="card" id="itBatches" style={{ marginTop: ui.sp(16) }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: ui.sp(10), marginBottom: ui.sp(10) }}>
         <h3 style={{ margin: 0, fontSize: ui.fs(16) }}>Stock by batch</h3>
-        <span className="mu" style={{ fontSize: ui.fs(12.5) }}>{formatQty(total)} {unit} · earliest expiry first</span>
+        <span className="mu" style={{ fontSize: ui.fs(12.5) }}>{packQtyText(total, unit, pack)} · earliest expiry first</span>
       </div>
       {rows.length ? (
         <div className="tw" style={{ margin: 0 }}>
@@ -38,16 +38,16 @@ export function BatchCard({ rows, shortQty, unit, canEdit }: { rows: BatchRow[];
               {rows.map((r) => (
                 <tr key={r.id ?? 'none'} data-batch={r.no}>
                   <td><b style={{ fontWeight: 600 }}>{r.no}</b></td><td className="mu">{batchMonth(r.mfg)}</td><td>{batchMonth(r.expiry)}</td><td><ExpiryTag expiry={r.expiry} on={on} /></td>{showMrp ? <td className="n">{r.mrp ? money(r.mrp).toFixed(2) : '—'}</td> : null}
-                  <td className="n">{formatQty(r.qty)}</td><td className="n">{formatInr2(r.rate)}</td><td className="n">{formatInr2(r.value)}</td>
+                  <td className="n">{pack ? packQtyText(r.qty, unit, pack) : formatQty(r.qty)}</td><td className="n">{formatInr2(r.rate)}</td><td className="n">{formatInr2(r.value)}</td>
                   {canEdit ? <td className="n">{r.id ? <button type="button" className="btn sm" data-batchedit={r.no} onClick={() => setEditing(r)}>Edit</button> : null}</td> : null}
                 </tr>
               ))}
             </tbody>
-            <tfoot><tr><td colSpan={showMrp ? 5 : 4}><b>Total</b></td><td className="n"><b>{formatQty(total)}</b></td><td></td><td className="n"><b>{formatInr2(sumValues(rows.map((r) => r.value)))}</b></td>{canEdit ? <td></td> : null}</tr></tfoot>
+            <tfoot><tr><td colSpan={showMrp ? 5 : 4}><b>Total</b></td><td className="n"><b>{pack ? packQtyText(total, unit, pack) : formatQty(total)}</b></td><td></td><td className="n"><b>{formatInr2(sumValues(rows.map((r) => r.value)))}</b></td>{canEdit ? <td></td> : null}</tr></tfoot>
           </table>
         </div>
       ) : <p className="mu" style={{ margin: 0, fontSize: ui.fs(13) }}>No stock yet. Batches show here once you buy or add stock.</p>}
-      {money(shortQty).gt(0) ? <p className="xperr" style={{ margin: ui.sp('10px 0 0') }}>Stock is short by {formatQty(shortQty)} {unit}: more was sold than was bought.</p> : null}
+      {money(shortQty).gt(0) ? <p className="xperr" style={{ margin: ui.sp('10px 0 0') }}>Stock is short by {packQtyText(shortQty, unit, pack)}: more was sold than was bought.</p> : null}
       <EditBatch batch={editing} showMrp={showMrp} onClose={() => setEditing(null)} />
     </div>
   );

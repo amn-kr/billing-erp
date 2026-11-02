@@ -24,7 +24,7 @@ export class BatchesController {
   @Get('items/:id/batches')
   list(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
-      const item = await tx.item.findFirst({ where: { id }, select: { id: true, purchasePrice: true } });
+      const item = await tx.item.findFirst({ where: { id }, select: { id: true, purchasePrice: true, packSize: true } });
       if (!item) throw new NotFoundException({ message: 'That item was not found.' });
       return (await batchesOn(tx, ctx.businessId!)) ? batchRows(tx, item) : { rows: [], shortQty: '0.000' };
     });
@@ -36,7 +36,7 @@ export class BatchesController {
   all(@Ctx() ctx: RequestContext) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       if (!(await batchesOn(tx, ctx.businessId!))) return {};
-      const items = await tx.item.findMany({ where: { trackBatch: true, archivedAt: null, kind: { not: 'service' } }, select: { id: true, purchasePrice: true } });
+      const items = await tx.item.findMany({ where: { trackBatch: true, archivedAt: null, kind: { not: 'service' } }, select: { id: true, purchasePrice: true, packSize: true } });
       return Object.fromEntries([...(await batchRowsOf(tx, items))].map(([id, s]) => [id, s.rows]));
     });
   }
@@ -47,9 +47,9 @@ export class BatchesController {
   report(@Ctx() ctx: RequestContext) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       if (!(await batchesOn(tx, ctx.businessId!))) return [];
-      const items = await tx.item.findMany({ where: { kind: { not: 'service' }, deletedAt: null, OR: [{ trackBatch: true }, { batches: { some: {} } }] }, select: { id: true, name: true, code: true, purchasePrice: true, unit: { select: { code: true } } } });
+      const items = await tx.item.findMany({ where: { kind: { not: 'service' }, deletedAt: null, OR: [{ trackBatch: true }, { batches: { some: {} } }] }, select: { id: true, name: true, code: true, purchasePrice: true, packSize: true, packUnit: { select: { code: true } }, unit: { select: { code: true } } } });
       const stock = await batchRowsOf(tx, items);
-      const rows = items.flatMap((i) => stock.get(i.id)!.rows.map((r) => ({ ...r, itemId: i.id, item: i.name, code: i.code, unit: i.unit?.code ?? '' })));
+      const rows = items.flatMap((i) => stock.get(i.id)!.rows.map((r) => ({ ...r, itemId: i.id, item: i.name, code: i.code, unit: i.unit?.code ?? '', packUnit: i.packUnit?.code ?? '', packSize: i.packSize?.toFixed(3) ?? null })));
       const rank = (r: { id: string | null; expiry: string | null }) => (r.expiry ? 0 : r.id ? 1 : 2);
       return rows.sort((a, b) => rank(a) - rank(b) || (a.expiry ?? '').localeCompare(b.expiry ?? '') || a.item.localeCompare(b.item) || a.no.localeCompare(b.no));
     });

@@ -14,7 +14,7 @@ import { useEscape } from '../../../lib/useEscape';
 import { useSales, type SaleDoc } from '../model';
 import type { SlModalProps } from '../SlModal';
 import type { EditorData } from './data';
-import { SI_TT, addDaysIso, blankLine, cmApply, lineFor, partyState, unitPrice, type Line, type SI } from './state';
+import { SI_TT, addDaysIso, blankLine, cmApply, lineFor, partyState, priceFor, type Line, type SI } from './state';
 import { qRanked, qRate, qTotals, type QCtx, type QDraft } from '../../quotations/model';
 import { ui } from '../../../styles/uiSize';
 
@@ -67,6 +67,7 @@ export function ImportQuote({ open, onClose, d, s, up, toast }: { open: boolean;
       const it = d.IT.find((i) => i.id === l.itemId);
       if (!it) continue;
       const L2 = lineFor(d.ctx, s, it);
+      L2.unit = l.unit === it.pack?.unit || l.unit === it.unit ? l.unit : L2.unit;
       L2.qty = Number(l.qty); L2.price = Number(l.price); L2.disc = Number(l.discPct) || 0; L2.gst = Number(l.gstRate);
       L2.fromQ = v.number;
       lines.push(L2);
@@ -87,7 +88,7 @@ export function ImportQuote({ open, onClose, d, s, up, toast }: { open: boolean;
           // the customer's price list applies to the lines already there; the quoted rates stay as quoted
           x.mode = 'credit'; x.party = p; x.pos = partyState(d.ctx, p);
           if (!x.dueTouched) x.due = addDaysIso(x.date, p.days || 0);
-          x.lines.forEach((l) => { if (l.item && !l.fromQ) l.price = unitPrice(d.ctx, l.item, p); });
+          x.lines.forEach((l) => { if (l.item && !l.fromQ) l.price = priceFor(d.ctx, l.item, p, l.unit); });
         } else if (v.partyName && !x.cashName) { x.mode = 'cash'; x.cashName = v.partyName; }
       }
     });
