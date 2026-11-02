@@ -5,8 +5,10 @@
  */
 import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useFeature } from '../../lib/features';
+import { expirySummary, useExpiry } from '../reports/expiry';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import type { MeResponse } from '@billing/shared';
+import { can, type MeResponse } from '@billing/shared';
 import { api } from '../../lib/api';
 import { inr } from '../../lib/format';
 import { greeting, today } from '../../lib/time';
@@ -51,6 +53,10 @@ export function HomePage() {
   const nav = useNavigate();
   const first = (me.user.name || '').trim().split(/\s+/)[0];
   const home = useQuery(opt<Home>(`/reports/home?today=${today()}`, ['home']));
+  // Features › batch_expiry: for those who can see reports, when anything is expired or expiring soon
+  const batchOn = useFeature('batch_expiry');
+  const expRows = useExpiry(batchOn && can(me.permissions, 'reports.view')).data?.rows;
+  const expiry = expRows ? expirySummary(expRows, today()) : null;
   const parties = useQuery(opt<Party[]>('/parties', ['parties']));
   const sales = useQuery(opt<SaleRow[]>('/sales?kind=invoice', ['sales', 'invoice']));
   const bills = useQuery(opt<PurchaseRow[]>('/purchases?kind=bill', ['purchases', 'bill']));
@@ -123,6 +129,7 @@ export function HomePage() {
         <Stat icon="wallet" color="--green" label="Cash & bank" value={inr(cashTot)} em={(ct >= 0 ? '+' : '−') + inr(Math.abs(ct))} emc={ct >= 0 ? 'g' : 'r'} sub=" today" soonOf="Banking" onGo={() => nav('/bank-accounts')} />
         <Stat icon="pct" color="--pink" label={'GST payable · ' + D.monName} value={inr(Math.max(0, net))} em={'Due ' + nm.getDate() + ' ' + nm.toLocaleString('en-IN', { month: 'short' })} emc="a" sub={net < 0 ? ` · ${inr(-net)} credit carried` : ' · GSTR-3B'} cls="needs-gst" soonOf="GST" onGo={() => soon('GST')} />
         <Stat icon="wallet" color="--pink" label={'Expenses · ' + D.monName} value={inr(xt)} em={plural(M.length, 'entry', 'entries')} emc="b" sub={topCats || 'nothing yet'} cls="no-gst" view="exp" onGo={() => nav('/expenses')} />
+        {expiry && expiry.expired + expiry.soon > 0 ? <Stat icon="alert" color="--red" label="Expiring stock" value={inr(Number(expiry.value))} em={plural(expiry.expired, 'batch', 'batches') + ' expired'} emc={expiry.expired ? 'r' : 'a'} sub={` · ${expiry.soon} within 90 days`} view="exp-stock" onGo={() => nav('/reports?r=expiry')} /> : null}
         <Stat icon="alert" color="--red" label="Low stock" value={plural(low.length, 'item', 'items')} em={`${crit.length} out of stock`} emc={crit.length ? 'r' : 'g'} sub=" · at or below reorder level" view="items" onGo={() => nav('/items')} />
       </div>
 

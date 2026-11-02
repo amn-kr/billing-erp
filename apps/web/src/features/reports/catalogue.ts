@@ -16,4 +16,8 @@ export const REPSEC: Record<string, string> = { txn: 'sale', party: 'pstmt', ite
 
 export const BUILT = new Set(['pstmt', 'ppl', 'allp', 'pitem', 'spp', 'spg', 'expl', 'expc', 'expi']);
 
-export const repOf = (key: string) => { for (const [sec, h, L] of REPS) { const r = L.find((x) => x[0] === key); if (r) return { sec, group: h, key: r[0], title: r[1], desc: r[2] }; } return null; };
+/** Features › batch_expiry: two more reports in the list, only with it on (with it off the list is as it always was). */
+const EXPIRY_REPS: Rep[] = [['expiry', 'Expiry Report', 'Batches expired or expiring soon, with supplier and value.'], ['batchsale', 'Batch Wise Sales And Profit', 'Sold, cost and profit for each batch.']];
+export const repsFor = (batchOn: boolean): typeof REPS => (batchOn ? REPS.map(([k, h, L]) => [k, h, k === 'item' ? L.flatMap((r) => (r[0] === 'batch' ? [r, ...EXPIRY_REPS] : [r])) : L]) : REPS);
+
+export const repOf = (key: string, reps = REPS) => { for (const [sec, h, L] of reps) { const r = L.find((x) => x[0] === key); if (r) return { sec, group: h, key: r[0], title: r[1], desc: r[2] }; } return null; };

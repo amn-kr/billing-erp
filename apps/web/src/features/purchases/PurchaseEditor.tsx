@@ -119,6 +119,13 @@ export function PurchaseEditor() {
       const s = newPE(k, no);
       const pickP = (id: string) => { const p = d.PT.find((x) => x.id === id); if (p) { s.party = p; s.due = addDaysIso(s.date, p.days || 0); } };
       if (params.get('party')) pickP(params.get('party')!);
+      // Reports › Expiry Report: this batch back to its supplier, filled in
+      const it = params.get('item') ? d.IT.find((i) => i.id === params.get('item')) : undefined;
+      if (k === 'debit_note' && it) {
+        s.lines = [{ ...peLine(), id: it.id, name: it.name, hsn: it.hsn || '', qty: Number(params.get('qty')) || 1, unit: params.get('unit') || it.unit, rate: Number(params.get('rate')) || 0, gst: d.ctx.mode === 'gst' ? it.gst || 0 : 0, batchId: params.get('batch') ?? '' }, peLine()];
+        s.against = params.get('bill') ?? '';
+        s.reason = 'Expired goods';
+      }
       const src = params.get('order') ?? params.get('against');
       if (src) {
         const v = await qc.fetchQuery({ queryKey: ['purchase', src], queryFn: () => api<PurchaseDoc>(`/purchases/${src}`) });
@@ -385,7 +392,7 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
           {k === 'bill' ? <div className="dg2"><label className="ff"><input className="fi mono" id="peRef" value={s.ref} placeholder=" " autoComplete="off" onChange={(e) => up((x) => { x.ref = e.target.value; })} /><span>Supplier’s bill no.</span></label>{gstOn ? <label className="ff"><input className="fi" id="peEwb" value={s.ewb} placeholder=" " autoComplete="off" onChange={(e) => up((x) => { x.ewb = e.target.value; })} /><span>E-way bill no.</span></label> : null}</div>
             : k === 'order' ? <div className="dg2"><label className="ff"><input className="fi" id="peRef" value={s.ref} placeholder=" " autoComplete="off" onChange={(e) => up((x) => { x.ref = e.target.value; })} /><span>Supplier quotation ref. (optional)</span></label></div>
             : <div className="dg2"><label className="ff on"><select className="fi" id="peAgainst" value={s.against} onChange={(e) => up((x) => { x.against = e.target.value; })}><option value="">Not linked to a bill</option>{partyBills.map((b) => <option value={b.id} key={b.id}>{b.number} · {dmy(b.date)} · ₹{inr2f(b.total)}</option>)}</select><span>Against bill</span></label>
-              <label className="ff on"><select className="fi" id="peReason" value={s.reason} onChange={(e) => up((x) => { x.reason = e.target.value; })}>{DN_REASONS.map((r) => <option key={r}>{r}</option>)}</select><span>Reason</span></label></div>}</div>
+              <label className="ff on"><select className="fi" id="peReason" value={s.reason} onChange={(e) => up((x) => { x.reason = e.target.value; })}>{DN_REASONS.filter((r) => r !== 'Expired goods' || batchOn || s.reason === r).map((r) => <option key={r}>{r}</option>)}</select><span>Reason</span></label></div>}</div>
         <div className="dgc dgr" id="peMeta">
           {k === 'bill' ? <div className="dg2"><label className="ff on"><select className="fi" id="peTerms" value={hit ? String(hit[0]) : 'c'} onChange={(e) => { if (e.target.value !== 'c') { const v = Number(e.target.value); up((x) => { x.due = addDaysIso(x.date, v); }); } }}>{DG_TERMS.map(([v, l]) => <option value={v} key={v}>{l}</option>)}<option value="c">Custom{hit || isNaN(termsD) ? '' : ` (${termsD} days)`}</option></select><span>Payment terms</span></label>
             <label className="ff on"><input className="fi" id="peDue" value={s.due} placeholder=" " autoComplete="off" type="date" onChange={(e) => up((x) => { x.due = e.target.value; })} /><span>Due date</span></label></div> : null}

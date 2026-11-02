@@ -15,7 +15,7 @@ import { bzLine, bzName, useBiz, type Biz } from '../sales/InvoicePreview';
 import { perOpts, range, rangeTxt, choosePer, type PeriodState } from './periods';
 import { ui } from '../../styles/uiSize';
 
-export interface Col { h: string; n?: boolean; int?: boolean; cls?: string; w?: number }
+export interface Col { h: string; n?: boolean; int?: boolean; cls?: string; w?: number; /** buttons on the screen: left out of Print, PDF and Excel */ act?: boolean }
 export interface Row { k?: string; c: (string | number)[]; h?: Record<number, ReactNode> }
 export interface RpDef {
   title: string; group: string; sub?: string;
@@ -98,12 +98,19 @@ export function RpPrint({ o, p, onClose }: { o: RpDef | null; p: PeriodState; on
   );
 }
 
+/** A report as it prints and exports: without its columns of buttons. */
+export const printable = (o: RpDef): RpDef => {
+  const keep = o.cols.flatMap((c, i) => (c.act ? [] : [i]));
+  return keep.length === o.cols.length ? o : { ...o, cols: keep.map((i) => o.cols[i]!), rows: o.rows.map((r) => ({ ...r, c: keep.map((i) => r.c[i]!), h: undefined })), foot: o.foot && keep.map((i) => o.foot![i]!) };
+};
+
 /* ---------- Excel and PDF (prototype rpXls / rpPdf) ---------- */
 const fileOf = (o: RpDef, ext: string) => `${o.title.replace(/[^\w]+/g, '-')}${o.sub ? '-' + o.sub.replace(/[^\w]+/g, '-') : ''}.${ext}`;
 const numOf = (v: string | number) => { const s = String(v ?? '').replace(/,/g, '').replace(/%$/, ''); return /^-?\d+(\.\d+)?$/.test(s) ? +s : v; };
 const when = (o: RpDef, p: PeriodState) => (o.period === false ? 'As on ' + dmy(today()) : rangeTxt(p));
 
-export async function rpXls(o: RpDef, p: PeriodState, biz?: Biz) {
+export async function rpXls(all: RpDef, p: PeriodState, biz?: Biz) {
+  const o = printable(all);
   const rows: (string | number)[][] = [[bzName(biz)], [`${o.title}${o.sub ? ' · ' + o.sub : ''} · ${when(o, p)}`], [], o.cols.map((c) => c.h)];
   o.rows.forEach((r) => rows.push(r.c.map((v, i) => (o.cols[i]!.n ? numOf(v) : v))));
   if (o.foot) { rows.push([]); rows.push(o.foot.map((v, i) => (o.cols[i]!.n ? numOf(v) : v))); }
@@ -111,7 +118,8 @@ export async function rpXls(o: RpDef, p: PeriodState, biz?: Biz) {
   saveFile(fileOf(o, 'xlsx'), await xlsxBlob([{ name: o.title.slice(0, 30), rows, widths: o.cols.map((c) => c.w || (c.n ? 14 : 20)), freeze: 4, styles: { 0: 3, 3: 1, ...(o.foot ? { [rows.length - 1]: 1 as const } : {}) }, money }]));
 }
 
-export async function rpPdf(o: RpDef, p: PeriodState, biz?: Biz) {
+export async function rpPdf(all: RpDef, p: PeriodState, biz?: Biz) {
+  const o = printable(all);
   const { jsPDF } = await import('jspdf');
   const land = o.cols.length > 6;
   const doc = new jsPDF({ unit: 'pt', format: 'a4', orientation: land ? 'landscape' : 'portrait' });
