@@ -63,6 +63,15 @@ export function expiryLabel(expiry: string | null | undefined, on: string): stri
   return left < 60 ? `In ${left} day${left === 1 ? '' : 's'}` : `In ${Math.floor(left / 30)} months`;
 }
 
+/** Item Batch Report's filters: expired, or expiring within so many days (a batch still good today, up to that day). */
+export type ExpiryFilter = 'all' | 'expired' | 30 | 60 | 90;
+export function matchesExpiry(expiry: string | null | undefined, on: string, f: ExpiryFilter): boolean {
+  if (f === 'all') return true;
+  if (!expiry) return false;
+  const left = daysBetween(on, expiry);
+  return f === 'expired' ? left < 0 : left >= 0 && left <= f;
+}
+
 /** One row of an item's stock by batch. `id` null is the stock without a batch. */
 export interface BatchRow { id: string | null; no: string; mfg: string | null; expiry: string | null; qty: string; rate: string; value: string }
 
