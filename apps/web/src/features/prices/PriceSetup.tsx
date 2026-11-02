@@ -4,6 +4,7 @@
  * "Fine-tune items" (LP − %, margin % or price per item). Price changes go
  * through the preview (#ppv); rules and prices need the PIN.
  */
+import { useMrpOn } from '../../lib/settings';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { money, type PriceRuleSet } from '@billing/shared';
@@ -26,7 +27,7 @@ export function PriceSetup({ open, data, previewOpen, onPreview, onClose }: {
   onPreview: (changes: Change[], how: string, note: ReactNode, after?: () => void) => void; onClose: () => void;
 }) {
   const settings = useSettings().data;
-  const mrpOn = !!settings?.data?.mrp;
+  const mrpOn = useMrpOn();
   const rules = ((settings?.data as { priceRules?: Record<string, PriceRuleSet> } | undefined)?.priceRules ?? {});
   const qc = useQueryClient();
   const { showToast } = useShell();

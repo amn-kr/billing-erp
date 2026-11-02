@@ -456,6 +456,21 @@ describe('restore', () => {
     expect(saved[0]!.batchAlloc).toEqual([{ batchId: rows[0]!.id, qty: '2.000' }]);
   });
 
+  it('restored books keep a batch’s MRP and the MRP feature', async () => {
+    const { o } = await shop();
+    await http().put('/api/settings/features').set(auth(o)).send({ enabled: ['batch_expiry', 'mrp_pack'] }).expect(200);
+    const it = (await http().post('/api/items').set(auth(o)).send({ name: 'Tablet', kind: 'goods', unit: 'PCS', gstRate: 0, trackBatch: true }).expect(201)).body as { id: string };
+    const sup = (await http().post('/api/parties').set(auth(o)).send({ name: 'Ram Pharma', kind: 'supplier' }).expect(201)).body as { id: string };
+    await http().post('/api/purchases').set(auth(o)).send({ kind: 'bill', date: D, dueDate: D, partyId: sup.id, transport: '0', labour: '0', lines: [{ itemId: it.id, name: 'Tablet', qty: '5', rate: '10', discPct: '0', gstRate: '0', batchNo: 'B1', expiry: '03/40', batchMrp: '120' }] }).expect(201);
+    await useDrive(o);
+    await svc.runDue();
+    const r = (await http().post('/api/backup/restore').set(auth(o)).send({ from: 'drive', confirm: true }).expect(200)).body;
+    const n = { token: (await http().post('/api/businesses/switch').set(auth(o)).send({ businessId: r.businessId }).expect(201)).body.accessToken as string };
+    expect((await http().get('/api/me').set(auth(n)).expect(200)).body.business.features).toEqual(['batch_expiry', 'mrp_pack']);
+    const newIt = ((await http().get('/api/items').set(auth(n)).expect(200)).body as { id: string; name: string }[]).find((i) => i.name === 'Tablet')!;
+    expect(((await http().get(`/api/items/${newIt.id}`).set(auth(n)).expect(200)).body as { batches: { rows: { mrp: string }[] } }).batches.rows[0]!.mrp).toBe('120.00');
+  });
+
   it('an old backup, made before batches existed, restores with items untracked and stock as No batch', async () => {
     const { o } = await shop();
     await useDrive(o);

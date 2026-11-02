@@ -73,7 +73,7 @@ export function matchesExpiry(expiry: string | null | undefined, on: string, f: 
 }
 
 /** One row of an item's stock by batch. `id` null is the stock without a batch. */
-export interface BatchRow { id: string | null; no: string; mfg: string | null; expiry: string | null; qty: string; rate: string; value: string }
+export interface BatchRow { id: string | null; no: string; mfg: string | null; expiry: string | null; qty: string; rate: string; value: string; /** Features › mrp_pack */ mrp?: string | null }
 
 /**
  * The order batches are shown and used in (owner, 1 Nov 2026): expired ones first so they are seen, then
@@ -158,10 +158,13 @@ export function allocText(allocs: readonly BatchAlloc[], rows: readonly Pick<Pic
   return allocs.map((a) => `${a.batchId ? rows.find((r) => r.id === a.batchId)?.no ?? '—' : 'No batch'} × ${formatQty(a.qty)}`).join(', ');
 }
 
-/** "Batch A123 × 3 (Exp 03/2040), No batch × 1", for the printed invoice; nothing when no batch is named. */
-export function batchPrintLine(list: readonly { batchId: string | null; no: string; expiry: string | null; qty: MoneyInput }[]): string {
+/** "Batch A123 × 3 (Exp 03/2040, MRP 120.00), No batch × 1", for the printed invoice; nothing when no batch is named. */
+export function batchPrintLine(list: readonly { batchId: string | null; no: string; expiry: string | null; qty: MoneyInput; mrp?: string | null }[], withMrp = false): string {
   const named = list.filter((b) => b.batchId), none = list.filter((b) => !b.batchId);
   if (!named.length) return '';
-  const text = (b: (typeof list)[number]) => `${b.no} × ${formatQty(b.qty)}${b.expiry ? ` (Exp ${b.expiry.slice(5, 7)}/${b.expiry.slice(0, 4)})` : ''}`;
+  const text = (b: (typeof list)[number]) => {
+    const notes = [b.expiry ? `Exp ${b.expiry.slice(5, 7)}/${b.expiry.slice(0, 4)}` : '', withMrp && b.mrp ? `MRP ${money(b.mrp).toFixed(2)}` : ''].filter(Boolean);
+    return `${b.no} × ${formatQty(b.qty)}${notes.length ? ` (${notes.join(', ')})` : ''}`;
+  };
   return `Batch ${[...named, ...none].map(text).join(', ')}`;
 }

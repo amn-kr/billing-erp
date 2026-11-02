@@ -26,6 +26,7 @@ export function useEditorData() {
   const biz = useBiz();
   // Features › batch_expiry: every tracked item's stock by batch; not asked for with the feature off
   const batchOn = useFeature('batch_expiry');
+  const mrpOn = useFeature('mrp_pack');
   const batches = useQuery({ queryKey: ['items', 'batches'], queryFn: () => api<Record<string, BatchRow[]>>('/batches'), enabled: batchOn });
   if (!items.data || !parties.data || !lists.data || !prices.data || !settings.data || !biz.data || !rules.data || !refs.data || (batchOn && !batches.data)) return null;
   const data = settings.data.data as { reg?: string; tcs?: boolean; tcsRate?: string };
@@ -44,7 +45,7 @@ export function useEditorData() {
   const pm = new Map(prices.data.items.map((p) => [p.id, p.lists]));
   const IT: EItem[] = items.data.map((i) => ({
     id: i.id, name: i.name, code: i.code, hsn: i.hsn, unit: i.unit, cat: i.category, gst: Number(i.gstRate), stock: i.kind === 'service' ? null : Number(i.stock ?? 0),
-    svc: i.kind === 'service', brand: i.brand, series: i.series, grp: i.group, purch: Number(i.purchase), sale: Number(i.sale), track: !!i.trackBatch,
+    svc: i.kind === 'service', brand: i.brand, series: i.series, grp: i.group, purch: Number(i.purchase), sale: Number(i.sale), track: !!i.trackBatch, mrp: Number(i.mrp),
     pl: Object.fromEntries(Object.entries(pm.get(i.id) ?? {}).map(([k, v]) => [k, Number(v.price)])),
   }));
   const PT: EParty[] = parties.data.map((p) => ({
@@ -52,6 +53,6 @@ export function useEditorData() {
     limit: Number(p.creditLimit ?? 0), supplier: p.kind === 'supplier', balance: Number(p.balance), billingName: p.billingName ?? '',
   }));
   const gstRates = settings.data.taxes.filter((t) => t.kind === 'GST').map((t) => Number(t.rate));
-  return { ctx, IT, PT, gstRates, refs: refs.data, gstOn: settings.data.gstEnabled, batches: batchOn ? batches.data : undefined };
+  return { ctx, IT, PT, gstRates, refs: refs.data, gstOn: settings.data.gstEnabled, batches: batchOn ? batches.data : undefined, mrpOn };
 }
 export type EditorData = NonNullable<ReturnType<typeof useEditorData>>;

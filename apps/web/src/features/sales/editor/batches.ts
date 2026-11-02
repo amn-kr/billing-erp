@@ -3,7 +3,7 @@
  * is drawn, with the same rules the server checks (billAllocs), so nothing can get out of step. A saved
  * bill's own goods count as back in stock while it is edited.
  */
-import { billAllocs, expiryState, money, type BatchAlloc, type BatchRow } from '@billing/shared';
+import { billAllocs, effectiveMrp, expiryState, isAboveMrp, money, ratePerUnit, type BatchAlloc, type BatchRow } from '@billing/shared';
 import type { EditorData } from './data';
 import type { Line, SI } from './state';
 
@@ -47,4 +47,24 @@ export function expiredPicks(d: EditorData, si: SI, allocs: (BatchAlloc[] | null
     }
   });
   return out;
+}
+
+/** Features › mrp_pack: a line's MRP: the lowest of the batches it uses, else the item's. */
+export function lineMrp(d: EditorData, si: SI, l: Line, allocs: BatchAlloc[] | null | undefined): number | null {
+  if (!d.mrpOn || !l.item || l.item.svc || si.doc !== 'sale') return null;
+  const rows = batchRowsFor(d, si, l.item.id) ?? [];
+  const m = effectiveMrp(l.item.mrp ?? 0, (allocs ?? []).map((a) => rows.find((r) => r.id === a.batchId)?.mrp ?? null));
+  return m ? m.toNumber() : null;
+}
+
+export interface AboveMrp { item: string; rate: number; mrp: number; unit: string }
+/** Lines above their MRP that need "Save anyway": what the saved bill already sold at that rate or higher isn't asked again. */
+export function aboveMrpPicks(d: EditorData, si: SI, allocs: (BatchAlloc[] | null)[], amts: number[]): AboveMrp[] {
+  return si.lines.flatMap((l, k) => {
+    const mrp = lineMrp(d, si, l, allocs[k]);
+    const amt = amts[k] ?? 0;
+    if (!mrp || !isAboveMrp(amt, Number(l.qty) || 0, money(mrp))) return [];
+    const rate = ratePerUnit(amt, Number(l.qty)).toNumber();
+    return (si.mrpWas?.[l.item!.id] ?? -1) >= rate ? [] : [{ item: l.name, rate, mrp, unit: l.unit }];
+  });
 }

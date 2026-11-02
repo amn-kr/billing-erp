@@ -4,6 +4,7 @@
  * Start fresh, Cloud sync. "Restore from file" takes the old app's backup and
  * imports it (Phase 2 import upload). Start fresh never deletes: it starts new books.
  */
+import { useFeature } from '../../lib/features';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -56,6 +57,7 @@ const StateSel = ({ id, v, set }: { id: string; v: string; set: (v: string) => v
 );
 
 export function GeneralTab() {
+  const mrpFeature = useFeature('mrp_pack');
   const { S } = useS();
   const me = useMe();
   const save = useSaveS();
@@ -143,7 +145,7 @@ export function GeneralTab() {
       )}
       <h3 style={{ margin: ui.sp('0 0 4px'), fontSize: ui.fs(16) }}>Display</h3><p className="mu" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(13) }}>How amounts look across the app, on invoices and in print.</p>
       <div className="tgl" data-keepcur><div className="ti" style={T('var(--ac)')}><b style={{ fontSize: ui.fs(17) }}>₹</b></div><div className="tx"><b>Show currency symbol</b><small>Show ₹ before amounts, e.g. ₹1,250.00. Turned off, amounts show as plain numbers: 1,250.00.</small></div><Sw id="sCur" on={S.showCurrency} label="Show currency symbol" onChange={(v) => { void save({ data: { showCurrency: v } }); showToast(v ? 'Currency symbol shown' : 'Currency symbol hidden'); }} /></div>
-      <div className="tgl" style={{ marginTop: ui.sp(14) }}><div className="ti" style={T('var(--amber,#d97706)')}><b style={{ fontSize: ui.fs(12) }}>MRP</b></div><div className="tx"><b>Show MRP</b><small>Show the MRP (maximum retail price) column and fields in Items, Price manager, Price Setup, add-item forms and rate lists. Turned off, MRP is hidden everywhere; saved MRPs are kept.</small></div><Sw id="sMrp" on={S.mrp} label="Show MRP" onChange={(v) => { void save({ data: { mrp: v } }); showToast(v ? 'MRP shown' : 'MRP hidden everywhere'); }} /></div>
+      <div className="tgl" style={{ marginTop: ui.sp(14) }}><div className="ti" style={T('var(--amber,#d97706)')}><b style={{ fontSize: ui.fs(12) }}>MRP</b></div><div className="tx"><b>Show MRP</b><small>Show the MRP (maximum retail price) column and fields in Items, Price manager, Price Setup, add-item forms and rate lists. Turned off, MRP is hidden everywhere; saved MRPs are kept.{mrpFeature ? ' Always on while the MRP and pack/loose feature is on.' : ''}</small></div><Sw id="sMrp" on={S.mrp || mrpFeature} disabled={mrpFeature} label="Show MRP" onChange={(v) => { void save({ data: { mrp: v } }); showToast(v ? 'MRP shown' : 'MRP hidden everywhere'); }} /></div>
       {/* moved here from the top bar's palette button (owner's change); remembered on this device */}
       <div className="tgl" style={{ marginTop: ui.sp(14) }}><div className="ti" style={T('var(--ac)')}><Icon name="palette" /></div><div className="tx"><b>Colour combination</b><small>Colours of the whole app on this device. Invoices and print are not affected.</small>
         <div className="two" id="setPal" role="radiogroup" aria-label="Colour combination" style={{ marginTop: ui.sp(10) }}>

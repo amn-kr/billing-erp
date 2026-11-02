@@ -4,6 +4,7 @@
  * group with several brands/sizes show as one expandable row with a
  * variants table).
  */
+import { useMrpOn } from '../../lib/settings';
 import { Fragment, useEffect, useMemo, useState, type MouseEvent as RMouseEvent } from 'react';
 import { go } from '../../lib/go';
 import { useQuery } from '@tanstack/react-query';
@@ -106,7 +107,7 @@ const SC: Record<string, string> = { Paid: 'g', Unpaid: 'a', 'Partly paid': 'b',
 export function ItemsPage() {
   useFitTables();
   const cur = useCur();
-  const mrpOn = !!useSettings().data?.data?.mrp;
+  const mrpOn = useMrpOn();
   const batchOn = useFeature('batch_expiry');
   const me = useMe().data;
   const { showToast } = useShell();

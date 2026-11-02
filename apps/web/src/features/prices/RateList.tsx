@@ -2,6 +2,7 @@
  * Download rate list (#rlm) — the prototype's openRateList / rlPreview and its
  * Excel, PDF, WhatsApp and Print outputs, with the same layout and file names.
  */
+import { useMrpOn } from '../../lib/settings';
 import { useEffect, useRef } from 'react';
 import { printNow, usePrintSource } from '../print/printer';
 import { useQuery } from '@tanstack/react-query';
@@ -42,7 +43,7 @@ export function RateList({ open, data, onClose }: { open: boolean; data: PriceDa
   const RL = useRl();
   const settings = useSettings().data;
   const gstOn = !!settings?.gstEnabled;
-  const mrpOn = !!settings?.data?.mrp;
+  const mrpOn = useMrpOn();
   const biz = useQuery({ queryKey: ['business-current'], queryFn: () => api<Biz>('/businesses/current'), enabled: open });
   const ovRef = useRef<HTMLDivElement>(null);
   useOpenFocus(open, ovRef);

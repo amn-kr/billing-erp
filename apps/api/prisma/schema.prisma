@@ -816,6 +816,8 @@ model Batch {
   batchNo    String    @map("batch_no")
   mfgDate    DateTime? @map("mfg_date") @db.Date
   expiryDate DateTime? @map("expiry_date") @db.Date
+  /// Features › mrp_pack: empty = the item's MRP
+  mrp        Decimal?  @db.Decimal(14, 2)
   createdBy  String    @map("created_by") @db.Uuid
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)

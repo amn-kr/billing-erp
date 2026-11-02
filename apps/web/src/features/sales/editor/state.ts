@@ -14,6 +14,8 @@ export interface EItem {
   brand: string; series: string; grp: string; purch: number; sale: number;
   /** Features › batch_expiry: this item's stock has batches */
   track?: boolean;
+  /** Features › mrp_pack */
+  mrp?: number;
   /** price on each active price list */
   pl: Record<string, number>;
 }
@@ -38,6 +40,8 @@ export interface QRef { no: string; date: string; cust: string; brand: string; i
 export interface SI {
   /** a saved bill being edited: what it took from each batch, by item (back in stock while it is edited) */
   batchWas?: Record<string, (BatchAlloc & { row?: BatchRow })[]>;
+  /** a saved bill being edited: the highest rate it sold each item at (above MRP there isn't asked again) */
+  mrpWas?: Record<string, number>;
   doc: 'sale' | 'quote';
   /** number shown is the next in the series and follows it until saved (nothing is used up before saving) */
   autoNo: boolean;

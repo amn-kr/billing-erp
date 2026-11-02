@@ -26,8 +26,8 @@ import { useEditorData, type EditorData } from './data';
 import { ComboList, Grid, comboKey, focusRow, partyOpts, useCombo } from './Grid';
 import { useEditorLayout } from './layout';
 import { DGACC, DGIMG, ToolBody, type ToolKey } from './ToolsPop';
-import { ExpiredAsk } from './BatchPicker';
-import { expiredPicks, saleAllocs, type ExpiredPick } from './batches';
+import { ExpiredAsk, MrpAsk } from './BatchPicker';
+import { aboveMrpPicks, expiredPicks, saleAllocs, type AboveMrp, type ExpiredPick } from './batches';
 import { cmBillModal, useElecModal } from './Referral';
 import { ImportQuote, QuoteRefs, qrefRemoveModal } from './ImportQuote';
 import type { SlModalProps } from '../SlModal';
@@ -202,6 +202,7 @@ function fillFrom(d: EditorData, s: SI, v: SaleDoc, how: 'edit' | 'copy' | 'chal
       L.batches = l.batches.map((b) => ({ batchId: b.batchId, qty: b.qty }));
       (s.batchWas ??= {})[it.id] = [...(s.batchWas[it.id] ?? []), ...l.batches.map((b) => ({ batchId: b.batchId, qty: b.qty, row: { id: b.batchId, no: b.no, mfg: null, expiry: b.expiry, qty: b.qty, rate: '0', value: '0' } }))];
     }
+    if (how === 'edit' && Number(l.qty) > 0) (s.mrpWas ??= {})[it.id] = Math.max(s.mrpWas[it.id] ?? 0, Math.round((Number(l.amount) / Number(l.qty)) * 100) / 100);
     lines.push(L);
   }
   s.lines = [...lines, blankLine()];
@@ -295,6 +296,8 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
 
   const expOk = useRef(false);
   const [expAsk, setExpAsk] = useState<{ list: ExpiredPick[]; again: boolean; print: boolean } | null>(null);
+  const mrpOk = useRef(false);
+  const [mrpAsk, setMrpAsk] = useState<{ list: AboveMrp[]; again: boolean; print: boolean } | null>(null);
   /* ---------- save (prototype saveSI) ---------- */
   const save = async (again: boolean, print = false) => {
     if (!s.chgOk && !quote) { pending.current = { again, print }; setChgMsg('Please check the discount and charges once before saving.'); setPop('chg'); return; }
@@ -315,8 +318,13 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
       const ex = expiredPicks(d, s, allocs);
       if (ex.length) { setExpAsk({ list: ex, again, print }); return; }
     }
-    const sellExpired = expOk.current;
-    expOk.current = false;
+    // Features › mrp_pack: a rate above MRP is saved only after "Save anyway"
+    if (!quote && !mrpOk.current) {
+      const ov = aboveMrpPicks(d, s, allocs, calc(ctx, s).rows.map((r) => r.amt));
+      if (ov.length) { setMrpAsk({ list: ov, again, print }); return; }
+    }
+    const sellExpired = expOk.current, overMrp = mrpOk.current;
+    expOk.current = false; mrpOk.current = false;
     const body: SaleInput = {
       kind: quote ? 'quotation' : 'invoice', number: s.autoNo ? '' : s.no, date: s.date, dueDate: cash ? s.date : s.due, mode: s.mode, partyId: s.party?.id ?? null,
       cashName: s.cashName, cashPhone: s.cashPhone, billName: s.billName, placeOfSupply: s.pos, pricesInclTax: s.incl, roundOff: s.roundOff,
@@ -325,7 +333,7 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
       payments: quote ? [] : s.pays.filter((p) => Number(p.amt) > 0).map((p) => ({ mode: p.mode as SaleInput['payments'][number]['mode'], amount: String(p.amt), ref: p.ref, accountId: bankFor(bp, p.mode, p.acct) })),
       notes: s.notes,
       extra: { challanNo: s.challan, poNo: s.poNo, poDate: s.poDate, ewb: s.ewb, transport: s.transport, vehicle: s.vehicle, deliveryDate: s.delivDate, description: s.desc, attachments: s.attach, quoteRefs: s.qrefs.map((q) => ({ no: q.no, date: q.date, cust: q.cust, brand: q.brand })), validTill: quote ? s.valid : '', commByCategory: s.crOv ?? {} },
-      referrerId: s.ref || null, fromQuotationIds: s.qrefs.flatMap((q) => (q.id ? [q.id] : [])), fromChallanId: s.fromChallanId, confirmOverLimit: s.warnOk, ...(sellExpired ? { confirmExpired: true } : {}),
+      referrerId: s.ref || null, fromQuotationIds: s.qrefs.flatMap((q) => (q.id ? [q.id] : [])), fromChallanId: s.fromChallanId, confirmOverLimit: s.warnOk, ...(sellExpired ? { confirmExpired: true } : {}), ...(overMrp ? { confirmAboveMrp: true } : {}),
     };
     setBusy(true);
     try {
@@ -536,6 +544,7 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
       <SnapshotKeeper d={d} prefill={addParty ?? addItem?.q ?? null} kind={addParty !== null ? 'party' : addItem ? 'item' : null} />
     </section>
       {/* outside the editor, like the prototype's #slm (the editor turns off sticky table headings) */}
+      <MrpAsk list={mrpAsk?.list ?? null} onNo={() => { expOk.current = false; setMrpAsk(null); }} onYes={() => { const a = mrpAsk!; mrpOk.current = true; setMrpAsk(null); void saveRef.current(a.again, a.print); }} />
       <ExpiredAsk list={expAsk?.list ?? null} onNo={() => setExpAsk(null)} onYes={() => { const a = expAsk!; expOk.current = true; setExpAsk(null); void saveRef.current(a.again, a.print); }} />
       <SlModal m={elec.modal ?? slm ?? (cmView ? cmBillModal({ ctx, name: d.refs.find((r) => r.id === s.ref)?.name ?? '', up: up2, close: () => setCmView(false) }) : null)} onClose={() => { elec.close(); setCmView(false); setSlm(null); }} />
       <ImportQuote open={iq} onClose={() => setIq(false)} d={d} s={s} up={(fn) => { up2(fn); full(); }} toast={toast} />

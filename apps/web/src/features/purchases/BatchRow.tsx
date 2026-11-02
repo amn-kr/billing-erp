@@ -7,7 +7,7 @@ import { batchDay, batchMonth, formatQty, parseBatchDate, type BatchRow as Row }
 import { api } from '../../lib/api';
 import { ui } from '../../styles/uiSize';
 
-export interface LineBatch { batchNo: string; mfg: string; expiry: string; batchId: string }
+export interface LineBatch { batchNo: string; mfg: string; expiry: string; batchId: string; mrp: string }
 export const useItemBatches = (itemId: string | null | undefined, on: boolean) =>
   useQuery({ queryKey: ['item', itemId, 'batches'], queryFn: () => api<{ rows: Row[]; shortQty: string }>(`/items/${itemId}/batches`), enabled: on && !!itemId });
 /** "A123 · Exp Mar 2027 · 3 in stock" */
@@ -16,8 +16,8 @@ export const batchOption = (b: Row) => `${b.no}${b.expiry ? ` · Exp ${batchMont
 const LBL = { display: 'flex', alignItems: 'center', gap: ui.sp(6), fontSize: ui.fs(12), color: 'var(--t2)', fontWeight: 500 } as const;
 const BOX = (w: number) => ({ width: ui.w(w), height: ui.h(32), padding: ui.sp('0 8px'), margin: 0 });
 
-export function BatchRowCells({ i, cols, kind, itemId, against, b, onChange, onKeyDown }: {
-  i: number; cols: number; kind: 'bill' | 'debit_note'; itemId: string; against: boolean; b: LineBatch;
+export function BatchRowCells({ i, cols, kind, itemId, against, b, showMrp, onChange, onKeyDown }: {
+  i: number; cols: number; kind: 'bill' | 'debit_note'; itemId: string; against: boolean; b: LineBatch; showMrp?: boolean;
   onChange: (f: keyof LineBatch, v: string) => void; onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }) {
   const rows = useItemBatches(itemId, kind === 'debit_note').data?.rows ?? [];
@@ -32,6 +32,7 @@ export function BatchRowCells({ i, cols, kind, itemId, against, b, onChange, onK
               <label style={LBL}>Batch no.<input className="fi" data-bf="batchNo" style={BOX(130)} value={b.batchNo} placeholder="e.g. A123" autoComplete="off" aria-label={`Batch no. for row ${i + 1}`} onChange={(e) => onChange('batchNo', e.target.value)} onKeyDown={onKeyDown} /></label>
               <label style={LBL}>Mfg<input className="fi" data-bf="mfg" style={BOX(84)} value={b.mfg} placeholder="MM/YY" autoComplete="off" aria-label={`Mfg date for row ${i + 1}`} onChange={(e) => onChange('mfg', e.target.value)} onKeyDown={onKeyDown} /></label>
               <label style={LBL}>Expiry<input className="fi" data-bf="expiry" style={BOX(84)} value={b.expiry} placeholder="MM/YY" autoComplete="off" aria-label={`Expiry for row ${i + 1}`} onChange={(e) => onChange('expiry', e.target.value)} onKeyDown={onKeyDown} /></label>
+              {showMrp ? <label style={LBL}>MRP<input className="fi" data-bf="mrp" style={BOX(84)} value={b.mrp} placeholder="0.00" inputMode="decimal" autoComplete="off" aria-label={`MRP for row ${i + 1}`} onChange={(e) => onChange('mrp', e.target.value.replace(/[^\d.]/g, ''))} onKeyDown={onKeyDown} /></label> : null}
               <span className={exp === undefined ? 'xperr' : 'mu'} data-bxmsg style={{ fontSize: ui.fs(12), margin: 0 }}>{exp === undefined ? 'Type the expiry like 03/27' : exp ? `Expires ${batchDay(exp)}` : ''}</span>
             </>
           ) : (

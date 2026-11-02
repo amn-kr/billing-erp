@@ -13,7 +13,7 @@ import { cancelPayment, cancelPendingCheques, cashBankFor } from '../sales/money
 import { reconciledIn, reconciledMessage, refuseIfReconciled, repostPayment } from '../../common/editing';
 import { billBalances, settledElsewhere, usedOut } from './dues';
 import { refreshPurchasePrices } from '../stock/stock-value';
-import { batchesOn, batchRows, refuseIfBatchShort, refuseOverBatch, resolveBatch } from '../stock/batches';
+import { batchesOn, batchRows, mrpOn, refuseIfBatchShort, refuseOverBatch, resolveBatch } from '../stock/batches';
 import { ALREADY_DELETED, deleteMark } from '../../common/deleting';
 
 const DOC_TYPE = { bill: 'bill', order: 'purchase_order', debit_note: 'debit_note' } as const;
@@ -146,6 +146,7 @@ export class PurchasesService {
     /* batch and expiry (Features › batch_expiry): a tracked item's batch on a bill, and what a debit note takes out of */
     const lineBatch = new Map<number, string | null>();
     if (k !== 'order' && !legacy && (await batchesOn(tx, businessId))) {
+      const showMrp = await mrpOn(tx, businessId);
       const billLines = k === 'debit_note' && input.againstId ? await tx.purchaseDocumentLine.findMany({ where: { documentId: input.againstId, batchId: { not: null } }, select: { itemId: true, batchId: true } }) : [];
       const rows = new Map<string, BatchRow[]>();
       const taken = new Map<string, Money>();
@@ -154,7 +155,7 @@ export class PurchasesService {
         if (it.kind === 'service' || !it.trackBatch) continue;
         if (k === 'bill') {
           if (!l.batchNo) throw new BadRequestException({ message: `Enter the batch no. for “${it.name}”.`, field: 'batchNo' });
-          lineBatch.set(i, await resolveBatch(tx, { businessId, userId: ctx.userId, ip: ctx.ip }, this.audit, it, l));
+          lineBatch.set(i, await resolveBatch(tx, { businessId, userId: ctx.userId, ip: ctx.ip }, this.audit, it, { batchNo: l.batchNo, mfg: l.mfg, expiry: l.expiry, mrp: showMrp ? l.batchMrp : null }));
           continue;
         }
         const id = l.batchId ?? billLines.find((b) => b.itemId === it.id)?.batchId ?? null;
@@ -492,7 +493,7 @@ export class PurchasesService {
       const src = d.sourceId ? await tx.purchaseDocument.findFirst({ where: { id: d.sourceId }, select: { number: true } }) : null;
       const settled = d.kind === 'bill' ? await settledElsewhere(tx, d.id) : null;
       const lineBatches = new Map((await tx.batch.findMany({ where: { id: { in: d.lines.flatMap((l) => (l.batchId ? [l.batchId] : [])) } } })).map((b) => [b.id, b]));
-      const batchOf = (id: string | null) => { const b = id ? lineBatches.get(id) : undefined; return { batchId: id, batchNo: b?.batchNo ?? '', mfg: isoOf(b?.mfgDate ?? null), expiry: isoOf(b?.expiryDate ?? null) }; };
+      const batchOf = (id: string | null) => { const b = id ? lineBatches.get(id) : undefined; return { batchId: id, batchNo: b?.batchNo ?? '', mfg: isoOf(b?.mfgDate ?? null), expiry: isoOf(b?.expiryDate ?? null), batchMrp: b?.mrp ? b.mrp.toFixed(2) : null }; };
       return {
         id: d.id, kind: d.kind, number: d.number, supplierRef: d.supplierRef, date: isoOf(d.date), dueDate: isoOf(d.dueDate),
         party: { id: d.party.id, name: d.party.name, gstin: d.party.gstin, phone: d.party.phone }, taxMode: d.taxMode, pricesInclTax: d.pricesInclTax, interState: d.interState, roundOff: d.roundOff,

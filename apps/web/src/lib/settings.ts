@@ -1,3 +1,4 @@
+import { useFeature } from './features';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './api';
 import { ownerKey, useSession } from './session';
@@ -13,6 +14,12 @@ export function useSettings() {
   const token = useSession((s) => s.accessToken);
   const owner = useSession((s) => ownerKey(s.accessToken));
   return useQuery({ queryKey: ['settings', owner], queryFn: () => api<ShopSettings>('/settings'), enabled: !!token, staleTime: 60_000 });
+}
+
+/** Whether MRP shows: the Show MRP switch (Settings › General), and always with Features › mrp_pack on. */
+export function useMrpOn(): boolean {
+  const on = !!useSettings().data?.data?.mrp;
+  return useFeature('mrp_pack') || on;
 }
 
 /** Text helper that drops "₹" when the shop has the currency symbol switched off (the prototype's default). */

@@ -102,6 +102,8 @@ export const saleSchema = z.object({
   lines: z.array(saleLineSchema).max(500),
   /** Features › batch_expiry: "Sell anyway" was pressed for expired stock */
   confirmExpired: z.boolean().optional(),
+  /** Features › mrp_pack: "Save anyway" was pressed for a rate above MRP */
+  confirmAboveMrp: z.boolean().optional(),
   payments: z.array(payPartSchema).max(10).optional().default([]),
   notes: opt(2000),
   extra: saleExtraSchema,

@@ -8,7 +8,7 @@
  * prototype's invoice preview #ipv, kept class for class so it still matches it).
  */
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { batchPrintLine, money } from '@billing/shared';
+import { batchPrintLine, effectiveMrp, money } from '@billing/shared';
 import { dmy, inr2f, timeIst } from '../../lib/format';
 import { qfmt } from '../items/ItemsPage';
 import type { SaleDoc } from '../sales/model';
@@ -36,7 +36,7 @@ const STATES_NAME: Record<string, string> = {};
 export const stateName = (c: string, list: readonly (readonly [string, string])[]) => (STATES_NAME[c] ??= list.find((s) => s[0] === c)?.[1] ?? '');
 
 /** a SaleDoc from the API → PDoc. `challan`: the delivery challan view of an invoice. */
-export function fromSale(v: SaleDoc, o: { batches?: boolean; challan?: boolean; upi?: string; partyBalance?: string | null; hsnOf?: (itemId: string | null) => string; txn?: { showNo: boolean; time: boolean; billName: boolean } } = {}): PDoc {
+export function fromSale(v: SaleDoc, o: { batches?: boolean; mrp?: boolean; challan?: boolean; upi?: string; partyBalance?: string | null; hsnOf?: (itemId: string | null) => string; txn?: { showNo: boolean; time: boolean; billName: boolean } } = {}): PDoc {
   const x = v.extra as Record<string, unknown>;
   const s = (k: string) => (typeof x[k] === 'string' ? (x[k] as string) : '');
   const qs = (x.quoteRefs as { no: string; date: string }[] | undefined) ?? [];
@@ -60,7 +60,7 @@ export function fromSale(v: SaleDoc, o: { batches?: boolean; challan?: boolean; 
     hideNo: o.txn?.showNo === false, time: o.txn?.time && v.savedAt && !v.legacy ? timeIst(v.savedAt) : '',
     lines: v.lines.map((l) => {
       const e = l as typeof l & { mrp?: string | null; listPrice?: string | null; wholesalePrice?: string | null };
-      return { batch: o.batches && !isDc ? batchPrintLine(l.batches ?? []) : '', name: l.group && l.brand ? l.group : l.name, code: l.code, hsn: (o.hsnOf ? o.hsnOf(l.itemId) : l.hsn) || l.hsn, brand: l.brand, series: l.series, cat: l.category, grp: l.group, qty: l.qty, unit: l.unit, mrp: e.mrp ?? null, list: e.listPrice ?? null, whole: e.wholesalePrice ?? null, price: l.price, discPct: l.discPct, gst: l.gstRate, taxable: l.taxable, tax: l.tax, amount: l.amount };
+      return { batch: o.batches && !isDc ? batchPrintLine(l.batches ?? [], !!o.mrp) : '', name: l.group && l.brand ? l.group : l.name, code: l.code, hsn: (o.hsnOf ? o.hsnOf(l.itemId) : l.hsn) || l.hsn, brand: l.brand, series: l.series, cat: l.category, grp: l.group, qty: l.qty, unit: l.unit, mrp: o.mrp && l.batches?.length ? effectiveMrp(e.mrp, l.batches.map((b) => b.mrp))?.toFixed(2) ?? null : e.mrp ?? null, list: e.listPrice ?? null, whole: e.wholesalePrice ?? null, price: l.price, discPct: l.discPct, gst: l.gstRate, taxable: l.taxable, tax: l.tax, amount: l.amount };
     }),
     billDiscount: v.billDiscount, taxable: v.taxable, cgst: v.cgst, sgst: v.sgst, igst: v.igst, tcs: v.tcs, transport: v.transport, labour: v.labour, bankCharge: v.bankCharge, roundAmount: v.roundAmount, total: v.total, words: v.words,
     received: recv.toFixed(2), payMode: recv.gt(0) ? v.payment?.mode ?? '' : '', balance: (bal.isNegative() ? money(0) : bal).toFixed(2), partyBalance: o.partyBalance ?? null, upi: o.upi ?? '',

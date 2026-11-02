@@ -36,4 +36,19 @@ describe('Choose batch', () => {
     rerender(<BatchPicker pick={pick()} onClose={() => {}} onDone={() => {}} />);
     expect(box('B456').value).toBe('2');
   });
+
+  it('shows the MRP each row is checked at: its own, else the item\'s', () => {
+    const rows = [row(null, 'No batch', null, '1.000'), { ...row('a', 'A123', null, '1.000'), mrp: '120.00' }, row('b', 'B456', null, '1.000')];
+    const mrpIn = (no: string) => document.querySelector(`[data-batch="${no}"] td:nth-child(4)`)!.textContent;
+    const { rerender } = render(<BatchPicker pick={{ ...pick(), rows, showMrp: true, itemMrp: 100 }} onClose={() => {}} onDone={() => {}} />);
+    expect(mrpIn('No batch')).toBe('100.00');
+    expect(mrpIn('A123')).toBe('120.00');
+    expect(mrpIn('B456')).toBe('100.00');
+    // the No batch row the window adds by itself, and an item with no MRP
+    rerender(<BatchPicker pick={{ ...pick(), showMrp: true, itemMrp: 100 }} onClose={() => {}} onDone={() => {}} />);
+    expect(mrpIn('No batch')).toBe('100.00');
+    rerender(<BatchPicker pick={{ ...pick(), rows, showMrp: true, itemMrp: 0 }} onClose={() => {}} onDone={() => {}} />);
+    expect(mrpIn('No batch')).toBe('—');
+    expect(mrpIn('A123')).toBe('120.00');
+  });
 });

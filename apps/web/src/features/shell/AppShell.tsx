@@ -2,6 +2,7 @@
  * The app frame: <div class="app" id="app"> with sidebar, top bar and <main class="page">.
  * Same DOM as the prototype; screens render inside <main> through the router.
  */
+import { useMrpOn } from '../../lib/settings';
 import { QuickSale, useQuick } from '../sales/QuickSale';
 import { PasscodeBox } from '../settings/passcode';
 import { useCallback, useEffect, useLayoutEffect } from 'react';
@@ -83,7 +84,7 @@ function AppFrame() {
   // Settings › General: currency symbol and MRP switches (body classes + the prototype's ₹ remover)
   const sdata = settings.data?.data as { showCurrency?: boolean; mrp?: boolean; acct?: boolean } | undefined;
   const curOn = !!sdata?.showCurrency;
-  const mrpOn = !!sdata?.mrp;
+  const mrpOn = useMrpOn();
   useLayoutEffect(() => {
     document.body.classList.toggle('nocur', !curOn);
     document.body.classList.toggle('nomrp', !mrpOn);

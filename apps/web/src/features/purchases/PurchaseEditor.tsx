@@ -85,7 +85,7 @@ function savedPE(d: EditorData, v: PurchaseDoc): PE {
   if (v.kind === 'bill') s.due = v.dueDate ?? v.date;
   if (v.kind === 'order') s.exp = v.dueDate ?? s.exp;
   if (v.kind === 'debit_note') { s.against = v.sourceId ?? ''; s.reason = v.reason || s.reason; }
-  s.lines = [...v.lines.map((l) => ({ id: l.itemId, name: l.name, hsn: l.hsn, qty: Number(l.qty), unit: l.unit, rate: Number(l.rate), disc: Number(l.discPct) || 0, gst: Number(l.gstRate), batchNo: l.batchNo ?? '', mfg: batchDateText(l.mfg, 'mfg'), expiry: batchDateText(l.expiry, 'expiry'), batchId: l.batchId ?? '' })), peLine()];
+  s.lines = [...v.lines.map((l) => ({ id: l.itemId, name: l.name, hsn: l.hsn, qty: Number(l.qty), unit: l.unit, rate: Number(l.rate), disc: Number(l.discPct) || 0, gst: Number(l.gstRate), batchNo: l.batchNo ?? '', mfg: batchDateText(l.mfg, 'mfg'), expiry: batchDateText(l.expiry, 'expiry'), batchId: l.batchId ?? '', mrp: l.batchMrp ?? '' })), peLine()];
   for (const l of v.lines) s.was[l.itemId] = r2((s.was[l.itemId] ?? 0) + Number(l.qty));
   const paid = v.settlements.filter((x) => x.atBill);
   if (paid.length) s.pays = paid.map((x) => ({ mode: x.mode, amt: Number(x.amount), ref: x.ref, acct: x.accountId ?? '' }));
@@ -193,16 +193,17 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
   const pickItem = (i: number, v: unknown) => {
     if (v === '__add') { c.hide(); setAddItem({ q: s.lines[i]?.name ?? '', i }); return; }
     const it = v as EItem;
-    up((x) => { Object.assign(x.lines[i]!, { id: it.id, name: it.name, hsn: it.hsn || '', unit: it.unit, rate: it.purch || 0, gst: G ? it.gst || 0 : 0, batchNo: '', mfg: '', expiry: '', batchId: '' }); if (i === x.lines.length - 1) x.lines.push(peLine()); });
+    up((x) => { Object.assign(x.lines[i]!, { id: it.id, name: it.name, hsn: it.hsn || '', unit: it.unit, rate: it.purch || 0, gst: G ? it.gst || 0 : 0, batchNo: '', mfg: '', expiry: '', batchId: '', mrp: it.mrp ? String(it.mrp) : '' }); if (i === x.lines.length - 1) x.lines.push(peLine()); });
     c.hide();
     setTimeout(() => { const q = document.querySelector<HTMLInputElement>(`#peRows tr[data-ln="${i}"] [data-pf="qty"]`); q?.focus(); q?.select(); }, 0);
   };
+  const mrpOn = useFeature('mrp_pack');
   const stockTxt = (l: PLine) => {
     const it = item(l);
     if (!it || it.svc) return null;
     // editing: the stock without this document's own quantity
     const st = stockBefore(it), diff = k === 'bill' && n(l.rate) && Math.abs(n(l.rate) - (it.purch || 0)) > 0.009;
-    return <>Stock {qfmt(st)} {l.unit}{k === 'bill' ? ` → ${qfmt(st + n(l.qty))}` : k === 'debit_note' ? ` → ${qfmt(st - n(l.qty))}` : ''}{diff ? <> · <span className="pech">last ₹{inr2f(it.purch || 0)}</span></> : null}</>;
+    return <>Stock {qfmt(st)} {l.unit}{k === 'bill' ? ` → ${qfmt(st + n(l.qty))}` : k === 'debit_note' ? ` → ${qfmt(st - n(l.qty))}` : ''}{diff ? <> · <span className="pech">last ₹{inr2f(it.purch || 0)}</span></> : null}{mrpOn && !tracked(l) && it.mrp ? <> · MRP {inr2f(it.mrp)}</> : null}</>;
   };
   function stockBefore(it: EItem) { const w = s.was[it.id] ?? 0; return r2((it.stock ?? 0) - (k === 'bill' ? w : k === 'debit_note' ? -w : 0)); }
   // items whose purchase price this bill would change (net rate per unit)
@@ -285,7 +286,7 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
     const body: PurchaseInput = {
       kind: k, number: s.autoNo && !s.editId ? '' : s.no, supplierRef: s.ref.trim(), date: s.date, dueDate: k === 'bill' ? s.due : k === 'order' ? s.exp : null, partyId: p.id,
       pricesInclTax: s.incl, roundOff: s.roundOff, billDiscPct: s.bdiscP || null, billDiscAmt: s.bdiscP ? null : n(s.bdisc) ? String(s.bdisc) : null, transport: String(n(s.chTr)), labour: String(n(s.chLab)),
-      lines: lines.map((l) => ({ itemId: l.id, name: l.name, hsn: l.hsn, unit: l.unit, qty: String(n(l.qty)), rate: String(n(l.rate)), discPct: String(n(l.disc)), gstRate: String(G ? l.gst : 0), ...(tracked(l) && (k === 'bill' ? { batchNo: l.batchNo ?? '', mfg: l.mfg ?? '', expiry: l.expiry ?? '' } : { batchId: l.batchId || null })) })),
+      lines: lines.map((l) => ({ itemId: l.id, name: l.name, hsn: l.hsn, unit: l.unit, qty: String(n(l.qty)), rate: String(n(l.rate)), discPct: String(n(l.disc)), gstRate: String(G ? l.gst : 0), ...(tracked(l) && (k === 'bill' ? { batchNo: l.batchNo ?? '', mfg: l.mfg ?? '', expiry: l.expiry ?? '', ...(mrpOn ? { batchMrp: l.mrp ?? '' } : {}) } : { batchId: l.batchId || null })) })),
       payments: pays, updatePrices: k === 'bill' && s.updPrice, againstId: k === 'debit_note' && s.against ? s.against : null, reason: s.reason as PurchaseInput['reason'], fromOrderId: s.editId ? null : s.fromOrderId,
       notes: s.notes, extra: { ewb: s.ewb, transport: s.transport, vehicle: s.vehicle, deliveryDate: s.delivDate, description: s.desc, attachments: s.attach },
     };
@@ -407,7 +408,7 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
               <td className="ro b" data-o="fr">{inr2f(r2(n(l.rate) * (1 - n(l.disc) / 100)))}</td>
               {G ? <><td><select className="gi" data-pf="gst" aria-label="GST rate" value={String(l.gst)} onKeyDown={tracked(l) ? (e) => enterNext(e as unknown as React.KeyboardEvent<HTMLInputElement>) : undefined} onChange={(e) => up((x) => { x.lines[i]!.gst = Number(e.target.value); })}>{d.gstRates.map((g) => <option value={String(g)} key={g}>{pct(g)}</option>)}</select></td><td className="ro" data-o="tx">{inr2f(r.tx.toString())}</td></> : null}
               <td className="ro b" data-o="amt">{inr2f(r.amt.toString())}</td><td className="x"><button type="button" className="ix" data-pdel={i} aria-label={`Remove row ${i + 1}`} disabled={s.lines.length === 1} onClick={() => up((x) => { x.lines.splice(i, 1); if (!x.lines.length) x.lines.push(peLine()); })}><Icon name="x" /></button></td></tr>
-            {tracked(l) && k !== 'order' ? <BatchRowCells i={i} cols={4 + (gstOn ? 1 : 0) + 6 + (G ? 2 : 0) + 2} kind={k} itemId={l.id} against={!!s.against} b={{ batchNo: l.batchNo ?? '', mfg: l.mfg ?? '', expiry: l.expiry ?? '', batchId: l.batchId ?? '' }} onChange={(f, v) => setLine(i, f, v)} onKeyDown={enterNext} /> : null}</Fragment>
+            {tracked(l) && k !== 'order' ? <BatchRowCells i={i} cols={4 + (gstOn ? 1 : 0) + 6 + (G ? 2 : 0) + 2} kind={k} itemId={l.id} against={!!s.against} showMrp={mrpOn} b={{ batchNo: l.batchNo ?? '', mfg: l.mfg ?? '', expiry: l.expiry ?? '', batchId: l.batchId ?? '', mrp: l.mrp ?? '' }} onChange={(f, v) => setLine(i, f, v)} onKeyDown={enterNext} /> : null}</Fragment>
           );
         })}</tbody>
         <tfoot id="peFoot"><tr><td></td><td><div className="dgft"><button type="button" className="btn sm" id="peAddRow" onClick={() => { up((x) => { x.lines.push(peLine()); }); setTimeout(() => [...document.querySelectorAll<HTMLElement>('#peRows .pe-item')].pop()?.focus(), 0); }}><Icon name="plus" />Add row</button><b>Total</b></div></td><td></td><td></td><td></td>{gstOn ? <td></td> : null}
