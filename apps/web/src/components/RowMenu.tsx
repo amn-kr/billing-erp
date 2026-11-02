@@ -48,7 +48,7 @@ export function rowMenuHandlers<R>(rows: string, find: (tr: HTMLElement) => R | 
  * doesn't focus it; in a table wider than its card, a ⋮ partly out of sight is scrolled into view
  * first and the menu opens after that scroll (a scroll closes an open menu).
  */
-export function RowMenuButton({ no, label, onOpen }: { no: string; label: string; onOpen: (b: HTMLElement) => void }) {
+export function RowMenuButton({ no, label, small, onOpen }: { no: string; label: string; /** the size the Sales list's button has */ small?: boolean; onOpen: (b: HTMLElement) => void }) {
   const open = (b: HTMLElement) => {
     const tw = b.closest<HTMLElement>('.tw'), box = tw?.getBoundingClientRect(), r = b.getBoundingClientRect();
     if (!tw || !box || (r.left >= box.left && r.right <= box.right)) return onOpen(b);
@@ -59,7 +59,7 @@ export function RowMenuButton({ no, label, onOpen }: { no: string; label: string
     b.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   };
   return (
-    <button type="button" className="ixs slm" data-slm={no} aria-label={label} title={label} aria-haspopup="menu" onMouseDown={(e) => e.preventDefault()}
+    <button type="button" className="ixs slm" data-slm={no} aria-label={label} title={label} aria-haspopup="menu" style={small ? { width: 26, height: 26, borderRadius: 7 } : undefined} onMouseDown={(e) => e.preventDefault()}
       onClick={(e) => { e.stopPropagation(); open(e.currentTarget); }} onKeyDown={(e) => { if (e.key === 'Enter') e.stopPropagation(); }}><RawIcon d={P.dots} /></button>
   );
 }

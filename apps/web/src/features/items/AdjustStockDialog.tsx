@@ -20,7 +20,10 @@ const REASONS = ['Physical count correction', 'Damaged', 'Expired', 'Lost or sto
  * `choices` set: opened from Stock adjustments › New adjustment, with the item picker shown (first item chosen).
  * `edit` set: the saved adjustment fills the window; saving changes it (same number, passcode when it is on).
  */
-export function AdjustStockDialog({ item, choices, edit, onClose }: { item: Item | null; choices?: Item[]; edit?: Adjustment | null; onClose: () => void }) {
+/** Reports › Expiry Report: a write-off, filled in. */
+export interface AdjustPreset { batchId: string; qty: string; rate: string; why: string }
+
+export function AdjustStockDialog({ item, choices, edit, preset, onClose }: { item: Item | null; choices?: Item[]; edit?: Adjustment | null; preset?: AdjustPreset; onClose: () => void }) {
   const cur = useCur();
   const qc = useQueryClient();
   const { showToast } = useShell();
@@ -56,6 +59,7 @@ export function AdjustStockDialog({ item, choices, edit, onClose }: { item: Item
       const q = Number(edit.qty);
       setMode(q < 0 ? 'reduce' : 'add'); setQty(String(Math.abs(q))); setPrice(String(Number(edit.rate))); setDate(edit.date); setWhy(edit.reason);
     }
+    if (preset) { setMode('reduce'); setBatchId(preset.batchId); setQty(preset.qty); setPrice(preset.rate); setWhy(preset.why); }
     setTimeout(() => (choices ? pickRef.current : qtyRef.current)?.focus(), 0);
     const esc = (e: KeyboardEvent) => e.key === 'Escape' && closeRef.current();
     document.addEventListener('keydown', esc);
@@ -94,7 +98,7 @@ export function AdjustStockDialog({ item, choices, edit, onClose }: { item: Item
         <h3 id="adjT" style={{ margin: ui.sp('0 0 4px'), fontSize: ui.fs(18) }}>{edit ? `Edit ${edit.number}` : 'Adjust stock'}</h3>
         <p id="adjFor" style={{ margin: ui.sp('0 0 14px'), color: 'var(--t2)', fontSize: ui.fs(13) }}>{it ? (picked ? `In stock ${qfmt(s)} ${it.unit}` : `${it.name} · in stock ${qfmt(s)} ${it.unit}`) : ''}</p>
         <form id="adjForm" noValidate onSubmit={submit}>
-          <label className="fl" id="adjItemRow" htmlFor="adjItem" hidden={!choices}>Item<select className="fi" id="adjItem" ref={pickRef} value={it?.id ?? ''} onChange={(e) => { const i = choices?.find((x) => x.id === e.target.value); if (!i) return; setIt(i); setPicked(true); setPrice(String(i.packSize ? looseCost(i.purchase, i.packSize).toDecimalPlaces(2).toNumber() : Number(i.purchase))); }}>{choices?.map((i) => <option value={i.id} key={i.id}>{i.name} · {qfmt(i.stock)} {i.unit}</option>)}</select></label>
+          {preset ? null : <label className="fl" id="adjItemRow" htmlFor="adjItem" hidden={!choices}>Item<select className="fi" id="adjItem" ref={pickRef} value={it?.id ?? ''} onChange={(e) => { const i = choices?.find((x) => x.id === e.target.value); if (!i) return; setIt(i); setPicked(true); setPrice(String(i.packSize ? looseCost(i.purchase, i.packSize).toDecimalPlaces(2).toNumber() : Number(i.purchase))); }}>{choices?.map((i) => <option value={i.id} key={i.id}>{i.name} · {qfmt(i.stock)} {i.unit}</option>)}</select></label>}
           <div className="seg2" id="adjSeg" style={{ marginBottom: ui.sp(14) }}>
             <button type="button" data-am="add" className={mode === 'add' ? 'on' : ''} onClick={() => setMode('add')}>Add stock</button>
             <button type="button" data-am="reduce" className={mode === 'reduce' ? 'on' : ''} onClick={() => setMode('reduce')}>Reduce stock</button>
