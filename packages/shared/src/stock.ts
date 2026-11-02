@@ -97,7 +97,7 @@ interface Part { qty: Money; cost: Money; src: string; batch: string }
 interface Layer { rate: Money; qty: Money; since: string; srcs: Set<string>; parts: Part[] }
 /** one piece of what a sale took: from a lot (`cost` its rate), from stock with no rate (0), or still short (0) */
 interface Slice { qty: Money; cost: Money; kind: SliceKind }
-interface Goods { qty: Money; cost: Money; free: Money; short: Money; slices: Slice[] }
+interface Goods { qty: Money; cost: Money; free: Money; short: Money; slices: Slice[]; /** by the batch the document names ('' = No batch) */ byBatch: Map<string, { qty: Money; cost: Money }> }
 
 /**
  * The one lot calculation (first in, first out) behind both the stock value and the cost of what
@@ -111,17 +111,24 @@ function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
   /** what sales took from which layer and at what cost, newest last, so a sale return can put it back */
   const sold: { i: number; qty: Money; src: string; cost: Money; batch: string }[] = [];
   /** stock that went out beyond what was in, oldest first; the next stock coming in fills it */
-  const short: { qty: Money; src: string; sale: boolean }[] = [];
+  const short: { qty: Money; src: string; sale: boolean; batch: string }[] = [];
   /** per sale or sale return: its quantity and the cost of the goods it took out or put back */
   const goods = new Map<string, Goods>();
   const g = (src: string) => {
     let x = goods.get(src);
-    if (!x) goods.set(src, (x = { qty: zero, cost: zero, free: zero, short: zero, slices: [] }));
+    if (!x) goods.set(src, (x = { qty: zero, cost: zero, free: zero, short: zero, slices: [], byBatch: new Map() }));
     return x;
   };
-  const priced = (x: Goods, qty: Money, cost: Money) => {
+  const inBatch = (x: Goods, batch: string) => {
+    let b = x.byBatch.get(batch);
+    if (!b) x.byBatch.set(batch, (b = { qty: zero, cost: zero }));
+    return b;
+  };
+  const priced = (x: Goods, qty: Money, cost: Money, batch: string) => {
     x.cost = x.cost.plus(qty.times(cost));
     if (cost.isZero()) x.free = x.free.plus(qty);
+    const b = inBatch(x, batch);
+    b.cost = b.cost.plus(qty.times(cost));
   };
 
   const addLayer = (rate: Money, qty: Money, since: string, src: string, cost: Money, batch: string) => {
@@ -145,7 +152,7 @@ function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
       want = want.minus(t);
       if (m.kind === 'sale') {
         sold.push({ i, qty: t, src: m.src, cost: p.cost, batch: p.batch });
-        priced(g(m.src), t, p.cost);
+        priced(g(m.src), t, p.cost, m.batch);
         g(m.src).slices.push({ qty: t, cost: p.cost, kind: p.cost.isZero() ? 'none' : 'lot' });
       }
     }
@@ -165,7 +172,7 @@ function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
       const l = layers[s.i]!;
       l.qty = l.qty.plus(t);
       l.parts.unshift({ qty: t, cost: s.cost, src: s.src, batch: m.batch });
-      priced(g(m.src), t, s.cost);
+      priced(g(m.src), t, s.cost, m.batch);
       s.qty = s.qty.minus(t);
       if (s.qty.isZero()) sold.splice(k, 1);
       want = want.minus(t);
@@ -174,7 +181,7 @@ function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
   };
 
   for (const m of effective(moves)) {
-    if (m.kind === 'sale' || m.kind === 'return') g(m.src).qty = g(m.src).qty.plus(m.qty.abs());
+    if (m.kind === 'sale' || m.kind === 'return') { const x = g(m.src), b = inBatch(x, m.batch); x.qty = x.qty.plus(m.qty.abs()); b.qty = b.qty.plus(m.qty.abs()); }
     if (m.qty.gt(0)) {
       let q = m.qty;
       // real purchase rate of what comes in (a return's rate is the sale price, not a cost)
@@ -185,7 +192,7 @@ function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
         if (s.sale) {
           const x = g(s.src);
           x.short = x.short.minus(t);
-          priced(x, t, cost);
+          priced(x, t, cost, s.batch);
           // the filled part becomes a slice of its own, just before what is still short
           const k = x.slices.findIndex((sl) => sl.kind === 'short');
           x.slices[k]!.qty = x.slices[k]!.qty.minus(t);
@@ -202,7 +209,7 @@ function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
         }
         if (m.against.length) q = putBack(q, (src) => m.against.includes(src), m);
         q = putBack(q, () => true, m);
-        if (q.gt(0)) { addLayer(fb, q, m.date, m.src, zero, m.batch); priced(g(m.src), q, zero); }
+        if (q.gt(0)) { addLayer(fb, q, m.date, m.src, zero, m.batch); priced(g(m.src), q, zero, m.batch); }
       } else addLayer(m.rate.gt(0) ? m.rate : fb, q, m.date, m.src, cost, m.batch);
     } else {
       let q = m.qty.neg();
@@ -217,7 +224,7 @@ function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
       if (!m.batch) for (let i = 0; i < layers.length && q.gt(0); i++) q = take(i, q, m, sameBatch);
       for (let i = 0; i < layers.length && q.gt(0); i++) q = take(i, q, m);
       if (q.gt(0)) {
-        short.push({ qty: q, src: m.src, sale: m.kind === 'sale' });
+        short.push({ qty: q, src: m.src, sale: m.kind === 'sale', batch: m.batch });
         if (m.kind === 'sale') { const x = g(m.src); x.short = x.short.plus(q); x.slices.push({ qty: q, cost: zero, kind: 'short' }); }
       }
     }
@@ -310,6 +317,24 @@ export function costOfGoods(moves: LedgerMove[]): Map<string, GoodsCost> {
         return a;
       }, []).map((sl) => ({ qty: sl.qty.toDecimalPlaces(3).toFixed(3), rate: sl.cost.toFixed(2), kind: sl.kind })),
     });
+  return out;
+}
+
+/**
+ * Reports › Batch Wise Sales And Profit: costOfGoods split by the batch each sale or return names (null = No batch),
+ * from the same run, so a document's batches always add up to its cost: the last one takes what rounding left over.
+ */
+export function costByBatch(moves: LedgerMove[]): Map<string, { batchId: string | null; qty: string; cost: string }[]> {
+  const out = new Map<string, { batchId: string | null; qty: string; cost: string }[]>();
+  for (const [src, x] of runLots(moves, 0).goods) {
+    let left = x.cost.toDecimalPlaces(2);
+    const list = [...x.byBatch];
+    out.set(src, list.map(([batch, b], k) => {
+      const cost = k === list.length - 1 ? left : b.cost.toDecimalPlaces(2);
+      left = left.minus(cost);
+      return { batchId: batch || null, qty: b.qty.toDecimalPlaces(3).toFixed(3), cost: cost.toFixed(2) };
+    }));
+  }
   return out;
 }
 

@@ -1,5 +1,5 @@
-import { BadRequestException, Body, ConflictException, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Patch } from '@nestjs/common';
-import { batchEditSchema, type BatchEditInput } from '@billing/shared';
+import { BadRequestException, Body, ConflictException, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Patch, Query } from '@nestjs/common';
+import { batchEditSchema, todayIst, type BatchEditInput } from '@billing/shared';
 import { Ctx, RequirePermission } from '../../common/decorators';
 import { AuditService } from '../../common/audit.service';
 import { DbService } from '../../common/db.service';
@@ -7,6 +7,7 @@ import type { RequestContext } from '../../common/context';
 import { day } from '../../common/lookups';
 import { ZodPipe } from '../../common/zod.pipe';
 import { batchDates, batchesOn, batchMrp, batchRows, batchRowsOf, mrpOn } from './batches';
+import { batchSales, expiryReport } from './expiry';
 
 /** Features › batch_expiry: an item's stock by batch, and correcting a batch's no. or dates. */
 @Controller()
@@ -39,6 +40,23 @@ export class BatchesController {
       const items = await tx.item.findMany({ where: { trackBatch: true, archivedAt: null, kind: { not: 'service' } }, select: { id: true, purchasePrice: true, packSize: true } });
       return Object.fromEntries([...(await batchRowsOf(tx, items))].map(([id, s]) => [id, s.rows]));
     });
+  }
+
+  /** Reports › Expiry Report and the alert on Home. */
+  @RequirePermission('reports.view')
+  @Get('reports/expiry')
+  expiry(@Ctx() ctx: RequestContext, @Query('today') today?: string) {
+    const on = today && /^\d{4}-\d{2}-\d{2}$/.test(today) ? today : todayIst();
+    return this.db.scoped(this.scope(ctx), async (tx) => ((await batchesOn(tx, ctx.businessId!)) ? expiryReport(tx, on) : { writtenOff: '0.00', rows: [] }));
+  }
+
+  /** Reports › Batch Wise Sales And Profit. */
+  @RequirePermission('reports.view')
+  @Get('reports/batch-sales')
+  sales(@Ctx() ctx: RequestContext, @Query('from') from?: string, @Query('to') to?: string) {
+    const iso = /^\d{4}-\d{2}-\d{2}$/;
+    if (!from || !to || !iso.test(from) || !iso.test(to)) throw new BadRequestException({ message: 'Choose a period.' });
+    return this.db.scoped(this.scope(ctx), async (tx) => ((await batchesOn(tx, ctx.businessId!)) ? batchSales(tx, from, to) : []));
   }
 
   /** Reports › Item Batch Report: every batch with stock, earliest expiry first; stock without a batch last. */

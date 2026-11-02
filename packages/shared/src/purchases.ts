@@ -23,7 +23,7 @@ const optNum = z.union([z.string(), z.number(), z.null()]).optional()
 /** how a supplier is paid (prototype PU_MODES) */
 export const PU_MODES = ['Cash', 'UPI', 'Bank transfer', 'Cheque'] as const;
 export type PuMode = (typeof PU_MODES)[number];
-export const DN_REASONS = ['Damaged goods', 'Wrong item sent', 'Extra quantity', 'Rate difference', 'Other'] as const;
+export const DN_REASONS = ['Damaged goods', 'Wrong item sent', 'Extra quantity', 'Rate difference', 'Other', 'Expired goods'] as const;
 /** numbers: PB-0001 bills, ORD-0001 orders, DN-0001 debit notes, PO-0001 payments made */
 export const PURCHASE_KIND = { bill: 'Purchase bill', order: 'Purchase order', debit_note: 'Debit note' } as const;
 
