@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { formatQty, godownStockValue, money, sumValues, toDb, type GodownInput, type Money, type StockAdjustmentInput, type StockTransferInput } from '@billing/shared';
+import { formatQty, godownStockValue, money, sumValues, toDb, type GodownInput, type Money, type StockAdjustmentInput, type StockTransferInput, looseCost } from '@billing/shared';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import { NumberingService } from '../../common/numbering.service';
@@ -33,7 +33,7 @@ export class StockService {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const gs = await tx.godown.findMany({ where: { archivedAt: null }, orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }] });
       const sums = await tx.stockMovement.groupBy({ by: ['godownId', 'itemId'], _sum: { qty: true } });
-      const items = await tx.item.findMany({ where: { kind: 'goods' }, select: { id: true, purchasePrice: true } });
+      const items = await tx.item.findMany({ where: { kind: 'goods' }, select: { id: true, purchasePrice: true, packSize: true } });
       const lots = await rateTables(tx, items, true);
       return gs.map((g) => {
         // like the prototype's cards: items with stock above zero here, each at the average rate of its lots left
@@ -182,13 +182,15 @@ export class StockService {
       }
     }
     const number = old?.number ?? (await this.numbers.next(tx, ctx.businessId!, ctx.userId, 'stock_adjustment', input.date));
-    const rate = toDb(input.rate ?? item.purchasePrice.toString());
+    // no rate typed: the item's purchase price, which is per pack on an item sold by the pack (Features › mrp_pack)
+    const unitCost = !input.rate && item.packSize ? looseCost(item.purchasePrice.toString(), item.packSize.toString()) : null;
+    const rate = toDb(unitCost ?? input.rate ?? item.purchasePrice.toString());
     const data = { date: day(input.date), itemId: item.id, godownId, qty: signed.toFixed(3), rate, reason: input.reason, batchId };
     const a = old
       ? await tx.stockAdjustment.update({ where: { id: old.id }, data })
       : await tx.stockAdjustment.create({ data: { ...data, businessId: ctx.businessId!, createdBy: ctx.userId, number } });
     await tx.stockMovement.create({
-      data: { businessId: ctx.businessId!, createdBy: ctx.userId, itemId: item.id, godownId, date: day(input.date), qty: signed.toFixed(3), rate, batchId, kind: 'adjustment', sourceType: 'stock_adjustment', sourceId: a.id, note: input.reason },
+      data: { businessId: ctx.businessId!, createdBy: ctx.userId, itemId: item.id, godownId, date: day(input.date), qty: signed.toFixed(3), rate, ...(unitCost && { unitCost: unitCost.toFixed(6) }), batchId, kind: 'adjustment', sourceType: 'stock_adjustment', sourceId: a.id, note: input.reason },
     });
     await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: old ? 'update' : 'create', entity: 'stock_adjustment', entityId: a.id, before: old, ip: ctx.ip,
       after: old ? { ...a, changes: fieldChanges(old, a, ['date', 'itemId', 'godownId', 'qty', 'rate', 'reason', 'batchId']) } : a });

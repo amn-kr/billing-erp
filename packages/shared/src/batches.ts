@@ -154,17 +154,17 @@ export function billAllocs(lines: readonly BillLine[], rows: Readonly<Record<str
 }
 
 /** "A123 × 3, No batch × 1", for the sale line. */
-export function allocText(allocs: readonly BatchAlloc[], rows: readonly Pick<PickRow, 'id' | 'no'>[]): string {
-  return allocs.map((a) => `${a.batchId ? rows.find((r) => r.id === a.batchId)?.no ?? '—' : 'No batch'} × ${formatQty(a.qty)}`).join(', ');
+export function allocText(allocs: readonly BatchAlloc[], rows: readonly Pick<PickRow, 'id' | 'no'>[], unit?: string): string {
+  return allocs.map((a) => `${a.batchId ? rows.find((r) => r.id === a.batchId)?.no ?? '—' : 'No batch'} × ${formatQty(a.qty)}${unit ? ` ${unit}` : ''}`).join(', ');
 }
 
 /** "Batch A123 × 3 (Exp 03/2040, MRP 120.00), No batch × 1", for the printed invoice; nothing when no batch is named. */
-export function batchPrintLine(list: readonly { batchId: string | null; no: string; expiry: string | null; qty: MoneyInput; mrp?: string | null }[], withMrp = false): string {
+export function batchPrintLine(list: readonly { batchId: string | null; no: string; expiry: string | null; qty: MoneyInput; mrp?: string | null }[], withMrp = false, unit?: string): string {
   const named = list.filter((b) => b.batchId), none = list.filter((b) => !b.batchId);
   if (!named.length) return '';
   const text = (b: (typeof list)[number]) => {
     const notes = [b.expiry ? `Exp ${b.expiry.slice(5, 7)}/${b.expiry.slice(0, 4)}` : '', withMrp && b.mrp ? `MRP ${money(b.mrp).toFixed(2)}` : ''].filter(Boolean);
-    return `${b.no} × ${formatQty(b.qty)}${notes.length ? ` (${notes.join(', ')})` : ''}`;
+    return `${b.no} × ${formatQty(b.qty)}${unit ? ` ${unit}` : ''}${notes.length ? ` (${notes.join(', ')})` : ''}`;
   };
   return `Batch ${[...named, ...none].map(text).join(', ')}`;
 }

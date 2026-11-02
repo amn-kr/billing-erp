@@ -158,7 +158,7 @@ export const challanSchema = z.object({
   cashName: opt(160),
   cashPhone: opt(20).transform((v) => v.replace(/\D/g, '')),
   date: isoDate,
-  lines: z.array(z.object({ itemId: z.string().uuid(), qty: num('Enter the quantity.') })).max(500),
+  lines: z.array(z.object({ itemId: z.string().uuid(), qty: num('Enter the quantity.'), /** Features › mrp_pack: the item's pack unit, or left out for its own */ unit: opt(20) })).max(500),
   transport: opt(120),
   vehicle: opt(60),
   note: opt(500),

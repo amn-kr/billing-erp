@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { formatInr2, money, round2, todayIst, type Money } from '@billing/shared';
+import { formatInr2, money, round2, todayIst, type Money, stockQtyOf } from '@billing/shared';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import { NumberingService } from '../../common/numbering.service';
@@ -74,7 +74,8 @@ export class CommissionService {
         const R = cnLines.filter((l) => l.againstId === v.id).flatMap((l) => {
           const line = v.lines.find((x) => x.itemId === l.itemId && Number(x.commAmount) > 0);
           if (!line || !Number(line.qty)) return [];
-          const amt = r2m(money(line.commAmount.toString()).div(line.qty.toString()).times(l.qty.toString()));
+          // per stock unit: a credit note can bring back part of a pack (Features › mrp_pack)
+          const amt = r2m(money(line.commAmount.toString()).div(stockQtyOf(line.qty.toString(), line.packSize?.toString())).times(stockQtyOf(l.qty.toString(), l.packSize?.toString())));
           return amt.gt(0) ? [{ cn: l.document.number, date: isoOf(l.document.date)!, inv: v.number, item: l.name, qty: Number(l.qty), amt: amt.toFixed(2), reason: l.document.reason || 'Goods returned' }] : [];
         });
         const ret = R.reduce((a, x) => a.plus(x.amt), money(0));

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { formatDmy, money, round2, todayIst, type Money } from '@billing/shared';
+import { formatDmy, money, round2, stockQtyOf, todayIst, type Money } from '@billing/shared';
 import { DbService, type Tx } from '../../common/db.service';
 import { LedgerService } from '../../common/ledger.service';
 import type { RequestContext } from '../../common/context';
@@ -18,7 +18,7 @@ export interface StEntry { date: string; no: string; type: string; kind: string;
 const ORD: Record<string, number> = { 'Opening balance': 0, Sale: 1, Purchase: 1, 'Debit note': 2, 'Credit note': 2, 'Cheque bounce': 3, Refund: 3, 'Payment-In': 4, 'Payment-Out': 4 };
 
 interface PartyRow { id: string; name: string; kind: string; group: string; phone: string; city: string; gstin: string; limit: number | null; sup: boolean; type: 'Supplier' | 'Electrician' | 'Customer' }
-interface Line { itemId: string | null; name: string; unit: string; qty: number; price: number; disc: number; amt: number; tv: number; cat: string; iunit: string; iname: string }
+interface Line { itemId: string | null; name: string; unit: string; qty: number; /** in the item's stock unit (Features › mrp_pack) */ stockQty: number; price: number; disc: number; amt: number; tv: number; cat: string; iunit: string; iname: string }
 interface Doc { id: string; no: string; date: string; partyId: string | null; total: number; lines: Line[] }
 
 /**
@@ -52,11 +52,11 @@ export class ReportsService {
       const sup = p.kind === 'supplier';
       return { id: p.id, name: p.name, kind: p.kind, group: g, phone: p.phone, city: p.addresses[0]?.city ?? '', gstin: p.gstin, limit: p.creditLimit ? Number(p.creditLimit) : null, sup, type: sup ? 'Supplier' : g === 'Electricians' ? 'Electrician' : 'Customer' };
     });
-    const line = (l: { itemId: string | null; name: string; unit: string; qty: unknown; discPct: unknown; gstRate: unknown; taxable: unknown; amount: unknown }, price: unknown): Line => {
+    const line = (l: { itemId: string | null; name: string; unit: string; qty: unknown; packSize: { toString(): string } | null; discPct: unknown; gstRate: unknown; taxable: unknown; amount: unknown }, price: unknown): Line => {
       const i = l.itemId ? it.get(l.itemId) : undefined;
       const qty = Number(l.qty);
       return {
-        itemId: l.itemId, name: l.name, unit: l.unit, qty, price: Number(price), disc: Number(l.discPct), amt: Number(l.amount), tv: Number(l.taxable),
+        itemId: l.itemId, name: l.name, unit: l.unit, qty, stockQty: stockQtyOf(String(l.qty), l.packSize?.toString()).toNumber(), price: Number(price), disc: Number(l.discPct), amt: Number(l.amount), tv: Number(l.taxable),
         cat: i?.category?.name ?? '', iunit: i?.unit?.code ?? '', iname: i?.name ?? '',
       };
     };
@@ -246,7 +246,7 @@ export class ReportsService {
       const add = (l: Line, k: 's' | 'p', a: Money) => {
         const key = l.itemId || l.name;
         const o = M.get(key) ?? { name: l.iname || l.name, cat: l.cat, unit: l.iunit || l.unit, sq: 0, sa: money(0), pq: 0, pa: money(0) };
-        if (k === 's') { o.sq += l.qty; o.sa = o.sa.plus(a); } else { o.pq += l.qty; o.pa = o.pa.plus(a); }
+        if (k === 's') { o.sq += l.stockQty; o.sa = o.sa.plus(a); } else { o.pq += l.stockQty; o.pa = o.pa.plus(a); }
         M.set(key, o);
       };
       for (const v of L.invoices.filter((x) => !x.cancelled && inR(x.date))) for (const l of v.lines) add(l, 's', l.amt ? m(String(l.amt)) : m(String(l.qty)).times(l.price));

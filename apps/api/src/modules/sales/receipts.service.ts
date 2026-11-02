@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { money, toDb, todayIst, type BatchAlloc, type CreditNoteInput, type ChallanInput, type Money, type ReceiptInput } from '@billing/shared';
+import { money, stockQtyOf, toDb, todayIst, type BatchAlloc, type CreditNoteInput, type ChallanInput, type Money, type ReceiptInput } from '@billing/shared';
 import { Prisma } from '@prisma/client';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
@@ -11,7 +11,7 @@ import { invoiceBalances, openDues, unusedAmounts } from './dues';
 import { accountFor, cashBankFor, cancelPayment, cancelPendingCheques, moneyInLines } from './money-in';
 import { reverseStock } from './stock-back';
 import { allocsOf, batchesOn, refuseIfBatchShort } from '../stock/batches';
-import { linkedToInvoice } from './sales.service';
+import { linePackSize, linkedToInvoice } from './sales.service';
 import { ALREADY_DELETED, deleteMark } from '../../common/deleting';
 import { reconciledIn, reconciledMessage } from '../../common/editing';
 import { booksOf } from './sales.service';
@@ -186,11 +186,14 @@ export class ReceiptsService {
       if (!inv) throw new NotFoundException({ message: 'That invoice was not found.' });
       const back = await this.returned(tx, invoiceId, except);
       const lineBatches = new Map((await tx.batch.findMany({ where: { id: { in: inv.lines.flatMap((l) => allocsOf(l.batchAlloc).flatMap((a) => (a.batchId ? [a.batchId] : []))) } } })).map((b) => [b.id, b]));
+      const packs = new Map((await tx.item.findMany({ where: { id: { in: inv.lines.flatMap((l) => (l.packSize && l.itemId ? [l.itemId] : [])) } }, include: { unit: true } })).map((i) => [i.id, i]));
       return inv.lines.map((l) => {
-        const sold = money(l.qty.toString());
+        // Features › mrp_pack: worked out in the loose unit, so part of a strip can come back
+        const it = l.itemId ? packs.get(l.itemId) : undefined;
+        const sold = stockQtyOf(l.qty.toString(), l.packSize?.toString());
         const left = sold.minus(back.get(l.itemId ?? '') ?? 0);
-        const price = money(l.price.toString()).times(money(1).minus(money(l.discPct.toString()).div(100)));
-        return { itemId: l.itemId, name: l.name, unit: l.unit, sold: q3(sold), max: q3(left.isNegative() ? 0 : left), price: price.toDecimalPlaces(2).toFixed(2), gstRate: l.gstRate.toString(),
+        const price = money(l.price.toString()).times(money(1).minus(money(l.discPct.toString()).div(100))).div(l.packSize ? l.packSize.toString() : 1);
+        return { itemId: l.itemId, name: l.name, unit: l.packSize ? it?.unit?.code ?? l.unit : l.unit, packUnit: l.packSize ? l.unit : null, packSize: l.packSize ? q3(l.packSize) : null, soldPacks: l.packSize ? q3(l.qty) : null, sold: q3(sold), max: q3(left.isNegative() ? 0 : left), price: price.toDecimalPlaces(2).toFixed(2), gstRate: l.gstRate.toString(),
           soldBatches: allocsOf(l.batchAlloc).map((a) => ({ batchId: a.batchId, no: a.batchId ? lineBatches.get(a.batchId)?.batchNo ?? '' : 'No batch', expiry: a.batchId ? isoOf(lineBatches.get(a.batchId)?.expiryDate ?? null) : null, qty: a.qty })) };
       });
     });
@@ -257,7 +260,7 @@ export class ReceiptsService {
       const sold = await tx.salesDocumentLine.findMany({ where: { documentId: inv.id } });
       const back = await this.returned(tx, inv.id);
       for (const l of L.filter((x) => x.invoiceId === inv.id)) {
-        const s = sold.filter((x) => x.itemId === l.itemId).reduce((a, x) => a.plus(x.qty.toString()), money(0));
+        const s = sold.filter((x) => x.itemId === l.itemId).reduce((a, x) => a.plus(stockQtyOf(x.qty.toString(), x.packSize?.toString())), money(0));
         const max = s.minus(back.get(l.itemId) ?? 0);
         if (money(l.qty).gt(max)) throw new BadRequestException({ message: `Only ${q3(max.isNegative() ? 0 : max).replace(/\.?0+$/, '')} can be returned on ${inv.number}` });
       }
@@ -443,7 +446,7 @@ export class ReceiptsService {
     if (input.partyId && !party) throw new BadRequestException({ message: 'Choose who the goods are going to.', field: 'partyId' });
     const L = input.lines.filter((l) => money(l.qty).gt(0));
     if (!L.length) throw new BadRequestException({ message: 'Add at least one item with a quantity.' });
-    const items = new Map((await tx.item.findMany({ where: { id: { in: L.map((l) => l.itemId) } }, include: { unit: true } })).map((i) => [i.id, i]));
+    const items = new Map((await tx.item.findMany({ where: { id: { in: L.map((l) => l.itemId) } }, include: { unit: true, packUnit: true } })).map((i) => [i.id, i]));
     if (items.size !== new Set(L.map((l) => l.itemId)).size) throw new BadRequestException({ message: 'One of those items was not found.' });
     const books = await booksOf(tx, businessId);
     const number = before?.number ?? (await this.numbers.next(tx, businessId, ctx.userId, 'challan', input.date));
@@ -459,7 +462,8 @@ export class ReceiptsService {
     await tx.salesDocumentLine.createMany({
       data: L.map((l, k) => {
         const it = items.get(l.itemId)!;
-        return { businessId, documentId: dc.id, position: k, itemId: it.id, name: it.name, hsn: it.hsn, qty: money(l.qty).toFixed(3), unit: it.unit?.code ?? '', price: '0' };
+        const packSize = linePackSize(it, l.unit);
+        return { businessId, documentId: dc.id, position: k, itemId: it.id, name: it.name, hsn: it.hsn, qty: money(l.qty).toFixed(3), unit: packSize ? it.packUnit!.code : it.unit?.code ?? '', packSize, price: '0' };
       }),
     });
     const after = before ? await tx.salesDocument.findUniqueOrThrow({ where: { id: dc.id }, include: { lines: { orderBy: { position: 'asc' } } } }) : dc;

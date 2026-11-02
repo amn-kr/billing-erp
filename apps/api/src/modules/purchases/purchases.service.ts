@@ -1,13 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, type Payment, type PurchaseDocument } from '@prisma/client';
-import { PURCHASE_KIND, billTotalTooLow, formatInr2, money, payPartsUpTo, purchaseTotals, toDb, todayIst, type BatchRow, type Money, type PaymentOutInput, type PurchaseInput } from '@billing/shared';
+import { PURCHASE_KIND, billTotalTooLow, formatInr2, looseCost, money, payPartsUpTo, purchaseTotals, stockQtyOf, toDb, todayIst, type BatchRow, type Money, type PaymentOutInput, type PurchaseInput } from '@billing/shared';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import { NumberingService } from '../../common/numbering.service';
 import { LedgerService, type PostLine } from '../../common/ledger.service';
 import type { RequestContext } from '../../common/context';
 import { day, isoOf } from '../../common/lookups';
-import { booksOf } from '../sales/sales.service';
+import { booksOf, linePackSize } from '../sales/sales.service';
 import { refuseIfSoldSince, reverseStock } from '../sales/stock-back';
 import { cancelPayment, cancelPendingCheques, cashBankFor } from '../sales/money-in';
 import { reconciledIn, reconciledMessage, refuseIfReconciled, repostPayment } from '../../common/editing';
@@ -124,7 +124,10 @@ export class PurchasesService {
     const party = await tx.party.findFirst({ where: { id: input.partyId, ...(before?.partyId !== input.partyId && { archivedAt: null }) }, include: { addresses: { where: { kind: 'billing' } } } });
     if (!party) throw new BadRequestException({ message: 'Choose the supplier.', field: 'partyId' });
     if (!input.lines.length) throw new BadRequestException({ message: 'Add at least one item.' });
-    const items = new Map((await tx.item.findMany({ where: { id: { in: input.lines.map((l) => l.itemId) } }, include: { unit: { select: { code: true } } } })).map((i) => [i.id, { ...i, unitCode: i.unit?.code ?? '' }]));
+    const items = new Map((await tx.item.findMany({ where: { id: { in: input.lines.map((l) => l.itemId) } }, include: { unit: { select: { code: true } }, packUnit: { select: { code: true } } } })).map((i) => [i.id, { ...i, unitCode: i.unit?.code ?? '' }]));
+    // Features › mrp_pack: a line in the item's pack unit moves that many packs' worth of stock
+    const packOf = (l: (typeof input.lines)[number]) => linePackSize(items.get(l.itemId)!, l.unit);
+    const stockOf = (l: (typeof input.lines)[number]) => stockQtyOf(l.qty, packOf(l));
     const unknown = input.lines.find((l) => !items.has(l.itemId));
     if (unknown) throw new BadRequestException({ message: `“${unknown.name}” isn’t in your items. Pick it from the list or add it as a new item.` });
     const bad = input.lines.find((l) => !money(l.qty).gt(0));
@@ -140,7 +143,7 @@ export class PurchasesService {
         const it = items.get(l.itemId)!;
         if (it.kind === 'service') continue;
         const s = st.get(it.id) ?? money(0);
-        if (s.lt(money(l.qty))) throw new BadRequestException({ message: `Only ${fmt(s)} ${it.unitCode} of “${it.name}” in stock to return.` });
+        if (s.lt(stockOf(l))) throw new BadRequestException({ message: `Only ${fmt(s)} ${it.unitCode} of “${it.name}” in stock to return.` });
       }
     }
     /* batch and expiry (Features › batch_expiry): a tracked item's batch on a bill, and what a debit note takes out of */
@@ -161,7 +164,7 @@ export class PurchasesService {
         const id = l.batchId ?? billLines.find((b) => b.itemId === it.id)?.batchId ?? null;
         if (!rows.has(it.id)) rows.set(it.id, (await batchRows(tx, it)).rows);
         const key = `${it.id}|${id}`;
-        const want = (taken.get(key) ?? money(0)).plus(money(l.qty));
+        const want = (taken.get(key) ?? money(0)).plus(stockOf(l));
         taken.set(key, want);
         refuseOverBatch(rows.get(it.id)!, id, want, it.name, 'in stock to return');
         lineBatch.set(i, id);
@@ -203,7 +206,7 @@ export class PurchasesService {
       });
     await tx.purchaseDocumentLine.createMany({
       data: input.lines.map((l, i) => ({
-        businessId, documentId: doc.id, position: i, itemId: l.itemId, name: l.name || items.get(l.itemId)!.name, hsn: l.hsn, qty: l.qty, unit: l.unit || items.get(l.itemId)!.unitCode,
+        businessId, documentId: doc.id, position: i, itemId: l.itemId, name: l.name || items.get(l.itemId)!.name, hsn: l.hsn, qty: l.qty, unit: l.unit || items.get(l.itemId)!.unitCode, packSize: packOf(l),
         rate: toDb(l.rate), discPct: l.discPct, gstRate: books.mode === 'gst' ? l.gstRate : '0', taxable: t.rows[i]!.tv.toFixed(2), tax: t.rows[i]!.tx.toFixed(2), amount: t.rows[i]!.amt.toFixed(2),
         againstId: against?.id ?? null, batchId: lineBatch.get(i) ?? null,
       })),
@@ -219,7 +222,7 @@ export class PurchasesService {
         await tx.stockMovement.createMany({
           data: goods.map(({ l, i, it }) => ({
             businessId, createdBy: ctx.userId, sourceType: 'purchase_document', sourceId: doc.id, itemId: it.id, godownId: godown.id, date: day(input.date),
-            qty: (k === 'bill' ? money(l.qty) : money(l.qty).neg()).toFixed(3), rate: t.rows[i]!.tv.div(money(l.qty)).toDecimalPlaces(2).toFixed(2), kind: k === 'bill' ? 'purchase' : 'purchase_return', note: number, batchId: lineBatch.get(i) ?? null,
+            qty: (k === 'bill' ? stockOf(l) : stockOf(l).neg()).toFixed(3), rate: t.rows[i]!.tv.div(stockOf(l)).toDecimalPlaces(2).toFixed(2), ...(packOf(l) && { unitCost: looseCost(t.rows[i]!.tv, stockOf(l)).toFixed(6) }), kind: k === 'bill' ? 'purchase' : 'purchase_return', note: number, batchId: lineBatch.get(i) ?? null,
           })),
         });
       /* the books (an edit replaces the old entry) */
@@ -461,7 +464,7 @@ export class PurchasesService {
   list(ctx: RequestContext, kind: 'bill' | 'order' | 'debit_note') {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const docs = await tx.purchaseDocument.findMany({
-        where: { kind, deletedAt: null }, include: { party: { select: { id: true, name: true, gstin: true } }, lines: { select: { qty: true } } },
+        where: { kind, deletedAt: null }, include: { party: { select: { id: true, name: true, gstin: true } }, lines: { select: { qty: true, packSize: true } } },
         orderBy: [{ date: 'desc' }, { number: 'desc' }],
       });
       const bal = kind === 'bill' ? await billBalances(tx, docs.map((d) => d.id)) : new Map<string, Money>();
@@ -475,7 +478,7 @@ export class PurchasesService {
         return {
           id: d.id, kind: d.kind, number: d.number, supplierRef: d.supplierRef, date: isoOf(d.date), dueDate: isoOf(d.dueDate), party: d.party, partyName: d.party.name,
           total: total.toFixed(2), paid: kind === 'bill' && !d.cancelledAt ? total.minus(b).toFixed(2) : '0.00', balance: b.toFixed(2),
-          items: d.lines.length, qty: q3(d.lines.reduce((a, l) => a.plus(money(l.qty.toString())), money(0))),
+          items: d.lines.length, qty: q3(d.lines.reduce((a, l) => a.plus(stockQtyOf(l.qty.toString(), l.packSize?.toString())), money(0))),
           status: d.status, cancelled: !!d.cancelledAt, reason: d.reason, against: d.sourceId && kind === 'debit_note' ? refs.get(d.sourceId) ?? '' : '',
           fromOrder: d.sourceId && kind === 'bill' ? refs.get(d.sourceId) ?? '' : '', bill: billsFromOrders.get(d.id) ?? '', legacy: !!d.legacyId,
         };
@@ -502,7 +505,7 @@ export class PurchasesService {
         balance: bal.toFixed(2), status: d.status, notes: d.notes, reason: d.reason, cancelled: !!d.cancelledAt, source: src?.number ?? '', sourceId: d.sourceId,
         // for the edit window: why it can't be edited, and what the total can't go below
         locked: await this.docLock(tx, d), settledElsewhere: settled ? settled.amount.toFixed(2) : '0.00',
-        lines: d.lines.map((l) => ({ ...batchOf(l.batchId), id: l.id, itemId: l.itemId, name: l.name, hsn: l.hsn, qty: q3(l.qty), unit: l.unit, rate: d2(l.rate), discPct: l.discPct.toString(), gstRate: l.gstRate.toString(), taxable: d2(l.taxable), tax: d2(l.tax), amount: d2(l.amount) })),
+        lines: d.lines.map((l) => ({ ...batchOf(l.batchId), id: l.id, itemId: l.itemId, name: l.name, hsn: l.hsn, qty: q3(l.qty), unit: l.unit, packSize: l.packSize ? q3(l.packSize) : null, rate: d2(l.rate), discPct: l.discPct.toString(), gstRate: l.gstRate.toString(), taxable: d2(l.taxable), tax: d2(l.tax), amount: d2(l.amount) })),
         settlements: allocs
           .filter((a) => (a.payment ? !a.payment.cancelledAt : !notes.get(a.noteId!)?.cancelledAt))
           .map((a) => ({
