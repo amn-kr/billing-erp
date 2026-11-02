@@ -98,11 +98,17 @@ export function PasscodeBox() {
   const shown = !!mode;
   useOpenFocus(shown, ovRef);
 
-  // every time the box opens or changes step: empty fields, first field focused
+  // every time the box opens or changes step: empty fields, first field focused —
+  // unless typing has already started in one of the box's fields (it would land in the wrong one)
   useEffect(() => {
     if (!mode) return;
     setPin(''); setPin2(''); setPw(''); setErr('');
-    setTimeout(() => (mode === 'forgot' ? pwRef : pinRef).current?.focus(), 30);
+    const t = setTimeout(() => {
+      const a = document.activeElement;
+      if (a instanceof HTMLInputElement && mdlRef.current?.contains(a)) return;
+      (mode === 'forgot' ? pwRef : pinRef).current?.focus();
+    }, 30);
+    return () => clearTimeout(t);
   }, [mode]);
   const dismiss = () => { const a = ask; close(); a?.done(false); };
   useEffect(() => {

@@ -189,3 +189,22 @@ test('Forgot passcode: the owner sets a new one with the account password; a pur
   await expect(page.locator('#toast')).toHaveText(`${no} cancelled`);
   await expect(page.locator(`#poRows tr[data-pono="${no}"] .stt`)).toHaveText('Cancelled');
 });
+
+test('typing that starts the moment the box changes step stays in the box it was typed in', async ({ browser, request }) => {
+  // The box puts the cursor in its first field shortly after each step opens. That must not pull the
+  // cursor away from a field the user (or a test) is already typing in, or the digits land in the
+  // password field and the box says "Enter 4 to 6 digits." (seen once in CI on the Forgot test above).
+  const page = await newPage(browser, 1366);
+  const who = await freshShop(request, 'sales-shop');
+  await turnOn(request, who);
+  await signInAs(page, who);
+  await openTxn(page);
+  await page.click('#tPassChange');
+  await expect(page.locator('#pcT')).toHaveText('Enter current passcode');
+  await page.click('#pcForgot');
+  await page.focus('#pcPin');
+  await page.waitForTimeout(100); // longer than the box's own delay before it moves the cursor
+  await page.keyboard.insertText(NEW);
+  await expect(page.locator('#pcPin')).toHaveValue(NEW);
+  await expect(page.locator('#pcPw')).toHaveValue('');
+});
