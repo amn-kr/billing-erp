@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { autoPurchasePrice, costOfGoods, hasPurchaseLot, money, stockByBatch, stockByPurchaseRate, type LedgerMove } from '../src';
+import { costByBatch, autoPurchasePrice, costOfGoods, hasPurchaseLot, money, stockByBatch, stockByPurchaseRate, type LedgerMove } from '../src';
 import * as frozen from './stock-frozen';
 
 /** A repeatable random stock history: bills, opening, sales, returns, debit notes, adjustments, transfers, cancels and edits. */
@@ -137,5 +137,39 @@ describe('stock by batch', () => {
     const b = stockByBatch([IN('A', '1', '10', '2026-01-01', 'b1'), { date: '2026-01-02', qty: '-3', rate: '20', kind: 'sale', sourceType: 'sales_document', sourceId: 's1' }], '0');
     expect(b.rows).toEqual([]);
     expect(b.shortQty).toBe('2.000');
+  });
+});
+
+describe('cost by batch (Reports › Batch Wise Sales And Profit)', () => {
+  const buy = (id: string, qty: string, rate: string, batchId: string | null, date = '2026-10-01'): LedgerMove => ({ date, qty, rate, kind: 'purchase', sourceType: 'purchase_document', sourceId: id, batchId });
+  const sale = (id: string, qty: string, batchId: string | null, date = '2026-10-02'): LedgerMove => ({ date, qty: `-${qty}`, rate: '0', kind: 'sale', sourceType: 'sales_document', sourceId: id, batchId });
+
+  it('a sale from two batches: each at its own cost, and they add up to the sale’s cost', () => {
+    const m = [buy('b1', '5', '10', 'A'), buy('b2', '5', '12', 'B'), sale('s', '3', 'A'), sale('s', '2', 'B')];
+    expect(costByBatch(m).get('s')).toEqual([{ batchId: 'A', qty: '3.000', cost: '30.00' }, { batchId: 'B', qty: '2.000', cost: '24.00' }]);
+    expect(costOfGoods(m).get('s')!.cost).toBe('54.00');
+  });
+
+  it('No batch is null; a return is at what its sale cost, in the batch it names', () => {
+    const m: LedgerMove[] = [buy('b1', '5', '10', 'A'), buy('b0', '2', '8', null), sale('s', '1', null), sale('s', '2', 'A'), { date: '2026-10-03', qty: '1', rate: '50', kind: 'return', sourceType: 'sales_document', sourceId: 'c', against: ['s'], batchId: 'A' }];
+    const c = costByBatch(m);
+    expect(c.get('s')).toEqual([{ batchId: null, qty: '1.000', cost: '8.00' }, { batchId: 'A', qty: '2.000', cost: '20.00' }]);
+    expect(c.get('c')).toEqual([{ batchId: 'A', qty: '1.000', cost: '10.00' }]);
+  });
+
+  it('sold before it was bought: costs 0 until the purchase fills it, then that purchase’s rate', () => {
+    expect(costByBatch([sale('s', '2', 'A', '2026-10-01')]).get('s')).toEqual([{ batchId: 'A', qty: '2.000', cost: '0.00' }]);
+    expect(costByBatch([sale('s', '2', 'A', '2026-10-01'), buy('b', '5', '10', 'A', '2026-10-02')]).get('s')).toEqual([{ batchId: 'A', qty: '2.000', cost: '20.00' }]);
+  });
+
+  it('a cancelled sale leaves nothing', () => {
+    const m: LedgerMove[] = [buy('b', '5', '10', 'A'), sale('s', '2', 'A'), { date: '2026-10-03', qty: '2', rate: '0', kind: 'cancel', sourceType: 'sales_document', sourceId: 's', batchId: 'A' }];
+    expect(costByBatch(m).get('s') ?? []).toEqual([]);
+  });
+
+  it('rounding: exact costs still add up to the sale’s cost', () => {
+    const m = [buy('b1', '3', '3.333333', 'A'), buy('b2', '3', '6.666667', 'B'), sale('s', '1', 'A'), sale('s', '1', 'B')];
+    const list = costByBatch(m).get('s')!;
+    expect(list.reduce((a, x) => a + Number(x.cost), 0).toFixed(2)).toBe(costOfGoods(m).get('s')!.cost);
   });
 });
