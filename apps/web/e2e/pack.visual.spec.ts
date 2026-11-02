@@ -73,14 +73,14 @@ for (const width of WIDTHS) {
       await app.click('#itEdit');
       await app.click('#aiUnit');
       await app.waitForSelector('#aiUnits:not([hidden])');
-      // GitHub's machine leaves this window faded until something in it is redrawn
-      await app.fill('#aiUSize', '10');
-      await app.click('#aiUnitsT');
-      await pic(app, 'units', '#aiUnits .mdl');
       await app.fill('#aiUSize', '15');
       await app.click('#aiUSave');
       await app.waitForSelector('#aiUnits [role=alert]:has-text("stock history")');
       await pic(app, 'refused', '#aiUnits .mdl');
+      // after the refusal: GitHub's machine leaves this window faded when it has only just opened
+      await app.fill('#aiUSize', '10');
+      await app.click('#aiUnitsT');
+      await pic(app, 'units', '#aiUnits .mdl');
       await app.click('#aiUnits button[aria-label="Close"]');
       await app.click('#aiClose');
 
