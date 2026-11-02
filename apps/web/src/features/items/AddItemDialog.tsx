@@ -38,7 +38,7 @@ interface Brand { id: string; name: string }
 interface Catalogue { units: Unit[]; categories: { name: string }[]; brands: Brand[]; groups: { name: string }[]; rates: Rate[] }
 /** GET /brands/:id/series: taken = this parent item already has it with this brand (itemId = that item) */
 interface BrandSeries { name: string; taken: boolean; itemId?: string }
-const F0 = { name: '', group: '', hsn: '', unit: 'PCS', sec: '', rate: '', cat: '', code: '', brand: '', series: '', sale: '', mrp: '', saleTax: 'With tax', disc: '', whole: '', wholeQty: '', gst: '18', oq: '', op: '', od: '', min: '', loc: '', track: false, ob: '', om: '', oe: '' };
+const F0 = { name: '', group: '', hsn: '', unit: 'PCS', sec: '', rate: '', pu: '', ps: '', cat: '', code: '', brand: '', series: '', sale: '', mrp: '', saleTax: 'With tax', disc: '', whole: '', wholeQty: '', gst: '18', oq: '', op: '', od: '', min: '', loc: '', track: false, ob: '', om: '', oe: '' };
 type Form = typeof F0;
 const num = (x: string) => Number(String(x).replace(/,/g, ''));
 const vname = (g: string, b: string, s: string) => `${g} · ${b}${s ? ' ' + s : ''}`;
@@ -52,19 +52,19 @@ const shown = (v: string | null | undefined) => (v && Number(v) ? String(Number(
 
 /** The item Edit item opens with (GET /items/:id), and its opening stock if it has one. */
 export interface EditItem {
-  id: string; kind: 'goods' | 'service'; name: string; code: string; hsn: string; unit: string; secondaryUnit: string; unitRate: string | null;
+  id: string; kind: 'goods' | 'service'; name: string; code: string; hsn: string; unit: string; secondaryUnit: string; unitRate: string | null; packUnit?: string; packSize?: string | null; /** it has stock movements, so its pack can't change */ hasStockHistory?: boolean;
   category: string; brand: string; group: string; series: string; gstRate: string; sale: string; mrp: string; wholesale: string; wholesaleMinQty: string;
   minStock: string; location: string; opening: { qty: string; rate: string; date: string } | null; trackBatch?: boolean;
 }
 const formOf = (i: EditItem): Partial<Form> => ({
-  name: i.name, group: i.group, hsn: i.hsn, unit: i.unit || 'PCS', sec: i.secondaryUnit, rate: i.secondaryUnit && i.unitRate ? qty(i.unitRate) : '', cat: i.category, code: i.code,
+  name: i.name, group: i.group, hsn: i.hsn, unit: i.unit || 'PCS', sec: i.secondaryUnit, rate: i.secondaryUnit && i.unitRate ? qty(i.unitRate) : '', pu: i.packUnit ?? '', ps: i.packSize ? qty(i.packSize) : '', cat: i.category, code: i.code,
   brand: i.brand, series: i.series, sale: shown(i.sale), mrp: shown(i.mrp), gst: String(Number(i.gstRate)), whole: shown(i.wholesale), wholeQty: shown(i.wholesaleMinQty),
   oq: shown(i.opening?.qty), op: shown(i.opening?.rate), od: i.opening?.date ?? '', min: shown(i.minStock), loc: i.location, track: !!i.trackBatch,
 });
 
 type Pop = 'brand' | 'cat' | 'group' | 'unit' | 'series' | null;
 /** Select unit window: base, secondary ('' = None) and the chosen rate ('new' = typed in, else a saved rate). */
-interface UnitWin { base: string; sec: string; pick: string; typed: string; err: string; addFor: 'base' | 'sec' }
+interface UnitWin { base: string; sec: string; pick: string; typed: string; err: string; addFor: 'base' | 'sec' | 'pack'; /** Features › mrp_pack */ on: boolean; pack: string; size: string }
 
 /**
  * onOpenItem: "Open that item" for a variant that already exists (Items page: its detail screen). Without it
@@ -82,6 +82,7 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
   const [tab, setTab] = useState<'price' | 'stock'>('price');
   const [f, setF] = useState<Form>({ ...F0, od: today() });
   const batchOn = useFeature('batch_expiry');
+  const packOn = useFeature('mrp_pack');
   const [err, setErr] = useState<Record<string, string>>({});
   const [pop, setPop] = useState<Pop>(null);
   /** what was typed in the drop-down when its "+ Add" row was picked: the popup starts with it */
@@ -185,6 +186,7 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
       wholesaleMinQty: svc ? null : f.wholeQty || null, minStock: svc ? null : f.min || null, location: svc ? '' : f.loc,
       ...(!edit && !svc && f.oq && num(f.oq) ? { openingQty: f.oq, openingRate: f.op || null, openingDate: f.od || today() } : {}),
       ...(batchOn && !svc ? { trackBatch: f.track } : {}),
+      ...(packOn && !svc ? { packUnit: f.pu, packSize: f.pu ? f.ps : null } : {}),
       ...(batchOn && !svc && !edit && f.track && f.ob.trim() ? { openingBatchNo: f.ob.trim(), openingMfg: f.om, openingExpiry: f.oe } : {}),
     };
     setBusy(true);
@@ -258,15 +260,26 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
 
   const addNew = (kind: Exclude<Pop, null>, typed: string) => { setPopText(typed); setPop(kind); };
 
-  const unitText = f.sec ? `${f.unit} · 1 ${f.unit} = ${qty(f.rate)} ${f.sec}` : uLabel(f.unit);
-  const openUnits = () => setUw({ base: f.unit, sec: f.sec, pick: 'new', typed: f.sec ? qty(f.rate) : '', err: '', addFor: 'base' });
+  const unitText = f.pu ? `1 ${f.pu} = ${qty(f.ps)} ${f.unit}` : f.sec ? `${f.unit} · 1 ${f.unit} = ${qty(f.rate)} ${f.sec}` : uLabel(f.unit);
+  const openUnits = () => setUw({ base: f.unit, sec: f.sec, pick: 'new', typed: f.sec ? qty(f.rate) : '', err: '', addFor: 'base', on: !!f.pu, pack: f.pu, size: f.ps });
   const saved = uw && uw.sec ? (cat.data?.rates ?? []).filter((r) => r.unit === uw.base && r.secondaryUnit === uw.sec) : [];
   function saveUnits() {
     if (!uw) return;
+    // Features › mrp_pack: only an item with no stock history can change it (owner, 2 Nov 2026)
+    const packChanged = uw.on !== !!f.pu || (uw.on && (uw.pack !== f.pu || num(uw.size) !== num(f.ps) || uw.base !== f.unit));
+    if (packChanged && edit?.hasStockHistory) return setUw({ ...uw, err: 'This item already has stock history, so its unit can’t change. Make a new item with pack and loose, and move the stock with an adjustment on each.' });
+    if (uw.on) {
+      if (!uw.pack) return setUw({ ...uw, err: 'Choose the pack unit.' });
+      if (uw.pack === uw.base) return setUw({ ...uw, err: 'The pack unit and the loose unit must be different.' });
+      if (!(num(uw.size) > 1)) return setUw({ ...uw, err: `Enter how many ${uw.base} are in 1 ${uw.pack}: more than 1.` });
+      setF((x) => ({ ...x, unit: uw.base, sec: '', rate: '', pu: uw.pack, ps: uw.size.trim() }));
+      setErr(({ unit: _, ...x }) => x);
+      return setUw(null);
+    }
     if (uw.sec && uw.sec === uw.base) return setUw({ ...uw, err: 'The secondary unit must be different from the base unit.' });
     const rate = uw.pick === 'new' ? uw.typed.trim() : uw.pick;
     if (uw.sec && !(num(rate) > 0)) return setUw({ ...uw, err: `Enter how many ${uw.sec} make 1 ${uw.base}.` });
-    setF((x) => ({ ...x, unit: uw.base, sec: uw.sec, rate: uw.sec ? rate : '' }));
+    setF((x) => ({ ...x, unit: uw.base, sec: uw.sec, rate: uw.sec ? rate : '', pu: '', ps: '' }));
     setErr(({ unit: _, ...x }) => x);
     setUw(null);
   }
@@ -350,8 +363,8 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
                   )}
                   <b className="aph">Opening stock</b>
                   <div className="two">
-                    <label className="apf">Opening quantity<input className={`fi ${bad('oq')}`} data-f="oq" value={f.oq} onChange={set('oq')} disabled={!!edit} inputMode="decimal" placeholder="0" />{E('oq')}</label>
-                    <label className="apf">At price / unit<span className={pre}><span>{cur('₹')}</span><input className="fi" data-f="op" value={f.op} onChange={set('op')} disabled={!!edit} inputMode="decimal" placeholder="Purchase price" /></span></label>
+                    <label className="apf">Opening quantity{f.pu ? ` (${f.unit})` : ''}<input className={`fi ${bad('oq')}`} data-f="oq" value={f.oq} onChange={set('oq')} disabled={!!edit} inputMode="decimal" placeholder="0" />{E('oq')}</label>
+                    <label className="apf">{f.pu ? `At price / ${f.pu}` : 'At price / unit'}<span className={pre}><span>{cur('₹')}</span><input className="fi" data-f="op" value={f.op} onChange={set('op')} disabled={!!edit} inputMode="decimal" placeholder="Purchase price" /></span></label>
                   </div>
                   <label className="apf">As of date<input className="fi" type="date" data-f="od" value={f.od} onChange={set('od')} disabled={!!edit} />{edit && <small className="aphint">Opening stock can’t be changed here. Use Adjust stock.</small>}</label>
                   {batchOn && f.track && !edit && (
@@ -363,7 +376,7 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
                 </div>
                 <div className="aibox">
                   <b className="aph">Stock alerts</b>
-                  <label className="apf">Minimum stock to maintain<input className="fi" data-f="min" value={f.min} onChange={set('min')} inputMode="decimal" placeholder="e.g. 20" /><small className="aphint">You’ll see a low-stock alert when stock falls below this.</small></label>
+                  <label className="apf">Minimum stock to maintain{f.pu ? ` (${f.unit})` : ''}<input className="fi" data-f="min" value={f.min} onChange={set('min')} inputMode="decimal" placeholder="e.g. 20" /><small className="aphint">You’ll see a low-stock alert when stock falls below this.</small></label>
                   <label className="apf">Location<input className="fi" data-f="loc" value={f.loc} onChange={set('loc')} placeholder="e.g. Rack A1 or Godown" autoComplete="off" /></label>
                 </div>
               </div>
@@ -383,6 +396,25 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
         {uw && (
           <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="aiUnitsT">
             <div className="dh" style={{ marginBottom: ui.sp(14) }}><h3 id="aiUnitsT" style={{ margin: 0, fontSize: ui.fs(18) }}>Select unit</h3><button className="ib" type="button" aria-label="Close" onClick={() => setUw(null)}><RawIcon d={X} /></button></div>
+            {packOn && !svc ? (
+              <div style={{ display: 'flex', gap: ui.sp(12), alignItems: 'flex-start', marginBottom: ui.sp(12) }}>
+                <div style={{ flex: 1 }}><b style={{ display: 'block', fontSize: ui.fs(15) }}>Sell in pack and loose</b><small className="mu" style={{ fontSize: ui.fs(13) }}>Stock is counted in the loose unit, so every tablet is exact.</small></div>
+                <label className="tgs" style={{ margin: 0 }}><input type="checkbox" id="aiUPack" checked={uw.on} aria-label="Sell in pack and loose" onChange={(e) => setUw({ ...uw, on: e.target.checked, sec: '', err: '' })} /><i></i></label>
+              </div>
+            ) : null}
+            {uw.on ? (
+              <>
+                <div className="two">
+                  <label className="fl" htmlFor="aiUPackU">Pack unit<select className="fi" id="aiUPackU" value={uw.pack} onChange={(e) => (e.target.value === '__new' ? (setUw({ ...uw, addFor: 'pack' }), setPop('unit')) : setUw({ ...uw, pack: e.target.value, err: '' }))}>
+                    <option value="">Choose</option>{units.filter((u) => u.code !== uw.base).map((u) => <option key={u.code} value={u.code}>{uLabel(u.code)}</option>)}<option value="__new">+ Add new unit</option></select></label>
+                  <label className="fl" htmlFor="aiUBase">Loose unit<select className="fi" id="aiUBase" value={uw.base} onChange={(e) => (e.target.value === '__new' ? (setUw({ ...uw, addFor: 'base' }), setPop('unit')) : setUw({ ...uw, base: e.target.value, err: '' }))}>
+                    {units.map((u) => <option key={u.code} value={u.code}>{uLabel(u.code)}</option>)}<option value="__new">+ Add new unit</option></select></label>
+                </div>
+                <b className="aph">How many in a pack</b>
+                <label className="cb2">1 {uw.pack || 'pack'} =<input className="fi" id="aiUSize" style={{ width: 90, height: ui.h(42), margin: 0 }} value={uw.size} inputMode="decimal" onChange={(e) => setUw({ ...uw, size: e.target.value.replace(/[^\d.]/g, ''), err: '' })} />{uw.base}</label>
+                <small className="mu" style={{ display: 'block', fontSize: ui.fs(13), marginTop: ui.sp(8) }}>Prices and MRP are per {uw.pack || 'pack'}. The price of 1 {uw.base} is worked out from it.</small>
+              </>
+            ) : <>
             <div className="two">
               <label className="fl" htmlFor="aiUBase">Base unit<select className="fi" id="aiUBase" value={uw.base} onChange={(e) => (e.target.value === '__new' ? (setUw({ ...uw, addFor: 'base' }), setPop('unit')) : setUw({ ...uw, base: e.target.value, sec: uw.sec === e.target.value ? '' : uw.sec, pick: 'new', err: '' }))}>
                 {units.map((u) => <option key={u.code} value={u.code}>{uLabel(u.code)}</option>)}<option value="__new">+ Add new unit</option></select></label>
@@ -398,6 +430,7 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
                 ))}
               </>
             )}
+            </>}
             <div className="msg bad" role="alert" style={{ marginTop: ui.sp(8) }}>{uw.err}</div>
             <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end' }}><button className="btn p" type="button" id="aiUSave" onClick={saveUnits}>Save</button></div>
           </div>

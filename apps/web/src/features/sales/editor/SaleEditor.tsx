@@ -36,7 +36,7 @@ import { printNow } from '../../print/printer';
 import { bankFor, bankOf, useBankPick } from '../../banking/BankPick';
 import { editAsk, withPasscode } from '../../settings/passcode';
 import {
-  DG_TERMS, SI_MODES, SI_TT, addDaysIso, blankLine, calc, cmApply, daysDiff, hasContent, lineComm, lineFor, newSI, partyState, paySum, priceListFor, r2, unitPrice, useSI, useTab, TabCtx, isDirty,
+  DG_TERMS, SI_MODES, SI_TT, addDaysIso, blankLine, calc, cmApply, daysDiff, hasContent, lineComm, lineFor, lineStock, newSI, partyState, paySum, priceFor, priceListFor, r2, useSI, useTab, TabCtx, isDirty,
   type EItem, type EParty, type Line, type SI,
 } from './state';
 import { ui } from '../../../styles/uiSize';
@@ -192,6 +192,8 @@ function fillFrom(d: EditorData, s: SI, v: SaleDoc, how: 'edit' | 'copy' | 'chal
     if (!it) continue;
     const L = lineFor(d.ctx, s, it);
     L.qty = Number(l.qty);
+    // Features › mrp_pack: a saved line stays in its own unit
+    if (L.unit !== l.unit && (l.unit === it.unit || l.unit === it.pack?.unit)) { L.unit = l.unit; L.price = priceFor(d.ctx, it, s.party, l.unit); }
     if (how !== 'challan') {
       L.price = Number(l.price); L.disc = Number(l.discPct) || 0; L.gst = Number(l.gstRate);
       if (l.basePrice !== null && s.ref) { L.bp = Number(l.basePrice); L.cmT = l.commType === 'f' ? 'f' : 'p'; L.cmV = Number(l.commValue); } else { delete L.bp; delete L.cmT; delete L.cmV; }
@@ -202,7 +204,7 @@ function fillFrom(d: EditorData, s: SI, v: SaleDoc, how: 'edit' | 'copy' | 'chal
       L.batches = l.batches.map((b) => ({ batchId: b.batchId, qty: b.qty }));
       (s.batchWas ??= {})[it.id] = [...(s.batchWas[it.id] ?? []), ...l.batches.map((b) => ({ batchId: b.batchId, qty: b.qty, row: { id: b.batchId, no: b.no, mfg: null, expiry: b.expiry, qty: b.qty, rate: '0', value: '0' } }))];
     }
-    if (how === 'edit' && Number(l.qty) > 0) (s.mrpWas ??= {})[it.id] = Math.max(s.mrpWas[it.id] ?? 0, Math.round((Number(l.amount) / Number(l.qty)) * 100) / 100);
+    if (how === 'edit' && Number(l.qty) > 0) (s.mrpWas ??= {})[it.id] = Math.max(s.mrpWas[it.id] ?? 0, Math.round((Number(l.amount) / lineStock({ item: it, unit: l.unit, qty: l.qty })) * 100) / 100);
     lines.push(L);
   }
   s.lines = [...lines, blankLine()];
@@ -281,7 +283,7 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
     if (ctx.txn?.billName && (!x.billName || x.billName === x.party?.billingName)) x.billName = p.billingName ?? '';
     x.party = p; x.pos = partyState(ctx, p);
     if (!x.dueTouched) x.due = addDaysIso(x.date, p.days || 0);
-    x.lines.forEach((l) => { if (l.item) { const b = unitPrice(ctx, l.item, p); if (l.bp !== undefined) l.bp = b; else l.price = b; cmApply(ctx, x, l); } });
+    x.lines.forEach((l) => { if (l.item) { const b = priceFor(ctx, l.item, p, l.unit); if (l.bp !== undefined) l.bp = b; else l.price = b; cmApply(ctx, x, l); } });
   });
   const partyPick = (v: unknown) => {
     if (v === '__add') { c.hide(); setAddParty((document.getElementById('siParty') as HTMLInputElement | null)?.value ?? ''); return; }

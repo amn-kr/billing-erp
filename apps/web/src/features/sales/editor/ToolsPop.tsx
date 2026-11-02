@@ -9,7 +9,7 @@ import { formatQty, money, profitRows, type LineCost } from '@billing/shared';
 import { Icon } from '../../../components/Icon';
 import { api } from '../../../lib/api';
 import { inr2f } from '../../../lib/format';
-import { SI_TT, calc, r2, type Ctx, type SI } from './state';
+import { lineStock, SI_TT, calc, r2, type Ctx, type SI } from './state';
 
 export type ToolKey = 'tr' | 'te' | 'de' | 'at' | 'pl';
 export const DGACC = 'image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt';
@@ -70,7 +70,7 @@ function PlBody({ s, ctx }: { s: SI; ctx: Ctx }) {
   // Features › batch_expiry: a line's cost is the cost of the batches it uses
   const d = useEditorData();
   const allocs = d ? saleAllocs(d, s) : [];
-  const body = { id: s.doc === 'sale' ? s.editId : null, date: s.date, lines: L.map(({ l }) => { const a = allocs[s.lines.indexOf(l)]; return { itemId: l.item!.id, qty: String(l.qty), ...(a?.length ? { batches: a } : {}) }; }) };
+  const body = { id: s.doc === 'sale' ? s.editId : null, date: s.date, lines: L.map(({ l }) => { const a = allocs[s.lines.indexOf(l)]; return { itemId: l.item!.id, qty: String(lineStock(l)), ...(a?.length ? { batches: a } : {}) }; }) };
   const q = useQuery({ queryKey: ['sale-cost', body], queryFn: () => api<{ lines: LineCost[] }>('/sales/cost', { method: 'POST', body }), enabled: L.length > 0, placeholderData: keepPreviousData });
   const head = <div className="dgph"><b>Profit &amp; loss · this bill</b><small className="mu">Before GST · after discounts</small></div>;
   if (!L.length) return <>{head}<div className="ptempty">Add items to see the profit on this bill.</div></>;

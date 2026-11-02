@@ -16,8 +16,8 @@ export const batchOption = (b: Row) => `${b.no}${b.expiry ? ` · Exp ${batchMont
 const LBL = { display: 'flex', alignItems: 'center', gap: ui.sp(6), fontSize: ui.fs(12), color: 'var(--t2)', fontWeight: 500 } as const;
 const BOX = (w: number) => ({ width: ui.w(w), height: ui.h(32), padding: ui.sp('0 8px'), margin: 0 });
 
-export function BatchRowCells({ i, cols, kind, itemId, against, b, showMrp, onChange, onKeyDown }: {
-  i: number; cols: number; kind: 'bill' | 'debit_note'; itemId: string; against: boolean; b: LineBatch; showMrp?: boolean;
+export function BatchRowCells({ i, cols, kind, itemId, against, b, showMrp, onChange, onKeyDown, packUnit }: {
+  i: number; cols: number; kind: 'bill' | 'debit_note'; itemId: string; against: boolean; b: LineBatch; showMrp?: boolean; /** Features › mrp_pack: the MRP is per this pack */ packUnit?: string;
   onChange: (f: keyof LineBatch, v: string) => void; onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }) {
   const rows = useItemBatches(itemId, kind === 'debit_note').data?.rows ?? [];
@@ -33,7 +33,7 @@ export function BatchRowCells({ i, cols, kind, itemId, against, b, showMrp, onCh
               <label style={LBL}>Mfg<input className="fi" data-bf="mfg" style={BOX(84)} value={b.mfg} placeholder="MM/YY" autoComplete="off" aria-label={`Mfg date for row ${i + 1}`} onChange={(e) => onChange('mfg', e.target.value)} onKeyDown={onKeyDown} /></label>
               <label style={LBL}>Expiry<input className="fi" data-bf="expiry" style={BOX(84)} value={b.expiry} placeholder="MM/YY" autoComplete="off" aria-label={`Expiry for row ${i + 1}`} onChange={(e) => onChange('expiry', e.target.value)} onKeyDown={onKeyDown} /></label>
               {showMrp ? <label style={LBL}>MRP<input className="fi" data-bf="mrp" style={BOX(84)} value={b.mrp} placeholder="0.00" inputMode="decimal" autoComplete="off" aria-label={`MRP for row ${i + 1}`} onChange={(e) => onChange('mrp', e.target.value.replace(/[^\d.]/g, ''))} onKeyDown={onKeyDown} /></label> : null}
-              <span className={exp === undefined ? 'xperr' : 'mu'} data-bxmsg style={{ fontSize: ui.fs(12), margin: 0 }}>{exp === undefined ? 'Type the expiry like 03/27' : exp ? `Expires ${batchDay(exp)}` : ''}</span>
+              <span className={exp === undefined ? 'xperr' : 'mu'} data-bxmsg style={{ fontSize: ui.fs(12), margin: 0 }}>{exp === undefined ? 'Type the expiry like 03/27' : exp ? `Expires ${batchDay(exp)}` : ''}{exp !== undefined && showMrp && packUnit ? `${exp ? ' · ' : ''}per ${packUnit}` : ''}</span>
             </>
           ) : (
             <label style={LBL}>Batch<select className="fi" data-bf="batchId" style={{ ...BOX(320), width: 'auto' }} value={b.batchId} aria-label={`Batch for row ${i + 1}`} onChange={(e) => onChange('batchId', e.target.value)}>

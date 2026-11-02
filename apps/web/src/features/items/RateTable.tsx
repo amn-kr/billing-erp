@@ -5,17 +5,18 @@
  * of the largest one; a sold-out rate is grey.
  */
 import type { CSSProperties } from 'react';
-import { formatInr2, formatQty, money, type RateTable as Table } from '@billing/shared';
+import { formatInr2, formatQty, money, type PackInfo, type RateTable as Table } from '@billing/shared';
 import { dmy } from '../../lib/format';
 import { useStyles } from '../../lib/useStyles';
 import css from './rate-table.css?inline';
 
-export function RateTable({ t, unit }: { t: Table; unit: string }) {
+export function RateTable({ t, unit, pack }: { t: Table; unit: string; /** Features › mrp_pack: the rates are per pack, the quantities in `unit` */ pack?: PackInfo | null }) {
   useStyles([css], 'item-rate-table');
+  const title = pack ? `Purchase rate of stock left, per ${pack.packUnit}` : 'Purchase rate of stock left';
   if (!t.layers.length)
     return (
       <div className="itrt" id="itRates">
-        <small>Purchase rate of stock left</small>
+        <small>{title}</small>
         <div className="itrte">{money(t.shortQty).gt(0)
           ? `Stock is short by ${formatQty(t.shortQty)} ${unit}: more was sold than was bought.${t.lastRate ? ` Last bought at ${formatInr2(t.lastRate)}.` : ''}`
           : t.lastRate ? `No stock left. Last bought at ${formatInr2(t.lastRate)}.` : 'No stock yet. Rates show here once you buy or add opening stock.'}</div>
@@ -30,10 +31,10 @@ export function RateTable({ t, unit }: { t: Table; unit: string }) {
   const share = (q: string) => money(q).div(most).times(100).toDecimalPlaces(1).toNumber();
   const tip = (l: Table['layers'][number]) => money(l.qty).isZero()
     ? `${formatInr2(l.rate)} — bought from ${dmy(l.since)}, all sold`
-    : `${formatInr2(l.rate)} — bought from ${dmy(l.since)}\n${formatQty(l.qty)} ${unit} left, worth ${formatInr2(money(l.qty).times(l.rate))}\n${money(l.qty).div(t.totalQty).times(100).round().toFixed(0)}% of the stock`;
+    : `${formatInr2(l.rate)} — bought from ${dmy(l.since)}\n${formatQty(l.qty)} ${unit} left, worth ${formatInr2(money(l.qty).times(l.rate).div(pack ? money(pack.packSize) : 1))}\n${money(l.qty).div(t.totalQty).times(100).round().toFixed(0)}% of the stock`;
   return (
     <div className="itrt" id="itRates">
-      <small>Purchase rate of stock left</small>
+      <small>{title}</small>
       <div className="itrtw">
         <table className="itrtt">
           <tbody>

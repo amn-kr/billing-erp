@@ -4,7 +4,7 @@
  * money is refunded); the same goods can't be returned twice.
  */
 import { useEffect, useRef, useState } from 'react';
-import { batchMonth, type BatchRow } from '@billing/shared';
+import { batchMonth, loosePrice, packQtyText, type BatchRow, type PackInfo } from '@billing/shared';
 import { useFeature } from '../../lib/features';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -39,12 +39,15 @@ interface CnDoc {
   lines: { batchId?: string | null; invoiceId: string | null; itemId: string; name: string; unit: string; qty: string; price: string; gstRate: string }[];
 }
 interface SoldBatch { batchId: string | null; no: string; expiry: string | null; qty: string }
-interface Returnable { soldBatches?: SoldBatch[]; itemId: string; name: string; unit: string; sold: string; max: string; price: string; gstRate: string }
-interface CnLine { /** Features › batch_expiry: '' = as the invoice sold it, '__none' = No batch, else a batch */ batch?: string; sold0?: SoldBatch[]; inv: string; invNo: string; id: string; name: string; sold?: number; max?: number; qty: number; unit: string; price: number; gst: number; amt: number }
+interface Returnable { soldBatches?: SoldBatch[]; itemId: string; name: string; unit: string; sold: string; max: string; price: string; gstRate: string; /** Features › mrp_pack: sold by the pack; `unit`, `sold`, `max` and `price` are the loose unit's */ packUnit?: string | null; packSize?: string | null }
+interface CnLine { /** Features › mrp_pack */ pack?: PackInfo | null; /** Features › batch_expiry: '' = as the invoice sold it, '__none' = No batch, else a batch */ batch?: string; sold0?: SoldBatch[]; inv: string; invNo: string; id: string; name: string; sold?: number; max?: number; qty: number; unit: string; price: number; gst: number; amt: number }
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const PLUS = '<path d="M12 5v14M5 12h14"/>';
 const r2 = (n: number) => Math.round(n * 100) / 100;
+/** An item's sale price per its own unit: it is per pack on an item sold by the pack (Features › mrp_pack). */
+const itemLoose = (it: Item) => (it.packSize ? loosePrice(it.sale, it.packSize).toNumber() : Number(it.sale) || 0);
+const packIn = (l: Returnable): PackInfo | null => (l.packUnit && l.packSize ? { packUnit: l.packUnit, packSize: l.packSize } : null);
 const CN_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View'], HIST_ACTION, '-', ['del', 'Delete', 'dz']];
 
 export function CreditNotesPage() {
@@ -175,7 +178,7 @@ export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string; 
       // editing: what this credit note returned can be returned again
       const ret = await qc.fetchQuery({ queryKey: ['returnable', s.id, editId], queryFn: () => api<Returnable[]>(`/sales/${s.id}/returnable${editId ? `?except=${editId}` : ''}`), staleTime: 0 });
       setInvs((x) => [...x, s.id]);
-      setLines((x) => [...x, ...ret.map((l) => ({ sold0: l.soldBatches, inv: s.id, invNo: s.number, id: l.itemId, name: l.name, sold: Number(l.sold), max: Number(l.max), qty: 0, unit: l.unit, price: Number(l.price), gst: Number(l.gstRate), amt: 0 }))]);
+      setLines((x) => [...x, ...ret.map((l) => ({ sold0: l.soldBatches, inv: s.id, invNo: s.number, id: l.itemId, name: l.name, pack: packIn(l), sold: Number(l.sold), max: Number(l.max), qty: 0, unit: l.unit, price: Number(l.price), gst: Number(l.gstRate), amt: 0 }))]);
     } else {
       setInvs((x) => x.filter((i) => i !== s.id));
       setLines((x) => x.filter((l) => l.inv !== s.id));
@@ -209,7 +212,7 @@ export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string; 
           const mine = d.lines.find((x) => x.invoiceId === inv && x.itemId === l.itemId);
           const qty = mine ? Number(mine.qty) : 0;
           const price = mine ? Number(mine.price) : Number(l.price);
-          out.push({ batch: mine?.batchId === null ? '__none' : mine?.batchId ?? '', sold0: l.soldBatches, inv, invNo, id: l.itemId, name: l.name, sold: Number(l.sold), max: Number(l.max), qty, unit: l.unit, price, gst: Number(l.gstRate), amt: r2(qty * price) });
+          out.push({ batch: mine?.batchId === null ? '__none' : mine?.batchId ?? '', sold0: l.soldBatches, inv, invNo, id: l.itemId, name: l.name, pack: packIn(l), sold: Number(l.sold), max: Number(l.max), qty, unit: l.unit, price, gst: Number(l.gstRate), amt: r2(qty * price) });
         }
       }
       for (const l of d.lines.filter((x) => !x.invoiceId)) out.push({ inv: '', invNo: '', id: l.itemId, name: l.name, qty: Number(l.qty), unit: l.unit, price: Number(l.price), gst: Number(l.gstRate), amt: r2(Number(l.qty) * Number(l.price)) });
@@ -245,9 +248,9 @@ export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string; 
     finally { setBusy(false); }
   };
   const row = ([l, k]: [CnLine, number]) => (
-    <tr data-cnk={k} className={l.qty > 0 ? 'cnon' : ''} key={k}><td><b>{l.name}</b>{batchOn && items.data?.find((i) => i.id === l.id)?.trackBatch ? <CnBatch itemId={l.id} line={l} onChange={(batch) => setLine(k, { batch })} /> : null}</td><td className="n mu">{l.max !== undefined ? <>{qfmt(l.max)} {l.unit}{l.max < (l.sold ?? 0) ? <small style={{ display: 'block' }}>of {qfmt(l.sold ?? 0)} sold</small> : null}</> : '—'}</td>
+    <tr data-cnk={k} className={l.qty > 0 ? 'cnon' : ''} key={k}><td><b>{l.name}</b>{batchOn && items.data?.find((i) => i.id === l.id)?.trackBatch ? <CnBatch itemId={l.id} line={l} onChange={(batch) => setLine(k, { batch })} /> : null}</td><td className="n mu">{l.max !== undefined ? <>{l.pack ? <>{packQtyText(l.max, l.unit, l.pack)}<small style={{ display: 'block' }}>= {qfmt(l.max)} {l.unit}</small></> : <>{qfmt(l.max)} {l.unit}</>}{l.max < (l.sold ?? 0) ? <small style={{ display: 'block' }}>of {qfmt(l.sold ?? 0)} sold</small> : null}</> : '—'}</td>
       <td className="n"><input className="fi sm n" data-cnq value={l.qty || ''} placeholder="0" inputMode="decimal" style={{ width: 72 }} disabled={l.max === 0} title={l.max === 0 ? 'Already returned' : undefined}
-        onChange={(e) => { const v = Number(e.target.value.replace(/[^\d.]/g, '')) || 0; if (l.max !== undefined && v > l.max) { setLine(k, { qty: l.max, amt: r2(l.max * l.price) }); showToast(`Only ${qfmt(l.max)} can be returned on ${l.invNo}`); } else setLine(k, { qty: v, amt: r2(v * l.price) }); }} /></td>
+        onChange={(e) => { const v = Number(e.target.value.replace(/[^\d.]/g, '')) || 0; if (l.max !== undefined && v > l.max) { setLine(k, { qty: l.max, amt: r2(l.max * l.price) }); showToast(`Only ${qfmt(l.max)} can be returned on ${l.invNo}`); } else setLine(k, { qty: v, amt: r2(v * l.price) }); }} />{l.pack ? <small className="mu" data-cnpack style={{ display: 'block', marginTop: ui.sp(2) }}>{l.unit}{l.qty ? ` · = ${qfmt(l.qty / Number(l.pack.packSize))} ${l.pack.packUnit}` : ''}</small> : null}</td>
       <td className="n"><input className="fi sm n" data-cnp value={l.price || ''} inputMode="decimal" style={{ width: 88 }} onChange={(e) => { const v = Number(e.target.value.replace(/[^\d.]/g, '')) || 0; setLine(k, { price: v, amt: r2(l.qty * v) }); }} /></td>
       {gst ? <td className="n mu">{l.gst}%</td> : null}<td className="n"><b>{inr2f(r2(l.qty * l.price))}</b></td>
       <td>{l.inv ? null : <button type="button" className="ix" data-cndel={k} aria-label="Remove" onClick={() => { setLines((x) => x.filter((_, i) => i !== k)); redraw(); }}><Icon name="x" /></button>}</td></tr>
@@ -272,7 +275,7 @@ export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string; 
         <div className="cnadd" id="cnAddW"><input className="fi" id="cnAddI" list="cnItemsL" placeholder="+ Add an item (type to search)" autoComplete="off" onChange={(e) => {
           const it = (items.data ?? []).find((i) => i.name === e.target.value);
           if (!it) return;
-          setLines((x) => [...x, { inv: '', invNo: '', id: it.id, name: it.name, qty: 1, unit: it.unit ?? '', price: Number(it.sale) || 0, gst: gst ? Number(it.gstRate) || 0 : 0, amt: Number(it.sale) || 0 }]);
+          setLines((x) => [...x, { inv: '', invNo: '', id: it.id, name: it.name, qty: 1, unit: it.unit ?? '', price: itemLoose(it), gst: gst ? Number(it.gstRate) || 0 : 0, amt: itemLoose(it) }]);
           e.target.value = '';
           redraw();
         }} /><datalist id="cnItemsL">{(items.data ?? []).map((i) => <option value={i.name} key={i.id} />)}</datalist></div>

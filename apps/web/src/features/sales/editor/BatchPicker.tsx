@@ -4,13 +4,13 @@
  * with a red note; saving the bill then asks "Sell expired stock?".
  */
 import { useEffect, useRef, useState } from 'react';
-import { batchDay, batchMonth, effectiveMrp, expiryState, formatQty, money, type BatchAlloc, type BatchRow } from '@billing/shared';
+import { batchDay, batchMonth, effectiveMrp, expiryState, formatQty, money, packQtyText, type BatchAlloc, type BatchRow, type PackInfo } from '@billing/shared';
 import { useEscape } from '../../../lib/useEscape';
 import { useOpenFocus } from '../../../lib/useOpenFocus';
 import { ExpiryTag } from '../../items/BatchCard';
 import { ui } from '../../../styles/uiSize';
 
-export interface PickFor { name: string; qty: string | number; unit: string; rows: BatchRow[]; allocs: BatchAlloc[]; auto: BatchAlloc[]; date: string; showMrp?: boolean; itemMrp?: number | string | null }
+export interface PickFor { name: string; qty: string | number; unit: string; rows: BatchRow[]; allocs: BatchAlloc[]; auto: BatchAlloc[]; date: string; showMrp?: boolean; itemMrp?: number | string | null; /** Features › mrp_pack: an item sold by the pack; `qty` and `unit` are its loose unit */ pack?: PackInfo; /** "2 STRIP = 20 TAB" */ sold?: string }
 
 const key = (id: string | null) => id ?? 'none';
 const fill = (list: BatchAlloc[]) => Object.fromEntries(list.map((a) => [key(a.batchId), formatQty(a.qty)]));
@@ -48,12 +48,12 @@ export function BatchPicker({ pick, onClose, onDone }: { pick: PickFor | null; o
     <div className="ov c" id="bxPick" ref={ref} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'bxPick') onClose(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="bxPickT" style={{ width: 'min(640px,100%)' }}>
         <h3 id="bxPickT" style={{ margin: ui.sp('0 0 4px'), fontSize: ui.fs(18) }}>Choose batch</h3>
-        <p className="mu" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(13) }}>{pick.name} · Quantity on this bill <b>{formatQty(want)} {pick.unit}</b>. Picked automatically, earliest expiry first. Change it if you need to.</p>
+        <p className="mu" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(13) }}>{pick.name} · Quantity on this bill <b>{pick.sold ?? `${formatQty(want)} ${pick.unit}`}</b>. Picked automatically, earliest expiry first. Change it if you need to.</p>
         <div className="tw" style={{ margin: 0 }}><table className="ptt2" style={{ width: '100%', minWidth: 0 }}>
-          <thead><tr><th>Batch</th><th>Mfg</th><th>Expiry</th>{pick.showMrp ? <th className="n">MRP</th> : null}<th className="n">In stock</th><th className="n" style={{ width: ui.w(92) }}>Take</th></tr></thead>
+          <thead><tr><th>Batch</th><th>Mfg</th><th>Expiry</th>{pick.showMrp ? <th className="n">MRP</th> : null}<th className="n">In stock</th><th className="n" style={{ width: ui.w(92) }}>{pick.pack ? `Take (${pick.unit})` : 'Take'}</th></tr></thead>
           <tbody id="bxPickRows">{rows.map((r) => (
             <tr key={key(r.id)} data-batch={r.no}>
-              <td><b style={{ fontWeight: 600 }}>{r.no}</b></td><td className="mu">{batchMonth(r.mfg)}</td><td>{batchMonth(r.expiry)} <ExpiryTag expiry={r.expiry} on={pick.date} /></td>{pick.showMrp ? <td className="n">{mrpOf(r)}</td> : null}<td className="n">{formatQty(r.qty)}</td>
+              <td><b style={{ fontWeight: 600 }}>{r.no}</b></td><td className="mu">{batchMonth(r.mfg)}</td><td>{batchMonth(r.expiry)} <ExpiryTag expiry={r.expiry} on={pick.date} /></td>{pick.showMrp ? <td className="n">{mrpOf(r)}</td> : null}<td className="n">{pick.pack ? packQtyText(r.qty, pick.unit, pick.pack) : formatQty(r.qty)}</td>
               <td className="n"><input className="fi" inputMode="decimal" autoComplete="off" aria-label={`Take from ${r.no}`} style={{ height: ui.h(34), textAlign: 'right', padding: ui.sp('0 8px'), margin: 0 }} value={take[key(r.id)] ?? ''}
                 onChange={(e) => { setAuto(false); setErr(''); setTake({ ...take, [key(r.id)]: e.target.value.replace(/[^\d.]/g, '') }); }}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); done(); } }} /></td>

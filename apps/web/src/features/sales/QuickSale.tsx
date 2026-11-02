@@ -16,7 +16,7 @@ import { toastSaveFailed, toastSaved } from '../shell/saved';
 import { qfmt } from '../items/ItemsPage';
 import { useEditorData, type EditorData } from './editor/data';
 import { ComboList, comboKey, partyOpts, useCombo, type ComboOpt } from './editor/Grid';
-import { calc, lineFor, newSI, partyState, priceListFor, unitPrice, useSI, type EItem, type EParty, type Line } from './editor/state';
+import { calc, lineFor, newSI, partyState, priceFor, priceListFor, useSI, type EItem, type EParty, type Line } from './editor/state';
 import { ui } from '../../styles/uiSize';
 
 export const useQuick = create<{ open: boolean; show: () => void; hide: () => void }>((set) => ({ open: false, show: () => set({ open: true }), hide: () => set({ open: false }) }));
@@ -63,21 +63,21 @@ function QuickSaleWindow({ d, close }: { d: EditorData; close: () => void }) {
     const s = q.toLowerCase();
     return d.IT.filter((i) => !s || i.name.toLowerCase().includes(s) || i.code.toLowerCase().includes(s) || i.brand.toLowerCase().includes(s)).slice(0, 30).map((i) => ({
       val: i,
-      html: <><span><b>{i.name}</b><small>{i.code ? i.code + ' · ' : ''}{i.svc ? 'Service' : `Stock ${qfmt(i.stock ?? 0)} ${i.unit}`}</small></span><span><b>{inr2f(unitPrice(ctx, i, party))}</b>{i.stock !== null && i.stock <= 0 ? <small className="neg">Out of stock</small> : null}</span></>,
+      html: <><span><b>{i.name}</b><small>{i.code ? i.code + ' · ' : ''}{i.svc ? 'Service' : `Stock ${qfmt(i.stock ?? 0)} ${i.unit}`}</small></span><span><b>{inr2f(priceFor(ctx, i, party, i.unit))}</b>{i.stock !== null && i.stock <= 0 ? <small className="neg">Out of stock</small> : null}</span></>,
     }));
   };
   const pOpts = (q: string) => partyOpts(d.PT, q).filter((o) => o.val !== '__add');
   const pickParty = (p: EParty | null) => {
     setParty(p); setName('');
     if (!p && pay === 'Credit') setPay('Cash');
-    setLines((L) => L.map((l) => (l.item ? { ...l, price: unitPrice(ctx, l.item, p) } : l)));
+    setLines((L) => L.map((l) => (l.item ? { ...l, price: priceFor(ctx, l.item, p, l.unit) } : l)));
     c.hide();
     if (p) setTimeout(() => document.querySelector<HTMLInputElement>('#qsRows .qs-item')?.focus(), 0);
   };
   const pickItem = (i: number, it: EItem) => {
     setLines((L) => {
       const next = [...L];
-      next[i] = { ...next[i]!, item: it, name: it.name, hsn: it.hsn || '', unit: it.unit, price: unitPrice(ctx, it, party), gst: ctx.mode === 'gst' ? it.gst || 0 : 0 };
+      next[i] = { ...next[i]!, item: it, name: it.name, hsn: it.hsn || '', unit: it.unit, price: priceFor(ctx, it, party, it.unit), gst: ctx.mode === 'gst' ? it.gst || 0 : 0 };
       if (i === L.length - 1) next.push(blank());
       return next;
     });
@@ -119,7 +119,7 @@ function QuickSaleWindow({ d, close }: { d: EditorData; close: () => void }) {
   const full = () => {
     const s = newSI(ctx, { no: nn.data?.number ?? '', date });
     if (party) { s.party = party; s.pos = partyState(ctx, party); s.due = s.date; }
-    s.lines = [...lines.filter((l) => l.item).map((l) => ({ ...lineFor(ctx, s, l.item!), qty: Number(l.qty) || 1, price: l.price, disc: Number(l.disc) || 0 })), { item: null, name: '', hsn: '', qty: 1, unit: '', price: 0, disc: 0, gst: 18 }];
+    s.lines = [...lines.filter((l) => l.item).map((l) => ({ ...lineFor(ctx, s, l.item!), qty: Number(l.qty) || 1, unit: l.unit, price: l.price, disc: Number(l.disc) || 0 })), { item: null, name: '', hsn: '', qty: 1, unit: '', price: 0, disc: 0, gst: 18 }];
     useSI.getState().open(s);
     close();
     navigate(`/sales/new?keep=${Date.now()}`);

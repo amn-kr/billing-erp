@@ -41,11 +41,12 @@ export function useEditorData() {
     defaultList: def?.id ?? null, listForGroup, listName: Object.fromEntries(lists.data.map((l) => [l.id, l.name])),
     rules: Object.fromEntries(rules.data.map((r) => [r.category, { t: KIND[r.kind] ?? 'n', v: Number(r.value) }])),
     txn: txnOpts(settings.data.data),
+    packOn: mrpOn,
   };
   const pm = new Map(prices.data.items.map((p) => [p.id, p.lists]));
   const IT: EItem[] = items.data.map((i) => ({
     id: i.id, name: i.name, code: i.code, hsn: i.hsn, unit: i.unit, cat: i.category, gst: Number(i.gstRate), stock: i.kind === 'service' ? null : Number(i.stock ?? 0),
-    svc: i.kind === 'service', brand: i.brand, series: i.series, grp: i.group, purch: Number(i.purchase), sale: Number(i.sale), track: !!i.trackBatch, mrp: Number(i.mrp),
+    svc: i.kind === 'service', brand: i.brand, series: i.series, grp: i.group, purch: Number(i.purchase), sale: Number(i.sale), track: !!i.trackBatch, mrp: Number(i.mrp), ...(i.packUnit && i.packSize ? { pack: { unit: i.packUnit, size: Number(i.packSize) } } : {}),
     pl: Object.fromEntries(Object.entries(pm.get(i.id) ?? {}).map(([k, v]) => [k, Number(v.price)])),
   }));
   const PT: EParty[] = parties.data.map((p) => ({

@@ -3,6 +3,7 @@
  * renderDcs / dcOpen / dcSave / dcPrint. A challan changes neither stock nor dues;
  * "Convert to invoice" opens the invoice editor filled in.
  */
+import { useFeature } from '../../lib/features';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -116,6 +117,7 @@ function ChallanDialog({ open, editId, onClose, onSaved }: { open: boolean; edit
   const doc = editId && saved.data?.id === editId ? saved.data : null;
   const [party, setParty] = useState('');
   const [lines, setLines] = useState<{ id: string; name: string; qty: string; unit: string }[]>([]);
+  const packOn = useFeature('mrp_pack');
   const [date, setDate] = useState(today());
   const [f, setF] = useState({ tr: '', veh: '', note: '', name: '', phone: '' });
   const [err, setErr] = useState('');
@@ -149,7 +151,7 @@ function ChallanDialog({ open, editId, onClose, onSaved }: { open: boolean; edit
     if (!L.length) return fail('Add at least one item with a quantity.');
     setBusy(true);
     try {
-      const body = { partyId: party === '__walk' ? null : party, cashName: f.name, cashPhone: f.phone, date, lines: L.map((l) => ({ itemId: l.id, qty: l.qty })), transport: f.tr.trim(), vehicle: f.veh.trim(), note: f.note.trim() };
+      const body = { partyId: party === '__walk' ? null : party, cashName: f.name, cashPhone: f.phone, date, lines: L.map((l) => ({ itemId: l.id, qty: l.qty, unit: l.unit })), transport: f.tr.trim(), vehicle: f.veh.trim(), note: f.note.trim() };
       type Out = { id: string; number: string; partyName: string; items: number };
       const res = doc
         ? await withPasscode(qc, editAsk(doc.number), (h) => api<Out>(`/challans/${doc.id}`, { method: 'PUT', body, headers: h }))
@@ -173,14 +175,17 @@ function ChallanDialog({ open, editId, onClose, onSaved }: { open: boolean; edit
         <div className="two" id="dcWalkW" hidden={party !== '__walk'}><label className="fl" htmlFor="dcName">Name<input className="fi" id="dcName" autoComplete="off" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></label><label className="fl" htmlFor="dcPhone">Mobile<input className="fi" id="dcPhone" inputMode="numeric" autoComplete="off" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} /></label></div>
         <div className="tw" style={{ margin: ui.sp('4px 0 0') }}><table className="ptt2 pyt spt"><thead><tr><th>Item</th><th className="n">In stock</th><th className="n">Qty</th><th>Unit</th><th></th></tr></thead>
           <tbody id="dcRowsI">{lines.length ? lines.map((l, k) => {
-            const stock = Number(goods.find((i) => i.id === l.id)?.stock ?? 0);
-            return <tr data-dck={k} key={k}><td><b style={{ fontWeight: 600 }}>{l.name}</b></td><td className={`n ${stock < (Number(l.qty) || 0) ? 'neg' : 'mu'}`}>{qfmt(stock)}</td><td className="n"><input className="fi sm n" data-dcq value={l.qty} inputMode="decimal" style={{ width: 80 }} onChange={(e) => { const v = e.target.value.replace(/[^\d.]/g, ''); setLines((x) => x.map((y, i) => (i === k ? { ...y, qty: v } : y))); }} /></td><td>{l.unit}</td>
+            const good = goods.find((i) => i.id === l.id);
+            const stock = Number(good?.stock ?? 0);
+            // Features › mrp_pack: a line in packs moves that many packs' worth when it is billed
+            const inStock = (Number(l.qty) || 0) * (good?.packUnit === l.unit && good?.packSize ? Number(good.packSize) : 1);
+            return <tr data-dck={k} key={k}><td><b style={{ fontWeight: 600 }}>{l.name}</b></td><td className={`n ${stock < inStock ? 'neg' : 'mu'}`}>{qfmt(stock)}</td><td className="n"><input className="fi sm n" data-dcq value={l.qty} inputMode="decimal" style={{ width: 80 }} onChange={(e) => { const v = e.target.value.replace(/[^\d.]/g, ''); setLines((x) => x.map((y, i) => (i === k ? { ...y, qty: v } : y))); }} /></td><td>{good?.packUnit && packOn ? <select className="fi sm" data-dcu aria-label={`Unit for ${l.name}`} value={l.unit} onChange={(e) => { const v = e.target.value; setLines((x) => x.map((y, i) => (i === k ? { ...y, unit: v } : y))); }}><option value={good.packUnit}>{good.packUnit}</option><option value={good.unit}>{good.unit}</option></select> : l.unit}</td>
               <td><button type="button" className="ix" data-dcdel={k} aria-label="Remove" onClick={() => setLines((x) => x.filter((_, i) => i !== k))}><Icon name="x" /></button></td></tr>;
           }) : <tr><td colSpan={5} className="ptempty">Add the items you are sending.</td></tr>}</tbody></table></div>
         <div className="cnadd"><input className="fi" id="dcAddI" list="dcItemsL" placeholder="+ Add an item (type to search)" autoComplete="off" onChange={(e) => {
           const it = goods.find((i) => i.name === e.target.value);
           if (!it) return;
-          setLines((x) => (x.some((l) => l.id === it.id) ? x.map((l) => (l.id === it.id ? { ...l, qty: String((Number(l.qty) || 0) + 1) } : l)) : [...x, { id: it.id, name: it.name, qty: '1', unit: it.unit }]));
+          setLines((x) => (x.some((l) => l.id === it.id) ? x.map((l) => (l.id === it.id ? { ...l, qty: String((Number(l.qty) || 0) + 1) } : l)) : [...x, { id: it.id, name: it.name, qty: '1', unit: it.packUnit && packOn ? it.packUnit : it.unit }]));
           e.target.value = '';
           setTimeout(() => { const qs = document.querySelectorAll<HTMLInputElement>('#dcRowsI [data-dcq]'); const last = qs[qs.length - 1]; last?.focus(); last?.select(); }, 0);
         }} /><datalist id="dcItemsL">{goods.map((i) => <option value={i.name} key={i.id} />)}</datalist></div>
