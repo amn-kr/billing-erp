@@ -4,13 +4,13 @@
  * with a red note; saving the bill then asks "Sell expired stock?".
  */
 import { useEffect, useRef, useState } from 'react';
-import { batchDay, batchMonth, expiryState, formatQty, money, type BatchAlloc, type BatchRow } from '@billing/shared';
+import { batchDay, batchMonth, effectiveMrp, expiryState, formatQty, money, type BatchAlloc, type BatchRow } from '@billing/shared';
 import { useEscape } from '../../../lib/useEscape';
 import { useOpenFocus } from '../../../lib/useOpenFocus';
 import { ExpiryTag } from '../../items/BatchCard';
 import { ui } from '../../../styles/uiSize';
 
-export interface PickFor { name: string; qty: string | number; unit: string; rows: BatchRow[]; allocs: BatchAlloc[]; auto: BatchAlloc[]; date: string; showMrp?: boolean }
+export interface PickFor { name: string; qty: string | number; unit: string; rows: BatchRow[]; allocs: BatchAlloc[]; auto: BatchAlloc[]; date: string; showMrp?: boolean; itemMrp?: number | string | null }
 
 const key = (id: string | null) => id ?? 'none';
 const fill = (list: BatchAlloc[]) => Object.fromEntries(list.map((a) => [key(a.batchId), formatQty(a.qty)]));
@@ -32,6 +32,8 @@ export function BatchPicker({ pick, onClose, onDone }: { pick: PickFor | null; o
   // No batch is always offered, and so is a batch already on the line
   const rows: BatchRow[] = [...pick.rows];
   if (!rows.some((r) => r.id === null)) rows.unshift({ id: null, no: 'No batch', mfg: null, expiry: null, qty: '0.000', rate: '0', value: '0' });
+  // stock without its own MRP counts at the item's (effectiveMrp), so that is what it shows
+  const mrpOf = (r: BatchRow) => { const m = effectiveMrp(pick.itemMrp, [r.mrp]); return m ? m.toFixed(2) : '—'; };
   const want = money(String(pick.qty || 0));
   const n = (t: string) => { const v = Number(t.replace(/[^\d.]/g, '')); return Number.isFinite(v) ? v : 0; };
   const picked = rows.reduce((a, r) => a.plus(n(take[key(r.id)] ?? '')), money(0));
@@ -51,7 +53,7 @@ export function BatchPicker({ pick, onClose, onDone }: { pick: PickFor | null; o
           <thead><tr><th>Batch</th><th>Mfg</th><th>Expiry</th>{pick.showMrp ? <th className="n">MRP</th> : null}<th className="n">In stock</th><th className="n" style={{ width: ui.w(92) }}>Take</th></tr></thead>
           <tbody id="bxPickRows">{rows.map((r) => (
             <tr key={key(r.id)} data-batch={r.no}>
-              <td><b style={{ fontWeight: 600 }}>{r.no}</b></td><td className="mu">{batchMonth(r.mfg)}</td><td>{batchMonth(r.expiry)} <ExpiryTag expiry={r.expiry} on={pick.date} /></td>{pick.showMrp ? <td className="n">{r.mrp ? money(r.mrp).toFixed(2) : '—'}</td> : null}<td className="n">{formatQty(r.qty)}</td>
+              <td><b style={{ fontWeight: 600 }}>{r.no}</b></td><td className="mu">{batchMonth(r.mfg)}</td><td>{batchMonth(r.expiry)} <ExpiryTag expiry={r.expiry} on={pick.date} /></td>{pick.showMrp ? <td className="n">{mrpOf(r)}</td> : null}<td className="n">{formatQty(r.qty)}</td>
               <td className="n"><input className="fi" inputMode="decimal" autoComplete="off" aria-label={`Take from ${r.no}`} style={{ height: ui.h(34), textAlign: 'right', padding: ui.sp('0 8px'), margin: 0 }} value={take[key(r.id)] ?? ''}
                 onChange={(e) => { setAuto(false); setErr(''); setTake({ ...take, [key(r.id)]: e.target.value.replace(/[^\d.]/g, '') }); }}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); done(); } }} /></td>

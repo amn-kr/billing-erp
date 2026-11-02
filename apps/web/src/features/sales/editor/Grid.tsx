@@ -121,7 +121,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
     // automatic for this line alone, after what the other lines use
     const others = si.lines.map((x, k) => (k === i ? { ...x, batches: undefined } : x));
     const auto = saleAllocs(d, { ...si, lines: [...others.filter((_, k) => k !== i), others[i]!] }).at(-1) ?? [];
-    return { name: l.name, qty: l.qty, unit: l.unit, rows, allocs: allocs[i] ?? [], auto, date: si.date, showMrp: !!d.mrpOn };
+    return { name: l.name, qty: l.qty, unit: l.unit, rows, allocs: allocs[i] ?? [], auto, date: si.date, showMrp: !!d.mrpOn, itemMrp: l.item?.mrp };
   };
   const up2 = (fn: (s: SI) => void) => up((s) => { fn(s); s.warnOk = false; s.dirty = true; });
   const pickItem = (i: number, v: unknown) => {
