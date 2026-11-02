@@ -14,8 +14,8 @@ import { usePriceHistory } from './PriceHistory';
 import { blankLine, calc, finalRate, frSet, lineFor, r2, useTab, type Ctx, type EItem, type EParty, type Line, type SI } from './state';
 import type { EditorData } from './data';
 import { BatchPicker, type PickFor } from './BatchPicker';
-import { batchRowsFor, saleAllocs } from './batches';
-import { allocText, expiryState } from '@billing/shared';
+import { batchRowsFor, lineMrp, saleAllocs } from './batches';
+import { allocText, expiryState, isAboveMrp, money } from '@billing/shared';
 
 const BOLT = '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>';
 
@@ -121,7 +121,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
     // automatic for this line alone, after what the other lines use
     const others = si.lines.map((x, k) => (k === i ? { ...x, batches: undefined } : x));
     const auto = saleAllocs(d, { ...si, lines: [...others.filter((_, k) => k !== i), others[i]!] }).at(-1) ?? [];
-    return { name: l.name, qty: l.qty, unit: l.unit, rows, allocs: allocs[i] ?? [], auto, date: si.date };
+    return { name: l.name, qty: l.qty, unit: l.unit, rows, allocs: allocs[i] ?? [], auto, date: si.date, showMrp: !!d.mrpOn };
   };
   const up2 = (fn: (s: SI) => void) => up((s) => { fn(s); s.warnOk = false; s.dirty = true; });
   const pickItem = (i: number, v: unknown) => {
@@ -250,7 +250,14 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
               <td className="c">{i + 1}</td>
               <td><div className="gic"><div className="combo"><input className="gi si-item" data-f="name" defaultValue={l.item && l.item.grp && l.item.brand ? l.item.grp : l.name} title={l.name} placeholder={`Search item${d.gstOn ? ', code or HSN' : ' or code'}`} autoComplete="off" aria-label={`Item ${i + 1}`} /><ComboList c={c} k={`row:${i}`} grid /></div>
                 {st !== null ? <small title="In stock" className={left < 0 ? 'neg' : 'mu'}>{left < 0 ? `Only ${qfmt(st)}` : `${qfmt(st)} ${l.unit}`}</small> : null}</div>
-                {allocs[i] ? <button type="button" className="bxl" data-bxl={i} title="Choose batch" style={{ display: 'block', fontSize: ui.fs(11.5), fontWeight: 600, textAlign: 'left', background: 'none', border: 0, padding: ui.sp('1px 0 0 10px'), cursor: 'pointer', whiteSpace: 'nowrap', color: (batchRowsFor(d, si, l.item?.id) ?? []).some((r) => r.expiry && expiryState(r.expiry, si.date) === 'expired' && allocs[i]!.some((a) => a.batchId === r.id)) ? 'var(--red)' : 'var(--ac)' }} onClick={() => setPickAt(i)}>{allocs[i]!.length ? allocText(allocs[i]!, batchRowsFor(d, si, l.item?.id) ?? []) : 'Choose batch'} ▾</button> : null}</td>
+                {(() => {
+                  const mrp = lineMrp(d, si, l, allocs[i]);
+                  const over = !!mrp && isAboveMrp(r.amt, Number(l.qty) || 0, money(mrp));
+                  const mrpTxt = mrp ? <span data-mrp={i} style={over ? { color: 'var(--red)' } : undefined}>{allocs[i] ? ' · ' : ''}{over ? `MRP ${inr2f(mrp)}, rate is above it` : `MRP ${inr2f(mrp)}`}</span> : null;
+                  const rows = batchRowsFor(d, si, l.item?.id) ?? [];
+                  if (!allocs[i]) return mrp ? <small className="mu" style={{ display: 'block', fontWeight: 600, padding: ui.sp('1px 0 0 10px'), whiteSpace: 'nowrap' }}>{mrpTxt}</small> : null;
+                  return <button type="button" className="bxl" data-bxl={i} title="Choose batch" style={{ display: 'block', fontSize: ui.fs(11.5), fontWeight: 600, textAlign: 'left', background: 'none', border: 0, padding: ui.sp('1px 0 0 10px'), cursor: 'pointer', whiteSpace: 'nowrap', color: rows.some((b) => b.expiry && expiryState(b.expiry, si.date) === 'expired' && allocs[i]!.some((x) => x.batchId === b.id)) ? 'var(--red)' : 'var(--ac)' }} onClick={() => setPickAt(i)}>{allocs[i]!.length ? allocText(allocs[i]!, rows) : 'Choose batch'}{mrpTxt} ▾</button>;
+                })()}</td>
               <td className="ro l mono dgc1">{l.item?.code ?? ''}</td><td className="ro l dgc2">{l.item?.brand ?? ''}</td><td className="ro l dgc2">{l.item?.series ?? ''}</td>
               {gstCol ? <td><input className="gi" data-f="hsn" defaultValue={l.hsn} inputMode="numeric" aria-label="HSN" /></td> : null}
               <td><input className="gi n" data-f="qty" defaultValue={String(l.qty)} inputMode="decimal" aria-label="Quantity" /></td>
@@ -258,7 +265,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
               <td className="prlk"><input className="gi n" data-f="price" value={String(l.price)} readOnly aria-readonly="true" title={l.item && l.price > 0 ? 'From the price list. Change it in Price manager.' : 'Set the rate in Final rate'} aria-label="Sale price (from price list)" /></td>
               <td><input className="gi n" data-f="disc" defaultValue={l.disc ? String(r2(l.disc)) : ''} placeholder="0" inputMode="decimal" aria-label="Discount percent" /></td>
               <td><input className="gi n" data-f="damt" defaultValue={r.disc ? String(r2(r.disc)) : ''} placeholder="0" inputMode="decimal" aria-label="Discount amount" /></td>
-              <td className="frc"><input className="gi n" data-f="fr" defaultValue={l.item || l.price ? finalRate(l).toFixed(2) : ''} placeholder="0.00" inputMode="decimal" aria-label="Final rate" title="Type the selling rate. The discount is worked out from the price-list rate." /></td>
+              <td className="frc" data-mrpbad={(() => { const m = lineMrp(d, si, l, allocs[i]); return m && isAboveMrp(r.amt, Number(l.qty) || 0, money(m)) ? '1' : undefined; })()} style={(() => { const m = lineMrp(d, si, l, allocs[i]); return m && isAboveMrp(r.amt, Number(l.qty) || 0, money(m)) ? { outline: '1px solid var(--red)', outlineOffset: -1 } : undefined; })()}><input className="gi n" data-f="fr" defaultValue={l.item || l.price ? finalRate(l).toFixed(2) : ''} placeholder="0.00" inputMode="decimal" aria-label="Final rate" title="Type the selling rate. The discount is worked out from the price-list rate." /></td>
               {G ? <><td><select className="gi" data-f="gst" aria-label="GST rate" defaultValue={String(l.gst)}>{d.gstRates.map((g) => <option value={g} key={g}>{pct(g)}</option>)}</select></td><td className="ro" data-o="tx">{inr2f(r.tx)}</td></> : null}
               <td className="ro b" data-o="amt">{inr2f(r.amt)}</td>
               <td className="x"><button type="button" className="ix" data-del={i} aria-label={`Remove row ${i + 1}`} disabled={si.lines.length === 1} onMouseDown={() => up((s) => { s.dirty = true; })} onClick={() => { up2((s) => { s.lines.splice(i, 1); }); full(); }}><Icon name="x" /></button></td>

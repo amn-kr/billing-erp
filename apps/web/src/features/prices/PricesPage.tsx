@@ -4,6 +4,7 @@
  * dropped when MRP is off, sticky second heading row, pmFit height) and
  * "Price Setup", which needs the price PIN.
  */
+import { useMrpOn } from '../../lib/settings';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { rulePrice, type PriceRuleSet } from '@billing/shared';
 import { inr2f } from '../../lib/format';
@@ -43,7 +44,7 @@ export function nudgeLock() {
 export function PricesPage() {
   const data = usePriceData();
   const settings = useSettings().data;
-  const mrpOn = !!settings?.data?.mrp;
+  const mrpOn = useMrpOn();
   const rules = (settings?.data as { priceRules?: Record<string, PriceRuleSet> } | undefined)?.priceRules ?? {};
   const { showToast } = useShell();
   const { undo, pin, hint } = usePm();

@@ -9,6 +9,7 @@ import { batchMonth, expiryLabel, formatQty, matchesExpiry, money, sumValues, ty
 import { api } from '../../lib/api';
 import { inr2f } from '../../lib/format';
 import { today } from '../../lib/time';
+import { useFeature } from '../../lib/features';
 import { ExpiryTag } from '../items/BatchCard';
 import { RpShell, type RpDef } from './Shell';
 import type { RpProps } from './ReportsPage';
@@ -19,6 +20,7 @@ const CHIPS: [ExpiryFilter, string][] = [['all', 'All'], ['expired', 'Expired'],
 
 export function BatchReport(props: RpProps) {
   const on = today();
+  const showMrp = useFeature('mrp_pack');
   const nav = useNavigate();
   const q = useQuery({ queryKey: ['items', 'batch-report'], queryFn: () => api<Row[]>('/reports/batches') });
   const [f, setF] = useState<ExpiryFilter>('all');
@@ -30,9 +32,9 @@ export function BatchReport(props: RpProps) {
     title: 'Item Batch Report', group: 'Item/ Stock report', period: false, sub: f === 'all' ? '' : CHIPS.find((c) => c[0] === f)![1],
     filters: <div className="seg2" id="rpBxF" style={{ marginBottom: ui.sp(4) }}>{CHIPS.map(([k, label]) => <button type="button" key={String(k)} data-bxf={String(k)} className={f === k ? 'on' : ''} onClick={() => setF(k)}>{label}</button>)}</div>,
     kpis: [['Stock value', inr2f(value(q.data))], ['Expired', inr2f(value(q.data.filter((r) => matchesExpiry(r.expiry, on, 'expired')))), 'pscl neg'], ['Expiring in 90 days', inr2f(value(q.data.filter((r) => matchesExpiry(r.expiry, on, 90))))], ['Batches', String(q.data.filter((r) => r.id).length)]],
-    cols: [{ h: 'Item', w: 30 }, { h: 'Batch', w: 14 }, { h: 'Mfg', w: 10 }, { h: 'Expiry', w: 10 }, { h: '', w: 12 }, { h: 'In stock', n: true }, { h: 'Rate', n: true }, { h: 'Value', n: true }],
-    rows: A.map((r) => ({ k: r.itemId, c: [r.item, r.no, batchMonth(r.mfg), batchMonth(r.expiry), expiryLabel(r.expiry, on), `${formatQty(r.qty)} ${r.unit}`, inr2f(r.rate), inr2f(r.value)], h: { 4: <ExpiryTag expiry={r.expiry} on={on} /> } })),
-    foot: ['Total', '', '', '', '', formatQty(qty), '', inr2f(value(A))], empty: f === 'all' ? 'No items with batches have stock yet.' : 'No batches match.',
+    cols: [{ h: 'Item', w: 30 }, { h: 'Batch', w: 14 }, { h: 'Mfg', w: 10 }, { h: 'Expiry', w: 10 }, { h: '', w: 12 }, ...(showMrp ? [{ h: 'MRP', n: true }] : []), { h: 'In stock', n: true }, { h: 'Rate', n: true }, { h: 'Value', n: true }],
+    rows: A.map((r) => ({ k: r.itemId, c: [r.item, r.no, batchMonth(r.mfg), batchMonth(r.expiry), expiryLabel(r.expiry, on), ...(showMrp ? [r.mrp ? inr2f(r.mrp) : '—'] : []), `${formatQty(r.qty)} ${r.unit}`, inr2f(r.rate), inr2f(r.value)], h: { 4: <ExpiryTag expiry={r.expiry} on={on} /> } })),
+    foot: ['Total', '', '', '', '', ...(showMrp ? [''] : []), formatQty(qty), '', inr2f(value(A))], empty: f === 'all' ? 'No items with batches have stock yet.' : 'No batches match.',
     note: 'Values use the same purchase rates as the stock value. Items you don’t track by batch aren’t listed. Click a row to open the item.',
     click: (k) => nav('/items', { state: { open: k } }),
   };
