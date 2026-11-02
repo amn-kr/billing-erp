@@ -6,6 +6,7 @@
  * The software owner signs in here too and goes to the owner panel (/owner); /login?setup is the panel's one-time setup.
  */
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { STATES, createBusinessSchema, firstError, type AuthTokens, type MeResponse, type OwnerSignIn } from '@billing/shared';
 import { api, apiWithToken, ApiError, refreshSession, signOut } from '../../lib/api';
@@ -70,8 +71,9 @@ export function LoginPage() {
       qc.setQueryData(meKey(useSession.getState().accessToken), me);
       if (me.user.mustChangePassword) {
         setAskCurrent(!signedWith.current);
-        setView('vPass');
-        return setTimeout(() => (signedWith.current ? pNewRef : pCurRef).current?.focus(), 30);
+        // drawn first, then focused at once: a delayed focus could move typing into another box
+        flushSync(() => setView('vPass'));
+        return (signedWith.current ? pNewRef : pCurRef).current?.focus();
       }
       if (me.business && !newShop) return goToApp();
       const inv = me.invites[0];
@@ -134,8 +136,8 @@ export function LoginPage() {
     setRErr('');
     for (const r of [rCodeRef, rNewRef, rNew2Ref]) if (r.current) r.current.value = '';
     if (rEmailRef.current) rEmailRef.current.value = emailRef.current!.value.trim();
-    setView('vRec');
-    setTimeout(() => (rEmailRef.current?.value ? rCodeRef : rEmailRef).current?.focus(), 30);
+    flushSync(() => setView('vRec'));
+    (rEmailRef.current?.value ? rCodeRef : rEmailRef).current?.focus();
   }
 
   async function onRecover(e: FormEvent) {
