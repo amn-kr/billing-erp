@@ -157,7 +157,7 @@ test('Excel downloads, and Print leaves the ⋮ column out', async ({ browser, r
   await page.locator('#rpMain .psa button', { hasText: 'Excel' }).click();
   expect((await dl).suggestedFilename()).toBe('Expiry-Report.xlsx');
   await page.locator('#rpPrint').click();
-  await expect(page.locator('#ipv thead th')).toHaveText(['Item', 'Batch', 'Expiry', '', 'Supplier', 'In stock', 'Value']);
+  await expect(page.locator('#ipv thead th')).toHaveText(['Item', 'Batch', 'Expiry', 'Supplier', 'In stock', 'Value']);
 });
 
 test('Feature off: no alert, 39 reports, the address falls back, no Expired goods reason', async ({ browser, request }) => {

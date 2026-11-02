@@ -82,10 +82,10 @@ export function ExpiryReport(props: RpProps) {
       <Sel id="rpExSup" label="Supplier" value={sup} onChange={setSup} opts={[['', 'All suppliers'], ...sups]} />
     </>,
     kpis: [['Expired', inr2f(value(base.filter((r) => matchesExpiry(r.expiry, on, 'expired')))), 'pscl neg'], ['In 30 days', inr2f(value(base.filter((r) => matchesExpiry(r.expiry, on, 30))))], ['In 90 days', inr2f(value(base.filter((r) => matchesExpiry(r.expiry, on, 90))))], ['Written off this year', inr2f(q.data.writtenOff)]],
-    cols: [{ h: 'Item', w: 30 }, { h: 'Batch', w: 14 }, { h: 'Expiry', w: 10 }, { h: '', w: 12 }, { h: 'Supplier', w: 24 }, { h: 'In stock', n: true }, { h: 'Value', n: true }, { h: '', act: true, cls: 'slact' }],
-    rows: A.map((r) => ({ k: r.id!, c: [r.item, r.no, batchMonth(r.expiry), expiryLabel(r.expiry, on), r.supplier || '—', packQtyText(r.qty, r.unit, packOf(r)), inr2f(r.value), ''],
-      h: { 3: <ExpiryTag expiry={r.expiry} on={on} />, 7: <RowMenuButton no={r.id!} label={`Actions for ${r.no}`} onOpen={(b) => setMenu({ row: r, ...atButton(b), tr: b.closest('tr') })} /> } })),
-    foot: ['Total', '', '', '', '', '', inr2f(value(A)), ''], empty: 'No batches are expired or expiring soon.',
+    cols: [{ h: 'Item', w: 30 }, { h: 'Batch', w: 14 }, { h: 'Expiry', w: 22 }, { h: 'Supplier', w: 24 }, { h: 'In stock', n: true }, { h: 'Value', n: true }, { h: '', act: true, cls: 'slact' }],
+    rows: A.map((r) => ({ k: r.id!, c: [r.item, r.no, `${batchMonth(r.expiry)} ${expiryLabel(r.expiry, on)}`.trim(), r.supplier || '—', packQtyText(r.qty, r.unit, packOf(r)), inr2f(r.value), ''],
+      h: { 2: <span style={{ whiteSpace: 'nowrap' }}>{batchMonth(r.expiry)} <ExpiryTag expiry={r.expiry} on={on} /></span>, 6: <RowMenuButton no={r.id!} label={`Actions for ${r.no}`} small onOpen={(b) => setMenu({ row: r, ...atButton(b), tr: b.closest('tr') })} /> } })),
+    foot: ['Total', '', '', '', '', inr2f(value(A)), ''], empty: 'No batches are expired or expiring soon.',
     note: 'Values use the same purchase rates as the stock value. Supplier is who the batch was last bought from. Click a row to open the item.',
     click: (k) => nav('/items', { state: { open: A.find((r) => r.id === k)!.itemId } }),
   };
