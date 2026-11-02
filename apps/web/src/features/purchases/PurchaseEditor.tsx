@@ -210,8 +210,10 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
   /** What a line moves in stock (Features › mrp_pack: a line in packs is that many packs' worth). */
   function stockOf(l: PLine) { const it = item(l); return r2(n(l.qty) * (it?.pack && l.unit === it.pack.unit ? it.pack.size : 1)); }
   function stockBefore(it: EItem) { const w = s.was[it.id] ?? 0; return r2((it.stock ?? 0) - (k === 'bill' ? w : k === 'debit_note' ? -w : 0)); }
+  // the net rate of a line, per the unit the item's prices are in (Features › mrp_pack: per pack)
+  const netPerPack = (l: PLine, it: EItem, i: number) => r2((Number(t.rows[i]!.tv) / n(l.qty)) * (it.pack && l.unit !== it.pack.unit ? it.pack.size : 1));
   // items whose purchase price this bill would change (net rate per unit)
-  const changes = k === 'bill' ? s.lines.flatMap((l, i) => { const it = item(l); if (!it || !(n(l.qty) > 0)) return []; const nv = r2((Number(t.rows[i]!.tv) / n(l.qty)) * (it.pack && l.unit !== it.pack.unit ? it.pack.size : 1)); return Math.abs(nv - (it.purch || 0)) > 0.009 ? [{ it, ov: it.purch || 0, nv }] : []; }) : [];
+  const changes = k === 'bill' ? s.lines.flatMap((l, i) => { const it = item(l); if (!it || !(n(l.qty) > 0)) return []; const nv = netPerPack(l, it, i); return Math.abs(nv - (it.purch || 0)) > 0.009 ? [{ it, ov: it.purch || 0, nv }] : []; }) : [];
 
   /* payment made with the bill (prototype payRender / payTotals 'pe') */
   const paid = r2(s.pays.reduce((a, q) => a + n(q.amt), 0));

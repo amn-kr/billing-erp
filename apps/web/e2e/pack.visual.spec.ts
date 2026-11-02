@@ -73,6 +73,7 @@ for (const width of WIDTHS) {
       await app.click('#itEdit');
       await app.click('#aiUnit');
       await app.waitForSelector('#aiUnits:not([hidden])');
+      await app.evaluate(() => Promise.all(document.getAnimations().map((x) => x.finished)));
       await pic(app, 'units', '#aiUnits .mdl');
       await app.fill('#aiUSize', '15');
       await app.click('#aiUSave');
