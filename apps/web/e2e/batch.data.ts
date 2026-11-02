@@ -6,7 +6,7 @@ export const ITEM = 'Paracetamol 500';
 export const SUPPLIER = 'Ram Pharma';
 export const CUSTOMER = 'Raju Stores';
 
-export async function batchShop(owner: { email: string; password: string }, opts: { bills?: boolean; invoice?: boolean } = { bills: true }): Promise<void> {
+export async function batchShop(owner: { email: string; password: string }, opts: { bills?: boolean; invoice?: boolean; mrp?: boolean } = { bills: true }): Promise<void> {
   const api = await playwrightRequest.newContext();
   try {
     const tok = ((await (await api.post(APP + '/api/auth/login', { data: owner })).json()) as { accessToken: string }).accessToken;
@@ -15,14 +15,14 @@ export async function batchShop(owner: { email: string; password: string }, opts
       if (!r.ok()) throw new Error(`${path} failed: ${r.status()} ${await r.text()}`);
       return r.json() as Promise<{ id: string }>;
     };
-    await send('put', '/settings/features', { enabled: ['batch_expiry'] });
+    await send('put', '/settings/features', { enabled: opts.mrp ? ['batch_expiry', 'mrp_pack'] : ['batch_expiry'] });
     const date = '2026-10-01';
-    const it = await send('post', '/items', { name: ITEM, kind: 'goods', unit: 'PCS', gstRate: 0, trackBatch: true, openingQty: '1', openingRate: '10', openingDate: date });
+    const it = await send('post', '/items', { name: ITEM, kind: 'goods', unit: 'PCS', gstRate: 0, trackBatch: true, openingQty: '1', openingRate: '10', openingDate: date, ...(opts.mrp && { sale: '150', mrp: '100' }) });
     const sup = await send('post', '/parties', { name: SUPPLIER, kind: 'supplier' });
     const cust = await send('post', '/parties', { name: CUSTOMER });
     if (opts.bills === false) return;
     const buy = (qty: string, rate: string, batchNo: string, mfg: string, expiry: string) =>
-      send('post', '/purchases', { kind: 'bill', date, dueDate: date, partyId: sup.id, transport: '0', labour: '0', lines: [{ itemId: it.id, name: ITEM, qty, rate, discPct: '0', gstRate: '0', batchNo, mfg, expiry }] });
+      send('post', '/purchases', { kind: 'bill', date, dueDate: date, partyId: sup.id, transport: '0', labour: '0', lines: [{ itemId: it.id, name: ITEM, qty, rate, discPct: '0', gstRate: '0', batchNo, mfg, expiry, ...(opts.mrp && { batchMrp: batchNo === 'A123' ? '120' : '125' }) }] });
     // dates far from today, so the pictures don't change with the calendar: one long expired, the others years away
     await buy('3', '12', 'A123', '01/26', '03/40');
     await buy('4', '15', 'B456', '03/26', '08/41');
