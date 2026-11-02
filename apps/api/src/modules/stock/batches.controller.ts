@@ -6,7 +6,7 @@ import { DbService } from '../../common/db.service';
 import type { RequestContext } from '../../common/context';
 import { day } from '../../common/lookups';
 import { ZodPipe } from '../../common/zod.pipe';
-import { batchDates, batchesOn, batchRows, batchRowsOf } from './batches';
+import { batchDates, batchesOn, batchMrp, batchRows, batchRowsOf, mrpOn } from './batches';
 
 /** Features › batch_expiry: an item's stock by batch, and correcting a batch's no. or dates. */
 @Controller()
@@ -65,7 +65,8 @@ export class BatchesController {
       const { mfg, expiry } = batchDates(body);
       const same = await tx.batch.findFirst({ where: { itemId: before.itemId, id: { not: id }, batchNo: { equals: body.batchNo, mode: 'insensitive' } } });
       if (same) throw new ConflictException({ message: `This item already has a batch ${same.batchNo}.`, field: 'batchNo' });
-      const after = await tx.batch.update({ where: { id }, data: { batchNo: body.batchNo, mfgDate: mfg ? day(mfg) : null, expiryDate: expiry ? day(expiry) : null } });
+      const showMrp = await mrpOn(tx, ctx.businessId!);
+      const after = await tx.batch.update({ where: { id }, data: { batchNo: body.batchNo, mfgDate: mfg ? day(mfg) : null, expiryDate: expiry ? day(expiry) : null, ...(showMrp && body.mrp !== undefined && { mrp: batchMrp(body.mrp) }) } });
       await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'update', entity: 'batch', entityId: id, before, after, ip: ctx.ip });
       return { id };
     });

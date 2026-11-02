@@ -17,7 +17,7 @@ import { ALREADY_DELETED, deleteMark } from '../../common/deleting';
 import { reconciledIn, reconciledMessage, refuseIfReconciled } from '../../common/editing';
 import { refuseIfSoldSince, reverseStock } from './stock-back';
 import { draftSaleCosts } from '../stock/stock-value';
-import { allocateSale, allocsOf, batchesOn, refuseIfBatchShort } from '../stock/batches';
+import { aboveMrpLines, allocateSale, allocsOf, batchesOn, mrpOn, refuseIfBatchShort } from '../stock/batches';
 
 const q3 = (v: { toString(): string }) => money(v.toString()).toDecimalPlaces(3).toFixed(3);
 const d2 = (v: { toString(): string } | null | undefined) => (v === null || v === undefined ? null : toDb(v.toString()));
@@ -170,6 +170,13 @@ export class SalesService {
       ? await allocateSale(tx, { date: input.date, confirmExpired: input.confirmExpired, docId: id, savedLines: before?.lines, lines: lines.map(({ l, it }) => ({ item: it, qty: l.qty, batches: l.batches })) })
       : { allocs: lines.map(() => null), expired: [] };
 
+    /* MRP (Features › mrp_pack): a rate above it needs "Save anyway", noted in the audit log */
+    const overMrp = isInv && (await mrpOn(tx, businessId))
+      ? await aboveMrpLines(tx, { savedLines: before?.lines, lines: lines.map(({ l, it }, k) => ({ item: it, qty: l.qty, amount: t.rows[k]!.amt, allocs: picked.allocs[k] ?? null })) })
+      : [];
+    if (overMrp.length && !input.confirmAboveMrp)
+      throw new ConflictException({ code: 'above_mrp', message: `${overMrp[0]!.item}: ${overMrp[0]!.rate} is above its MRP ${overMrp[0]!.mrp}. Press “Save anyway” to save it.`, overMrp });
+
     /* referral commission per line */
     const rules = input.referrerId ? await this.commissionRules(tx) : new Map<string, CommRule>();
     const byCat = input.extra.commByCategory ?? {};
@@ -217,6 +224,7 @@ export class SalesService {
     let advance = money(0);
     if (isInv) {
       await this.moveStock(tx, ctx, doc.id, number, input.date, lines.map(({ l, it }, k) => ({ it, qty: money(l.qty), rate: t.rows[k]!.amt.div(money(l.qty)), allocs: picked.allocs[k] })), !!before);
+      if (overMrp.length) await this.audit.log(tx, { businessId, userId: ctx.userId, action: 'sold_above_mrp', entity: 'sales_document', entityId: doc.id, after: { number, lines: overMrp }, ip: ctx.ip });
       if (picked.expired.length) await this.audit.log(tx, { businessId, userId: ctx.userId, action: 'sold_expired', entity: 'sales_document', entityId: doc.id, after: { number, lines: picked.expired }, ip: ctx.ip });
       await this.ledger.repost(tx, { businessId, userId: ctx.userId }, {
         date: input.date, sourceType: 'sales_document', sourceId: doc.id, number, narration: `Sale ${number} · ${party?.name ?? head.cashName}`,
@@ -396,7 +404,7 @@ export class SalesService {
           return {
             id: l.id, itemId: l.itemId, name: l.name, hsn: l.hsn, qty: q3(l.qty), unit: l.unit, price: d2(l.price), discPct: l.discPct.toString(), gstRate: l.gstRate.toString(),
             taxable: d2(l.taxable), tax: d2(l.tax), amount: d2(l.amount), basePrice: d2(l.basePrice), commOverride: l.commOverride, commType: l.commType, commValue: d2(l.commValue), commAmount: d2(l.commAmount),
-            batches: allocsOf(l.batchAlloc).map((a) => { const b = a.batchId ? lineBatches.get(a.batchId) : undefined; return { batchId: a.batchId, no: b?.batchNo ?? 'No batch', expiry: isoOf(b?.expiryDate ?? null), qty: a.qty }; }),
+            batches: allocsOf(l.batchAlloc).map((a) => { const b = a.batchId ? lineBatches.get(a.batchId) : undefined; return { batchId: a.batchId, no: b?.batchNo ?? 'No batch', expiry: isoOf(b?.expiryDate ?? null), qty: a.qty, mrp: b?.mrp ? b.mrp.toFixed(2) : null }; }),
             againstId: l.againstId, code: it?.code ?? '', brand: it?.brand?.name ?? '', series: it?.series ?? '', group: it?.itemGroup?.name ?? '', category: it?.category?.name ?? '', categoryId: it?.categoryId ?? null,
             // today's item prices, for the optional MRP / list / wholesale columns and "You saved" on the printed invoice
             mrp: d2(it?.mrp ?? null), listPrice: d2(it?.listPrice ?? null), wholesalePrice: d2(it?.wholesalePrice ?? null),

@@ -1,12 +1,25 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { batchDay, batchMonth, billAllocs, expiryState, formatQty, money, parseBatchDate, sortBatches, stockByBatch, todayIst, type BatchAlloc, type BatchRow, type Money, type MoneyInput } from '@billing/shared';
+import { batchDay, batchMonth, billAllocs, effectiveMrp, expiryState, formatQty, isAboveMrp, money, ratePerUnit, parseBatchDate, sortBatches, stockByBatch, todayIst, type BatchAlloc, type BatchRow, type Money, type MoneyInput } from '@billing/shared';
 import type { AuditService } from '../../common/audit.service';
 import type { Tx } from '../../common/db.service';
 import { day, isoOf } from '../../common/lookups';
 import { ledgerOf } from './stock-value';
 
 interface Who { businessId: string; userId: string; ip?: string }
-export interface BatchEntry { batchNo?: string | null; mfg?: string | null; expiry?: string | null }
+export interface BatchEntry { batchNo?: string | null; mfg?: string | null; expiry?: string | null; /** only with Features › mrp_pack on */ mrp?: string | null }
+
+/** Whether this shop's owner has turned on MRP and pack/loose; with it off, MRP data sent for batches is ignored. */
+export async function mrpOn(tx: Tx, businessId: string): Promise<boolean> {
+  return !!(await tx.businessSettings.findUnique({ where: { businessId }, select: { features: true } }))?.features.includes('mrp_pack');
+}
+
+/** The MRP typed for a batch, or null when blank; a clear refusal when it isn't an amount. */
+export function batchMrp(text: string | null | undefined): string | null {
+  const t = (text ?? '').trim();
+  if (!t) return null;
+  if (!/^\d+(\.\d{1,2})?$/.test(t) || money(t).lte(0)) throw new BadRequestException({ message: `“${t}” isn’t an MRP. Type it like 120.00.`, field: 'mrp' });
+  return money(t).toFixed(2);
+}
 
 /** Whether this shop's owner has turned on Batch and expiry; with it off, batch data sent is ignored. */
 export async function batchesOn(tx: Tx, businessId: string): Promise<boolean> {
@@ -30,9 +43,10 @@ export function batchDates(e: BatchEntry): { mfg: string | null; expiry: string 
 export async function resolveBatch(tx: Tx, who: Who, audit: AuditService, item: { id: string; name: string }, e: BatchEntry): Promise<string> {
   const no = (e.batchNo ?? '').trim();
   const { mfg, expiry } = batchDates(e);
+  const mrp = batchMrp(e.mrp);
   const old = await tx.batch.findFirst({ where: { itemId: item.id, batchNo: { equals: no, mode: 'insensitive' } } });
   if (!old) {
-    const b = await tx.batch.create({ data: { businessId: who.businessId, createdBy: who.userId, itemId: item.id, batchNo: no, mfgDate: mfg ? day(mfg) : null, expiryDate: expiry ? day(expiry) : null } });
+    const b = await tx.batch.create({ data: { businessId: who.businessId, createdBy: who.userId, itemId: item.id, batchNo: no, mfgDate: mfg ? day(mfg) : null, expiryDate: expiry ? day(expiry) : null, mrp } });
     await audit.log(tx, { businessId: who.businessId, userId: who.userId, action: 'create', entity: 'batch', entityId: b.id, after: b, ip: who.ip });
     return b.id;
   }
@@ -41,8 +55,11 @@ export async function resolveBatch(tx: Tx, who: Who, audit: AuditService, item: 
     throw new BadRequestException({ message: `Batch ${old.batchNo} of “${item.name}” already has expiry ${batchMonth(had.expiry)}. Use that, or change it on the item card.`, field: 'expiry' });
   if (mfg && had.mfg && mfg !== had.mfg)
     throw new BadRequestException({ message: `Batch ${old.batchNo} of “${item.name}” already has mfg date ${batchMonth(had.mfg)}. Use that, or change it on the item card.`, field: 'mfg' });
-  if ((expiry && !had.expiry) || (mfg && !had.mfg)) {
-    const b = await tx.batch.update({ where: { id: old.id }, data: { ...(expiry && !had.expiry && { expiryDate: day(expiry) }), ...(mfg && !had.mfg && { mfgDate: day(mfg) }) } });
+  const hadMrp = old.mrp ? old.mrp.toFixed(2) : null;
+  if (mrp && hadMrp && mrp !== hadMrp)
+    throw new BadRequestException({ message: `Batch ${old.batchNo} of “${item.name}” already has MRP ${hadMrp}. Use that, or change it on the item card.`, field: 'mrp' });
+  if ((expiry && !had.expiry) || (mfg && !had.mfg) || (mrp && !hadMrp)) {
+    const b = await tx.batch.update({ where: { id: old.id }, data: { ...(expiry && !had.expiry && { expiryDate: day(expiry) }), ...(mfg && !had.mfg && { mfgDate: day(mfg) }), ...(mrp && !hadMrp && { mrp }) } });
     await audit.log(tx, { businessId: who.businessId, userId: who.userId, action: 'update', entity: 'batch', entityId: b.id, before: old, after: b, ip: who.ip });
   }
   return old.id;
@@ -58,7 +75,7 @@ export async function batchRowsOf(tx: Tx, items: { id: string; purchasePrice: { 
     const { rows, shortQty } = stockByBatch(moves, item.purchasePrice.toString());
     const out: BatchRow[] = rows.map((r) => {
       const b = r.batchId ? info.get(r.batchId) : undefined;
-      return { id: r.batchId, no: b?.batchNo ?? 'No batch', mfg: isoOf(b?.mfgDate ?? null), expiry: isoOf(b?.expiryDate ?? null), qty: r.qty, rate: r.rate, value: r.value };
+      return { id: r.batchId, no: b?.batchNo ?? 'No batch', mfg: isoOf(b?.mfgDate ?? null), expiry: isoOf(b?.expiryDate ?? null), qty: r.qty, rate: r.rate, value: r.value, mrp: b?.mrp ? b.mrp.toFixed(2) : null };
     });
     return [item.id, { rows: sortBatches(out, todayIst()), shortQty }];
   }));
@@ -142,4 +159,26 @@ export async function refuseIfBatchShort(tx: Tx, batchIds: (string | null | unde
   if (!bad) return;
   const b = await tx.batch.findFirst({ where: { id: bad.batchId! }, include: { item: { select: { name: true } } } });
   throw new BadRequestException({ message: `Some of batch ${b?.batchNo ?? ''} of “${b?.item.name ?? 'item'}” has been sold since, so ${number} can’t take it out of stock.` });
+}
+
+/**
+ * Lines whose rate is above MRP (Features › mrp_pack): they need "Save anyway". What an edited bill already sold
+ * at that rate or higher isn't asked again.
+ */
+export async function aboveMrpLines(
+  tx: Tx,
+  o: { lines: { item: { id: string; name: string; kind: string; mrp: { toString(): string } }; qty: MoneyInput; amount: MoneyInput; allocs: BatchAlloc[] | null }[]; savedLines?: { itemId: string | null; qty: { toString(): string }; amount: { toString(): string } }[] },
+): Promise<{ item: string; rate: string; mrp: string }[]> {
+  const ids = o.lines.flatMap((l) => (l.allocs ?? []).flatMap((a) => (a.batchId ? [a.batchId] : [])));
+  const known = new Map((await tx.batch.findMany({ where: { id: { in: ids } }, select: { id: true, mrp: true } })).map((b) => [b.id, b.mrp?.toFixed(2) ?? null]));
+  const out: { item: string; rate: string; mrp: string }[] = [];
+  for (const l of o.lines) {
+    if (l.item.kind === 'service') continue;
+    const mrp = effectiveMrp(l.item.mrp.toString(), (l.allocs ?? []).map((a) => (a.batchId ? known.get(a.batchId) : null)));
+    if (!isAboveMrp(l.amount, l.qty, mrp)) continue;
+    const rate = ratePerUnit(l.amount, l.qty);
+    const asked = (o.savedLines ?? []).some((s) => s.itemId === l.item.id && !ratePerUnit(s.amount.toString(), s.qty.toString()).lt(rate));
+    if (!asked) out.push({ item: l.item.name, rate: rate.toFixed(2), mrp: mrp!.toFixed(2) });
+  }
+  return out;
 }

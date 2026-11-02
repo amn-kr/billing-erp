@@ -114,7 +114,7 @@ export const stockAdjustmentSchema = z.object({
   expiry: z.string().trim().max(12).optional(),
 });
 /** Item card › Stock by batch › Edit. */
-export const batchEditSchema = z.object({ batchNo: z.string().trim().min(1, 'Enter the batch no.').max(40), mfg: opt(12), expiry: opt(12) }).strict();
+export const batchEditSchema = z.object({ batchNo: z.string().trim().min(1, 'Enter the batch no.').max(40), mfg: opt(12), expiry: opt(12), mrp: z.string().trim().max(16).optional() }).strict();
 export type BatchEditInput = z.infer<typeof batchEditSchema>;
 export type StockAdjustmentInput = z.infer<typeof stockAdjustmentSchema>;
 
