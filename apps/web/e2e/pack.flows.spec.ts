@@ -220,6 +220,8 @@ test('Quick sale sells loose at the loose price; a quotation in strips imports i
   const page = await newPage(browser, 1366);
   await signInAs(page, owner);
   await page.keyboard.press('Alt+n');
+  // the window puts the cursor here a moment after opening: typing elsewhere before that would close the item list
+  await expect(page.locator('#qsParty')).toBeFocused();
   await page.fill('#qsParty', 'Sunil');
   await page.locator('#qsRows .qs-item').first().fill('Paracetamol');
   await page.click(OPTION(ITEM));
