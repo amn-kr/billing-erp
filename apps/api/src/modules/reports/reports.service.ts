@@ -18,7 +18,7 @@ export interface StEntry { date: string; no: string; type: string; kind: string;
 const ORD: Record<string, number> = { 'Opening balance': 0, Sale: 1, Purchase: 1, 'Debit note': 2, 'Credit note': 2, 'Cheque bounce': 3, Refund: 3, 'Payment-In': 4, 'Payment-Out': 4 };
 
 interface PartyRow { id: string; name: string; kind: string; group: string; phone: string; city: string; gstin: string; limit: number | null; sup: boolean; type: 'Supplier' | 'Electrician' | 'Customer' }
-interface Line { itemId: string | null; name: string; unit: string; qty: number; /** in the item's stock unit (Features › mrp_pack) */ stockQty: number; price: number; disc: number; amt: number; tv: number; cat: string; iunit: string; iname: string }
+interface Line { itemId: string | null; name: string; unit: string; qty: number; /** in the item's stock unit (Settings › Items › MRP and Pack) */ stockQty: number; price: number; disc: number; amt: number; tv: number; cat: string; iunit: string; iname: string }
 interface Doc { id: string; no: string; date: string; partyId: string | null; total: number; lines: Line[] }
 
 /**

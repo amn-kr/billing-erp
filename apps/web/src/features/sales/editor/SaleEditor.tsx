@@ -192,7 +192,7 @@ function fillFrom(d: EditorData, s: SI, v: SaleDoc, how: 'edit' | 'copy' | 'chal
     if (!it) continue;
     const L = lineFor(d.ctx, s, it);
     L.qty = Number(l.qty);
-    // Features › mrp_pack: a saved line stays in its own unit
+    // Settings › Items › MRP and Pack: a saved line stays in its own unit
     if (L.unit !== l.unit && (l.unit === it.unit || l.unit === it.pack?.unit)) { L.unit = l.unit; L.price = priceFor(d.ctx, it, s.party, l.unit); }
     if (how !== 'challan') {
       L.price = Number(l.price); L.disc = Number(l.discPct) || 0; L.gst = Number(l.gstRate);
@@ -314,13 +314,13 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
     if (unknown) return err(`“${unknown.name}” isn’t in your items. Pick it from the list or add it as a new item.`);
     if (quote && bad) return err(`Enter a quantity for “${bad.name}”.`);
     if (!s.autoNo && !s.no) return err(quote ? 'Enter a quotation number.' : 'Enter an invoice number.');
-    // Features › batch_expiry: expired stock is sold only after "Sell anyway"
+    // Settings › Items › Batch No.: expired stock is sold only after "Sell anyway"
     const allocs = saleAllocs(d, s);
     if (!quote && !expOk.current) {
       const ex = expiredPicks(d, s, allocs);
       if (ex.length) { setExpAsk({ list: ex, again, print }); return; }
     }
-    // Features › mrp_pack: a rate above MRP is saved only after "Save anyway"
+    // Settings › Items › MRP and Pack: a rate above MRP is saved only after "Save anyway"
     if (!quote && !mrpOk.current) {
       const ov = aboveMrpPicks(d, s, allocs, calc(ctx, s).rows.map((r) => r.amt));
       if (ov.length) { setMrpAsk({ list: ov, again, print }); return; }

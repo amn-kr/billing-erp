@@ -3,35 +3,28 @@
  * its three working tabs: Taxes & GST, Items (price lists) and General.
  */
 import { useEffect, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { api, ApiError } from '../../lib/api';
-import { Icon, RawIcon } from '../../components/Icon';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Icon } from '../../components/Icon';
 import type { IconName } from '../../components/icon-paths';
 import { soon, useShell } from '../shell/store';
-import type { PriceList } from '../prices/model';
 import { useMe } from '../../lib/me';
 import { GeneralTab } from './GeneralTab';
-import { FeatureCards } from './FeaturesTab';
+import { ItemCards } from './ItemsTab';
 import { showCard } from './BackupCard';
-import { ITEM_PREFIX } from '@billing/shared';
-import { Sw, useS, useSaveS, useSetTab, type SetTab } from './model';
+import { useS, useSetTab, type SetTab } from './model';
 import { TxnCards } from './TxnTab';
 import { TaxCards, TaxList, TaxPreview } from './TaxTab';
 import { PrintCards, PrintPreview, PrinterTabs, ThermalSoon, usePrint } from './PrintTab';
-import { ui } from '../../styles/uiSize';
 
 const SUB: [IconName, string, string?][] = [['crown', 'Subscription', 'sub'], ['gear', 'General'], ['receipt', 'Transactions'], ['doc', 'Print & invoice'], ['pct', 'Taxes & GST'], ['chat', 'Messages'], ['users', 'Parties'], ['box', 'Items'], ['bell', 'Reminders'], ['book', 'Accounting'], ['swap', 'Multi-currency']];
 const SETTABS: Record<string, SetTab> = { 'Print & invoice': 'print', 'Taxes & GST': 'tax', Transactions: 'txn', Items: 'items', General: 'gen' };
 const LIST = '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>';
-const FEATURES_ICON = '<path d="M4 7h16M4 12h16M4 17h10"/>';
 const HEAD = {
   tax: ['Taxes & GST', 'Turn tax features on or off. Changes save on their own and apply across the app.'],
   txn: ['Transactions', 'How sales, purchases and payments are numbered and what their header shows. Changes save on their own.'],
-  items: ['Items & prices', 'Choose which price lists you use. Changes save on their own and apply across the app.'],
+  items: ['Items', 'Choose what your item screens show. Only the shop owner can change this. Changes save on their own.'],
   gen: ['General', 'App-wide display preferences. Changes save on their own.'],
   print: ['Print & invoice', 'Choose how your printed invoices look. Changes save on their own and apply to every preview, print and PDF.'],
-  features: ['Features', 'Choose what this shop uses. Only the shop owner can change this. Changes save on their own.'],
 } as const;
 /** back from Google's sign-in (Settings › General › Backup & restore › Connect Google Drive) */
 const DRIVE_BACK: Record<string, string> = {
@@ -39,13 +32,19 @@ const DRIVE_BACK: Record<string, string> = {
   cancelled: 'Google Drive was not connected: the sign-in at Google was cancelled.',
   failed: 'Couldn’t connect Google Drive. Please try again.',
 };
-const ruleTxt = (p: PriceList) => (p.rule === 'base' ? 'Same as item sale price' : p.rule === 'disc' ? `${Number(p.value)}% off sale price` : `Purchase price + ${Number(p.value)}%`);
+
+/** The old address of the Features page: its switches are on Settings › Items now (owner only; anyone else gets Settings as usual). */
+export function OldFeaturesPage() {
+  const { set } = useSetTab();
+  useEffect(() => set('items'), [set]);
+  return <Navigate to="/settings" replace />;
+}
 
 export function SettingsPage() {
   const { tab: openTab, set } = useSetTab();
-  // Features is for the shop's owner only, also when the owner left it open in this browser and someone else signed in
+  // Items is for the shop's owner only, also when the owner left it open in this browser and someone else signed in
   const owner = useMe().data?.role === 'owner';
-  const tab = openTab === 'features' && !owner ? 'tax' : openTab;
+  const tab = openTab === 'items' && !owner ? 'tax' : openTab;
   const { S, taxes, ready } = useS();
   const navigate = useNavigate();
   const location = useLocation();
@@ -76,75 +75,24 @@ export function SettingsPage() {
             const t = SETTABS[label];
             const on = !!t && t === tab;
             // Accounting shows only with the Accounting module on (General › Modules)
-            const hide = label === 'Accounting' && !S.acct;
+            const hide = (label === 'Accounting' && !S.acct) || (label === 'Items' && !owner);
             return (
               <button key={label} className={on ? 'on' : ''} aria-current={on ? 'page' : undefined} data-settab={!on && t ? t : undefined} data-view={!on && !t ? view : undefined} data-soon={!on && !t && !view ? `${label} settings` : undefined}
                 hidden={hide || undefined} style={hide ? { display: 'none' } : undefined}
                 onClick={() => (t ? set(t) : view ? soon('Subscription') : soon(`${label} settings`))}><Icon name={ic} />{label}</button>
             );
           })}
-          {owner && <button className={tab === 'features' ? 'on' : ''} aria-current={tab === 'features' ? 'page' : undefined} data-settab={tab === 'features' ? undefined : 'features'} onClick={() => set('features')}><RawIcon d={FEATURES_ICON} />Features</button>}
         </nav>
         <div className="setc">
           {isTax ? <TaxCards /> : null}
-          <section className="card" id="cPlSet" hidden={tab !== 'items'}>{tab === 'items' && <PriceListSwitches />}</section>
+          {tab === 'items' && <ItemCards />}
           {tab === 'gen' && <GeneralTab />}
           {tab === 'print' && <><PrinterTabs />{pr ? <PrintCards /> : <ThermalSoon />}</>}
           {tab === 'txn' && <TxnCards />}
-          {tab === 'features' && <FeatureCards />}
         </div>
         {isTax ? <TaxPreview /> : pr ? <PrintPreview /> : <aside className="card pv" id="pv" hidden></aside>}
       </div>
       <TaxList open={tl} onClose={() => setTl(false)} />
     </section>
-  );
-}
-
-/** Settings › Items: turn price lists on or off (the prototype's renderPlSet). */
-function PriceListSwitches() {
-  const qc = useQueryClient();
-  const { showToast } = useShell();
-  const lists = useQuery({ queryKey: ['price-lists'], queryFn: () => api<PriceList[]>('/price-lists') });
-  const toggle = async (p: PriceList, on: boolean) => {
-    qc.setQueryData<PriceList[]>(['price-lists'], (o) => o?.map((x) => (x.id === p.id ? { ...x, active: on } : x)));
-    try {
-      await api(`/price-lists/${p.id}`, { method: 'PATCH', body: { active: on } });
-      showToast(`${p.name} ${on ? 'turned on' : 'turned off and hidden'}`);
-    } catch (e) {
-      showToast(e instanceof ApiError ? e.message : 'Could not change the price list.');
-    } finally {
-      await Promise.all(['price-lists', 'prices'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
-    }
-  };
-  return (
-    <>
-      <h3 style={{ margin: ui.sp('0 0 4px'), fontSize: ui.fs(16) }}>Price lists</h3><p className="mu" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(13) }}>Turn off the lists you don’t use. A turned-off list is hidden from the Price lists page, Price manager, rate lists and invoices. Its prices are kept, so you can turn it back on any time.</p>
-      {(lists.data ?? []).map((p) => (
-        <div className="tgl plset" key={p.id}><div className="tx"><b>{p.name}{p.isDefault && <> <span className="st g">Always on</span></>}</b><small>{ruleTxt(p)}{Number(p.roundTo) ? ` · rounded to ₹${Number(p.roundTo)}` : ''}{p.groups.length ? ` · used for ${p.groups.join(', ')}` : ''}</small></div>
-          {p.isDefault ? <label className="tgs" title="The default list can’t be turned off"><input type="checkbox" checked disabled aria-label={`${p.name} (always on)`} readOnly /><i></i></label> : <Sw id={`plA_${p.id}`} on={p.active} label={p.name} onChange={(v) => void toggle(p, v)} />}</div>
-      ))}
-      <ItemCodePrefix />
-    </>
-  );
-}
-
-/** Settings › Items: the prefix of codes made by "Assign code" in Add item (JE → JE001, JE002, …). */
-function ItemCodePrefix() {
-  const { S } = useS();
-  const save = useSaveS();
-  const { showToast } = useShell();
-  const [v, setV] = useState(S.itemPrefix);
-  const ok = ITEM_PREFIX.test(v);
-  const commit = () => {
-    if (!ok || v === S.itemPrefix) return;
-    void save({ data: { itemPrefix: v } });
-    showToast(v ? `New item codes will start with ${v}, e.g. ${v}001` : 'New item codes will be numbers only, e.g. 001');
-  };
-  return (
-    <>
-      <h3 style={{ margin: ui.sp('22px 0 4px'), fontSize: ui.fs(16) }}>Item codes</h3><p className="mu" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(13) }}>“Assign code” in Add item gives the next free code: this prefix and a 3 to 5 digit number, e.g. {v || ''}001. Changing it affects only new codes; items you already have keep theirs.</p>
-      <div className="two plset"><label className="fl" htmlFor="sItemPrefix">Item code prefix<input className="fi mono" id="sItemPrefix" value={v} placeholder="e.g. JE" maxLength={6} autoComplete="off" onChange={(e) => setV(e.target.value.toUpperCase().replace(/\s/g, ''))} onBlur={commit} onKeyDown={(e) => e.key === 'Enter' && commit()} /></label><span></span></div>
-      <p className="xperr" id="sItemPrefixErr" hidden={ok}>Use up to 6 letters (A to Z), e.g. JE.</p>
-    </>
   );
 }

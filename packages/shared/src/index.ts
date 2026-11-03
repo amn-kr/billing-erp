@@ -21,6 +21,7 @@ export * from './bulk-items.js';
 export * from './party-import.js';
 export * from './owner.js';
 export * from './features.js';
+export * from './item-options.js';
 export * from './batches.js';
 export * from './mrp.js';
 export * from './pack.js';

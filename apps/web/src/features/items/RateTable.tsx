@@ -10,7 +10,7 @@ import { dmy } from '../../lib/format';
 import { useStyles } from '../../lib/useStyles';
 import css from './rate-table.css?inline';
 
-export function RateTable({ t, unit, pack }: { t: Table; unit: string; /** Features › mrp_pack: the rates are per pack, the quantities in `unit` */ pack?: PackInfo | null }) {
+export function RateTable({ t, unit, pack }: { t: Table; unit: string; /** Settings › Items › MRP and Pack: the rates are per pack, the quantities in `unit` */ pack?: PackInfo | null }) {
   useStyles([css], 'item-rate-table');
   const title = pack ? `Purchase rate of stock left, per ${pack.packUnit}` : 'Purchase rate of stock left';
   if (!t.layers.length)

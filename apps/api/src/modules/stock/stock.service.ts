@@ -172,7 +172,7 @@ export class StockService {
       const have = await this.stockIn(tx, item.id, godownId);
       if (have.lt(qty)) throw new BadRequestException({ message: `Only ${formatQty(have)} in stock. You can’t reduce by more than that.` });
     }
-    /* a tracked item (Features › batch_expiry): adding goes into the batch typed, reducing comes out of the batch chosen; none = No batch */
+    /* a tracked item (Settings › Items › Batch No.): adding goes into the batch typed, reducing comes out of the batch chosen; none = No batch */
     let batchId: string | null = null;
     if (item.trackBatch && (await batchesOn(tx, ctx.businessId!))) {
       if (input.mode === 'add') batchId = input.batchNo ? await resolveBatch(tx, { businessId: ctx.businessId!, userId: ctx.userId, ip: ctx.ip }, this.audit, item, input) : null;
@@ -182,7 +182,7 @@ export class StockService {
       }
     }
     const number = old?.number ?? (await this.numbers.next(tx, ctx.businessId!, ctx.userId, 'stock_adjustment', input.date));
-    // no rate typed: the item's purchase price, which is per pack on an item sold by the pack (Features › mrp_pack)
+    // no rate typed: the item's purchase price, which is per pack on an item sold by the pack (Settings › Items › MRP and Pack)
     const unitCost = !input.rate && item.packSize ? looseCost(item.purchasePrice.toString(), item.packSize.toString()) : null;
     const rate = toDb(unitCost ?? input.rate ?? item.purchasePrice.toString());
     const data = { date: day(input.date), itemId: item.id, godownId, qty: signed.toFixed(3), rate, reason: input.reason, batchId };

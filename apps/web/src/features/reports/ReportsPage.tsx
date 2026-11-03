@@ -28,9 +28,10 @@ const readFull = () => { try { return !!localStorage.getItem('erp-rpfull'); } ca
 export function ReportsPage() {
   useFitTables();
   const [sp, setSp] = useSearchParams();
-  // Features › batch_expiry: built only with it on; off, it shows "being built" as before
-  const batchOn = useFeature('batch_expiry');
-  const REPS = repsFor(batchOn);
+  // Settings › Items › Batch No.: built only with it on; off, it shows "being built" as before
+  const batchOn = useFeature('batch_no');
+  const expOn = useFeature('exp_date');
+  const REPS = repsFor(batchOn, expOn);
   const sel = repOf(sp.get('r') ?? '', REPS) ? sp.get('r')! : 'sale';
   const f = repOf(sel, REPS)!;
   const [q, setQ] = useState('');
@@ -52,7 +53,7 @@ export function ReportsPage() {
 
   const ql = q.toLowerCase();
   const lists = REPS.map(([k, h, L]) => [k, h, L.filter((r) => !ql || r[1].toLowerCase().includes(ql) || r[2].toLowerCase().includes(ql))] as const).filter((g) => g[2].length);
-  const Rp = batchOn && sel === 'batch' ? BatchReport : batchOn && sel === 'expiry' ? ExpiryReport : batchOn && sel === 'batchsale' ? BatchSalesReport : BUILT[sel];
+  const Rp = batchOn && sel === 'batch' ? BatchReport : expOn && sel === 'expiry' ? ExpiryReport : batchOn && sel === 'batchsale' ? BatchSalesReport : BUILT[sel];
   return (
     <section id="vRep">
       <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Reports</h1><span className="pttot">{REPS.reduce((a, g) => a + g[2].length, 0)} reports</span></div>

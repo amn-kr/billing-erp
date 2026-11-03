@@ -3,6 +3,7 @@
  * Excel, PDF, WhatsApp and Print outputs, with the same layout and file names.
  */
 import { useMrpOn } from '../../lib/settings';
+import { useItemWord } from '../../lib/features';
 import { useEffect, useRef } from 'react';
 import { printNow, usePrintSource } from '../print/printer';
 import { useQuery } from '@tanstack/react-query';
@@ -44,6 +45,7 @@ export function RateList({ open, data, onClose }: { open: boolean; data: PriceDa
   const settings = useSettings().data;
   const gstOn = !!settings?.gstEnabled;
   const mrpOn = useMrpOn();
+  const mrpWord = useItemWord()('mrp', 'MRP');
   const biz = useQuery({ queryKey: ['business-current'], queryFn: () => api<Biz>('/businesses/current'), enabled: open });
   const ovRef = useRef<HTMLDivElement>(null);
   useOpenFocus(open, ovRef);
@@ -106,7 +108,7 @@ export function RateList({ open, data, onClose }: { open: boolean; data: PriceDa
   }
 
   function excel() {
-    const head = ['#', 'Item', ...(c.brand ? ['Brand'] : []), ...(c.hsn ? ['HSN'] : []), ...(c.unit ? ['Unit'] : []), ...(c.gst ? ['GST %'] : []), ...(c.mrp ? ['MRP'] : []), gstOn ? `Rate (${RL.tax === 'incl' ? 'incl.' : 'excl.'} GST)` : 'Rate'];
+    const head = ['#', 'Item', ...(c.brand ? ['Brand'] : []), ...(c.hsn ? ['HSN'] : []), ...(c.unit ? ['Unit'] : []), ...(c.gst ? ['GST %'] : []), ...(c.mrp ? [mrpWord] : []), gstOn ? `Rate (${RL.tax === 'incl' ? 'incl.' : 'excl.'} GST)` : 'Rate'];
     const out: (string | number)[][] = [[bzName], [`${title} · ${fmtD(today())}${RL.valid ? ' · valid till ' + fmtD(RL.valid) : ''}`], [], head];
     const styles: Record<number, 1 | 3 | 4> = { 0: 3, 3: 1 };
     let cat: string | null = null;
@@ -135,7 +137,7 @@ export function RateList({ open, data, onClose }: { open: boolean; data: PriceDa
     };
     const rect = (x: number, y: number, w: number, h: number, fill: string) => { doc.setFillColor(...hex(fill)); doc.rect(x, y, w, h, 'F'); };
     const line = (x1: number, y1: number, x2: number, y2: number, w: number, color: string) => { doc.setDrawColor(...hex(color)); doc.setLineWidth(w); doc.line(x1, y1, x2, y2); };
-    const cols: { k: string; w: number; r?: boolean; x?: number }[] = [{ k: '#', w: 24 }, { k: 'Item', w: 0 }, ...(c.brand ? [{ k: 'Brand', w: 80 }] : []), ...(c.hsn ? [{ k: 'HSN', w: 48 }] : []), ...(c.unit ? [{ k: 'Unit', w: 38 }] : []), ...(c.gst ? [{ k: 'GST', w: 34, r: true }] : []), ...(c.mrp ? [{ k: 'MRP', w: 60, r: true }] : []), { k: !gstOn ? 'Rate' : RL.tax === 'incl' ? 'Rate (incl. GST)' : 'Rate (excl. GST)', w: 86, r: true }];
+    const cols: { k: string; w: number; r?: boolean; x?: number }[] = [{ k: '#', w: 24 }, { k: 'Item', w: 0 }, ...(c.brand ? [{ k: 'Brand', w: 80 }] : []), ...(c.hsn ? [{ k: 'HSN', w: 48 }] : []), ...(c.unit ? [{ k: 'Unit', w: 38 }] : []), ...(c.gst ? [{ k: 'GST', w: 34, r: true }] : []), ...(c.mrp ? [{ k: mrpWord, w: 60, r: true }] : []), { k: !gstOn ? 'Rate' : RL.tax === 'incl' ? 'Rate (incl. GST)' : 'Rate (excl. GST)', w: 86, r: true }];
     cols[1]!.w = W - cols.reduce((a, x) => a + x.w, 0);
     let x = L;
     cols.forEach((cl) => { cl.x = x; x += cl.w; });
@@ -220,12 +222,12 @@ export function RateList({ open, data, onClose }: { open: boolean; data: PriceDa
             <div className="rlsec"><span>Categories</span><button type="button" className="lnk" id="rlAllCats" onClick={() => set({ cats: cats.size === allCats.length ? [] : allCats })}>All / none</button></div>
             <div className="rlchk" id="rlCats">{allCats.map((k) => <label className="cb2" key={k}><input type="checkbox" data-rlc={k} checked={cats.has(k)} onChange={(e) => togCat(k, e.target.checked)} /> {k}</label>)}</div>
             <div className="rlsec"><span>Columns</span></div>
-            <div className="rlchk" id="rlCols">{([['brand', 'Brand'], ['mrp', 'MRP'], ['unit', 'Unit'], ...(gstOn ? [['hsn', 'HSN'], ['gst', 'GST %']] : [])] as [keyof Cols, string][]).map(([k, t]) => <label className="cb2" key={k}><input type="checkbox" data-rlcol={k} checked={RL.cols[k]} onChange={(e) => set({ cols: { ...RL.cols, [k]: e.target.checked } })} /> {t}</label>)}</div>
+            <div className="rlchk" id="rlCols">{([['brand', 'Brand'], ['mrp', mrpWord], ['unit', 'Unit'], ...(gstOn ? [['hsn', 'HSN'], ['gst', 'GST %']] : [])] as [keyof Cols, string][]).map(([k, t]) => <label className="cb2" key={k}><input type="checkbox" data-rlcol={k} checked={RL.cols[k]} onChange={(e) => set({ cols: { ...RL.cols, [k]: e.target.checked } })} /> {t}</label>)}</div>
             <label className="cb2"><input type="checkbox" id="rlStock" checked={RL.stock} onChange={(e) => set({ stock: e.target.checked })} /> Include out-of-stock items</label>
           </div>
           <div className="rlprev"><div className="rlsheet" id="rlSheet">
             <div className="rlh"><div><b>{bzName}</b><small>{bzLine()}</small></div><div className="rlt"><b>{title}</b><small>{fmtD(today())}{RL.valid ? ` · valid till ${fmtD(RL.valid)}` : ''}</small></div></div>
-            <table className="rltab"><thead><tr><th>#</th><th>Item</th>{c.brand && <th>Brand</th>}{c.hsn && <th>HSN</th>}{c.unit && <th>Unit</th>}{c.gst && <th className="n">GST</th>}{c.mrp && <th className="n">MRP</th>}<th className="n">Rate{rateHead}</th></tr></thead>
+            <table className="rltab"><thead><tr><th>#</th><th>Item</th>{c.brand && <th>Brand</th>}{c.hsn && <th>HSN</th>}{c.unit && <th>Unit</th>}{c.gst && <th className="n">GST</th>}{c.mrp && <th className="n">{mrpWord}</th>}<th className="n">Rate{rateHead}</th></tr></thead>
               <tbody>{R.length ? rows : <tr><td colSpan={9} className="ptempty">No items match. Tick some categories.</td></tr>}</tbody></table>
             <p className="rlfoot">Prices in ₹. Subject to change without notice. GST as applicable.</p>
           </div></div>

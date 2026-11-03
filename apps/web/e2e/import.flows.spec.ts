@@ -39,7 +39,7 @@ test('Import products: template, checks, editing, Discard question, error rows a
   const wb = await readBook(tpl);
   expect(wb.worksheets.map((w) => `${w.name}:${w.state}`)).toEqual(['Products:visible', 'Lists:veryHidden', 'Notes:visible', 'Samples:visible']);
   const head = (wb.getWorksheet('Products')!.getRow(1).values as unknown[]).slice(1).map(cellText);
-  expect(head).toEqual(['Product type', 'Product name', 'Brand name', 'Series / range name', 'Brand code', 'Opening stock', 'At price', 'As of date', 'Base unit', 'Sale price', 'Stock alert', 'Location', 'Category', 'GST %', 'HSN']);
+  expect(head).toEqual(['Product type', 'Product name', 'Brand name', 'Series / range name', 'Brand code', 'Opening stock', 'At price', 'As of date', 'Base unit', 'Sale price', 'Stock alert', 'Location', 'Category', 'GST %', 'HSN', 'Rack / shelf']);
   const lists = wb.getWorksheet('Lists')!;
   const col = (c: number) => { const out: string[] = []; lists.getColumn(c).eachCell((x, r) => { if (r > 1 && cellText(x.value)) out.push(cellText(x.value)); }); return out; };
   expect(col(1)).toContain('PCS');
@@ -157,11 +157,11 @@ test('Import products: template, checks, editing, Discard question, error rows a
   const errs = info.outputPath('errors.xlsx');
   expect(await download(page, () => page.click('#imErrDl'), errs)).toBe('Import products - error rows.xlsx');
   const ew = (await readBook(errs)).getWorksheet('Products')!;
-  expect(cellText(ew.getRow(1).getCell(16).value)).toBe('Problem');
+  expect(cellText(ew.getRow(1).getCell(17).value)).toBe('Problem');
   // two rows were corrected above: 14 left, under the heading
   expect(ew.actualRowCount).toBe(15);
   expect(cellText(ew.getRow(2).getCell(2).value)).toBe('LED batten 20W');
-  expect(cellText(ew.getRow(2).getCell(16).value)).toBe('Brand code: This brand code is also in row 12 of the uploaded file.');
+  expect(cellText(ew.getRow(2).getCell(17).value)).toBe('Brand code: This brand code is also in row 12 of the uploaded file.');
 
   // Final import: skip the error rows, confirm, summary
   await page.check('#imSkip');

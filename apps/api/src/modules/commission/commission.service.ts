@@ -74,7 +74,7 @@ export class CommissionService {
         const R = cnLines.filter((l) => l.againstId === v.id).flatMap((l) => {
           const line = v.lines.find((x) => x.itemId === l.itemId && Number(x.commAmount) > 0);
           if (!line || !Number(line.qty)) return [];
-          // per stock unit: a credit note can bring back part of a pack (Features › mrp_pack)
+          // per stock unit: a credit note can bring back part of a pack (Settings › Items › MRP and Pack)
           const amt = r2m(money(line.commAmount.toString()).div(stockQtyOf(line.qty.toString(), line.packSize?.toString())).times(stockQtyOf(l.qty.toString(), l.packSize?.toString())));
           return amt.gt(0) ? [{ cn: l.document.number, date: isoOf(l.document.date)!, inv: v.number, item: l.name, qty: Number(l.qty), amt: amt.toFixed(2), reason: l.document.reason || 'Goods returned' }] : [];
         });

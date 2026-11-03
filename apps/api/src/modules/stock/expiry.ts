@@ -1,5 +1,5 @@
 /**
- * Expiry monitoring (Features › batch_expiry, owner's request, 2 Nov 2026). Stock and values come from the one lot
+ * Expiry monitoring (Settings › Items › Batch No., owner's request, 2 Nov 2026). Stock and values come from the one lot
  * calculation (batchRowsOf), so they always agree with the stock value; so does the cost of what each batch sold.
  */
 import { costByBatch, financialYearOf, money, stockQtyOf, type Money } from '@billing/shared';

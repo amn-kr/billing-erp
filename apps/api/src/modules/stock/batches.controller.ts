@@ -6,10 +6,10 @@ import { DbService } from '../../common/db.service';
 import type { RequestContext } from '../../common/context';
 import { day } from '../../common/lookups';
 import { ZodPipe } from '../../common/zod.pipe';
-import { batchDates, batchesOn, batchMrp, batchRows, batchRowsOf, mrpOn } from './batches';
+import { batchDates, batchesOn, batchMrp, batchRows, batchRowsOf, expiryOn, mfgOn, mrpOn } from './batches';
 import { batchSales, expiryReport } from './expiry';
 
-/** Features › batch_expiry: an item's stock by batch, and correcting a batch's no. or dates. */
+/** Settings › Items › Batch No.: an item's stock by batch, and correcting a batch's no. or dates. */
 @Controller()
 export class BatchesController {
   constructor(
@@ -47,7 +47,7 @@ export class BatchesController {
   @Get('reports/expiry')
   expiry(@Ctx() ctx: RequestContext, @Query('today') today?: string) {
     const on = today && /^\d{4}-\d{2}-\d{2}$/.test(today) ? today : todayIst();
-    return this.db.scoped(this.scope(ctx), async (tx) => ((await batchesOn(tx, ctx.businessId!)) ? expiryReport(tx, on) : { writtenOff: '0.00', rows: [] }));
+    return this.db.scoped(this.scope(ctx), async (tx) => ((await expiryOn(tx, ctx.businessId!)) ? expiryReport(tx, on) : { writtenOff: '0.00', rows: [] }));
   }
 
   /** Reports › Batch Wise Sales And Profit. */
@@ -77,14 +77,16 @@ export class BatchesController {
   @Patch('batches/:id')
   edit(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(batchEditSchema)) body: BatchEditInput) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
-      if (!(await batchesOn(tx, ctx.businessId!))) throw new BadRequestException({ message: 'Batch and expiry is turned off for this shop.' });
+      if (!(await batchesOn(tx, ctx.businessId!))) throw new BadRequestException({ message: 'Batch No. is turned off for this shop.' });
       const before = await tx.batch.findFirst({ where: { id } });
       if (!before) throw new NotFoundException({ message: 'That batch was not found.' });
-      const { mfg, expiry } = batchDates(body);
+      // a date whose box is turned off isn't on the window: what is saved stays
+      const useExp = await expiryOn(tx, ctx.businessId!), useMfg = await mfgOn(tx, ctx.businessId!);
+      const { mfg, expiry } = batchDates({ ...body, ...(!useExp && { expiry: null }), ...(!useMfg && { mfg: null }) });
       const same = await tx.batch.findFirst({ where: { itemId: before.itemId, id: { not: id }, batchNo: { equals: body.batchNo, mode: 'insensitive' } } });
       if (same) throw new ConflictException({ message: `This item already has a batch ${same.batchNo}.`, field: 'batchNo' });
       const showMrp = await mrpOn(tx, ctx.businessId!);
-      const after = await tx.batch.update({ where: { id }, data: { batchNo: body.batchNo, mfgDate: mfg ? day(mfg) : null, expiryDate: expiry ? day(expiry) : null, ...(showMrp && body.mrp !== undefined && { mrp: batchMrp(body.mrp) }) } });
+      const after = await tx.batch.update({ where: { id }, data: { batchNo: body.batchNo, ...(useMfg && { mfgDate: mfg ? day(mfg) : null }), ...(useExp && { expiryDate: expiry ? day(expiry) : null }), ...(showMrp && body.mrp !== undefined && { mrp: batchMrp(body.mrp) }) } });
       await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'update', entity: 'batch', entityId: id, before, after, ip: ctx.ip });
       return { id };
     });

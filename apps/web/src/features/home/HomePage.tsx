@@ -53,8 +53,8 @@ export function HomePage() {
   const nav = useNavigate();
   const first = (me.user.name || '').trim().split(/\s+/)[0];
   const home = useQuery(opt<Home>(`/reports/home?today=${today()}`, ['home']));
-  // Features › batch_expiry: for those who can see reports, when anything is expired or expiring soon
-  const batchOn = useFeature('batch_expiry');
+  // Settings › Items › Batch No.: for those who can see reports, when anything is expired or expiring soon
+  const batchOn = useFeature('exp_date');
   const expRows = useExpiry(batchOn && can(me.permissions, 'reports.view')).data?.rows;
   const expiry = expRows ? expirySummary(expRows, today()) : null;
   const parties = useQuery(opt<Party[]>('/parties', ['parties']));

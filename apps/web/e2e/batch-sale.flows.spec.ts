@@ -4,7 +4,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { CUSTOMER, ITEM, batchShop } from './batch.data';
-import { APP, freshShop, newPage, signInAs } from './setup';
+import { APP, freshShop, newPage, signInAs, batchesOff } from './setup';
 
 const OPTION = (name: string) => `.cbl:not([hidden]) .cbo:not(.add):has-text("${name}")`;
 const newSale = async (page: Page) => {
@@ -149,11 +149,7 @@ test('with the feature off the sale screen and the invoice show no batches', asy
   await batchShop(owner, { bills: true, invoice: true });
   const page = await newPage(browser, 1366);
   await signInAs(page, owner);
-  await page.goto(APP + '/settings');
-  await page.click('#subnav [data-settab="features"]');
-  await page.click('#f_batch_expiry');
-  await page.click('#cfmYes');
-  await expect(page.locator('#f_batch_expiry')).not.toBeChecked();
+  await batchesOff(page);
 
   const asked: string[] = [];
   page.on('request', (r) => { if (r.url().endsWith('/api/batches')) asked.push(r.url()); });

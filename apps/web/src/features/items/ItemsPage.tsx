@@ -10,7 +10,7 @@ import { go } from '../../lib/go';
 import { useQuery } from '@tanstack/react-query';
 import { can, formatInr0, money, sumValues, type BatchRow, type RateTable as Rates, packQtyText, type PackInfo } from '@billing/shared';
 import { useLocation } from 'react-router-dom';
-import { useFeature } from '../../lib/features';
+import { useFeature, useItemFields, useItemWord } from '../../lib/features';
 import { useMe } from '../../lib/me';
 import { BatchCard } from './BatchCard';
 import { api } from '../../lib/api';
@@ -36,7 +36,7 @@ export interface Item {
   unit: string;
   secondaryUnit: string;
   unitRate: string | null;
-  /** Features › mrp_pack: 1 packUnit = packSize of unit; prices are then per pack, stock in unit */
+  /** Settings › Items › MRP and Pack: 1 packUnit = packSize of unit; prices are then per pack, stock in unit */
   packUnit?: string;
   packSize?: string | null;
   category: string;
@@ -51,7 +51,7 @@ export interface Item {
   wholesale: string;
   wholesaleMinQty: string;
   minStock: string;
-  /** Features › batch_expiry */
+  /** Settings › Items › Batch No. */
   trackBatch?: boolean;
   location: string;
   stock: string | null;
@@ -81,10 +81,11 @@ export const qfmt = (v: string | number | null) => Number(v ?? 0).toLocaleString
 const gst = (i: Item) => String(Number(i.gstRate));
 const n = (v: string) => Number(v);
 const isNew = (i: Item) => Math.abs(Date.now() - Date.parse(i.createdAt)) < 7 * 86_400_000;
-const vlabel = (i: Item) => `${i.brand || ''}${i.series ? ' ' + i.series : ''}`.trim() || i.name;
+/** Settings › Items: a variant's name in the list, without a box that is turned off. */
+const vlabel = (i: Item, show: { brand: boolean; series: boolean }) => `${show.brand ? i.brand || '' : ''}${show.series && i.series ? ' ' + i.series : ''}`.trim() || i.name;
 const lvlClass = (l: Item['level']) => (l === 'out' ? 'neg' : l === 'low' ? 'lowq' : 'zero');
 
-/** Features › mrp_pack: an item's pack, for its stock figures. */
+/** Settings › Items › MRP and Pack: an item's pack, for its stock figures. */
 export const packOf = (i: { packUnit?: string; packSize?: string | null }): PackInfo | null => (i.packUnit && i.packSize ? { packUnit: i.packUnit, packSize: i.packSize } : null);
 
 /** Prototype item transaction rows, from the stock ledger: invoice / bill number, party and status come from the API. */
@@ -114,7 +115,8 @@ export function ItemsPage() {
   useFitTables();
   const cur = useCur();
   const mrpOn = useMrpOn();
-  const batchOn = useFeature('batch_expiry');
+  const batchOn = useFeature('batch_no');
+  const show = useItemFields();
   const me = useMe().data;
   const { showToast } = useShell();
   const list = useQuery({ queryKey: ['items'], queryFn: () => api<Item[]>('/items') });
@@ -142,8 +144,8 @@ export function ItemsPage() {
   const BRANDS = [...new Set(IT.map((i) => i.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   const L = useMemo(() => {
     const s = q.toLowerCase();
-    return IT.filter((i) => (kind === 'p' ? i.kind === 'goods' : i.kind === 'service') && (brand === 'all' || i.brand === brand)
-      && (!s || i.name.toLowerCase().includes(s) || i.code.toLowerCase().includes(s) || i.hsn.includes(s) || i.brand.toLowerCase().includes(s))
+    return IT.filter((i) => (kind === 'p' ? i.kind === 'goods' : i.kind === 'service') && (!show.brand || brand === 'all' || i.brand === brand)
+      && (!s || i.name.toLowerCase().includes(s) || i.code.toLowerCase().includes(s) || i.hsn.includes(s) || (show.brand && i.brand.toLowerCase().includes(s)) || (show.location && i.location.toLowerCase().includes(s)))
       && (stockF === 'all' || i.level === stockF));
   }, [IT, q, kind, brand, stockF]);
 
@@ -172,8 +174,8 @@ export function ItemsPage() {
   const row = (i: Item, sub: boolean) => (
     <button className={`ptr ${sub ? 'vsub' : ''} ${i.id === selId ? 'on' : ''}`} data-iid={i.id} key={i.id} onClick={() => setSel(i.id)}>
       <span className="ptn" style={{ textTransform: 'none', fontSize: ui.fs(13) }}>
-        {sub ? vlabel(i) : i.name}
-        {!sub && i.brand && !i.group && <>{' '}<span className="brc">{i.brand}</span></>}
+        {sub ? vlabel(i, show) : i.name}
+        {!sub && show.brand && i.brand && !i.group && <>{' '}<span className="brc">{i.brand}</span></>}
         {isNew(i) && <>{' '}<span className="st b" style={{ fontSize: ui.fs(10), padding: ui.sp('1px 6px') }}>New</span></>}
       </span>
       <span className={lvlClass(i.level)}>{i.kind === 'service' ? inr2f(i.sale) : qfmt(i.stock)}{(i.level === 'low' || i.level === 'out') && <>{' '}<i className="ldot"></i></>}</span>
@@ -190,7 +192,7 @@ export function ItemsPage() {
       const tot = ms.reduce((a, x) => a + n(x.stock ?? '0'), 0);
       const bad = ms.some((x) => x.level !== 'ok');
       const isOpen = open.has(i.group) || filtered || (!!selId && ms.some((x) => x.id === selId));
-      const word = all.every((x) => x.brand) && new Set(all.map((x) => x.brand)).size === all.length ? 'brands' : 'variants';
+      const word = show.brand && all.every((x) => x.brand) && new Set(all.map((x) => x.brand)).size === all.length ? 'brands' : 'variants';
       rows.push(
         <button className={`ptr grh ${selId === 'g:' + i.group ? 'on' : ''}`} data-gid={i.group} aria-expanded={isOpen} key={'g:' + i.group}
           onClick={() => { const k = i.group; const nx = new Set(open); if (selId === 'g:' + k && open.has(k)) nx.delete(k); else nx.add(k); setOpen(nx); setSel('g:' + k); }}>
@@ -222,14 +224,14 @@ export function ItemsPage() {
               <span>Stock value <b>{cur(inr(val))}</b></span>
               <span><i style={{ background: 'var(--amber)' }}></i>Low stock <b>{low}</b></span>
               <span><i style={{ background: 'var(--red)' }}></i>Out of stock <b>{out}</b></span>
-              <span>{BRANDS.length} brands</span>
+              {show.brand && <span>{BRANDS.length} brands</span>}
             </>
           ) : <span>{IT.filter((i) => i.kind === 'service').length} services</span>}
         </div>
         <div className="sp"></div>
         {/* an icon button, as the ⋯ one: a text button does not fit the top bar at 1280 px (owner's choice) */}
         {kind === 'p' && <button className="ib" id="itImport" aria-label="Import products" title="Import products" onClick={() => go('/items/import')}><RawIcon d={UP} /></button>}
-        {kind === 'p' && <button className="btn" id="itBrands" onClick={() => go('/items/brands')}>Brands &amp; Series</button>}
+        {kind === 'p' && show.brand && <button className="btn" id="itBrands" onClick={() => go('/items/brands')}>Brands &amp; Series</button>}
         <button className="btn p" data-soon="New item" onClick={() => setAdding(true)}><Icon name="plus" />Add item</button>
         <div className="rel">
           <button className="ib" id="itMoreBtn" aria-label="More options" onClick={toggle('more')}><RawIcon d={DOTS} /></button>
@@ -239,7 +241,7 @@ export function ItemsPage() {
             <button id="itBulkMenu" onClick={() => go('/items/bulk-update')}>Bulk update items</button>
             <button id="itBulkActMenu" onClick={() => go('/items/bulk-active')}>Bulk active / inactive</button>
             <button id="itRateBtn" onClick={() => soon('Rate list')}>Download rate list</button>
-            <button data-soon="Item categories" onClick={() => soon('Item categories')}>Manage categories</button>
+            {show.category && <button data-soon="Item categories" onClick={() => soon('Item categories')}>Manage categories</button>}
             <button data-soon="Units" onClick={() => soon('Units')}>Manage units</button>
             <button data-soon="Barcode printing" onClick={() => soon('Barcode printing')}>Print barcodes</button>
           </div>
@@ -247,11 +249,11 @@ export function ItemsPage() {
       </div>
       <div className="ptg">
         <div className="card ptl">
-          <select className="fi itbr" id="itBrand" aria-label="Filter by brand" hidden={kind !== 'p'} value={brand} onChange={(e) => { setBrand(e.target.value); setSel(null); }}>
+          {show.brand && <select className="fi itbr" id="itBrand" aria-label="Filter by brand" hidden={kind !== 'p'} value={brand} onChange={(e) => { setBrand(e.target.value); setSel(null); }}>
             <option value="all">All brands</option>
             {BRANDS.map((b) => <option key={b}>{b}</option>)}
-          </select>
-          <label className="search pts" htmlFor="itQ"><RawIcon d={SEARCH} /><input id="itQ" placeholder="Search name, brand, code or HSN" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+          </select>}
+          <label className="search pts" htmlFor="itQ"><RawIcon d={SEARCH} /><input id="itQ" placeholder={show.brand ? 'Search name, brand, code or HSN' : 'Search name, code or HSN'} autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
           <div className="ptlh">
             <span>Item</span>
             <div className="rel" hidden={kind !== 'p'}>
@@ -367,6 +369,8 @@ function latestAvg(i: ItemDetail) {
 const BACK = '<path d="M15 6l-6 6 6 6"/>';
 
 function ItemHead({ i, mrpOn, onBack, onAdjust, onEdit }: { i: ItemDetail; mrpOn: boolean; onBack: (g: string) => void; onAdjust: () => void; onEdit: () => void }) {
+  const show = useItemFields();
+  const word = useItemWord();
   const s = n(i.stock ?? '0');
   const l = i.kind === 'service' ? '' : i.level;
   const m = n(i.purchase) ? money(i.sale).minus(i.purchase) : money(0);
@@ -378,17 +382,17 @@ function ItemHead({ i, mrpOn, onBack, onAdjust, onEdit }: { i: ItemDetail; mrpOn
         <div style={{ minWidth: 0 }}>
           <div className="ptt">
             {i.group && <button className="ixs" data-gback={i.group} aria-label={`Back to ${i.group}`} title={`Back to ${i.group}`} onClick={() => onBack(i.group)}><RawIcon d={BACK} /></button>}
-            <h2 style={{ textTransform: 'none' }}>{i.group ? vlabel(i) : i.name}</h2>
+            <h2 style={{ textTransform: 'none' }}>{i.group ? vlabel(i, show) : i.name}</h2>
             <button className="ixs" id="itEdit" aria-label="Edit item" title="Edit item" onClick={onEdit}><Icon name="edit" /></button>
-            {i.brand && !i.group && <span className="brc">{i.brand}</span>}
+            {show.brand && i.brand && !i.group && <span className="brc">{i.brand}</span>}
           </div>
           <div className="ptmeta">
             {i.code && <span className="mono">{i.code}</span>}
             {i.hsn && <span className="needs-gst">{i.kind === 'service' ? 'SAC' : 'HSN'} {i.hsn}</span>}
-            <span>{i.category || 'No category'}</span>
+            {show.category && <span>{i.category || 'No category'}</span>}
             <span>Unit: {i.packUnit ? `1 ${i.packUnit} = ${qfmt(i.packSize ?? 0)} ${i.unit}` : i.unit}</span>
             <span className="needs-gst">GST {gst(i)}%</span>
-            {i.location && <span>{i.location}</span>}
+            {show.location && i.location && <span>{i.location}</span>}
           </div>
         </div>
         <div className="ptacts">
@@ -398,7 +402,7 @@ function ItemHead({ i, mrpOn, onBack, onAdjust, onEdit }: { i: ItemDetail; mrpOn
       </div>
       <div className="itfig itlay">
         <div className="itfl">
-          {mrpOn && n(i.mrp) > 0 && <div><small>MRP</small><span><b>{inr2f(i.mrp)}</b></span></div>}
+          {mrpOn && n(i.mrp) > 0 && <div><small>{word('mrp', 'MRP')}</small><span><b>{inr2f(i.mrp)}</b></span></div>}
           <div><small>Sale Price</small><span><b className={aboveMrp ? 'neg' : ''}>{inr2f(i.sale)}</b>{i.kind !== 'service' && n(i.purchase) > 0 && <span className="tagw g" id="itMarginPct" title="Margin on the latest purchase price">{Math.round(m.div(i.purchase).times(100).toNumber())}%</span>}{aboveMrp && <span className="tagw r">Above MRP</span>}</span></div>
           {i.kind !== 'service' && (
             <>
@@ -416,6 +420,8 @@ function ItemHead({ i, mrpOn, onBack, onAdjust, onEdit }: { i: ItemDetail; mrpOn
 }
 
 function GroupHead({ g, ms, mrpOn, cur, onPick }: { g: string; ms: Item[]; mrpOn: boolean; cur: (t: string) => string; onPick: (id: string) => void }) {
+  const show = useItemFields();
+  const word = useItemWord();
   const f = ms[0]!;
   const tot = ms.reduce((a, x) => a + n(x.stock ?? '0'), 0);
   const val = sumValues(ms.map((x) => x.value ?? '0'));
@@ -426,7 +432,7 @@ function GroupHead({ g, ms, mrpOn, cur, onPick }: { g: string; ms: Item[]; mrpOn
           <div className="ptt"><h2 style={{ textTransform: 'none' }}>{g}</h2><span className="brc">{ms.length} variants</span></div>
           <div className="ptmeta">
             {f.hsn && <span className="needs-gst">HSN {f.hsn}</span>}
-            <span>{f.category || 'No category'}</span><span>Unit: {f.unit}</span><span className="needs-gst">GST {gst(f)}%</span>
+            {show.category && <span>{f.category || 'No category'}</span>}<span>Unit: {f.unit}</span><span className="needs-gst">GST {gst(f)}%</span>
             <span>Total stock {qfmt(tot)} {f.unit}</span><span>Value {cur(inr(val))}</span>
           </div>
         </div>
@@ -437,7 +443,7 @@ function GroupHead({ g, ms, mrpOn, cur, onPick }: { g: string; ms: Item[]; mrpOn
       <div className="tw" style={{ margin: ui.sp('14px -4px 0'), overflowX: 'auto' }}>
         <table className="ptt2 vtab">
           <thead>
-            <tr><th>Brand</th><th>Series / size</th><th>Item code</th>{mrpOn && <th className="n">MRP</th>}<th className="n">LP</th><th className="n">Purchase</th><th className="n">Sale</th><th className="n">Margin</th><th className="n">Stock</th><th></th></tr>
+            <tr>{show.brand && <th>Brand</th>}{show.series && <th>Series / size</th>}<th>Item code</th>{mrpOn && <th className="n">{word('mrp', 'MRP')}</th>}<th className="n">LP</th><th className="n">Purchase</th><th className="n">Sale</th><th className="n">Margin</th><th className="n">Stock</th><th></th></tr>
           </thead>
           <tbody>
             {ms.map((x) => {
@@ -445,10 +451,10 @@ function GroupHead({ g, ms, mrpOn, cur, onPick }: { g: string; ms: Item[]; mrpOn
               return (
                 <Fragment key={x.id}>
                   <tr tabIndex={0} data-vsel={x.id} onClick={(e) => !(e.target as HTMLElement).closest('button') && onPick(x.id)} onKeyDown={(e) => e.key === 'Enter' && onPick(x.id)}>
-                    <td><b style={{ fontWeight: 600 }}>{x.brand || '—'}</b></td><td>{x.series}</td><td className="mono">{x.code}</td>
+                    {show.brand && <td><b style={{ fontWeight: 600 }}>{x.brand || '—'}</b></td>}{show.series && <td>{x.series}</td>}<td className="mono">{x.code}</td>
                     {mrpOn && <td className="n">{n(x.mrp) ? inr2f(x.mrp) : '—'}</td>}
                     <td className="n">{n(x.listPrice) ? inr2f(x.listPrice) : '—'}</td><td className="n">{inr2f(x.purchase)}</td>
-                    <td className="n"><b>{inr2f(x.sale)}</b>{mrpOn && n(x.mrp) > 0 && n(x.sale) > n(x.mrp) && <small className="neg">Above MRP</small>}</td>
+                    <td className="n"><b>{inr2f(x.sale)}</b>{mrpOn && n(x.mrp) > 0 && n(x.sale) > n(x.mrp) && <small className="neg">Above {word('mrp', 'MRP')}</small>}</td>
                     <td className={`n ${m < 5 ? 'neg' : ''}`}>{m.toFixed(0)}%</td>
                     <td className={`n ${x.level === 'out' ? 'neg' : x.level === 'low' ? 'lowq' : ''}`}>{qfmt(x.stock)} {x.unit}</td>
                     <td className="n"><button className="btn sm" data-sellitem={x.id} onClick={() => go(`/sales/new?item=${x.id}`)}>Sell</button></td>

@@ -32,7 +32,7 @@ import { DGACC, DGIMG } from '../sales/editor/ToolsPop';
 import { stockText, DG_TERMS, addDaysIso, daysDiff, partyState, r2, type EItem, type EParty } from '../sales/editor/state';
 import { PE_T, PU_KEYS, usePurchases, type PKind, type PurchaseDoc } from './model';
 import { editAsk, withPasscode } from '../settings/passcode';
-import { useFeature } from '../../lib/features';
+import { useFeature, useItemFields, useItemWord } from '../../lib/features';
 import { BatchRowCells, type LineBatch } from './BatchRow';
 import { SlModal, type SlModalProps } from '../sales/SlModal';
 import { ui } from '../../styles/uiSize';
@@ -200,24 +200,27 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
   const pickItem = (i: number, v: unknown) => {
     if (v === '__add') { c.hide(); setAddItem({ q: s.lines[i]?.name ?? '', i }); return; }
     const it = v as EItem;
-    // Features › mrp_pack: an item sold by the pack is bought by the pack; with the feature off, loose at the loose rate
-    up((x) => { Object.assign(x.lines[i]!, { id: it.id, name: it.name, hsn: it.hsn || '', unit: it.pack && mrpOn ? it.pack.unit : it.unit, rate: it.pack && !mrpOn ? r2((it.purch || 0) / it.pack.size) : it.purch || 0, gst: G ? it.gst || 0 : 0, batchNo: '', mfg: '', expiry: '', batchId: '', mrp: it.mrp ? String(it.mrp) : '' }); if (i === x.lines.length - 1) x.lines.push(peLine()); });
+    // Settings › Items › MRP and Pack: an item sold by the pack is bought by the pack; with the feature off, loose at the loose rate
+    up((x) => { Object.assign(x.lines[i]!, { id: it.id, name: it.name, hsn: it.hsn || '', unit: it.pack && packOn ? it.pack.unit : it.unit, rate: it.pack && !packOn ? r2((it.purch || 0) / it.pack.size) : it.purch || 0, gst: G ? it.gst || 0 : 0, batchNo: '', mfg: '', expiry: '', batchId: '', mrp: it.mrp ? String(it.mrp) : '' }); if (i === x.lines.length - 1) x.lines.push(peLine()); });
     c.hide();
     setTimeout(() => { const q = document.querySelector<HTMLInputElement>(`#peRows tr[data-ln="${i}"] [data-pf="qty"]`); q?.focus(); q?.select(); }, 0);
   };
-  const mrpOn = useFeature('mrp_pack');
+  const mrpOn = useFeature('mrp');
+  const packOn = useFeature('pack_loose');
+  const show = useItemFields();
+  const word = useItemWord();
   const stockTxt = (l: PLine) => {
     const it = item(l);
     if (!it || it.svc) return null;
     // editing: the stock without this document's own quantity
     const st = stockBefore(it), diff = k === 'bill' && !!n(l.rate) && (!it.pack || l.unit === it.pack.unit) && Math.abs(n(l.rate) - (it.purch || 0)) > 0.009;
     const stk = (q: number) => (it.pack ? stockText(it, q) : qfmt(q));
-    return <>Stock {it.pack ? stk(st) : <>{qfmt(st)} {l.unit}</>}{k === 'bill' ? ` → ${stk(st + stockOf(l))}` : k === 'debit_note' ? ` → ${stk(st - stockOf(l))}` : ''}{diff ? <> · <span className="pech">last ₹{inr2f(it.purch || 0)}</span></> : null}{mrpOn && !tracked(l) && it.mrp ? <> · MRP {inr2f(it.mrp)}</> : null}</>;
+    return <>Stock {it.pack ? stk(st) : <>{qfmt(st)} {l.unit}</>}{k === 'bill' ? ` → ${stk(st + stockOf(l))}` : k === 'debit_note' ? ` → ${stk(st - stockOf(l))}` : ''}{diff ? <> · <span className="pech">last ₹{inr2f(it.purch || 0)}</span></> : null}{mrpOn && !tracked(l) && it.mrp ? <> · {word('mrp', 'MRP')} {inr2f(it.mrp)}</> : null}</>;
   };
-  /** What a line moves in stock (Features › mrp_pack: a line in packs is that many packs' worth). */
+  /** What a line moves in stock (Settings › Items › MRP and Pack: a line in packs is that many packs' worth). */
   function stockOf(l: PLine) { const it = item(l); return r2(n(l.qty) * (it?.pack && l.unit === it.pack.unit ? it.pack.size : 1)); }
   function stockBefore(it: EItem) { const w = s.was[it.id] ?? 0; return r2((it.stock ?? 0) - (k === 'bill' ? w : k === 'debit_note' ? -w : 0)); }
-  // the net rate of a line, per the unit the item's prices are in (Features › mrp_pack: per pack)
+  // the net rate of a line, per the unit the item's prices are in (Settings › Items › MRP and Pack: per pack)
   const netPerPack = (l: PLine, it: EItem, i: number) => r2((Number(t.rows[i]!.tv) / n(l.qty)) * (it.pack && l.unit !== it.pack.unit ? it.pack.size : 1));
   // items whose purchase price this bill would change (net rate per unit)
   const changes = k === 'bill' ? s.lines.flatMap((l, i) => { const it = item(l); if (!it || !(n(l.qty) > 0)) return []; const nv = netPerPack(l, it, i); return Math.abs(nv - (it.purch || 0)) > 0.009 ? [{ it, ov: it.purch || 0, nv }] : []; }) : [];
@@ -253,8 +256,8 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
   }, [qc]);
   const cur = useRef(s);
   cur.current = s;
-  // Features › batch_expiry: bills and debit notes ask for a tracked item's batch; orders move no stock
-  const batchOn = useFeature('batch_expiry');
+  // Settings › Items › Batch No.: bills and debit notes ask for a tracked item's batch; orders move no stock
+  const batchOn = useFeature('batch_no');
   const tracked = (l: PLine) => batchOn && k !== 'order' && !!l.id && !!d.IT.find((x) => x.id === l.id)?.track;
 
   /* ---------- save (prototype savePE) ---------- */
@@ -400,7 +403,7 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
       </div>
 
       <div className="card dggrid"><div className="tw dgw"><table className="dgt">
-        <thead id="peHead"><tr><th rowSpan={2} className="c">#</th><th rowSpan={2} className="it">Item</th><th rowSpan={2} className="hic">Item code</th><th rowSpan={2} className="hib">Brand</th><th rowSpan={2} className="his">Series</th>{gstOn ? <th rowSpan={2} className="hs">HSN</th> : null}<th rowSpan={2} className="n qt">Qty</th><th rowSpan={2} className="un">Unit</th>
+        <thead id="peHead"><tr><th rowSpan={2} className="c">#</th><th rowSpan={2} className="it">Item</th><th rowSpan={2} className="hic">Item code</th>{show.brand ? <th rowSpan={2} className="hib">Brand</th> : null}{show.series ? <th rowSpan={2} className="his">Series</th> : null}{gstOn ? <th rowSpan={2} className="hs">HSN</th> : null}<th rowSpan={2} className="n qt">Qty</th><th rowSpan={2} className="un">Unit</th>
           <th rowSpan={2} className="n pr">Rate{G ? <label className="siincl"><input type="checkbox" id="peIncl" checked={s.incl} onChange={(e) => up((x) => { x.incl = e.target.checked; })} /> incl. GST</label> : null}</th><th colSpan={2} className="c grp">Discount</th><th rowSpan={2} className="n fr">Final rate</th>{G ? <th colSpan={2} className="c grp">Tax</th> : null}<th rowSpan={2} className="n am">Amount</th><th rowSpan={2} className="x"><span className="sr">Remove</span></th></tr>
           <tr><th className="n sub dp">%</th><th className="n sub da">Amount</th>{G ? <><th className="n sub tp">%</th><th className="n sub ta">Amount</th></> : null}</tr></thead>
         <tbody id="peRows">{s.lines.map((l, i) => {
@@ -412,16 +415,16 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
                 onFocus={(e) => { if (!l.id) c.show(sk, itemOpts(e.target.value), (o) => pickItem(i, o)); }}
                 onKeyDown={(e) => { if (c.cb?.key === sk && comboKey(c, e)) return; enterNext(e); }}
                 onBlur={() => setTimeout(() => { const a = document.activeElement as HTMLElement | null; if (!a?.closest('.combo')) c.hide(); }, 120)} /><ComboList c={c} k={sk} grid /></div>{stx ? <small className="mu">{stx}</small> : null}</div></td>
-              <td className="ro l mono dgc1">{it?.code ?? ''}</td><td className="ro l dgc2">{it?.brand ?? ''}</td><td className="ro l dgc2">{it?.series ?? ''}</td>
+              <td className="ro l mono dgc1">{it?.code ?? ''}</td>{show.brand ? <td className="ro l dgc2">{it?.brand ?? ''}</td> : null}{show.series ? <td className="ro l dgc2">{it?.series ?? ''}</td> : null}
               {gstOn ? <td><input className="gi" data-pf="hsn" value={l.hsn} inputMode="numeric" aria-label="HSN" onChange={(e) => setLine(i, 'hsn', e.target.value)} onKeyDown={enterNext} /></td> : null}
-              <td><input className="gi n" data-pf="qty" value={l.qty} inputMode="decimal" aria-label="Quantity" onChange={(e) => setLine(i, 'qty', e.target.value)} onKeyDown={enterNext} /></td>{it?.pack && mrpOn ? <td><select className="gi" data-pf="unit" aria-label={`Unit for row ${i + 1}`} style={{ color: 'var(--ac)', fontWeight: 600 }} value={l.unit} onKeyDown={tracked(l) ? (e) => enterNext(e as unknown as React.KeyboardEvent<HTMLInputElement>) : undefined} onChange={(e) => { const v = e.target.value, size = money(it.pack!.size); up((x) => { const L = x.lines[i]!; if (L.unit === v) return; L.rate = (v === it.pack!.unit ? money(n(L.rate)).times(size) : money(n(L.rate)).div(size)).toDecimalPlaces(2).toNumber(); L.unit = v; }); }}><option value={it.pack.unit}>{it.pack.unit}</option><option value={it.unit}>{it.unit}</option></select></td> : <td className="ro l">{l.unit || '—'}</td>}
+              <td><input className="gi n" data-pf="qty" value={l.qty} inputMode="decimal" aria-label="Quantity" onChange={(e) => setLine(i, 'qty', e.target.value)} onKeyDown={enterNext} /></td>{it?.pack && packOn ? <td><select className="gi" data-pf="unit" aria-label={`Unit for row ${i + 1}`} style={{ color: 'var(--ac)', fontWeight: 600 }} value={l.unit} onKeyDown={tracked(l) ? (e) => enterNext(e as unknown as React.KeyboardEvent<HTMLInputElement>) : undefined} onChange={(e) => { const v = e.target.value, size = money(it.pack!.size); up((x) => { const L = x.lines[i]!; if (L.unit === v) return; L.rate = (v === it.pack!.unit ? money(n(L.rate)).times(size) : money(n(L.rate)).div(size)).toDecimalPlaces(2).toNumber(); L.unit = v; }); }}><option value={it.pack.unit}>{it.pack.unit}</option><option value={it.unit}>{it.unit}</option></select></td> : <td className="ro l">{l.unit || '—'}</td>}
               <td><input className="gi n" data-pf="rate" value={l.rate} inputMode="decimal" aria-label="Rate" onChange={(e) => setLine(i, 'rate', e.target.value)} onKeyDown={enterNext} /></td>
               <td><input className="gi n" data-pf="disc" value={typeof l.disc === 'string' ? l.disc : l.disc ? r2(l.disc) : ''} placeholder="0" inputMode="decimal" aria-label="Discount percent" onChange={(e) => setLine(i, 'disc', e.target.value)} onKeyDown={enterNext} /></td>
               <td><DiscAmt value={Number(r.disc)} onSet={(a) => up((x) => { const L = x.lines[i]!; const g = n(L.qty) * n(L.rate); L.disc = g > 0 ? Math.min(100, (a / g) * 100) : 0; })} onKeyDown={enterNext} /></td>
               <td className="ro b" data-o="fr">{inr2f(r2(n(l.rate) * (1 - n(l.disc) / 100)))}</td>
               {G ? <><td><select className="gi" data-pf="gst" aria-label="GST rate" value={String(l.gst)} onKeyDown={tracked(l) ? (e) => enterNext(e as unknown as React.KeyboardEvent<HTMLInputElement>) : undefined} onChange={(e) => up((x) => { x.lines[i]!.gst = Number(e.target.value); })}>{d.gstRates.map((g) => <option value={String(g)} key={g}>{pct(g)}</option>)}</select></td><td className="ro" data-o="tx">{inr2f(r.tx.toString())}</td></> : null}
               <td className="ro b" data-o="amt">{inr2f(r.amt.toString())}</td><td className="x"><button type="button" className="ix" data-pdel={i} aria-label={`Remove row ${i + 1}`} disabled={s.lines.length === 1} onClick={() => up((x) => { x.lines.splice(i, 1); if (!x.lines.length) x.lines.push(peLine()); })}><Icon name="x" /></button></td></tr>
-            {tracked(l) && k !== 'order' ? <BatchRowCells i={i} cols={4 + (gstOn ? 1 : 0) + 6 + (G ? 2 : 0) + 2} kind={k} itemId={l.id} against={!!s.against} showMrp={mrpOn} packUnit={it?.pack?.unit} b={{ batchNo: l.batchNo ?? '', mfg: l.mfg ?? '', expiry: l.expiry ?? '', batchId: l.batchId ?? '', mrp: l.mrp ?? '' }} onChange={(f, v) => setLine(i, f, v)} onKeyDown={enterNext} /> : null}</Fragment>
+            {tracked(l) && k !== 'order' ? <BatchRowCells i={i} cols={2 + (show.brand ? 1 : 0) + (show.series ? 1 : 0) + (gstOn ? 1 : 0) + 6 + (G ? 2 : 0) + 2} kind={k} itemId={l.id} against={!!s.against} showMrp={mrpOn} packUnit={it?.pack?.unit} b={{ batchNo: l.batchNo ?? '', mfg: l.mfg ?? '', expiry: l.expiry ?? '', batchId: l.batchId ?? '', mrp: l.mrp ?? '' }} onChange={(f, v) => setLine(i, f, v)} onKeyDown={enterNext} /> : null}</Fragment>
           );
         })}</tbody>
         <tfoot id="peFoot"><tr><td></td><td><div className="dgft"><button type="button" className="btn sm" id="peAddRow" onClick={() => { up((x) => { x.lines.push(peLine()); }); setTimeout(() => [...document.querySelectorAll<HTMLElement>('#peRows .pe-item')].pop()?.focus(), 0); }}><Icon name="plus" />Add row</button><b>Total</b></div></td><td></td><td></td><td></td>{gstOn ? <td></td> : null}

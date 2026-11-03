@@ -125,7 +125,7 @@ export class PurchasesService {
     if (!party) throw new BadRequestException({ message: 'Choose the supplier.', field: 'partyId' });
     if (!input.lines.length) throw new BadRequestException({ message: 'Add at least one item.' });
     const items = new Map((await tx.item.findMany({ where: { id: { in: input.lines.map((l) => l.itemId) } }, include: { unit: { select: { code: true } }, packUnit: { select: { code: true } } } })).map((i) => [i.id, { ...i, unitCode: i.unit?.code ?? '' }]));
-    // Features › mrp_pack: a line in the item's pack unit moves that many packs' worth of stock
+    // Settings › Items › MRP and Pack: a line in the item's pack unit moves that many packs' worth of stock
     const packOf = (l: (typeof input.lines)[number]) => linePackSize(items.get(l.itemId)!, l.unit);
     const stockOf = (l: (typeof input.lines)[number]) => stockQtyOf(l.qty, packOf(l));
     const unknown = input.lines.find((l) => !items.has(l.itemId));
@@ -146,7 +146,7 @@ export class PurchasesService {
         if (s.lt(stockOf(l))) throw new BadRequestException({ message: `Only ${fmt(s)} ${it.unitCode} of “${it.name}” in stock to return.` });
       }
     }
-    /* batch and expiry (Features › batch_expiry): a tracked item's batch on a bill, and what a debit note takes out of */
+    /* batch and expiry (Settings › Items › Batch No.): a tracked item's batch on a bill, and what a debit note takes out of */
     const lineBatch = new Map<number, string | null>();
     if (k !== 'order' && !legacy && (await batchesOn(tx, businessId))) {
       const showMrp = await mrpOn(tx, businessId);

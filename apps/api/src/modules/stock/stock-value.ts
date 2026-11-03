@@ -34,7 +34,7 @@ export async function ledgerOf(tx: Tx, itemIds?: string[]): Promise<Map<string, 
   return out;
 }
 
-/** An item's prices are per pack (Features › mrp_pack); the lots run in the loose unit its stock is counted in. */
+/** An item's prices are per pack (Settings › Items › MRP and Pack); the lots run in the loose unit its stock is counted in. */
 export interface Priced { purchasePrice: { toString(): string }; packSize?: { toString(): string } | null }
 export const fallbackRate = (i: Priced): string => looseCost(i.purchasePrice.toString(), i.packSize?.toString()).toString();
 const sizeOf = (i: Priced) => i.packSize?.toString() ?? 1;

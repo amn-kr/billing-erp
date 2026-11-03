@@ -188,7 +188,7 @@ export class ReceiptsService {
       const lineBatches = new Map((await tx.batch.findMany({ where: { id: { in: inv.lines.flatMap((l) => allocsOf(l.batchAlloc).flatMap((a) => (a.batchId ? [a.batchId] : []))) } } })).map((b) => [b.id, b]));
       const packs = new Map((await tx.item.findMany({ where: { id: { in: inv.lines.flatMap((l) => (l.packSize && l.itemId ? [l.itemId] : [])) } }, include: { unit: true } })).map((i) => [i.id, i]));
       return inv.lines.map((l) => {
-        // Features › mrp_pack: worked out in the loose unit, so part of a strip can come back
+        // Settings › Items › MRP and Pack: worked out in the loose unit, so part of a strip can come back
         const it = l.itemId ? packs.get(l.itemId) : undefined;
         const sold = stockQtyOf(l.qty.toString(), l.packSize?.toString());
         const left = sold.minus(back.get(l.itemId ?? '') ?? 0);
@@ -295,7 +295,7 @@ export class ReceiptsService {
       ? await tx.salesDocument.update({ where: { id: before.id }, data: head })
       : await tx.salesDocument.create({ data: { ...head, businessId, createdBy: ctx.userId, kind: 'credit_note', number } });
     /*
-     * Features › batch_expiry: a tracked item's goods go back to the batch chosen; left to itself, to the
+     * Settings › Items › Batch No.: a tracked item's goods go back to the batch chosen; left to itself, to the
      * batches that invoice sold them from, what was returned already taken off; none = No batch.
      */
     const cnAllocs: (BatchAlloc[] | null)[] = rows.map(() => null);

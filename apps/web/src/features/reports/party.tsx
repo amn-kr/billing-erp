@@ -1,4 +1,5 @@
 /** Party reports (prototype RPT.pstmt / ppl / allp / pitem / spp / spg): same markup, wording and maths. */
+import { useItemFields } from '../../lib/features';
 import { useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { fileTitle, printNow, usePrintSource } from '../print/printer';
 import { useQuery } from '@tanstack/react-query';
@@ -201,6 +202,7 @@ function AllParties(props: RpProps) {
 /* ---------- Party Report By Item ---------- */
 interface PItems { party: RParty; rows: { name: string; cat: string; unit: string; sq: number; sa: number; pq: number; pa: number }[] }
 function PItem(props: RpProps) {
+  const catOn = useItemFields().category;
   const parties = useParties();
   const [pidS, setPid] = useRpf('piParty');
   const all = (parties.data ?? []).slice().sort(byName);
@@ -217,9 +219,9 @@ function PItem(props: RpProps) {
     title: 'Party Report By Item', group: 'Party report', sub: P.name,
     filters: <label className="fl" htmlFor="rpPi">Party<select className="fi" id="rpPi" value={pid} onChange={(e) => setPid(e.target.value)}>{grp('Customers', all.filter((x) => !x.sup))}{grp('Suppliers', all.filter((x) => x.sup))}</select></label>,
     kpis: [['Items', String(R.length)], ['Sale qty', qfmt(S('sq'))], ['Sale amount', inr2f(S('sa'))], ['Purchase amount', inr2f(S('pa'))]],
-    cols: [{ h: 'Item', w: 30 }, { h: 'Category', w: 16 }, { h: 'Sale qty', n: true, int: true, w: 10 }, { h: 'Sale amount', n: true }, { h: 'Purchase qty', n: true, int: true, w: 11 }, { h: 'Purchase amount', n: true }],
-    rows: R.map((r) => ({ c: [r.name, r.cat, r.sq ? qfmt(r.sq) + ' ' + r.unit : '—', rpN(r.sa), r.pq ? qfmt(r.pq) + ' ' + r.unit : '—', rpN(r.pa)] })),
-    foot: ['Total', '', '', inr2f(S('sa')), '', inr2f(S('pa'))], empty: 'No items bought or sold with this party in this period.',
+    cols: [{ h: 'Item', w: 30 }, ...(catOn ? [{ h: 'Category', w: 16 }] : []), { h: 'Sale qty', n: true, int: true, w: 10 }, { h: 'Sale amount', n: true }, { h: 'Purchase qty', n: true, int: true, w: 11 }, { h: 'Purchase amount', n: true }],
+    rows: R.map((r) => ({ c: [r.name, ...(catOn ? [r.cat] : []), r.sq ? qfmt(r.sq) + ' ' + r.unit : '—', rpN(r.sa), r.pq ? qfmt(r.pq) + ' ' + r.unit : '—', rpN(r.pa)] })),
+    foot: ['Total', ...(catOn ? [''] : []), '', inr2f(S('sa')), '', inr2f(S('pa'))], empty: 'No items bought or sold with this party in this period.',
     note: 'Amounts include GST.',
   };
   return <RpShell o={def} {...base} onPrint={() => props.onPrint(def)} />;

@@ -24,9 +24,10 @@ export function useEditorData() {
   const refs = useQuery({ queryKey: ['referrers'], queryFn: () => api<Referrer[]>('/referrers') });
   const settings = useSettings();
   const biz = useBiz();
-  // Features › batch_expiry: every tracked item's stock by batch; not asked for with the feature off
-  const batchOn = useFeature('batch_expiry');
-  const mrpOn = useFeature('mrp_pack');
+  // Settings › Items › Batch No.: every tracked item's stock by batch; not asked for with the feature off
+  const batchOn = useFeature('batch_no');
+  const mrpOn = useFeature('mrp');
+  const packOn = useFeature('pack_loose');
   const batches = useQuery({ queryKey: ['items', 'batches'], queryFn: () => api<Record<string, BatchRow[]>>('/batches'), enabled: batchOn });
   if (!items.data || !parties.data || !lists.data || !prices.data || !settings.data || !biz.data || !rules.data || !refs.data || (batchOn && !batches.data)) return null;
   const data = settings.data.data as { reg?: string; tcs?: boolean; tcsRate?: string };
@@ -41,7 +42,7 @@ export function useEditorData() {
     defaultList: def?.id ?? null, listForGroup, listName: Object.fromEntries(lists.data.map((l) => [l.id, l.name])),
     rules: Object.fromEntries(rules.data.map((r) => [r.category, { t: KIND[r.kind] ?? 'n', v: Number(r.value) }])),
     txn: txnOpts(settings.data.data),
-    packOn: mrpOn,
+    packOn,
   };
   const pm = new Map(prices.data.items.map((p) => [p.id, p.lists]));
   const IT: EItem[] = items.data.map((i) => ({
@@ -54,6 +55,6 @@ export function useEditorData() {
     limit: Number(p.creditLimit ?? 0), supplier: p.kind === 'supplier', balance: Number(p.balance), billingName: p.billingName ?? '',
   }));
   const gstRates = settings.data.taxes.filter((t) => t.kind === 'GST').map((t) => Number(t.rate));
-  return { ctx, IT, PT, gstRates, refs: refs.data, gstOn: settings.data.gstEnabled, batches: batchOn ? batches.data : undefined, mrpOn };
+  return { ctx, IT, PT, gstRates, refs: refs.data, gstOn: settings.data.gstEnabled, batches: batchOn ? batches.data : undefined, mrpOn, packOn };
 }
 export type EditorData = NonNullable<ReturnType<typeof useEditorData>>;

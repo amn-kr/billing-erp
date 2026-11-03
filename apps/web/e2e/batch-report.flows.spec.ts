@@ -1,7 +1,7 @@
 /** Item Batch Report (Features › batch_expiry, owner's request, 1 Nov 2026): filters, a row opens its item, nothing with the feature off. */
 import { expect, test, type Page } from '@playwright/test';
 import { ITEM, batchShop } from './batch.data';
-import { APP, freshShop, newPage, signInAs } from './setup';
+import { APP, freshShop, newPage, signInAs, batchesOff } from './setup';
 
 const rows = (page: Page) => page.locator('#rpMain tbody tr').evaluateAll((r) => r.map((x) => (x as HTMLTableRowElement).cells[1]!.textContent));
 
@@ -37,11 +37,7 @@ test('the report, its filters, a row opening the item, and the feature turned of
   await page.waitForSelector('#itBatches');
   await expect(page.locator('#itHead')).toContainText(ITEM);
 
-  await page.goto(APP + '/settings');
-  await page.click('#subnav [data-settab="features"]');
-  await page.click('#f_batch_expiry');
-  await page.click('#cfmYes');
-  await expect(page.locator('#f_batch_expiry')).not.toBeChecked();
+  await batchesOff(page);
   await page.goto(APP + '/reports?r=batch');
   await expect(page.locator('#rpMain .rpsoon')).toContainText('This report is being built');
   await expect(page.locator('#rpBxF')).toHaveCount(0);

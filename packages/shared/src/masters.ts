@@ -61,7 +61,7 @@ export const itemSchema = z.object({
   /** optional second unit: 1 unit = unitRate secondaryUnit, e.g. 1 COIL = 90 MTR */
   secondaryUnit: opt(20).transform((v) => v.toUpperCase()),
   unitRate: amount(),
-  /** Features › mrp_pack: 1 packUnit = packSize of `unit`, the unit stock is counted in; '' = no pack */
+  /** Settings › Items › MRP and Pack: 1 packUnit = packSize of `unit`, the unit stock is counted in; '' = no pack */
   packUnit: opt(20).transform((v) => v.toUpperCase()).optional(),
   packSize: amount(),
   category: opt(80),
@@ -82,7 +82,7 @@ export const itemSchema = z.object({
   openingQty: amount(),
   openingRate: amount(),
   openingDate: isoDate.optional(),
-  /** Features › batch_expiry: ask for batch no. and expiry on this item's stock */
+  /** Settings › Items › Batch No.: ask for batch no. and expiry on this item's stock */
   trackBatch: z.boolean().optional(),
   openingBatchNo: z.string().trim().max(40).optional(),
   openingMfg: z.string().trim().max(12).optional(),
@@ -110,7 +110,7 @@ export const stockAdjustmentSchema = z.object({
   reason: opt(200),
   /** sent back unchanged when a saved one is edited: the server refuses a different number */
   number: z.string().trim().max(40).optional(),
-  /** Features › batch_expiry. Reducing: the batch it comes out of (none = No batch). Adding: the batch no. it goes into. */
+  /** Settings › Items › Batch No.. Reducing: the batch it comes out of (none = No batch). Adding: the batch no. it goes into. */
   batchId: z.string().uuid().nullable().optional(),
   batchNo: z.string().trim().max(40).optional(),
   mfg: z.string().trim().max(12).optional(),

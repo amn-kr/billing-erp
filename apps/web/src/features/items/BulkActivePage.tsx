@@ -7,6 +7,7 @@
  * ptkind, pttot, card, ptfil, search, fi, seg2, st, brc, msg, ov/mdl).
  */
 import { useMemo, useState } from 'react';
+import { useItemFields } from '../../lib/features';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BULK_ACTIVE_MAX, type BulkActiveInput, type BulkActiveResult } from '@billing/shared';
 import { api, ApiError } from '../../lib/api';
@@ -36,6 +37,8 @@ export function BulkActivePage() {
   const { showToast } = useShell();
   const list = useQuery({ queryKey: ['items', 'all'], queryFn: () => api<Row[]>('/items?archived=all&kind=goods') });
   const [q, setQ] = useState('');
+  const fields = useItemFields();
+  const columns = COLUMNS.filter((c) => (c.key === 'brand' ? fields.brand : c.key === 'series' ? fields.series : true));
   const [brand, setBrand] = useState('');
   const [category, setCategory] = useState('');
   const [show, setShow] = useState<Show>('active');
@@ -50,8 +53,8 @@ export function BulkActivePage() {
   const s = q.trim().toLowerCase();
   const rows = IT.filter((i) =>
     (show === 'all' || i.archived === (show === 'inactive'))
-    && (!brand || i.brand === brand)
-    && (!category || (category === '—' ? !i.category : i.category === category))
+    && (!fields.brand || !brand || i.brand === brand)
+    && (!fields.category || !category || (category === '—' ? !i.category : i.category === category))
     && (!s || i.name.toLowerCase().includes(s) || i.code.toLowerCase().includes(s)));
   const pos = useMemo(() => new Map(IT.map((i, k) => [i.id, k + 1])), [IT]);
   const selRows = IT.filter((i) => sel.has(i.id));
@@ -111,15 +114,15 @@ export function BulkActivePage() {
       <div className="card ptxc">
         <div className="ptfil" style={{ padding: ui.sp('14px 16px'), alignItems: 'center', gap: ui.sp(12) }}>
           <label className="search" htmlFor="baQ" style={{ height: ui.h(34) }}><RawIcon d={SEARCH} /><input id="baQ" placeholder="Search by item name or code" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
-          <select className="fi" id="baBrand" aria-label="Filter by brand" value={brand} style={{ width: 'auto', height: ui.h(34), margin: 0 }} onChange={(e) => setBrand(e.target.value)}>
+          {fields.brand && <select className="fi" id="baBrand" aria-label="Filter by brand" value={brand} style={{ width: 'auto', height: ui.h(34), margin: 0 }} onChange={(e) => setBrand(e.target.value)}>
             <option value="">All brands</option>
             {brands.map((b) => <option key={b}>{b}</option>)}
-          </select>
-          <select className="fi" id="baCat" aria-label="Filter by category" value={category} style={{ width: 'auto', height: ui.h(34), margin: 0 }} onChange={(e) => setCategory(e.target.value)}>
+          </select>}
+          {fields.category && <select className="fi" id="baCat" aria-label="Filter by category" value={category} style={{ width: 'auto', height: ui.h(34), margin: 0 }} onChange={(e) => setCategory(e.target.value)}>
             <option value="">All categories</option>
             <option value="—">No category</option>
             {cats.map((c) => <option key={c}>{c}</option>)}
-          </select>
+          </select>}
           <div className="seg2 sm" id="baShow" role="group" aria-label="Show">
             {([['active', 'Active'], ['inactive', 'Inactive'], ['all', 'All']] as const).map(([k, t]) => (
               <button key={k} type="button" data-show={k} className={show === k ? 'on' : undefined} aria-pressed={show === k} onClick={() => setShow(k)}>{t}</button>
@@ -128,7 +131,7 @@ export function BulkActivePage() {
         </div>
         <SheetGrid
           id="baGrid"
-          columns={COLUMNS}
+          columns={columns}
           rows={rows}
           rowKey={(i) => i.id}
           rowLabel={(i) => pos.get(i.id)}

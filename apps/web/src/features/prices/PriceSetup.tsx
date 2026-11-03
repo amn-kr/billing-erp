@@ -5,6 +5,7 @@
  * through the preview (#ppv); rules and prices need the PIN.
  */
 import { useMrpOn } from '../../lib/settings';
+import { useItemFields, useItemWord } from '../../lib/features';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { money, type PriceRuleSet } from '@billing/shared';
@@ -28,6 +29,8 @@ export function PriceSetup({ open, data, previewOpen, onPreview, onClose }: {
 }) {
   const settings = useSettings().data;
   const mrpOn = useMrpOn();
+  const show = useItemFields();
+  const word = useItemWord();
   const rules = ((settings?.data as { priceRules?: Record<string, PriceRuleSet> } | undefined)?.priceRules ?? {});
   const qc = useQueryClient();
   const { showToast } = useShell();
@@ -190,15 +193,15 @@ export function PriceSetup({ open, data, previewOpen, onPreview, onClose }: {
         <div className="dh"><div><h3 id="psT" style={{ margin: 0, fontSize: ui.fs(18) }}>Price Setup</h3><small className="mu">Set sale prices from List Price (LP − discount %) or purchase price (+ margin %). Prices lock again when you close this.</small></div><button className="ib" type="button" id="psClose" aria-label="Close" onClick={close}><RawIcon d={X} /></button></div>
         <div className="psbar"><div className="seg2 sm" id="psTabs"><button type="button" data-pst="rule" className={rule ? 'on' : ''} onClick={() => { setPsu({ tab: 'rule' }); rerender(); }}>Brand rules</button><button type="button" data-pst="item" className={!rule ? 'on' : ''} onClick={() => { setPsu({ tab: 'item' }); rerender(); }}>Fine-tune items</button></div>
           <label className="search" htmlFor="psQ" style={{ height: ui.h(34), maxWidth: 230 }}><RawIcon d={SEARCH} /><input id="psQ" placeholder="Search item or code" autoComplete="off" value={psu.q} onChange={(e) => { setPsu({ q: e.target.value }); rerender(); }} /></label>
-          <select className="fi" id="psCat" aria-label="Category" value={psu.cat} onChange={(e) => { setPsu({ cat: e.target.value }); rerender(); }}><option value="all">All categories</option>{cats.map((c) => <option key={c}>{c}</option>)}</select>
-          <select className="fi" id="psBrand" aria-label="Brand" value={psu.brand} onChange={(e) => { setPsu({ brand: e.target.value, ser: 'all' }); rerender(); }}><option value="all">All brands</option>{brands.map((b) => <option key={b}>{b}</option>)}</select>
-          <select className="fi" id="psSer" aria-label="Series" value={ser || 'all'} disabled={!sers.length} onChange={(e) => { setPsu({ ser: e.target.value }); rerender(); }}><option value="all">All series</option>{sers.map((x) => <option key={x}>{x}</option>)}</select><span className="mu" id="psN" style={{ fontSize: ui.fs(12.5) }}>{L.length} item{L.length === 1 ? '' : 's'}</span></div>
+          {show.category && <select className="fi" id="psCat" aria-label="Category" value={psu.cat} onChange={(e) => { setPsu({ cat: e.target.value }); rerender(); }}><option value="all">All categories</option>{cats.map((c) => <option key={c}>{c}</option>)}</select>}
+          {show.brand && <select className="fi" id="psBrand" aria-label="Brand" value={psu.brand} onChange={(e) => { setPsu({ brand: e.target.value, ser: 'all' }); rerender(); }}><option value="all">All brands</option>{brands.map((b) => <option key={b}>{b}</option>)}</select>}
+          {show.series && <select className="fi" id="psSer" aria-label="Series" value={ser || 'all'} disabled={!sers.length} onChange={(e) => { setPsu({ ser: e.target.value }); rerender(); }}><option value="all">All series</option>{sers.map((x) => <option key={x}>{x}</option>)}</select>}<span className="mu" id="psN" style={{ fontSize: ui.fs(12.5) }}>{L.length} item{L.length === 1 ? '' : 's'}</span></div>
         <div id="psBody" ref={bodyRef}>
           {rule ? (
             <BrandRules IT={IT} F={F} rules={rules} ed={ed} setEd={(e) => { setEd(e); setFitted(false); }} meta={meta} fitted={fitted} onPick={(k) => pick(k)} onRemove={removeRule} />
           ) : (
             <div className={`tw pstw${fitted ? ' stk' : ''}`}><table className="ptt2 psit">
-              <thead><tr><th rowSpan={2}>Item</th><th rowSpan={2} className="n">Purchase</th>{mrpOn && <th rowSpan={2} className="n">MRP</th>}<th rowSpan={2} className="n">LP</th>{F.map(([f, lb]) => <th colSpan={3} className="c psg" key={f}>{lb}</th>)}</tr>
+              <thead><tr><th rowSpan={2}>Item</th><th rowSpan={2} className="n">Purchase</th>{mrpOn && <th rowSpan={2} className="n">{word('mrp', 'MRP')}</th>}<th rowSpan={2} className="n">LP</th>{F.map(([f, lb]) => <th colSpan={3} className="c psg" key={f}>{lb}</th>)}</tr>
                 <tr>{F.map(([f]) => [<th className="n sub" title="Discount on List Price" key={f + 'd'}>LP − %</th>, <th className="n sub" title="Margin on purchase price" key={f + 'm'}>Margin %</th>, <th className="n sub" key={f + 'p'}>Price</th>])}</tr></thead>
               <tbody>
                 {L.length ? L.map((i) => {
@@ -206,7 +209,7 @@ export function PriceSetup({ open, data, previewOpen, onPreview, onClose }: {
                   const mrp = d.mrp ?? i.mrp;
                   const lpv = dv(i, 'lp');
                   return (
-                    <tr data-psi={i.id} key={i.id}><td><b>{i.grp || i.name}</b><small>{[i.brand, i.series].filter(Boolean).join(' | ')}{i.code ? ' · ' + i.code : ''}</small></td><td className="n mu">{i.purch ? inr2f(i.purch) : '—'}</td>
+                    <tr data-psi={i.id} key={i.id}><td><b>{i.grp || i.name}</b><small>{[show.brand ? i.brand : '', show.series ? i.series : ''].filter(Boolean).join(' | ')}{i.code ? ' · ' + i.code : ''}</small></td><td className="n mu">{i.purch ? inr2f(i.purch) : '—'}</td>
                       {(mrpOn ? (['mrp', 'lp'] as const) : (['lp'] as const)).map((k) => (
                         <td className="n" key={k}><input className={`fi n psin ${d[k] !== undefined ? 'chg' : ''}`} data-pf={k} value={val(`${i.id}:pf:${k}`, String(dv(i, k) || ''))} inputMode="decimal" placeholder="—" onChange={(e) => itemInput(i, 'pf', k, e.target.value)} onKeyDown={onKey} onFocus={sel} /></td>
                       ))}

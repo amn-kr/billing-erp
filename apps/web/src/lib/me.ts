@@ -16,7 +16,7 @@ export function useMe() {
     queryFn: () => api<MeResponse>('/me'),
     enabled: !!token,
     staleTime: 30_000,
-    // a change the shop's owner made elsewhere (Settings › Features) reaches open screens
+    // a change the shop's owner made elsewhere (Settings › Items) reaches open screens
     refetchInterval: 5 * 60_000,
     // a dropped connection is retried; "please sign in" / "no access" are final
     retry: (count, e) => e instanceof ApiError && e.status === 0 && count < 5,

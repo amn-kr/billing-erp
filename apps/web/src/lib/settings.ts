@@ -16,10 +16,10 @@ export function useSettings() {
   return useQuery({ queryKey: ['settings', owner], queryFn: () => api<ShopSettings>('/settings'), enabled: !!token, staleTime: 60_000 });
 }
 
-/** Whether MRP shows: the Show MRP switch (Settings › General), and always with Features › mrp_pack on. */
+/** Whether MRP shows: the Show MRP switch (Settings › General), and always with Settings › Items › MRP on. */
 export function useMrpOn(): boolean {
   const on = !!useSettings().data?.data?.mrp;
-  return useFeature('mrp_pack') || on;
+  return useFeature('mrp') || on;
 }
 
 /** Text helper that drops "₹" when the shop has the currency symbol switched off (the prototype's default). */

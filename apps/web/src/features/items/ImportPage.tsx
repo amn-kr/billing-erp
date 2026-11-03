@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useBlocker } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  checkImportRows, IMPORT_COLUMNS, IMPORT_MAX_ROWS, IMPORT_TYPES, parseImportDate, rowProblems,
+  checkImportRows, IMPORT_COLUMNS, importColumns, IMPORT_MAX_ROWS, IMPORT_TYPES, parseImportDate, rowProblems,
   type ImportContext, type ImportKey, type ImportRow, type ImportSummary, type RowCheck,
 } from '@billing/shared';
 import { api, ApiError } from '../../lib/api';
@@ -91,7 +91,7 @@ export function ImportPage() {
   async function upload(f: File) {
     setFileErr(''); setReading(true);
     try {
-      const r = await readImportFile(f);
+      const r = await readImportFile(f, shop.data?.off);
       setRows(r); setFileName(f.name); setFilter('all'); setQ(''); setSkip(false); setServerMsg(''); setSummary(null);
       await shop.refetch();
     } catch (e) {
@@ -176,10 +176,10 @@ export function ImportPage() {
     category: { options: S.categories, free: true },
   };
   const mainGodown = S.godowns.find((g) => g.isDefault)?.name ?? '';
-  const columns: GridColumn[] = IMPORT_COLUMNS.map((c) => ({
+  const columns: GridColumn[] = importColumns(S.off).map((c) => ({
     key: c.key, title: c.title, required: REQ.includes(c.key), num: NUMS.includes(c.key), list: lists[c.key],
     width: c.key === 'name' ? 270 : c.key === 'type' ? 150 : NUMS.includes(c.key) ? 110 : 150,
-    placeholder: c.key === 'unit' ? 'PCS' : c.key === 'godown' ? mainGodown : c.key === 'gst' ? '18' : c.key === 'date' ? 'dd-mm-yyyy' : undefined,
+    placeholder: c.key === 'unit' ? S.defaultUnit ?? 'PCS' : c.key === 'godown' ? mainGodown : c.key === 'gst' ? '18' : c.key === 'date' ? 'dd-mm-yyyy' : undefined,
   }));
 
   const s = q.trim().toLowerCase();

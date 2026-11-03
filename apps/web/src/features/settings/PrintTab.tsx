@@ -18,7 +18,7 @@ import { useSale, useSales } from '../sales/model';
 import { Paper, PaperFit, columns, copiesOf, fromSale } from '../print/Paper';
 import { sampleDoc } from '../print/sample';
 import { usePrintStyles } from '../print/printer';
-import { BOT, COLDEF, COLORS, COLS0, NAMES, PRINT_DEF, TOP, usePrintOpts, type ColSet, type PrintOpts } from '../print/opts';
+import { BOT, COLDEF, COLORS, COLS0, NAMES, PRINT_DEF, TOP, useHiddenCols, usePrintOpts, type ColSet, type PrintOpts } from '../print/opts';
 import { Sw } from './model';
 import { txnOpts } from '../sales/editor/state';
 import { ui } from '../../styles/uiSize';
@@ -82,6 +82,7 @@ const Opt = ({ id, on, t, d, ch, extra }: { id: string; on: boolean; t: string; 
 
 /** Left column: the option cards. */
 export function PrintCards() {
+  const hidden = useHiddenCols();
   const { o, set } = useEdit();
   const open = usePrint((x) => x.open);
   const move = (k: 'top' | 'bot', i: number, d: -1 | 1) => { const a = [...o[k]] as string[]; const j = i + d; const t = a[i]!; a[i] = a[j]!; a[j] = t; set({ [k]: a } as Partial<PrintOpts>); };
@@ -146,7 +147,7 @@ export function PrintCards() {
 
       <section className="card" id="cPrTable">
         <H first t="Item table" d="Choose which columns print and what their headings say." />
-        <p className="pvsub" style={{ margin: ui.sp('0 0 6px') }}>Printing now: {COLDEF.filter(([, k]) => o.cols[k].on).map(([, k]) => o.cols[k].label).join(' · ')}</p>
+        <p className="pvsub" style={{ margin: ui.sp('0 0 6px') }}>Printing now: {COLDEF.filter(([, k]) => o.cols[k].on && !hidden.includes(k)).map(([, k]) => o.cols[k].label).join(' · ')}</p>
         <button type="button" className="aplink" id="pColsBtn" onClick={() => open('cols')}>Item table customisation<RawIcon d={RT} /></button>
       </section>
 
@@ -202,6 +203,7 @@ function Dialog({ id, title, sub, onClose, children, foot }: { id: string; title
 }
 
 function ColsDialog() {
+  const hidden = useHiddenCols();
   const { o, set } = useEdit();
   const { dlg, open } = usePrint();
   const [c, setC] = useState<ColSet>(o.cols);
@@ -215,7 +217,7 @@ function ColsDialog() {
     <div className="mselr" key={k} style={{ padding: ui.sp('4px 0') }}><input type="checkbox" checked={c[k]!.on} disabled={x?.lock} aria-label={`Print ${COLS0[k]!.label}`} onChange={(e) => setC({ ...c, [k]: { ...c[k]!, on: e.target.checked } })} />
       <input className="fi" style={{ margin: 0, height: ui.h(36), flex: 1, minWidth: 0 }} value={c[k]!.label} aria-label={`Heading for ${COLS0[k]!.label}`} placeholder={COLS0[k]!.label} onChange={(e) => setC({ ...c, [k]: { ...c[k]!, label: e.target.value } })} /></div>
   );
-  const grp = (g: 1 | 2 | 3, t: string, d: string) => <div><h4 style={{ margin: ui.sp('0 0 2px'), fontSize: ui.fs(14) }}>{t}</h4><p className="mu" style={{ margin: ui.sp('0 0 8px'), fontSize: ui.fs(12) }}>{d}</p>{COLDEF.filter((x) => x[0] === g).map(row)}</div>;
+  const grp = (g: 1 | 2 | 3, t: string, d: string) => <div><h4 style={{ margin: ui.sp('0 0 2px'), fontSize: ui.fs(14) }}>{t}</h4><p className="mu" style={{ margin: ui.sp('0 0 8px'), fontSize: ui.fs(12) }}>{d}</p>{COLDEF.filter((x) => x[0] === g && !hidden.includes(x[1])).map(row)}</div>;
   return (
     <Dialog id="ictm" title="Item table customisation" sub="Tick the columns to print. Type to change a heading, e.g. “Billed Qty”." onClose={close}
       foot={<><button className="btn" type="button" onClick={() => setC(COLS0)}>Reset columns</button><button className="btn p" type="button" id="ictmDone" onClick={() => { set({ cols: c }); close(); }}>Done</button></>}>
@@ -258,6 +260,7 @@ function NamesDialog() {
 
 /** Right column: the live preview, drawn by the shared renderer exactly as it prints. */
 export function PrintPreview() {
+  const hidden = useHiddenCols();
   usePrintStyles();
   const o = usePrintOpts();
   const { sample, setSample } = usePrint();
@@ -273,7 +276,7 @@ export function PrintPreview() {
     <aside className="card pv" id="pv">
       <div className="hd"><h3>Live preview</h3><span className="pill">{o.paper} {o.landscape ? 'landscape' : 'portrait'}</span></div>
       <div className="pvc"><div className="seg2 sm" role="radiogroup" aria-label="Preview with">{opts.map(([k, t]) => <button role="radio" aria-checked={sample === k} className={sample === k ? 'on' : ''} key={k} data-pvs={k} onClick={() => setSample(k)}>{t}</button>)}</div></div>
-      <div className="ppframe" id="pvPaper"><PaperFit o={o}><Paper d={d} o={o} biz={biz} states={STATES} /></PaperFit></div>
+      <div className="ppframe" id="pvPaper"><PaperFit o={o}><Paper d={{ ...d, hideCols: hidden }} o={o} biz={biz} states={STATES} /></PaperFit></div>
       <p className="pvsub" style={{ margin: ui.sp('10px 0 0') }}>{copies.length ? `Prints ${copies.length === 1 ? '1 copy' : copies.length + ' copies'}: ${copies.map((c) => c.split(' ')[0]).join(', ')}.` : 'No copy chosen: turn on at least one copy in Footer.'}</p>
     </aside>
   );

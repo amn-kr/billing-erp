@@ -12,7 +12,7 @@ import { BulkUpdatePage } from '../features/items/BulkUpdatePage';
 import { BulkActivePage } from '../features/items/BulkActivePage';
 import { AdjustmentsPage } from '../features/stock/AdjustmentsPage';
 import { PricesPage } from '../features/prices/PricesPage';
-import { SettingsPage } from '../features/settings/SettingsPage';
+import { OldFeaturesPage, SettingsPage } from '../features/settings/SettingsPage';
 import { GodownsPage } from '../features/stock/GodownsPage';
 import { SalesPage } from '../features/sales/SalesPage';
 import { PaymentsReceivedPage } from '../features/sales/PaymentsReceivedPage';
@@ -45,6 +45,7 @@ export const router = createBrowserRouter([
       { path: 'items/bulk-active', element: <BulkActivePage /> },
       { path: 'prices', element: <PricesPage /> },
       { path: 'settings', element: <SettingsPage /> },
+      { path: 'settings/features', element: <OldFeaturesPage /> },
       { path: 'stock-adjustments', element: <AdjustmentsPage /> },
       { path: 'godowns', element: <GodownsPage /> },
       { path: 'sales', element: <SalesPage /> },

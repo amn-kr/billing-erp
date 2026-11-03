@@ -10,6 +10,7 @@
 import { z } from 'zod';
 import { D, MONEY_MAX, type Money } from './money.js';
 import { parseIso } from './dates.js';
+import type { ItemField } from './features.js';
 
 export const IMPORT_COLUMNS = [
   { key: 'type', title: 'Product type', note: 'Single Range or Multi Range (pick from the list). Required.' },
@@ -27,12 +28,19 @@ export const IMPORT_COLUMNS = [
   { key: 'category', title: 'Category', note: 'Optional. A category that does not exist yet is created on import.' },
   { key: 'gst', title: 'GST %', note: 'A rate from your tax list, e.g. 18. Blank = 18.' },
   { key: 'hsn', title: 'HSN', note: 'Optional. 4 to 8 digits.' },
+  { key: 'rack', title: 'Rack / shelf', note: 'Optional. Where the item is kept, e.g. Rack A1. Files without this column still work.' },
 ] as const;
 
 export type ImportKey = (typeof IMPORT_COLUMNS)[number]['key'];
 export const IMPORT_KEYS = IMPORT_COLUMNS.map((c) => c.key) as ImportKey[];
 /** One row as typed: every cell is text. `line` is the row number in the Excel file. */
 export type ImportRow = { line: number } & Record<ImportKey, string>;
+
+/** Settings › Items: the columns of boxes turned off aren't in the template or on the checking screen. */
+const COLUMN_OF_FIELD: Record<ItemField, ImportKey> = { category: 'category', brand: 'brand', series: 'series', location: 'rack' };
+export const importColumns = (off: readonly ItemField[] = []) => IMPORT_COLUMNS.filter((c) => !off.some((f) => COLUMN_OF_FIELD[f] === c.key));
+/** Filled in for a box turned off, so nothing is created or saved from an old file's column. */
+const offKeys = (off: readonly ItemField[] = []) => new Set(off.map((f) => COLUMN_OF_FIELD[f]));
 
 export const IMPORT_TYPES = ['Single Range', 'Multi Range'] as const;
 export const IMPORT_SHEET = 'Products';
@@ -57,6 +65,9 @@ export interface ImportContext {
   categories: string[];
   /** the shop's GST rates, e.g. "18" or "0.25" */
   gstRates: string[];
+  /** Settings › Items: the boxes turned off, and the unit of a row with none (PCS unless changed) */
+  off?: ItemField[];
+  defaultUnit?: string;
 }
 
 export type IssueLevel = 'error' | 'warning';
@@ -86,6 +97,8 @@ export interface ImportItem {
   category: string;
   gst: string;
   hsn: string;
+  /** rack / shelf */
+  location: string;
   newBrand: boolean;
   newSeries: boolean;
   newGroup: boolean;
@@ -163,6 +176,8 @@ export function checkImportRows(rows: ImportRow[], ctx: ImportContext): RowCheck
   const gstRates = ctx.gstRates.map((r) => new D(r));
 
   // first pass: each row on its own
+  const hidden = offKeys(ctx.off);
+  const noVariants = hidden.has('brand') || hidden.has('series');
   const out = rows.map((r) => checkOne(r));
 
   // a new name typed with other capital letters on a later row uses the first row's spelling
@@ -208,7 +223,7 @@ export function checkImportRows(rows: ImportRow[], ctx: ImportContext): RowCheck
 
   function checkOne(r: ImportRow): RowCheck {
     const c: RowCheck = { line: r.line, status: 'ok', cells: {}, item: null };
-    const v = (k: ImportKey) => (r[k] ?? '').trim();
+    const v = (k: ImportKey) => (hidden.has(k) ? '' : (r[k] ?? '').trim());
     const err = (k: ImportKey, m: string) => add(c, k, 'error', m);
     const warn = (k: ImportKey, m: string) => add(c, k, 'warning', m);
     const long = (k: ImportKey, max: number, what: string) => { if (v(k).length > max) err(k, `${what} is too long (at most ${max} letters).`); };
@@ -218,11 +233,13 @@ export function checkImportRows(rows: ImportRow[], ctx: ImportContext): RowCheck
     if (!v('type')) err('type', 'Choose Single Range or Multi Range.');
     else if (!kind) err('type', `“${v('type')}” is not a product type. Choose Single Range or Multi Range.`);
 
+    if (kind === 'multi' && noVariants) err('type', 'Multi Range needs Brand and Series, which are turned off in Settings › Items. Use Single Range.');
+
     // required columns (the brand code is optional: owner, 12 Oct 2026)
     if (!v('name')) err('name', 'Enter the product name.');
     // Single Range may have no brand, like Add item's Single (owner, 24 Oct 2026)
-    if (!v('brand') && kind !== 'single') err('brand', 'Enter the brand name.');
-    if (kind === 'multi' && !v('series')) err('series', 'Enter the series / range name (needed for Multi Range).');
+    if (!v('brand') && kind !== 'single' && !noVariants) err('brand', 'Enter the brand name.');
+    if (kind === 'multi' && !noVariants && !v('series')) err('series', 'Enter the series / range name (needed for Multi Range).');
     // a series belongs to a brand
     if (kind === 'single' && v('series') && !v('brand')) err('series', 'Series needs a brand. Enter the brand name, or clear the series.');
     else if (kind === 'single' && v('series')) warn('series', 'Series is only used for Multi Range. It will be ignored.');
@@ -231,6 +248,7 @@ export function checkImportRows(rows: ImportRow[], ctx: ImportContext): RowCheck
     long('series', 80, 'The series name');
     long('code', 60, 'The brand code');
     long('category', 80, 'The category name');
+    long('rack', 80, 'The rack / shelf');
 
     // brand and series: existing spelling, or "will be created"
     const b = brands.get(low(v('brand')));
@@ -292,7 +310,7 @@ export function checkImportRows(rows: ImportRow[], ctx: ImportContext): RowCheck
     else if (sale && rate && sale.lt(rate)) warn('sale', `Sale price is lower than the At price (${rate.toFixed(2)}).`);
 
     // lists
-    let unit = 'PCS';
+    let unit = ctx.defaultUnit ?? 'PCS';
     if (v('unit')) {
       const u = units.get(low(v('unit')));
       if (u) unit = u; else err('unit', `Unit “${v('unit')}” is not in your units. Choose one from the list.`);
@@ -319,7 +337,7 @@ export function checkImportRows(rows: ImportRow[], ctx: ImportContext): RowCheck
     if (kind) c.item = {
       line: r.line, kind, name, group, brand, series: ser, code: v('code'),
       qty: hasStock ? qty!.toFixed(3) : null, rate: rate ? rate.toFixed(2) : null, date: hasStock ? (date ?? ctx.today) : null,
-      unit, sale: (sale ?? new D(0)).toFixed(2), minStock: (min ?? new D(0)).toFixed(3), godown, category, gst, hsn,
+      unit, sale: (sale ?? new D(0)).toFixed(2), minStock: (min ?? new D(0)).toFixed(3), godown, category, gst, hsn, location: v('rack'),
       newBrand: !!v('brand') && !b, newSeries, newGroup: kind === 'multi' && !!v('name') && !g, newCategory: !!v('category') && !cat,
     };
     return c;
@@ -340,7 +358,7 @@ const cell = z.string().max(500).optional().default('');
 const rowSchema = z.object({
   line: z.number().int().min(1),
   type: cell, name: cell, brand: cell, series: cell, code: cell, qty: cell, rate: cell, date: cell,
-  unit: cell, sale: cell, min: cell, godown: cell, category: cell, gst: cell, hsn: cell,
+  unit: cell, sale: cell, min: cell, godown: cell, category: cell, gst: cell, hsn: cell, rack: cell,
 }) satisfies z.ZodType<ImportRow, z.ZodTypeDef, unknown>;
 export const importRowsSchema = z.object({
   rows: z

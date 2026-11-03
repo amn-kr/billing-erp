@@ -4,7 +4,8 @@
  * Nothing is deleted: brands and series are made inactive.
  */
 import { useEffect, useRef, useState, type FormEvent, type MouseEvent as RMouseEvent } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useItemFields } from '../../lib/features';
+import { useSearchParams, Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { todayIst } from '@billing/shared';
 import { api, ApiError } from '../../lib/api';
@@ -40,11 +41,18 @@ export const patchSeries = (s: Series, body: Record<string, unknown>) =>
   s.id ? api(`/brand-series/${s.id}`, { method: 'PATCH', body }) : api('/brand-series', { method: 'PATCH', body: { ...body, from: { brandId: s.brandId, name: s.name } } });
 
 export function BrandsPage() {
+  // Settings › Items: with Brand off this page has nothing to show, even from an old link
+  if (!useItemFields().brand) return <Navigate to="/items" replace />;
+  return <BrandsScreen />;
+}
+
+function BrandsScreen() {
   useFitTables();
   const qc = useQueryClient();
   const { showToast } = useShell();
   const [params, setParams] = useSearchParams();
-  const tab = params.get('tab') === 'series' ? 's' : 'b';
+  const fields = useItemFields();
+  const tab = fields.series && params.get('tab') === 'series' ? 's' : 'b';
   const brandF = params.get('brand') ?? 'all';
   const brands = useQuery({ queryKey: ['brands'], queryFn: () => api<Brand[]>('/brands') });
   const series = useQuery({ queryKey: ['brand-series'], queryFn: () => api<Series[]>('/brand-series') });
@@ -75,7 +83,7 @@ export function BrandsPage() {
       <button className="lnk" id="bsBack" style={{ fontSize: ui.fs(12), padding: 0 }} onClick={() => go('/items')}>← Products</button>
       <div className="pthd">
         <h1 className="ptkind" style={{ cursor: 'default' }}>Brands &amp; Series</h1>
-        <div className="pttot" id="bsTot"><span>{plural(B.length, 'brand')}</span><span>{S.length} series</span></div>
+        <div className="pttot" id="bsTot"><span>{plural(B.length, 'brand')}</span>{fields.series && <span>{S.length} series</span>}</div>
         <div className="sp"></div>
         {tab === 'b'
           ? <button className="btn p" id="bsAddBrand" onClick={() => setDlg({ k: 'addBrand' })}><Icon name="plus" />Add brand</button>
@@ -83,7 +91,7 @@ export function BrandsPage() {
       </div>
       <div className="seg2" role="tablist" id="bsTabs" style={{ margin: ui.sp('0 0 14px') }}>
         <button role="tab" aria-selected={tab === 'b'} className={tab === 'b' ? 'on' : ''} data-bst="brands" onClick={() => show('b')}>Brands<span>{B.length}</span></button>
-        <button role="tab" aria-selected={tab === 's'} className={tab === 's' ? 'on' : ''} data-bst="series" onClick={() => show('s', brandF)}>Series<span>{S.length}</span></button>
+        {fields.series && <button role="tab" aria-selected={tab === 's'} className={tab === 's' ? 'on' : ''} data-bst="series" onClick={() => show('s', brandF)}>Series<span>{S.length}</span></button>}
       </div>
 
       <div className="card ptxc" role="tabpanel">

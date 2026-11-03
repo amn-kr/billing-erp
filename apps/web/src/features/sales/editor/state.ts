@@ -12,11 +12,11 @@ import { lineCommission, loosePrice, money, packQtyText, saleTotals, stockQtyOf,
 export interface EItem {
   id: string; name: string; code: string; hsn: string; unit: string; cat: string; gst: number; stock: number | null; svc: boolean;
   brand: string; series: string; grp: string; purch: number; sale: number;
-  /** Features › batch_expiry: this item's stock has batches */
+  /** Settings › Items › Batch No.: this item's stock has batches */
   track?: boolean;
-  /** Features › mrp_pack */
+  /** Settings › Items › MRP and Pack */
   mrp?: number;
-  /** Features › mrp_pack: sold by the pack too; `sale`, `purch`, `mrp` and `pl` are then per pack, `stock` in `unit` */
+  /** Settings › Items › MRP and Pack: sold by the pack too; `sale`, `purch`, `mrp` and `pl` are then per pack, `stock` in `unit` */
   pack?: { unit: string; size: number };
   /** price on each active price list */
   pl: Record<string, number>;
@@ -32,7 +32,7 @@ export interface Line {
   bp?: number; cmT?: 'p' | 'f'; cmV?: number; cmO?: CommRule;
   /** came from this quotation */
   fromQ?: string;
-  /** Features › batch_expiry: batches chosen by hand or saved on the bill; none = earliest expiry first */
+  /** Settings › Items › Batch No.: batches chosen by hand or saved on the bill; none = earliest expiry first */
   batches?: BatchAlloc[];
 }
 /** acct: the bank account picked for UPI / bank transfer / card ('' = the default bank) */
@@ -82,7 +82,7 @@ export interface Ctx {
   rules: Record<string, CommRule>;
   /** Settings › Transactions › Transaction header */
   txn?: TxnOpts;
-  /** Features › mrp_pack: lines of an item with a pack start in packs and can change unit */
+  /** Settings › Items › MRP and Pack: lines of an item with a pack start in packs and can change unit */
   packOn?: boolean;
 }
 export interface TxnOpts { showNo: boolean; time: boolean; cashDefault: boolean; billName: boolean }
@@ -97,7 +97,7 @@ export function unitPrice(c: Ctx, it: EItem, p: EParty | null): number {
   const pl = priceListFor(c, p);
   return pl && it.pl[pl] !== undefined ? it.pl[pl]! : it.sale;
 }
-/* ───────── Features › mrp_pack ───────── */
+/* ───────── Settings › Items › MRP and Pack ───────── */
 
 /** A line's pack size: only in its item's pack unit. */
 export const linePack = (l: Pick<Line, 'item' | 'unit'>): number | null => (l.item?.pack && l.unit === l.item.pack.unit ? l.item.pack.size : null);

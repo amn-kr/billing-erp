@@ -1,5 +1,5 @@
 /**
- * MRP (Features › mrp_pack, owner's request, 2 Nov 2026). A line's MRP is the lowest MRP of the stock it uses: a batch's
+ * MRP (Settings › Items › MRP and Pack, owner's request, 2 Nov 2026). A line's MRP is the lowest MRP of the stock it uses: a batch's
  * own, else the item's (also for stock without a batch); no MRP, no check. MRP includes tax, so it is compared with what the customer pays per unit: the line's
  * amount (with GST, after its discount) ÷ its quantity, the same with prices with or without GST.
  */

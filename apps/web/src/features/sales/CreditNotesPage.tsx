@@ -4,8 +4,8 @@
  * money is refunded); the same goods can't be returned twice.
  */
 import { useEffect, useRef, useState } from 'react';
-import { batchMonth, loosePrice, packQtyText, type BatchRow, type PackInfo } from '@billing/shared';
-import { useFeature } from '../../lib/features';
+import { loosePrice, packQtyText, type BatchRow, type PackInfo } from '@billing/shared';
+import { useBatchView, useFeature } from '../../lib/features';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { CN_REASONS, money } from '@billing/shared';
@@ -39,13 +39,13 @@ interface CnDoc {
   lines: { batchId?: string | null; invoiceId: string | null; itemId: string; name: string; unit: string; qty: string; price: string; gstRate: string }[];
 }
 interface SoldBatch { batchId: string | null; no: string; expiry: string | null; qty: string }
-interface Returnable { soldBatches?: SoldBatch[]; itemId: string; name: string; unit: string; sold: string; max: string; price: string; gstRate: string; /** Features › mrp_pack: sold by the pack; `unit`, `sold`, `max` and `price` are the loose unit's */ packUnit?: string | null; packSize?: string | null }
-interface CnLine { /** Features › mrp_pack */ pack?: PackInfo | null; /** Features › batch_expiry: '' = as the invoice sold it, '__none' = No batch, else a batch */ batch?: string; sold0?: SoldBatch[]; inv: string; invNo: string; id: string; name: string; sold?: number; max?: number; qty: number; unit: string; price: number; gst: number; amt: number }
+interface Returnable { soldBatches?: SoldBatch[]; itemId: string; name: string; unit: string; sold: string; max: string; price: string; gstRate: string; /** Settings › Items › MRP and Pack: sold by the pack; `unit`, `sold`, `max` and `price` are the loose unit's */ packUnit?: string | null; packSize?: string | null }
+interface CnLine { /** Settings › Items › MRP and Pack */ pack?: PackInfo | null; /** Settings › Items › Batch No.: '' = as the invoice sold it, '__none' = No batch, else a batch */ batch?: string; sold0?: SoldBatch[]; inv: string; invNo: string; id: string; name: string; sold?: number; max?: number; qty: number; unit: string; price: number; gst: number; amt: number }
 
 const SEARCH = '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>';
 const PLUS = '<path d="M12 5v14M5 12h14"/>';
 const r2 = (n: number) => Math.round(n * 100) / 100;
-/** An item's sale price per its own unit: it is per pack on an item sold by the pack (Features › mrp_pack). */
+/** An item's sale price per its own unit: it is per pack on an item sold by the pack (Settings › Items › MRP and Pack). */
 const itemLoose = (it: Item) => (it.packSize ? loosePrice(it.sale, it.packSize).toNumber() : Number(it.sale) || 0);
 const packIn = (l: Returnable): PackInfo | null => (l.packUnit && l.packSize ? { packUnit: l.packUnit, packSize: l.packSize } : null);
 const CN_ACT: RowAction[] = [['edit', 'Edit'], ['view', 'View'], HIST_ACTION, '-', ['del', 'Delete', 'dz']];
@@ -115,11 +115,12 @@ export function CreditNotesPage() {
   );
 }
 
-/** Where a tracked item's returned goods go (Features › batch_expiry; owner-approved mock): the batch the invoice sold them from, or another. */
+/** Where a tracked item's returned goods go (Settings › Items › Batch No.; owner-approved mock): the batch the invoice sold them from, or another. */
 function CnBatch({ itemId, line, onChange }: { itemId: string; line: CnLine; onChange: (batch: string) => void }) {
   const all = useQuery({ queryKey: ['items', 'batches'], queryFn: () => api<Record<string, BatchRow[]>>('/batches') }).data?.[itemId] ?? [];
+  const v = useBatchView();
   const sold = (line.sold0 ?? []).filter((b) => b.batchId);
-  const label = (no: string, exp: string | null | undefined) => `Back to ${no}${exp ? ` · Exp ${batchMonth(exp)}` : ''}`;
+  const label = (no: string, exp: string | null | undefined) => `Back to ${no}${exp ? ` · ${v.word('exp', 'Exp')} ${v.expText(exp)}` : ''}`;
   const others = [...sold.map((b) => ({ id: b.batchId!, no: b.no, expiry: b.expiry })), ...all.flatMap((r) => (r.id ? [{ id: r.id, no: r.no, expiry: r.expiry }] : []))].filter((b, k, a) => a.findIndex((x) => x.id === b.id) === k);
   const only = (line.sold0 ?? []).length === 1 ? line.sold0![0]! : null;
   return (
@@ -138,7 +139,7 @@ export function CreditNoteDialog({ open, onClose }: { open: { invoice?: string; 
   const gst = !!useSettings().data?.gstEnabled;
   const ref = useRef<HTMLDivElement>(null);
   const isOpen = !!open;
-  const batchOn = useFeature('batch_expiry');
+  const batchOn = useFeature('batch_no');
   const parties = useQuery({ queryKey: ['parties'], queryFn: () => api<Party[]>('/parties'), enabled: isOpen });
   const items = useQuery({ queryKey: ['items'], queryFn: () => api<Item[]>('/items'), enabled: isOpen });
   const sales = useSales('invoice');

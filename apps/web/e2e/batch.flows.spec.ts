@@ -4,7 +4,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { ITEM, SUPPLIER, batchShop } from './batch.data';
-import { APP, freshShop, newPage, signInAs } from './setup';
+import { APP, freshShop, newPage, signInAs, batchesOff, openItemSettings } from './setup';
 
 const OPTION = (name: string) => `.cbl:not([hidden]) .cbo:not(.add):has-text("${name}")`;
 const startDoc = async (page: Page, kind: string) => {
@@ -136,11 +136,7 @@ test('with the feature off nothing shows, and ticking it again brings it all bac
   await expect(page.locator('#aiTrack')).toBeVisible();
   await page.keyboard.press('Escape');
 
-  await page.goto(APP + '/settings');
-  await page.click('#subnav [data-settab="features"]');
-  await page.click('#f_batch_expiry');
-  await page.click('#cfmYes');
-  await expect(page.locator('#f_batch_expiry')).not.toBeChecked();
+  await batchesOff(page);
 
   await openItem(page);
   await expect(page.locator('#itHead')).toContainText(ITEM);
@@ -157,10 +153,11 @@ test('with the feature off nothing shows, and ticking it again brings it all bac
   await page.click('.aptabs button:has-text("Stock")');
   await expect(page.locator('#aiTrack')).toHaveCount(0);
 
-  await page.goto(APP + '/settings');
-  await page.click('#subnav [data-settab="features"]');
-  await page.click('#f_batch_expiry');
-  await expect(page.locator('#f_batch_expiry')).toBeChecked();
+  await openItemSettings(page, 2);
+  await page.click('#f_exp_date');
+  await expect(page.locator('#f_batch_no')).toBeChecked();
+  await page.click('#f_mfg_date');
+  await expect(page.locator('#f_mfg_date')).toBeChecked();
   await openItem(page);
   await page.waitForSelector('#itBatchRows');
   expect(await rows(page)).toEqual([['X100', '1'], ['No batch', '1'], ['A123', '3'], ['B456', '4']]);

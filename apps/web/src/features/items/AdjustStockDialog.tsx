@@ -9,7 +9,7 @@ import { useShell } from '../shell/store';
 import { useDiscardGuard } from '../../components/Discard';
 import { qfmt, type Item } from './ItemsPage';
 import { editAsk, withPasscode } from '../settings/passcode';
-import { useFeature } from '../../lib/features';
+import { useBatchView, useFeature } from '../../lib/features';
 import { batchOption, useItemBatches } from '../purchases/BatchRow';
 import type { Adjustment } from '../stock/AdjustmentsPage';
 import { ui } from '../../styles/uiSize';
@@ -41,8 +41,9 @@ export function AdjustStockDialog({ item, choices, edit, preset, onClose }: { it
   const closeRef = useRef(close);
   closeRef.current = close;
   const [picked, setPicked] = useState(false);
-  // Features › batch_expiry: a tracked item's adjustment names its batch
-  const batchOn = useFeature('batch_expiry');
+  // Settings › Items › Batch No.: a tracked item's adjustment names its batch
+  const batchOn = useFeature('batch_no');
+  const v = useBatchView();
   const track = batchOn && !!it?.trackBatch;
   const [batchNo, setBatchNo] = useState('');
   const [expiry, setExpiry] = useState('');
@@ -55,7 +56,7 @@ export function AdjustStockDialog({ item, choices, edit, preset, onClose }: { it
     setIt(item); setPicked(false);
     setMode('add'); setQty(''); setPrice(String(item.packSize ? looseCost(item.purchase, item.packSize).toDecimalPlaces(2).toNumber() : Number(item.purchase))); setDate(today()); setWhy(REASONS[0]!); setErr(''); setBatchNo(''); setExpiry(''); setBatchId('');
     if (edit) {
-      setBatchNo(edit.batchNo ?? ''); setExpiry(batchDateText(edit.expiry, 'expiry')); setBatchId(edit.batchId ?? '');
+      setBatchNo(edit.batchNo ?? ''); setExpiry(v.boxText(edit.expiry, 'expiry')); setBatchId(edit.batchId ?? '');
       const q = Number(edit.qty);
       setMode(q < 0 ? 'reduce' : 'add'); setQty(String(Math.abs(q))); setPrice(String(Number(edit.rate))); setDate(edit.date); setWhy(edit.reason);
     }
@@ -104,14 +105,14 @@ export function AdjustStockDialog({ item, choices, edit, preset, onClose }: { it
             <button type="button" data-am="reduce" className={mode === 'reduce' ? 'on' : ''} onClick={() => setMode('reduce')}>Reduce stock</button>
           </div>
           {track && mode === 'reduce' ? (
-            <label className="fl" htmlFor="bxAdj">Batch<select className="fi" id="bxAdj" value={batchId} onChange={(e) => setBatchId(e.target.value)}>
-              {batches.some((b) => !b.id) || !batches.length ? <option value="">{batches.find((b) => !b.id) ? batchOption(batches.find((b) => !b.id)!) : 'No batch'}</option> : null}
-              {batches.filter((b) => b.id).map((b) => <option value={b.id!} key={b.id}>{batchOption(b)}</option>)}
+            <label className="fl" htmlFor="bxAdj">{v.word('batch', 'Batch')}<select className="fi" id="bxAdj" value={batchId} onChange={(e) => setBatchId(e.target.value)}>
+              {batches.some((b) => !b.id) || !batches.length ? <option value="">{batches.find((b) => !b.id) ? batchOption(batches.find((b) => !b.id)!, v) : 'No batch'}</option> : null}
+              {batches.filter((b) => b.id).map((b) => <option value={b.id!} key={b.id}>{batchOption(b, v)}</option>)}
             </select></label>
           ) : track ? (
             <div className="two">
-              <label className="fl" htmlFor="bxAdjNo">Batch no.<input className="fi" id="bxAdjNo" value={batchNo} placeholder="Blank = No batch" autoComplete="off" onChange={(e) => setBatchNo(e.target.value)} /></label>
-              <label className="fl" htmlFor="bxAdjExp">Expiry<input className="fi" id="bxAdjExp" value={expiry} placeholder="MM/YY" autoComplete="off" onChange={(e) => setExpiry(e.target.value)} /></label>
+              <label className="fl" htmlFor="bxAdjNo">{v.word('batch', 'Batch no.')}<input className="fi" id="bxAdjNo" value={batchNo} placeholder="Blank = No batch" autoComplete="off" onChange={(e) => setBatchNo(e.target.value)} /></label>
+              {v.exp ? <label className="fl" htmlFor="bxAdjExp">{v.word('exp', 'Expiry')}<input className="fi" id="bxAdjExp" value={expiry} placeholder={v.hint('expiry')} autoComplete="off" onChange={(e) => setExpiry(e.target.value)} /></label> : null}
             </div>
           ) : null}
           <div className="two">
