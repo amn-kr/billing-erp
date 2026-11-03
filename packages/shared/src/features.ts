@@ -75,7 +75,7 @@ export function featureListProblem(wanted: readonly string[]): string | null {
   const list = enabledFeatures(wanted);
   for (const k of list) {
     const missing = featuresNeeded(k).find((n) => !list.includes(n));
-    if (missing) return k === 'no_brand' ? 'Series belongs to a brand, so it can’t stay on without Brand.' : `${featureName(k)} needs ${featureName(missing)}. Turn that on first.`;
+    if (missing) return k === 'no_brand' ? 'Series belongs to a brand, so it can’t stay on without Brand.' : `${featureName(k)} needs ${featureName(missing).replace(/\.$/, '')}. Turn that on first.`;
   }
   return null;
 }
