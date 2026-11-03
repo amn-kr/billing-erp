@@ -41,8 +41,8 @@ export function AdjustStockDialog({ item, choices, edit, preset, onClose }: { it
   const closeRef = useRef(close);
   closeRef.current = close;
   const [picked, setPicked] = useState(false);
-  // Features › batch_expiry: a tracked item's adjustment names its batch
-  const batchOn = useFeature('batch_expiry');
+  // Settings › Items › Batch No.: a tracked item's adjustment names its batch
+  const batchOn = useFeature('batch_no');
   const track = batchOn && !!it?.trackBatch;
   const [batchNo, setBatchNo] = useState('');
   const [expiry, setExpiry] = useState('');

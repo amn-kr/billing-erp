@@ -1,5 +1,5 @@
 /**
- * Which batches the bill on screen uses (Features › batch_expiry): worked out from its lines each time it
+ * Which batches the bill on screen uses (Settings › Items › Batch No.): worked out from its lines each time it
  * is drawn, with the same rules the server checks (billAllocs), so nothing can get out of step. A saved
  * bill's own goods count as back in stock while it is edited.
  */
@@ -49,7 +49,7 @@ export function expiredPicks(d: EditorData, si: SI, allocs: (BatchAlloc[] | null
   return out;
 }
 
-/** Features › mrp_pack: a line's MRP: the lowest of the batches it uses, else the item's. */
+/** Settings › Items › MRP and Pack: a line's MRP: the lowest of the batches it uses, else the item's. */
 export function lineMrp(d: EditorData, si: SI, l: Line, allocs: BatchAlloc[] | null | undefined): number | null {
   if (!d.mrpOn || !l.item || l.item.svc || si.doc !== 'sale') return null;
   const rows = batchRowsFor(d, si, l.item.id) ?? [];

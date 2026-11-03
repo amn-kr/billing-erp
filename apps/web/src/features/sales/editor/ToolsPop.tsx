@@ -67,7 +67,7 @@ export function ToolBody({ k, s, ctx, up, onFiles, toast }: { k: ToolKey; s: SI;
 function PlBody({ s, ctx }: { s: SI; ctx: Ctx }) {
   const c = calc(ctx, s);
   const L = s.lines.map((l, i) => ({ l, r: c.rows[i]! })).filter((x) => x.l.item && Number(x.l.qty) > 0);
-  // Features › batch_expiry: a line's cost is the cost of the batches it uses
+  // Settings › Items › Batch No.: a line's cost is the cost of the batches it uses
   const d = useEditorData();
   const allocs = d ? saleAllocs(d, s) : [];
   const body = { id: s.doc === 'sale' ? s.editId : null, date: s.date, lines: L.map(({ l }) => { const a = allocs[s.lines.indexOf(l)]; return { itemId: l.item!.id, qty: String(lineStock(l)), ...(a?.length ? { batches: a } : {}) }; }) };

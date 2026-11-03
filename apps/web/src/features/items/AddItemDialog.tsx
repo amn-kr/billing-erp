@@ -64,7 +64,7 @@ const formOf = (i: EditItem): Partial<Form> => ({
 
 type Pop = 'brand' | 'cat' | 'group' | 'unit' | 'series' | null;
 /** Select unit window: base, secondary ('' = None) and the chosen rate ('new' = typed in, else a saved rate). */
-interface UnitWin { base: string; sec: string; pick: string; typed: string; err: string; addFor: 'base' | 'sec' | 'pack'; /** Features › mrp_pack */ on: boolean; pack: string; size: string }
+interface UnitWin { base: string; sec: string; pick: string; typed: string; err: string; addFor: 'base' | 'sec' | 'pack'; /** Settings › Items › MRP and Pack */ on: boolean; pack: string; size: string }
 
 /**
  * onOpenItem: "Open that item" for a variant that already exists (Items page: its detail screen). Without it
@@ -81,8 +81,8 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
   const [vary, setVary] = useState(false);
   const [tab, setTab] = useState<'price' | 'stock'>('price');
   const [f, setF] = useState<Form>({ ...F0, od: today() });
-  const batchOn = useFeature('batch_expiry');
-  const packOn = useFeature('mrp_pack');
+  const batchOn = useFeature('batch_no');
+  const packOn = useFeature('pack_loose');
   const [err, setErr] = useState<Record<string, string>>({});
   const [pop, setPop] = useState<Pop>(null);
   /** what was typed in the drop-down when its "+ Add" row was picked: the popup starts with it */
@@ -265,7 +265,7 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
   const saved = uw && uw.sec ? (cat.data?.rates ?? []).filter((r) => r.unit === uw.base && r.secondaryUnit === uw.sec) : [];
   function saveUnits() {
     if (!uw) return;
-    // Features › mrp_pack: only an item with no stock history can change it (owner, 2 Nov 2026)
+    // Settings › Items › MRP and Pack: only an item with no stock history can change it (owner, 2 Nov 2026)
     const packChanged = uw.on !== !!f.pu || (uw.on && (uw.pack !== f.pu || num(uw.size) !== num(f.ps) || uw.base !== f.unit));
     if (packChanged && edit?.hasStockHistory) return setUw({ ...uw, err: 'This item already has stock history, so its unit can’t change. Make a new item with pack and loose, and move the stock with an adjustment on each.' });
     if (uw.on) {

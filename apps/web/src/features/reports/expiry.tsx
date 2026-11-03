@@ -1,5 +1,5 @@
 /**
- * Expiry monitoring (Features › batch_expiry; owner-approved mocks, 2 Nov 2026). Expiry Report: batches expired or expiring
+ * Expiry monitoring (Settings › Items › Batch No.; owner-approved mocks, 2 Nov 2026). Expiry Report: batches expired or expiring
  * within 90 days, with their supplier and value, from the same lot calculation as the stock value; each can go back to the
  * supplier on a debit note or, when expired, be written off with a stock adjustment. Batch Wise Sales And Profit: what each
  * batch sold in a period, after returns.

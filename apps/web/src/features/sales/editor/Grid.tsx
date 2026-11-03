@@ -100,7 +100,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
   const [qe, setQe] = useState<{ item: EItem | null; qty: string; fr: string; disc: string; q: string }>({ item: null, qty: '1', fr: '', disc: '', q: '' });
   const [qk, setQk] = useState(0);
   const [hi, setHi] = useState<number | null>(null);
-  // Features › batch_expiry: the line whose batches are being chosen
+  // Settings › Items › Batch No.: the line whose batches are being chosen
   const [pickAt, setPickAt] = useState<number | null>(null);
   const tbody = useRef<HTMLTableSectionElement>(null);
   // last prices this customer got, under the price when its quantity or price is clicked into
@@ -223,7 +223,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
             onFocus={(e) => { if (!qe.item) { const el = e.target; setTimeout(() => { if (document.activeElement === el) c.show('qe', itemOpts(d, si, el.value, priceOf), qePick); }, 0); } }} /* the box's text when the list opens, not when it got focus: typing may come first */
             onBlur={() => setTimeout(() => { const a = document.activeElement as HTMLElement | null; if (!a?.closest('.cbl') && a?.id !== 'qeItem') c.hide(); }, 150)}
             onKeyDown={(e) => { if (c.cb?.key === 'qe' && comboKey(c, e)) return; if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); if (qe.item) document.getElementById('qeQty')?.focus(); else c.show('qe', itemOpts(d, si, (e.target as HTMLInputElement).value, priceOf), qePick); } }} /><ComboList c={c} k="qe" grid /></div>
-            {qe.item && !qe.item.svc ? <small className={(qe.item.stock ?? 0) - lineStock({ item: qe.item, unit: qL?.unit ?? '', qty: qe.qty }) < 0 ? 'neg' : 'mu'}>{(qe.item.stock ?? 0) - lineStock({ item: qe.item, unit: qL?.unit ?? '', qty: qe.qty }) < 0 ? `Only ${qe.item.pack && d.mrpOn ? stockText(qe.item, qe.item.stock ?? 0) : qfmt(qe.item.stock ?? 0)}` : qe.item.pack && d.mrpOn ? stockText(qe.item, qe.item.stock ?? 0) : `${qfmt(qe.item.stock ?? 0)} ${qe.item.unit}`}</small> : null}</div></td>
+            {qe.item && !qe.item.svc ? <small className={(qe.item.stock ?? 0) - lineStock({ item: qe.item, unit: qL?.unit ?? '', qty: qe.qty }) < 0 ? 'neg' : 'mu'}>{(qe.item.stock ?? 0) - lineStock({ item: qe.item, unit: qL?.unit ?? '', qty: qe.qty }) < 0 ? `Only ${qe.item.pack && d.packOn ? stockText(qe.item, qe.item.stock ?? 0) : qfmt(qe.item.stock ?? 0)}` : qe.item.pack && d.packOn ? stockText(qe.item, qe.item.stock ?? 0) : `${qfmt(qe.item.stock ?? 0)} ${qe.item.unit}`}</small> : null}</div></td>
           <td className="ro l mono">{qe.item?.code ?? ''}</td><td className="ro l">{qe.item?.brand ?? ''}</td><td className="ro l">{qe.item?.series ?? ''}</td>{gstCol ? <td className="ro l">{qe.item?.hsn ?? ''}</td> : null}
           <QeIn id="qeQty" val={qe.qty} label="Quick add quantity" set={(v) => setQe({ ...qe, qty: v })} onKey={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); if (e.ctrlKey || e.metaKey) return qeCommit(); const f = document.getElementById('qeFr') as HTMLInputElement; f.focus(); f.select(); } else if (e.key === 'Escape') { e.stopPropagation(); setQe({ item: null, qty: '1', fr: '', disc: '', q: '' }); setQk((k) => k + 1); setTimeout(() => document.getElementById('qeItem')?.focus(), 0); } }} />
           <td className="ro l">{qL?.unit ?? qe.item?.unit ?? ''}</td><td className="ro" id="qePrice">{qL ? inr2f(qL.price || 0) : ''}</td>
@@ -250,7 +250,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
             <tr data-ln={i} key={`${rk}-${i}`} className={hi === i ? 'qenew' : undefined}>
               <td className="c">{i + 1}</td>
               <td><div className="gic"><div className="combo"><input className="gi si-item" data-f="name" defaultValue={l.item && l.item.grp && l.item.brand ? l.item.grp : l.name} title={l.name} placeholder={`Search item${d.gstOn ? ', code or HSN' : ' or code'}`} autoComplete="off" aria-label={`Item ${i + 1}`} /><ComboList c={c} k={`row:${i}`} grid /></div>
-                {st !== null ? <small title="In stock" className={left < 0 ? 'neg' : 'mu'}>{left < 0 ? `Only ${l.item!.pack && d.mrpOn ? stockText(l.item!, st) : qfmt(st)}` : l.item!.pack && d.mrpOn ? stockText(l.item!, st) : `${qfmt(st)} ${l.unit}`}</small> : null}</div>
+                {st !== null ? <small title="In stock" className={left < 0 ? 'neg' : 'mu'}>{left < 0 ? `Only ${l.item!.pack && d.packOn ? stockText(l.item!, st) : qfmt(st)}` : l.item!.pack && d.packOn ? stockText(l.item!, st) : `${qfmt(st)} ${l.unit}`}</small> : null}</div>
                 {(() => {
                   const mrp = lineMrp(d, si, l, allocs[i]);
                   const over = lineOverMrp(d, si, l, allocs[i], r.amt);
@@ -262,7 +262,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
               <td className="ro l mono dgc1">{l.item?.code ?? ''}</td><td className="ro l dgc2">{l.item?.brand ?? ''}</td><td className="ro l dgc2">{l.item?.series ?? ''}</td>
               {gstCol ? <td><input className="gi" data-f="hsn" defaultValue={l.hsn} inputMode="numeric" aria-label="HSN" /></td> : null}
               <td><input className="gi n" data-f="qty" defaultValue={String(l.qty)} inputMode="decimal" aria-label="Quantity" /></td>
-              {l.item?.pack && d.mrpOn ? <td><select className="gi" data-f="unit" aria-label={`Unit for row ${i + 1}`} style={{ color: 'var(--ac)', fontWeight: 600 }} value={l.unit} onChange={(e) => { const v = e.target.value; up2((s) => { setLineUnit(ctx, s, s.lines[i]!, v); }); full(); }}><option value={l.item.pack.unit}>{l.item.pack.unit}</option><option value={l.item.unit}>{l.item.unit}</option></select></td> : <td className="ro l">{l.unit || '—'}</td>}
+              {l.item?.pack && d.packOn ? <td><select className="gi" data-f="unit" aria-label={`Unit for row ${i + 1}`} style={{ color: 'var(--ac)', fontWeight: 600 }} value={l.unit} onChange={(e) => { const v = e.target.value; up2((s) => { setLineUnit(ctx, s, s.lines[i]!, v); }); full(); }}><option value={l.item.pack.unit}>{l.item.pack.unit}</option><option value={l.item.unit}>{l.item.unit}</option></select></td> : <td className="ro l">{l.unit || '—'}</td>}
               <td className="prlk"><input className="gi n" data-f="price" value={String(l.price)} readOnly aria-readonly="true" title={l.item && l.price > 0 ? 'From the price list. Change it in Price manager.' : 'Set the rate in Final rate'} aria-label="Sale price (from price list)" /></td>
               <td><input className="gi n" data-f="disc" defaultValue={l.disc ? String(r2(l.disc)) : ''} placeholder="0" inputMode="decimal" aria-label="Discount percent" /></td>
               <td><input className="gi n" data-f="damt" defaultValue={r.disc ? String(r2(r.disc)) : ''} placeholder="0" inputMode="decimal" aria-label="Discount amount" /></td>

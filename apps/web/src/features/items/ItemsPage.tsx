@@ -36,7 +36,7 @@ export interface Item {
   unit: string;
   secondaryUnit: string;
   unitRate: string | null;
-  /** Features › mrp_pack: 1 packUnit = packSize of unit; prices are then per pack, stock in unit */
+  /** Settings › Items › MRP and Pack: 1 packUnit = packSize of unit; prices are then per pack, stock in unit */
   packUnit?: string;
   packSize?: string | null;
   category: string;
@@ -51,7 +51,7 @@ export interface Item {
   wholesale: string;
   wholesaleMinQty: string;
   minStock: string;
-  /** Features › batch_expiry */
+  /** Settings › Items › Batch No. */
   trackBatch?: boolean;
   location: string;
   stock: string | null;
@@ -84,7 +84,7 @@ const isNew = (i: Item) => Math.abs(Date.now() - Date.parse(i.createdAt)) < 7 * 
 const vlabel = (i: Item) => `${i.brand || ''}${i.series ? ' ' + i.series : ''}`.trim() || i.name;
 const lvlClass = (l: Item['level']) => (l === 'out' ? 'neg' : l === 'low' ? 'lowq' : 'zero');
 
-/** Features › mrp_pack: an item's pack, for its stock figures. */
+/** Settings › Items › MRP and Pack: an item's pack, for its stock figures. */
 export const packOf = (i: { packUnit?: string; packSize?: string | null }): PackInfo | null => (i.packUnit && i.packSize ? { packUnit: i.packUnit, packSize: i.packSize } : null);
 
 /** Prototype item transaction rows, from the stock ledger: invoice / bill number, party and status come from the API. */
@@ -114,7 +114,7 @@ export function ItemsPage() {
   useFitTables();
   const cur = useCur();
   const mrpOn = useMrpOn();
-  const batchOn = useFeature('batch_expiry');
+  const batchOn = useFeature('batch_no');
   const me = useMe().data;
   const { showToast } = useShell();
   const list = useQuery({ queryKey: ['items'], queryFn: () => api<Item[]>('/items') });

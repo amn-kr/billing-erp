@@ -1,5 +1,5 @@
 /**
- * Item card › Stock by batch (Features › batch_expiry; owner-approved mock, 1 Nov 2026): what is left in
+ * Item card › Stock by batch (Settings › Items › Batch No.; owner-approved mock, 1 Nov 2026): what is left in
  * each batch, in the order it is used, worth the same in total as the item's stock value. Edit corrects
  * a batch's no. or dates (the audit log keeps the old ones).
  */
@@ -19,10 +19,10 @@ export function ExpiryTag({ expiry, on }: { expiry: string | null; on: string })
   return label ? <span className={`st ${expiryState(expiry, on) === 'expired' ? 'r' : 'a'}`}>{label}</span> : null;
 }
 
-export function BatchCard({ rows, shortQty, unit, canEdit, pack }: { rows: BatchRow[]; shortQty: string; unit: string; canEdit: boolean; /** Features › mrp_pack */ pack?: PackInfo | null }) {
+export function BatchCard({ rows, shortQty, unit, canEdit, pack }: { rows: BatchRow[]; shortQty: string; unit: string; canEdit: boolean; /** Settings › Items › MRP and Pack */ pack?: PackInfo | null }) {
   const [editing, setEditing] = useState<BatchRow | null>(null);
   const on = today();
-  const showMrp = useFeature('mrp_pack');
+  const showMrp = useFeature('mrp');
   const total = rows.reduce((a, r) => a.plus(r.qty), money(0));
   return (
     <div className="card" id="itBatches" style={{ marginTop: ui.sp(16) }}>

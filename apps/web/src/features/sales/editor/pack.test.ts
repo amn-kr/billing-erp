@@ -1,4 +1,4 @@
-/** Pack and loose on a sale line (Features › mrp_pack): which unit it starts on, the price of each unit, and what it moves. */
+/** Pack and loose on a sale line (Settings › Items › MRP and Pack): which unit it starts on, the price of each unit, and what it moves. */
 import { describe, expect, it } from 'vitest';
 import { cmApply, lineFor, linePack, lineStock, newSI, priceFor, setLineUnit, stockText, type Ctx, type EItem } from './state';
 

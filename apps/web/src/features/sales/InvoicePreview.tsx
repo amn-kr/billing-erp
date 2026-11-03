@@ -40,8 +40,8 @@ export function InvoicePreview({ doc, challan, hsnOf, onClose, onNew, onLink }: 
   const open = !!doc;
   const partyId = doc?.party?.id;
   const party = useQuery({ queryKey: ['party', partyId], queryFn: () => api<{ balance: string }>(`/parties/${partyId}`), enabled: !!partyId && o.partyBal && doc?.kind === 'invoice' });
-  const batchOn = useFeature('batch_expiry');
-  const mrpFeature = useFeature('mrp_pack');
+  const batchOn = useFeature('batch_no');
+  const mrpFeature = useFeature('mrp');
   const pd = doc ? fromSale(doc, { batches: batchOn, mrp: mrpFeature, challan, upi: sdata.upi ?? '', partyBalance: party.data?.balance ?? null, hsnOf, txn: txnOpts(sdata) }) : null;
   usePrintSource(open, { el: () => document.getElementById('ipvCopies'), title: pd ? fileTitle(docTitle(pd, o), docNo(pd)) : document.title, page: pageSize(o) });
   useOpenFocus(open, ref);

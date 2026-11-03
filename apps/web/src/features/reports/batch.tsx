@@ -1,5 +1,5 @@
 /**
- * Item Batch Report (Features › batch_expiry; owner-approved mock, 1 Nov 2026): the stock of every batch with its
+ * Item Batch Report (Settings › Items › Batch No.; owner-approved mock, 1 Nov 2026): the stock of every batch with its
  * expiry and value, from the same lot calculation as the stock value. Filters: expired, expiring within 30, 60, 90 days.
  */
 import { useState } from 'react';
@@ -20,7 +20,7 @@ const CHIPS: [ExpiryFilter, string][] = [['all', 'All'], ['expired', 'Expired'],
 
 export function BatchReport(props: RpProps) {
   const on = today();
-  const showMrp = useFeature('mrp_pack');
+  const showMrp = useFeature('mrp');
   const nav = useNavigate();
   const q = useQuery({ queryKey: ['items', 'batch-report'], queryFn: () => api<Row[]>('/reports/batches') });
   const [f, setF] = useState<ExpiryFilter>('all');

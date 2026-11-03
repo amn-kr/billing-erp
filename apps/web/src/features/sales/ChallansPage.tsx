@@ -117,7 +117,7 @@ function ChallanDialog({ open, editId, onClose, onSaved }: { open: boolean; edit
   const doc = editId && saved.data?.id === editId ? saved.data : null;
   const [party, setParty] = useState('');
   const [lines, setLines] = useState<{ id: string; name: string; qty: string; unit: string }[]>([]);
-  const packOn = useFeature('mrp_pack');
+  const packOn = useFeature('pack_loose');
   const [date, setDate] = useState(today());
   const [f, setF] = useState({ tr: '', veh: '', note: '', name: '', phone: '' });
   const [err, setErr] = useState('');
@@ -177,7 +177,7 @@ function ChallanDialog({ open, editId, onClose, onSaved }: { open: boolean; edit
           <tbody id="dcRowsI">{lines.length ? lines.map((l, k) => {
             const good = goods.find((i) => i.id === l.id);
             const stock = Number(good?.stock ?? 0);
-            // Features › mrp_pack: a line in packs moves that many packs' worth when it is billed
+            // Settings › Items › MRP and Pack: a line in packs moves that many packs' worth when it is billed
             const inStock = (Number(l.qty) || 0) * (good?.packUnit === l.unit && good?.packSize ? Number(good.packSize) : 1);
             return <tr data-dck={k} key={k}><td><b style={{ fontWeight: 600 }}>{l.name}</b></td><td className={`n ${stock < inStock ? 'neg' : 'mu'}`}>{qfmt(stock)}</td><td className="n"><input className="fi sm n" data-dcq value={l.qty} inputMode="decimal" style={{ width: 80 }} onChange={(e) => { const v = e.target.value.replace(/[^\d.]/g, ''); setLines((x) => x.map((y, i) => (i === k ? { ...y, qty: v } : y))); }} /></td><td>{good?.packUnit && packOn ? <select className="fi sm" data-dcu aria-label={`Unit for ${l.name}`} value={l.unit} onChange={(e) => { const v = e.target.value; setLines((x) => x.map((y, i) => (i === k ? { ...y, unit: v } : y))); }}><option value={good.packUnit}>{good.packUnit}</option><option value={good.unit}>{good.unit}</option></select> : l.unit}</td>
               <td><button type="button" className="ix" data-dcdel={k} aria-label="Remove" onClick={() => setLines((x) => x.filter((_, i) => i !== k))}><Icon name="x" /></button></td></tr>;

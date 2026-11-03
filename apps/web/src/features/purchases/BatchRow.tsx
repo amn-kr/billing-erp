@@ -1,5 +1,5 @@
 /**
- * A tracked item's second row on a purchase document (Features › batch_expiry; owner-approved mock,
+ * A tracked item's second row on a purchase document (Settings › Items › Batch No.; owner-approved mock,
  * 1 Nov 2026). A bill takes the batch no., mfg and expiry; a debit note picks the batch it comes out of.
  */
 import { useQuery } from '@tanstack/react-query';
@@ -17,7 +17,7 @@ const LBL = { display: 'flex', alignItems: 'center', gap: ui.sp(6), fontSize: ui
 const BOX = (w: number) => ({ width: ui.w(w), height: ui.h(32), padding: ui.sp('0 8px'), margin: 0 });
 
 export function BatchRowCells({ i, cols, kind, itemId, against, b, showMrp, onChange, onKeyDown, packUnit }: {
-  i: number; cols: number; kind: 'bill' | 'debit_note'; itemId: string; against: boolean; b: LineBatch; showMrp?: boolean; /** Features › mrp_pack: the MRP is per this pack */ packUnit?: string;
+  i: number; cols: number; kind: 'bill' | 'debit_note'; itemId: string; against: boolean; b: LineBatch; showMrp?: boolean; /** Settings › Items › MRP and Pack: the MRP is per this pack */ packUnit?: string;
   onChange: (f: keyof LineBatch, v: string) => void; onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }) {
   const rows = useItemBatches(itemId, kind === 'debit_note').data?.rows ?? [];

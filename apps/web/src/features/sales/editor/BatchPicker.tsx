@@ -1,5 +1,5 @@
 /**
- * Choose batch (Features › batch_expiry; owner-approved mock, 1 Nov 2026): the batches of one line of the
+ * Choose batch (Settings › Items › Batch No.; owner-approved mock, 1 Nov 2026): the batches of one line of the
  * sale, picked automatically earliest expiry first, changed here by hand. An expired batch can be chosen,
  * with a red note; saving the bill then asks "Sell expired stock?".
  */
@@ -10,7 +10,7 @@ import { useOpenFocus } from '../../../lib/useOpenFocus';
 import { ExpiryTag } from '../../items/BatchCard';
 import { ui } from '../../../styles/uiSize';
 
-export interface PickFor { name: string; qty: string | number; unit: string; rows: BatchRow[]; allocs: BatchAlloc[]; auto: BatchAlloc[]; date: string; showMrp?: boolean; itemMrp?: number | string | null; /** Features › mrp_pack: an item sold by the pack; `qty` and `unit` are its loose unit */ pack?: PackInfo; /** "2 STRIP = 20 TAB" */ sold?: string }
+export interface PickFor { name: string; qty: string | number; unit: string; rows: BatchRow[]; allocs: BatchAlloc[]; auto: BatchAlloc[]; date: string; showMrp?: boolean; itemMrp?: number | string | null; /** Settings › Items › MRP and Pack: an item sold by the pack; `qty` and `unit` are its loose unit */ pack?: PackInfo; /** "2 STRIP = 20 TAB" */ sold?: string }
 
 const key = (id: string | null) => id ?? 'none';
 const fill = (list: BatchAlloc[]) => Object.fromEntries(list.map((a) => [key(a.batchId), formatQty(a.qty)]));
@@ -89,7 +89,7 @@ export function ExpiredAsk({ list, onNo, onYes }: { list: { item: string; no: st
   );
 }
 
-/** Save asks this when a line's rate is above its MRP (Features › mrp_pack). Noted in the audit log. */
+/** Save asks this when a line's rate is above its MRP (Settings › Items › MRP and Pack). Noted in the audit log. */
 export function MrpAsk({ list, onNo, onYes }: { list: { item: string; rate: number; mrp: number; unit: string }[] | null; onNo: () => void; onYes: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   useOpenFocus(!!list, ref);

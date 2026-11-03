@@ -15,7 +15,7 @@ import type { SaleDoc } from '../sales/model';
 import { COLDEF, MARGIN_PX, NAME_PX, PAPER, TEXT_PX, type Bot, type ColKey, type PrintOpts, type Top } from './opts';
 
 export interface Biz { name: string; phone: string; address: string; city: string; pin: string; stateCode: string; gstin: string; email?: string }
-export interface PLine { /** Features › batch_expiry: printed under the name */ batch?: string; name: string; code: string; hsn: string; brand: string; series: string; cat: string; grp: string; qty: string; unit: string; mrp: string | null; list: string | null; whole: string | null; price: string; discPct: string; gst: string; taxable: string; tax: string; amount: string }
+export interface PLine { /** Settings › Items › Batch No.: printed under the name */ batch?: string; name: string; code: string; hsn: string; brand: string; series: string; cat: string; grp: string; qty: string; unit: string; mrp: string | null; list: string | null; whole: string | null; price: string; discPct: string; gst: string; taxable: string; tax: string; amount: string }
 /** one document, ready to print */
 export interface PDoc {
   kind: 'invoice' | 'quotation' | 'challan' | 'credit_note';
@@ -60,7 +60,7 @@ export function fromSale(v: SaleDoc, o: { batches?: boolean; mrp?: boolean; chal
     hideNo: o.txn?.showNo === false, time: o.txn?.time && v.savedAt && !v.legacy ? timeIst(v.savedAt) : '',
     lines: v.lines.map((l) => {
       const e = l as typeof l & { mrp?: string | null; listPrice?: string | null; wholesalePrice?: string | null; batchUnit?: string; looseOf?: string | null };
-      // a batch's MRP is per pack; on a line sold loose the MRP is the loose unit's (Features › mrp_pack)
+      // a batch's MRP is per pack; on a line sold loose the MRP is the loose unit's (Settings › Items › MRP and Pack)
       const batchMrps = (l.batches ?? []).map((b) => (b.mrp && e.looseOf ? loosePrice(b.mrp, e.looseOf).toFixed(2) : b.mrp));
       return { batch: o.batches && !isDc ? batchPrintLine(l.batches ?? [], !!o.mrp, e.batchUnit || undefined) : '', name: l.group && l.brand ? l.group : l.name, code: l.code, hsn: (o.hsnOf ? o.hsnOf(l.itemId) : l.hsn) || l.hsn, brand: l.brand, series: l.series, cat: l.category, grp: l.group, qty: l.qty, unit: l.unit, mrp: o.mrp && l.batches?.length ? effectiveMrp(e.mrp, batchMrps)?.toFixed(2) ?? null : e.mrp ?? null, list: e.listPrice ?? null, whole: e.wholesalePrice ?? null, price: l.price, discPct: l.discPct, gst: l.gstRate, taxable: l.taxable, tax: l.tax, amount: l.amount };
     }),
