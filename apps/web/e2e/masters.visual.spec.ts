@@ -576,6 +576,8 @@ for (const width of WIDTHS) {
       await proto.click('#cPlSet .tgl:nth-of-type(3) .tgs');
       await expect(app.locator('#toast')).toHaveText(await proto.locator('#toast').innerText());
       await settle();
+      // the price lists are further down the page here: back to the top, as the side menu sticks while scrolling
+      await both((p) => p.evaluate(() => window.scrollTo(0, 0)));
       // General
       await both((p) => p.click('#subnav [data-settab="gen"]'));
       await app.waitForSelector('#bzCard #bzName');
