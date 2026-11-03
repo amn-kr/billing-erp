@@ -25,7 +25,7 @@ import { Icon, RawIcon } from '../../components/Icon';
 import { SearchSelect } from '../../components/SearchSelect';
 import { useShell } from '../shell/store';
 import { qfmt } from './ItemsPage';
-import { useBatchView, useFeature, useItemFields } from '../../lib/features';
+import { useBatchView, useFeature, useItemFields, useItemOptions } from '../../lib/features';
 import { Sw } from '../settings/model';
 import { ui } from '../../styles/uiSize';
 
@@ -83,6 +83,7 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
   const [f, setF] = useState<Form>({ ...F0, od: today() });
   const batchOn = useFeature('batch_no');
   const bv = useBatchView();
+  const defaultUnit = useItemOptions().defaultUnit ?? F0.unit;
   // Settings › Items: a box turned off is hidden, and an edited item keeps what it has
   const show = useItemFields();
   const canVary = show.brand && show.series;
@@ -106,7 +107,7 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
   /** Fresh form. "Save & new" on a variant keeps the parent, brand and shared details. */
   const reset = (keep?: Partial<Form>) => {
     setTab('price'); setErr({}); setPop(null); setUw(null);
-    setF({ ...F0, od: today(), ...keep });
+    setF({ ...F0, unit: defaultUnit, od: today(), ...keep });
   };
   useEffect(() => {
     if (!open) return;

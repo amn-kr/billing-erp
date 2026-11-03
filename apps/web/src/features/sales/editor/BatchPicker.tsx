@@ -95,6 +95,7 @@ export function ExpiredAsk({ list, onNo, onYes }: { list: { item: string; no: st
 
 /** Save asks this when a line's rate is above its MRP (Settings › Items › MRP and Pack). Noted in the audit log. */
 export function MrpAsk({ list, onNo, onYes }: { list: { item: string; rate: number; mrp: number; unit: string }[] | null; onNo: () => void; onYes: () => void }) {
+  const mrpWord = useBatchView().word('mrp', 'MRP');
   const ref = useRef<HTMLDivElement>(null);
   useOpenFocus(!!list, ref);
   useEscape(!!list, onNo);
@@ -102,8 +103,8 @@ export function MrpAsk({ list, onNo, onYes }: { list: { item: string; rate: numb
     <div className="ov c" id="mxAsk" ref={ref} hidden={!list}>
       <div className="mdl" role="alertdialog" aria-modal="true" aria-labelledby="mxAskT">
         <div className="ti" style={{ background: 'color-mix(in srgb,var(--amber,#d97706) 14%,transparent)', color: 'var(--amber,#d97706)', marginBottom: ui.sp(12) }}><svg className="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16v.5" /></svg></div>
-        <h3 id="mxAskT" style={{ margin: ui.sp('0 0 6px'), fontSize: ui.fs(18) }}>Rate is above MRP</h3>
-        <p style={{ margin: ui.sp('0 0 18px'), color: 'var(--t2)' }}>{(list ?? []).map((e) => <span key={e.item} style={{ display: 'block' }}>{e.item}: selling at <b>{money(e.rate).toFixed(2)}</b>{e.unit ? ` per ${e.unit}` : ''}, MRP is <b>{money(e.mrp).toFixed(2)}</b>.</span>)}This will be noted in the audit log.</p>
+        <h3 id="mxAskT" style={{ margin: ui.sp('0 0 6px'), fontSize: ui.fs(18) }}>Rate is above {mrpWord}</h3>
+        <p style={{ margin: ui.sp('0 0 18px'), color: 'var(--t2)' }}>{(list ?? []).map((e) => <span key={e.item} style={{ display: 'block' }}>{e.item}: selling at <b>{money(e.rate).toFixed(2)}</b>{e.unit ? ` per ${e.unit}` : ''}, {mrpWord} is <b>{money(e.mrp).toFixed(2)}</b>.</span>)}This will be noted in the audit log.</p>
         <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end', flexWrap: 'wrap' }}><button className="btn" type="button" id="mxNo" onClick={onNo}>Go back and change</button><button className="btn dg" type="button" id="mxYes" onClick={onYes}>Save anyway</button></div>
       </div>
     </div>

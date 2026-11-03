@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { checkImportRows, rowProblems, type ImportContext, type ImportItem, type ImportRowsInput, type ImportSummary, type RowCheck } from '@billing/shared';
+import { checkImportRows, enabledFeatures, itemFieldOn, readItemOptions, rowProblems, type ImportContext, type ImportItem, type ImportRowsInput, type ImportSummary, type RowCheck } from '@billing/shared';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import type { RequestContext } from '../../common/context';
@@ -42,6 +42,8 @@ export class ItemImportService {
       tx.taxRate.findMany({ where: { kind: 'GST', active: true }, select: { rate: true }, orderBy: { rate: 'asc' } }),
     ]);
     const brandName = new Map(brands.map((b) => [b.id, b.name]));
+    const settings = await tx.businessSettings.findFirst({ select: { features: true, itemOptions: true } });
+    const list = enabledFeatures(settings?.features), options = readItemOptions(settings?.itemOptions);
     return {
       // India's date (a fixed date under tests, so pictures do not change from day to day)
       today: planToday(),
@@ -53,6 +55,8 @@ export class ItemImportService {
       godowns,
       categories: categories.map((c) => c.name),
       gstRates: [...new Set(taxes.map((t) => t.rate.toString()))],
+      off: (['category', 'brand', 'series', 'location'] as const).filter((f) => !itemFieldOn(list, f)),
+      defaultUnit: options.defaultUnit,
     };
   }
 
@@ -114,7 +118,7 @@ export class ItemImportService {
         id: randomUUID(), businessId: b, createdBy: u, kind: 'goods', name: i.name, code: i.code, hsn: i.hsn,
         unitId: unitIds.get(i.unit)!, categoryId: i.category ? ids.category.get(low(i.category))! : null,
         brandId: i.brand ? ids.brand.get(low(i.brand))! : null, itemGroupId: i.kind === 'multi' ? ids.group.get(low(i.group))! : null,
-        series: i.series, gstRate: i.gst, salePrice: i.sale, purchasePrice: i.rate ?? '0.00', minStock: i.minStock,
+        series: i.series, gstRate: i.gst, salePrice: i.sale, purchasePrice: i.rate ?? '0.00', minStock: i.minStock, location: i.location,
       }));
       for (const part of chunks(items)) await tx.item.createMany({ data: part });
 
@@ -128,7 +132,7 @@ export class ItemImportService {
 
       rows.forEach((i, n) => logs.push(audit('item', items[n]!.id, {
         name: i.name, kind: 'goods', code: i.code, brand: i.brand, group: i.group, series: i.series, unit: i.unit, category: i.category, hsn: i.hsn,
-        gstRate: i.gst, sale: i.sale, purchase: i.rate ?? '0.00', minStock: i.minStock,
+        gstRate: i.gst, sale: i.sale, purchase: i.rate ?? '0.00', minStock: i.minStock, location: i.location,
         opening: i.qty ? { qty: i.qty, rate: i.rate ?? '0.00', date: i.date, godown: i.godown || mainGodown!.name } : null, from: 'import', line: i.line,
       })));
       await this.audit.logMany(tx, logs);

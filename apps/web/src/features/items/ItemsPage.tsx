@@ -454,7 +454,7 @@ function GroupHead({ g, ms, mrpOn, cur, onPick }: { g: string; ms: Item[]; mrpOn
                     {show.brand && <td><b style={{ fontWeight: 600 }}>{x.brand || '—'}</b></td>}{show.series && <td>{x.series}</td>}<td className="mono">{x.code}</td>
                     {mrpOn && <td className="n">{n(x.mrp) ? inr2f(x.mrp) : '—'}</td>}
                     <td className="n">{n(x.listPrice) ? inr2f(x.listPrice) : '—'}</td><td className="n">{inr2f(x.purchase)}</td>
-                    <td className="n"><b>{inr2f(x.sale)}</b>{mrpOn && n(x.mrp) > 0 && n(x.sale) > n(x.mrp) && <small className="neg">Above MRP</small>}</td>
+                    <td className="n"><b>{inr2f(x.sale)}</b>{mrpOn && n(x.mrp) > 0 && n(x.sale) > n(x.mrp) && <small className="neg">Above {word('mrp', 'MRP')}</small>}</td>
                     <td className={`n ${m < 5 ? 'neg' : ''}`}>{m.toFixed(0)}%</td>
                     <td className={`n ${x.level === 'out' ? 'neg' : x.level === 'low' ? 'lowq' : ''}`}>{qfmt(x.stock)} {x.unit}</td>
                     <td className="n"><button className="btn sm" data-sellitem={x.id} onClick={() => go(`/sales/new?item=${x.id}`)}>Sell</button></td>
