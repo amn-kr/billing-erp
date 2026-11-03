@@ -42,7 +42,7 @@ export interface MeBusiness {
   plan: 'trial' | 'paid' | 'expired';
   /** ISO date the trial or paid plan ends (inclusive). */
   planEndsOn: string;
-  /** What the shop's owner turned on in Settings › Features. */
+  /** What the shop's owner turned on in Settings › Items. */
   features: FeatureKey[];
   itemOptions: ItemOptions;
 }

@@ -565,17 +565,17 @@ for (const width of WIDTHS) {
         await proto.evaluate(([ss, hh]) => ss.forEach((q, k) => document.querySelectorAll(q).forEach((e, j) => { if (hh[k]![j]) e.outerHTML = hh[k]![j]!; })), [sels, html] as const);
       };
       await both((p) => p.click('#subnav [data-settab="items"]'));
-      await app.waitForSelector('#cPlSet .tgl');
+      await app.waitForSelector('#itTabs');
       await settle();
-      // the heading and the side menu are as in the prototype; the Items card has the owner-approved
-      // "Item codes" section under the price lists, so it is compared with its approved picture
-      await sameShot(`set-items-head-${width}`, proto, app, '#vSet .hero');
+      // the side menu is as in the prototype; the page is owner-approved (3 Nov 2026), so it is compared with
+      // its approved pictures in items-settings.visual, and the price lists work as in the prototype
       await sameShot(`set-items-nav-${width}`, proto, app, '#subnav');
-      await approvedShot(`set-items-${width}`, app, '#cPlSet');
-      await both((p) => p.click('#cPlSet .tgl:nth-of-type(3) .tgs'));
+      await app.click('[data-ittab="1"]');
+      await app.waitForSelector('#cPlSet .tgl');
+      await app.click('#cPlSet .tgl:nth-of-type(3) .tgs');
+      await proto.click('#cPlSet .tgl:nth-of-type(3) .tgs');
       await expect(app.locator('#toast')).toHaveText(await proto.locator('#toast').innerText());
       await settle();
-      await approvedShot(`set-items-on-${width}`, app, '#cPlSet');
       // General
       await both((p) => p.click('#subnav [data-settab="gen"]'));
       await app.waitForSelector('#bzCard #bzName');

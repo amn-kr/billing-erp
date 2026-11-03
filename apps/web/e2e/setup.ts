@@ -232,3 +232,24 @@ export const PROTO_PRINT = {
   theme: 'simple', showEmail: false, sign: 'Authorised signatory', color: '#151b2e',
   cols: { sl: { on: true, label: '#' }, name: { on: true, label: 'Item' }, code: { on: true, label: 'Code' }, brand: { on: true, label: 'Brand' }, series: { on: true, label: 'Series' }, hsn: { on: true, label: 'HSN' }, qty: { on: true, label: 'Qty' }, unit: { on: false, label: 'Unit' }, price: { on: true, label: 'Rate' }, discPct: { on: true, label: 'Disc' }, taxPct: { on: true, label: 'GST' }, rate: { on: false, label: 'Final Rate' }, amount: { on: true, label: 'Amount' } },
 };
+
+/** Settings › Items, on one of its tabs (0 Item settings, 1 Price & units, 2 Batch & serial tracking, 3 Custom fields). */
+export async function openItemSettings(page: Page, tab = 0): Promise<void> {
+  await page.goto(APP + '/settings');
+  await page.click('#subnav button:has-text("Items")');
+  await page.waitForSelector('#itTabs');
+  await page.click(`[data-ittab="${tab}"]`);
+}
+/** Unticks a box: it asks first. */
+export async function untick(page: Page, id: string): Promise<void> {
+  await page.click('#' + id);
+  await page.click('#cfmYes');
+  await page.waitForSelector(`#${id}:not(:checked)`);
+}
+/** Turns off batches altogether: the dates first, as they need Batch No. */
+export async function batchesOff(page: Page): Promise<void> {
+  await openItemSettings(page, 2);
+  await untick(page, 'f_exp_date');
+  await untick(page, 'f_mfg_date');
+  await untick(page, 'f_batch_no');
+}

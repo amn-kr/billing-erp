@@ -4,7 +4,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { CUSTOMER, ITEM, SUPPLIER, batchShop } from './batch.data';
-import { APP, freshShop, newPage, signInAs } from './setup';
+import { APP, freshShop, newPage, signInAs, openItemSettings, untick } from './setup';
 
 const OPTION = (name: string) => `.cbl:not([hidden]) .cbo:not(.add):has-text("${name}")`;
 const newSale = async (page: Page) => {
@@ -119,11 +119,8 @@ test('with the feature off the sale, purchase, card and report show no new MRP, 
   await batchShop(owner, { bills: true, mrp: true });
   const page = await newPage(browser, 1366);
   await signInAs(page, owner);
-  await page.goto(APP + '/settings');
-  await page.click('#subnav [data-settab="features"]');
-  await page.click('#f_mrp_pack');
-  await page.click('#cfmYes');
-  await expect(page.locator('#f_mrp_pack')).not.toBeChecked();
+  await openItemSettings(page, 1);
+  await untick(page, 'f_mrp');
 
   await newSale(page);
   await rapid(page, '1');
