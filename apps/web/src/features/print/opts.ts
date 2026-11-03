@@ -4,6 +4,7 @@
  * preview, the preview windows, Print and PDF all follow the same choices.
  */
 import { useMemo } from 'react';
+import { useItemFields } from '../../lib/features';
 import { useSettings } from '../../lib/settings';
 
 export const COLORS: [string, string][] = [['Grey', '#6b7280'], ['Ink', '#151b2e'], ['Blue', '#1d4ed8'], ['Green', '#047857'], ['Maroon', '#9f1239'], ['Purple', '#6d28d9']];
@@ -74,3 +75,9 @@ export function usePrintOpts(): PrintOpts {
   return useMemo(() => mergePrint(saved), [saved]);
 }
 
+
+/** Settings › Items: print columns of boxes turned off aren't offered or printed. */
+export function useHiddenCols(): ColKey[] {
+  const show = useItemFields();
+  return [...(show.category ? [] : ['cat' as const]), ...(show.brand ? [] : ['brand' as const]), ...(show.series ? [] : ['series' as const])];
+}

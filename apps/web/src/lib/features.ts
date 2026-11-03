@@ -8,6 +8,12 @@ export const useFeature = (key: FeatureKey): boolean => useFeatures().includes(k
 /** Whether Category, Brand, Series or Location shows: they start on, also before the shop has loaded. */
 export const useItemField = (field: ItemField): boolean => itemFieldOn(useFeatures(), field);
 
+/** Which of Category, Brand, Series and Location show. */
+export function useItemFields(): Record<ItemField, boolean> {
+  const list = useFeatures();
+  return { category: itemFieldOn(list, 'category'), brand: itemFieldOn(list, 'brand'), series: itemFieldOn(list, 'series'), location: itemFieldOn(list, 'location') };
+}
+
 const NO_OPTIONS: ItemOptions = { labels: {} };
 /** The labels, date formats and default unit from Settings › Items. */
 export const useItemOptions = (): ItemOptions => useMe().data?.business?.itemOptions ?? NO_OPTIONS;

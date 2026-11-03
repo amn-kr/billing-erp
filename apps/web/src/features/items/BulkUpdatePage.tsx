@@ -11,6 +11,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useBlocker } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useItemFields } from '../../lib/features';
 import { BULK_FIELDS, bulkCellProblem, bulkSame, type BulkField, type BulkItemsInput, type BulkItemsResult } from '@billing/shared';
 import { api, ApiError } from '../../lib/api';
 import { go } from '../../lib/go';
@@ -41,6 +42,7 @@ export function BulkUpdatePage() {
   const qc = useQueryClient();
   const { showToast } = useShell();
   const list = useQuery({ queryKey: ['items'], queryFn: () => api<Row[]>('/items') });
+  const show = useItemFields();
   const cat = useQuery({ queryKey: ['catalogue'], queryFn: () => api<{ categories: { name: string }[] }>('/catalogue') });
   const taxList = useSettings().data?.taxes;
   const taxes = useMemo(() => (taxList ?? []).filter((t) => t.kind === 'GST'), [taxList]);
@@ -111,7 +113,7 @@ export function BulkUpdatePage() {
 
   const cats = cat.data?.categories.map((c) => c.name) ?? [];
   const columns: SheetColumn[] = [
-    { key: 'category', title: TITLES.category, width: 170, list: [{ value: '', label: 'No category' }, ...cats.map((c) => ({ value: c, label: c }))] },
+    ...(!show.category ? [] : [{ key: 'category', title: TITLES.category, width: 170, list: [{ value: '', label: 'No category' }, ...cats.map((c) => ({ value: c, label: c }))] }]),
     { key: 'code', title: TITLES.code, width: 150, placeholder: 'No code' },
     { key: 'description', title: TITLES.description, width: 180, grow: true, placeholder: 'Add a description' },
     { key: 'gstRate', title: TITLES.gstRate, width: 150, list: rates.map((r) => ({ value: r, label: taxName(r) })) },

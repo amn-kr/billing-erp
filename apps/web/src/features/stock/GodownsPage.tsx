@@ -1,4 +1,5 @@
 /** Godowns (#vGds) with Add godown (#gdm) and Transfer stock (#trm) — same markup as the prototype's renderGds. */
+import { useItemFields } from '../../lib/features';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '../../lib/api';
@@ -25,6 +26,7 @@ const SWAP = '<path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/>';
 const addr = (g: Godown) => g.address || 'Address not added';
 
 export function GodownsPage() {
+  const show = useItemFields();
   useFitTables();
   const cur = useCur();
   const { showToast } = useShell();
@@ -75,12 +77,12 @@ export function GodownsPage() {
         <div className="card ptxc"><div className="hd" id="gdHead" style={{ margin: 0, padding: ui.sp('14px 16px') }}>
           <div><h3 style={{ margin: 0 }}>{g.name}</h3><small style={{ color: 'var(--t2)' }}>{addr(g)} · In charge: {g.manager || '—'}{g.phone ? ` · +91 ${g.phone.slice(0, 5)} ${g.phone.slice(5)}` : ''}</small></div>
         </div>
-          <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr><th>Item</th><th>Category</th><th className="n">In this godown</th><th className="n">Total stock</th><th className="n">Value</th><th><span className="vh">Actions</span></th></tr></thead>
+          <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr><th>Item</th>{show.category && <th>Category</th>}<th className="n">In this godown</th><th className="n">Total stock</th><th className="n">Value</th><th><span className="vh">Actions</span></th></tr></thead>
             <tbody id="gdRows">
               {rows.data?.length ? rows.data.map((r) => (
-                <tr key={r.itemId}><td><b style={{ fontWeight: 600 }}>{r.name}</b></td><td>{r.category}</td><td className="n">{qfmt(r.inGodown)} {r.unit}</td><td className="n">{qfmt(r.total)} {r.unit}</td><td className="n">{inr2f(r.value)}</td>
+                <tr key={r.itemId}><td><b style={{ fontWeight: 600 }}>{r.name}</b></td>{show.category && <td>{r.category}</td>}<td className="n">{qfmt(r.inGodown)} {r.unit}</td><td className="n">{qfmt(r.total)} {r.unit}</td><td className="n">{inr2f(r.value)}</td>
                   <td className="n"><button className="btn sm" data-tri={r.itemId} onClick={() => openTr(r.itemId)}><Icon name="swap" />Transfer</button></td></tr>
-              )) : rows.data ? <tr><td colSpan={6} className="ptempty">No stock in {g.name} yet. Use “Transfer stock” to move items here.</td></tr> : null}
+              )) : rows.data ? <tr><td colSpan={show.category ? 6 : 5} className="ptempty">No stock in {g.name} yet. Use “Transfer stock” to move items here.</td></tr> : null}
             </tbody></table></div></div>
         <div className="card"><div className="hd"><h3>Recent transfers</h3></div><div id="trRows" onContextMenu={rm.onContextMenu} onKeyDown={(e) => { rm.menuKey(e); }}>
           {recent.length ? recent.map((t) => (

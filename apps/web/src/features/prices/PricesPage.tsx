@@ -5,6 +5,7 @@
  * "Price Setup", which needs the price PIN.
  */
 import { useMrpOn } from '../../lib/settings';
+import { useItemFields, useItemWord } from '../../lib/features';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { rulePrice, type PriceRuleSet } from '@billing/shared';
 import { inr2f } from '../../lib/format';
@@ -45,6 +46,8 @@ export function PricesPage() {
   const data = usePriceData();
   const settings = useSettings().data;
   const mrpOn = useMrpOn();
+  const show = useItemFields();
+  const word = useItemWord();
   const rules = (settings?.data as { priceRules?: Record<string, PriceRuleSet> } | undefined)?.priceRules ?? {};
   const { showToast } = useShell();
   const { undo, pin, hint } = usePm();
@@ -85,7 +88,7 @@ export function PricesPage() {
   if (!data) return <section id="vPrices"></section>;
   const { IT, plCols, brands } = data;
   const s = q.toLowerCase();
-  const L = IT.filter((i) => (cat === 'all' || i.cat === cat) && (brand === 'all' || i.brand === brand) && (!s || i.name.toLowerCase().includes(s) || i.code.toLowerCase().includes(s) || i.grp.toLowerCase() === s));
+  const L = IT.filter((i) => (!show.category || cat === 'all' || i.cat === cat) && (brand === 'all' || i.brand === brand) && (!s || i.name.toLowerCase().includes(s) || i.code.toLowerCase().includes(s) || i.grp.toLowerCase() === s));
   const cats = [...new Set(IT.map((i) => i.cat).filter(Boolean))];
   const last = undo[undo.length - 1];
 
@@ -168,16 +171,16 @@ export function PricesPage() {
         <button className="btn" id="pmNewPl" onClick={openNewPl}><RawIcon d={PLUS} />New price list</button><button className="btn p" id="pmRate" onClick={() => { useRl.getState().set({ pick: null, brands: null }); setRateOpen(true); }}><RawIcon d={DOWN} />Download rate list</button></div>
       <div className="card ptxc">
         <div className="ptfil" style={{ padding: ui.sp('14px 16px'), alignItems: 'center' }}><h3 className="pmvt"><RawIcon d={VIEW} />Price View</h3><label className="search" htmlFor="pmQ" style={{ maxWidth: 300, height: ui.h(36) }}><RawIcon d={SEARCH} /><input id="pmQ" placeholder="Search item or code" autoComplete="off" value={q} onChange={(e) => { usePm.getState().set({ hint: 'view' }); setQ(e.target.value) }} /></label>
-          <select className="fi" id="pmCat" aria-label="Category" value={cat} onChange={(e) => { usePm.getState().set({ hint: 'view' }); setCat(e.target.value) }}><option value="all">All categories</option>{cats.map((c) => <option key={c}>{c}</option>)}</select><select className="fi" id="pmBrand" aria-label="Brand" value={brand} onChange={(e) => { usePm.getState().set({ hint: 'view' }); setBrand(e.target.value) }}><option value="all">All brands</option>{brands.map((b) => <option key={b}>{b}</option>)}</select>
+          {show.category && <select className="fi" id="pmCat" aria-label="Category" value={cat} onChange={(e) => { usePm.getState().set({ hint: 'view' }); setCat(e.target.value) }}><option value="all">All categories</option>{cats.map((c) => <option key={c}>{c}</option>)}</select>}<select className="fi" id="pmBrand" aria-label="Brand" value={brand} onChange={(e) => { usePm.getState().set({ hint: 'view' }); setBrand(e.target.value) }}><option value="all">All brands</option>{brands.map((b) => <option key={b}>{b}</option>)}</select>
           <span className="mu" id="pmHint" style={{ fontSize: ui.fs(12), flex: 1, minWidth: 0 }}>{hint === 'locked' ? 'Prices are locked. Click the lock to edit.' : hint === 'unlocked' ? 'Click ✎ next to a column name to edit it. Purchase comes from your purchase bills.' : 'Prices are view-only here. Use Price Setup to change them.'}</span><button type="button" className="btn pssbtn" id="pmLock" aria-label="Price Setup (locked with PIN)" title="Set prices with margin %. Needs your price PIN." onClick={openSetup}><RawIcon d={LOCK} />Price Setup</button></div>
         <div className="pmbulk" id="pmBulk" hidden></div>
         <div className="tw" style={{ margin: 0 }} ref={twRef}><table className="ptt2 pmtab" ref={tabRef}>
-          <thead id="pmHead"><tr><th rowSpan={2} style={{ minWidth: 200 }}>Item name</th><th rowSpan={2} style={{ minWidth: 150 }}>Brand | Series</th>{mrpOn && th('MRP', true)}{th('LP', true)}<th rowSpan={2} className="n" title="Comes from your purchase bills">Purchase</th><th colSpan={1 + plCols.length} className="c pmsp">SP <small>· sale price</small></th></tr>
+          <thead id="pmHead"><tr><th rowSpan={2} style={{ minWidth: 200 }}>Item name</th>{(show.brand || show.series) && <th rowSpan={2} style={{ minWidth: 150 }}>{show.brand && show.series ? 'Brand | Series' : show.brand ? 'Brand' : 'Series'}</th>}{mrpOn && th(word('mrp', 'MRP'), true)}{th('LP', true)}<th rowSpan={2} className="n" title="Comes from your purchase bills">Purchase</th><th colSpan={1 + plCols.length} className="c pmsp">SP <small>· sale price</small></th></tr>
             <tr className="pmh2">{th('Retail')}{plCols.map((p) => <th className="n" key={p.id}><span className="thw">{p.name}</span></th>)}</tr></thead>
           <tbody id="pmRows">
             {L.length ? L.map((i) => (
               <tr className="" key={i.id}>
-                <td><b style={{ fontWeight: 600 }}>{i.grp || i.name}</b><small>{i.code}{i.svc ? (i.code ? ' · ' : '') + 'service' : ''}</small></td><td>{i.brand ? <b style={{ fontWeight: 600 }}>{i.brand}</b> : <span className="mu">—</span>}{i.series && <span className="pmser"> | {i.series}</span>}</td>
+                <td><b style={{ fontWeight: 600 }}>{i.grp || i.name}</b><small>{i.code}{i.svc ? (i.code ? ' · ' : '') + 'service' : ''}</small></td>{(show.brand || show.series) && <td>{show.brand && (i.brand ? <b style={{ fontWeight: 600 }}>{i.brand}</b> : <span className="mu">—</span>)}{show.series && i.series && <span className="pmser"> | {i.series}</span>}</td>}
                 {mrpOn && cell(i, 'mrp')}{cell(i, 'lp')}{cell(i, 'purch')}{cell(i, 'sale', i.mrp && i.sale > i.mrp ? 'bad' : '')}{plCols.map((p) => cell(i, `pl:${p.id}`))}
               </tr>
             )) : <tr><td colSpan={6 + plCols.length} className="ptempty">No items match these filters.</td></tr>}

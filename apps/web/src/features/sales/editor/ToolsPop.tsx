@@ -2,6 +2,7 @@
  * The invoice extras pop-up (#siPop, prototype dgPopBody / plBody): transport details,
  * terms & conditions, description, attachments and profit & loss on this bill.
  */
+import { useItemFields } from '../../../lib/features';
 import { useEditorData } from './data';
 import { saleAllocs } from './batches';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
@@ -65,6 +66,7 @@ export function ToolBody({ k, s, ctx, up, onFiles, toast }: { k: ToolKey; s: SI;
  * 2026); stock without a purchase entry and stock not bought yet have rows of their own at ₹0.
  */
 function PlBody({ s, ctx }: { s: SI; ctx: Ctx }) {
+  const show = useItemFields();
   const c = calc(ctx, s);
   const L = s.lines.map((l, i) => ({ l, r: c.rows[i]! })).filter((x) => x.l.item && Number(x.l.qty) > 0);
   // Settings › Items › Batch No.: a line's cost is the cost of the batches it uses
@@ -86,7 +88,7 @@ function PlBody({ s, ctx }: { s: SI; ctx: Ctx }) {
       // no purchase entry, or sold beyond stock and not bought yet: the cost is not known yet
       const known = x.kind === 'lot';
       return (
-        <tr key={`${k}.${j}`}><td><b>{it.grp && it.brand ? it.grp : l.name}</b><small>{[it.brand, it.series].filter(Boolean).join(' · ')}</small></td><td className="n">{qfmt(Number(x.qty))}</td><td className="n">{inr2f(r2(sales[k]! / (qty || 1)))}</td>
+        <tr key={`${k}.${j}`}><td><b>{it.grp && it.brand ? it.grp : l.name}</b><small>{[show.brand ? it.brand : '', show.series ? it.series : ''].filter(Boolean).join(' · ')}</small></td><td className="n">{qfmt(Number(x.qty))}</td><td className="n">{inr2f(r2(sales[k]! / (qty || 1)))}</td>
           <td className="n">{known ? inr2f(x.rate) : <span className="warn">—</span>}</td><td className="n">{inr2f(sale)}</td><td className="n">{inr2f(x.cost)}</td>
           <td className={`n ${pr.isNeg() ? 'neg' : 'pos'}`}><b>{pr.isNeg() ? '−' : ''}{inr2f(pr.abs())}</b></td><td className={`n ${pr.isNeg() ? 'neg' : ''}`}>{known ? m.toFixed(1) + '%' : '—'}</td></tr>
       );

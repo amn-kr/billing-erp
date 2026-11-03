@@ -16,7 +16,7 @@ import type { EditorData } from './data';
 import { BatchPicker, type PickFor } from './BatchPicker';
 import { batchRowsFor, lineMrp, lineOverMrp, saleAllocs } from './batches';
 import { allocText, expiryState } from '@billing/shared';
-import { useBatchView } from '../../../lib/features';
+import { useBatchView, useItemFields } from '../../../lib/features';
 
 const BOLT = '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>';
 
@@ -104,6 +104,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
   // Settings › Items › Batch No.: the line whose batches are being chosen
   const [pickAt, setPickAt] = useState<number | null>(null);
   const bv = useBatchView();
+  const show = useItemFields();
   const tbody = useRef<HTMLTableSectionElement>(null);
   // last prices this customer got, under the price when its quantity or price is clicked into
   const ph = usePriceHistory(si, (i, h) => {
@@ -215,7 +216,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
   return (
     <>
       <thead id="siHead">
-        <tr><th rowSpan={2} className="c">#</th><th rowSpan={2} className="it">Item</th><th rowSpan={2} className="hic">Item code</th><th rowSpan={2} className="hib">Brand</th><th rowSpan={2} className="his">Series</th>{gstCol ? <th rowSpan={2} className="hs">HSN</th> : null}<th rowSpan={2} className="n qt">Qty</th><th rowSpan={2} className="un">Unit</th>
+        <tr><th rowSpan={2} className="c">#</th><th rowSpan={2} className="it">Item</th><th rowSpan={2} className="hic">Item code</th>{show.brand ? <th rowSpan={2} className="hib">Brand</th> : null}{show.series ? <th rowSpan={2} className="his">Series</th> : null}{gstCol ? <th rowSpan={2} className="hs">HSN</th> : null}<th rowSpan={2} className="n qt">Qty</th><th rowSpan={2} className="un">Unit</th>
           <th rowSpan={2} className="n pr">Sale Price{G ? <label className="siincl"><input type="checkbox" id="siIncl" checked={si.incl} onChange={(e) => { up2((s) => { s.incl = e.target.checked; }); full(); }} /> incl. GST</label> : null}</th><th colSpan={2} className="c grp">Discount</th><th rowSpan={2} className="n fr">Final rate</th>{G ? <th colSpan={2} className="c grp">Tax</th> : null}<th rowSpan={2} className="n am">Amount</th><th rowSpan={2} className="x"><span className="sr">Remove</span></th></tr>
         <tr><th className="n sub dp">%</th><th className="n sub da">Amount</th>{G ? <><th className="n sub tp">%</th><th className="n sub ta">Amount</th></> : null}</tr>
         <tr className="qe" id="qeRow" key={`qe${rk}-${qk}`}>
@@ -226,7 +227,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
             onBlur={() => setTimeout(() => { const a = document.activeElement as HTMLElement | null; if (!a?.closest('.cbl') && a?.id !== 'qeItem') c.hide(); }, 150)}
             onKeyDown={(e) => { if (c.cb?.key === 'qe' && comboKey(c, e)) return; if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); if (qe.item) document.getElementById('qeQty')?.focus(); else c.show('qe', itemOpts(d, si, (e.target as HTMLInputElement).value, priceOf), qePick); } }} /><ComboList c={c} k="qe" grid /></div>
             {qe.item && !qe.item.svc ? <small className={(qe.item.stock ?? 0) - lineStock({ item: qe.item, unit: qL?.unit ?? '', qty: qe.qty }) < 0 ? 'neg' : 'mu'}>{(qe.item.stock ?? 0) - lineStock({ item: qe.item, unit: qL?.unit ?? '', qty: qe.qty }) < 0 ? `Only ${qe.item.pack && d.packOn ? stockText(qe.item, qe.item.stock ?? 0) : qfmt(qe.item.stock ?? 0)}` : qe.item.pack && d.packOn ? stockText(qe.item, qe.item.stock ?? 0) : `${qfmt(qe.item.stock ?? 0)} ${qe.item.unit}`}</small> : null}</div></td>
-          <td className="ro l mono">{qe.item?.code ?? ''}</td><td className="ro l">{qe.item?.brand ?? ''}</td><td className="ro l">{qe.item?.series ?? ''}</td>{gstCol ? <td className="ro l">{qe.item?.hsn ?? ''}</td> : null}
+          <td className="ro l mono">{qe.item?.code ?? ''}</td>{show.brand ? <td className="ro l">{qe.item?.brand ?? ''}</td> : null}{show.series ? <td className="ro l">{qe.item?.series ?? ''}</td> : null}{gstCol ? <td className="ro l">{qe.item?.hsn ?? ''}</td> : null}
           <QeIn id="qeQty" val={qe.qty} label="Quick add quantity" set={(v) => setQe({ ...qe, qty: v })} onKey={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); if (e.ctrlKey || e.metaKey) return qeCommit(); const f = document.getElementById('qeFr') as HTMLInputElement; f.focus(); f.select(); } else if (e.key === 'Escape') { e.stopPropagation(); setQe({ item: null, qty: '1', fr: '', disc: '', q: '' }); setQk((k) => k + 1); setTimeout(() => document.getElementById('qeItem')?.focus(), 0); } }} />
           <td className="ro l">{qL?.unit ?? qe.item?.unit ?? ''}</td><td className="ro" id="qePrice">{qL ? inr2f(qL.price || 0) : ''}</td>
           <QeIn id="qeDisc" val={qe.disc} label="Quick add discount percent" placeholder="0" set={(v) => setQe({ ...qe, disc: v, fr: '' })} onKey={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); qeCommit(); } }} shown={qe.disc === '' && qe.fr !== '' && qL?.disc ? String(r2(qL.disc)) : undefined} />
@@ -261,7 +262,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
                   if (!allocs[i]) return mrp ? <small className="mu" style={{ display: 'block', fontWeight: 600, padding: ui.sp('1px 0 0 10px'), whiteSpace: 'nowrap' }}>{mrpTxt}</small> : null;
                   return <button type="button" className="bxl" data-bxl={i} title="Choose batch" style={{ display: 'block', fontSize: ui.fs(11.5), fontWeight: 600, textAlign: 'left', background: 'none', border: 0, padding: ui.sp('1px 0 0 10px'), cursor: 'pointer', whiteSpace: 'nowrap', color: rows.some((b) => b.expiry && expiryState(b.expiry, si.date) === 'expired' && allocs[i]!.some((x) => x.batchId === b.id)) ? 'var(--red)' : 'var(--ac)' }} onClick={() => setPickAt(i)}>{allocs[i]!.length ? allocText(allocs[i]!, rows, l.item?.pack ? l.item.unit : undefined) : 'Choose batch'}{mrpTxt} ▾</button>;
                 })()}</td>
-              <td className="ro l mono dgc1">{l.item?.code ?? ''}</td><td className="ro l dgc2">{l.item?.brand ?? ''}</td><td className="ro l dgc2">{l.item?.series ?? ''}</td>
+              <td className="ro l mono dgc1">{l.item?.code ?? ''}</td>{show.brand ? <td className="ro l dgc2">{l.item?.brand ?? ''}</td> : null}{show.series ? <td className="ro l dgc2">{l.item?.series ?? ''}</td> : null}
               {gstCol ? <td><input className="gi" data-f="hsn" defaultValue={l.hsn} inputMode="numeric" aria-label="HSN" /></td> : null}
               <td><input className="gi n" data-f="qty" defaultValue={String(l.qty)} inputMode="decimal" aria-label="Quantity" /></td>
               {l.item?.pack && d.packOn ? <td><select className="gi" data-f="unit" aria-label={`Unit for row ${i + 1}`} style={{ color: 'var(--ac)', fontWeight: 600 }} value={l.unit} onChange={(e) => { const v = e.target.value; up2((s) => { setLineUnit(ctx, s, s.lines[i]!, v); }); full(); }}><option value={l.item.pack.unit}>{l.item.pack.unit}</option><option value={l.item.unit}>{l.item.unit}</option></select></td> : <td className="ro l">{l.unit || '—'}</td>}

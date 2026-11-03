@@ -25,7 +25,7 @@ import { Icon, RawIcon } from '../../components/Icon';
 import { SearchSelect } from '../../components/SearchSelect';
 import { useShell } from '../shell/store';
 import { qfmt } from './ItemsPage';
-import { useBatchView, useFeature } from '../../lib/features';
+import { useBatchView, useFeature, useItemFields } from '../../lib/features';
 import { Sw } from '../settings/model';
 import { ui } from '../../styles/uiSize';
 
@@ -83,6 +83,10 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
   const [f, setF] = useState<Form>({ ...F0, od: today() });
   const batchOn = useFeature('batch_no');
   const bv = useBatchView();
+  // Settings › Items: a box turned off is hidden, and an edited item keeps what it has
+  const show = useItemFields();
+  const canVary = show.brand && show.series;
+  useEffect(() => { if (!edit && !canVary && vary) setVary(false); }, [edit, canVary, vary]);
   const packOn = useFeature('pack_loose');
   const [err, setErr] = useState<Record<string, string>>({});
   const [pop, setPop] = useState<Pop>(null);
@@ -296,7 +300,7 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
               <label className="tgs" style={{ margin: 0 }}><input type="checkbox" id="aiSvc" checked={svc} disabled={!!edit} style={edit ? LOCKED : undefined} aria-label="Service item" onChange={(e) => { const v = e.target.checked; setSvc(v); if (v) { setVary(false); setTab('price'); } }} /><i></i></label>
               <span className={svc ? 'on' : ''}>Service</span>
             </div>
-            {!svc && (
+            {!svc && canVary && (
               <div className="aisw" id="aiVarSw">
                 <span className={vary ? '' : 'on'}>Single</span>
                 <label className="tgs" style={{ margin: 0 }}><input type="checkbox" id="aiVar" checked={vary} disabled={!!edit} style={edit ? LOCKED : undefined} aria-label="Variant item" onChange={(e) => { setVary(e.target.checked); setErr({}); }} /><i></i></label>
@@ -317,10 +321,10 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
                 )}
                 <label className="apf needs-gst">{svc ? 'SAC' : 'HSN'} code<input className={`fi ${bad('hsn')}`} data-f="hsn" value={f.hsn} onChange={set('hsn')} placeholder={svc ? '995461' : '8536'} inputMode="numeric" maxLength={8} />{E('hsn')}</label>
                 <label className="apf">Unit<button type="button" className={`fi ${bad('unit')}`} id="aiUnit" style={{ textAlign: 'left' }} onClick={openUnits}>{unitText}</button>{E('unit')}</label>
-                <label className="apf">Category<SearchSelect id="aiCat" dataF="cat" value={f.cat} options={cats.map((c) => ({ value: c }))} placeholder="No category" empty="No category" add="+ Add category" onAdd={(t) => addNew('cat', t)} onChange={(v) => setF((x) => ({ ...x, cat: v }))} /></label>
+                {show.category && <label className="apf">Category<SearchSelect id="aiCat" dataF="cat" value={f.cat} options={cats.map((c) => ({ value: c }))} placeholder="No category" empty="No category" add="+ Add category" onAdd={(t) => addNew('cat', t)} onChange={(v) => setF((x) => ({ ...x, cat: v }))} /></label>}
                 <label className="apf">Item code<span className="aicode"><input className={`fi ${bad('code')}`} data-f="code" id="aiCode" value={f.code} onChange={set('code')} placeholder="Maker's code" autoComplete="off" /><button type="button" className="btn sm" id="aiGen" onClick={assignCode}>Assign code</button></span>{E('code')}</label>
-                {!svc && <label className="apf">Brand{vary && <> <span className="req">*</span></>}<SearchSelect id="aiBrandSel" dataF="brand" className={bad('brand')} value={f.brand} options={brands.map((b) => ({ value: b }))} placeholder={vary ? 'Choose brand' : 'No brand'} empty={vary ? undefined : 'No brand'} add="+ Add new brand" onAdd={(t) => addNew('brand', t)} onChange={(v) => { setF((x) => (v === x.brand ? x : { ...x, brand: v, series: '' })); setErr(({ brand: _, ...x }) => x); }} />{E('brand')}</label>}
-                {vary && <label className="apf">Series / model <span className="req">*</span><SearchSelect id="aiSeries" dataF="series" className={bad('series')} value={f.series} disabled={!f.brand} options={seriesList.map((x) => ({ value: x.name, note: x.taken ? 'already added' : undefined }))} placeholder={f.brand ? 'Choose series' : 'Choose a brand first'} add="+ Add series" onAdd={(t) => addNew('series', t)} onChange={(v) => { setF((x) => ({ ...x, series: v })); setErr(({ series: _, ...x }) => x); }} />{dup ? (
+                {!svc && show.brand && <label className="apf">Brand{vary && <> <span className="req">*</span></>}<SearchSelect id="aiBrandSel" dataF="brand" className={bad('brand')} value={f.brand} options={brands.map((b) => ({ value: b }))} placeholder={vary ? 'Choose brand' : 'No brand'} empty={vary ? undefined : 'No brand'} add="+ Add new brand" onAdd={(t) => addNew('brand', t)} onChange={(v) => { setF((x) => (v === x.brand ? x : { ...x, brand: v, series: '' })); setErr(({ brand: _, ...x }) => x); }} />{E('brand')}</label>}
+                {vary && show.series && <label className="apf">Series / model <span className="req">*</span><SearchSelect id="aiSeries" dataF="series" className={bad('series')} value={f.series} disabled={!f.brand} options={seriesList.map((x) => ({ value: x.name, note: x.taken ? 'already added' : undefined }))} placeholder={f.brand ? 'Choose series' : 'Choose a brand first'} add="+ Add series" onAdd={(t) => addNew('series', t)} onChange={(v) => { setF((x) => ({ ...x, series: v })); setErr(({ series: _, ...x }) => x); }} />{dup ? (
                   <div className="aperr" id="aiSeriesDup">{dupText} <button type="button" className="btn sm" id="aiOpenDup" onClick={() => (onOpenItem ? onOpenItem(dup.itemId!) : onSaved(dup.itemId!, false, f.group))}>{onOpenItem ? 'Open that item' : 'Use that item'}</button></div>
                 ) : E('series')}</label>}
               </div>
@@ -378,7 +382,7 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
                 <div className="aibox">
                   <b className="aph">Stock alerts</b>
                   <label className="apf">Minimum stock to maintain{f.pu ? ` (${f.unit})` : ''}<input className="fi" data-f="min" value={f.min} onChange={set('min')} inputMode="decimal" placeholder="e.g. 20" /><small className="aphint">You’ll see a low-stock alert when stock falls below this.</small></label>
-                  <label className="apf">Location<input className="fi" data-f="loc" value={f.loc} onChange={set('loc')} placeholder="e.g. Rack A1 or Godown" autoComplete="off" /></label>
+                  {show.location && <label className="apf">{bv.word('location', 'Location')}<input className="fi" data-f="loc" value={f.loc} onChange={set('loc')} placeholder="e.g. Rack A1 or Godown" autoComplete="off" /></label>}
                 </div>
               </div>
             </div>
