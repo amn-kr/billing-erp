@@ -17,14 +17,14 @@ import { ALREADY_DELETED, deleteMark } from '../../common/deleting';
 import { reconciledIn, reconciledMessage, refuseIfReconciled } from '../../common/editing';
 import { refuseIfSoldSince, reverseStock } from './stock-back';
 import { draftSaleCosts } from '../stock/stock-value';
-import { aboveMrpLines, allocateSale, allocsOf, batchesOn, mrpOn, refuseIfBatchShort } from '../stock/batches';
+import { aboveMrpLines, allocateSale, allocsOf, batchesOn, mrpOn, refuseIfBatchShort, expiryOn } from '../stock/batches';
 
 const q3 = (v: { toString(): string }) => money(v.toString()).toDecimalPlaces(3).toFixed(3);
 const d2 = (v: { toString(): string } | null | undefined) => (v === null || v === undefined ? null : toDb(v.toString()));
 const KIND_WORD = { invoice: 'Invoice', quotation: 'Quotation' } as const;
 const RULE_KIND: Record<string, CommRule['t']> = { none: 'n', percent: 'p', fixed: 'f' };
 
-/** Features › mrp_pack: the pack size of a line in this unit: only an item sold by the pack, only in its pack unit. */
+/** Settings › Items › MRP and Pack: the pack size of a line in this unit: only an item sold by the pack, only in its pack unit. */
 export function linePackSize(it: { packSize: { toString(): string } | null; packUnit?: { code: string } | null }, unit: string | null | undefined): string | null {
   return it.packSize && it.packUnit && unit === it.packUnit.code ? it.packSize.toString() : null;
 }
@@ -158,7 +158,7 @@ export class SalesService {
     const pos = books.mode === 'gst' ? input.placeOfSupply || (party ? partyState(party, books.state) : books.state) : books.state;
     const lines = rows.map((l) => {
       const it = items.get(l.itemId!)!;
-      // Features › mrp_pack: a line in the item's pack unit moves that many packs' worth of stock
+      // Settings › Items › MRP and Pack: a line in the item's pack unit moves that many packs' worth of stock
       const packSize = linePackSize(it, l.unit);
       return { l, it, gst: books.mode === 'gst' ? l.gstRate : '0', packSize, stockQty: stockQtyOf(l.qty, packSize) };
     });
@@ -177,13 +177,13 @@ export class SalesService {
         throw new ConflictException({ code: 'over_credit_limit', message: 'This sale goes over the credit limit. Press Save again to save anyway.' });
     }
 
-    /* batch and expiry (Features › batch_expiry): which batches an invoice's tracked lines use */
+    /* batch and expiry (Settings › Items › Batch No.): which batches an invoice's tracked lines use */
     const batchOn = isInv && (await batchesOn(tx, businessId));
     const picked = batchOn
-      ? await allocateSale(tx, { date: input.date, confirmExpired: input.confirmExpired, docId: id, savedLines: before?.lines, lines: lines.map(({ l, it, stockQty }) => ({ item: it, qty: stockQty, batches: l.batches })) })
+      ? await allocateSale(tx, { businessId, date: input.date, confirmExpired: input.confirmExpired, docId: id, savedLines: before?.lines, lines: lines.map(({ l, it, stockQty }) => ({ item: it, qty: stockQty, batches: l.batches })) })
       : { allocs: lines.map(() => null), expired: [] };
 
-    /* MRP (Features › mrp_pack): a rate above it needs "Save anyway", noted in the audit log */
+    /* MRP (Settings › Items › MRP and Pack): a rate above it needs "Save anyway", noted in the audit log */
     const overMrp = isInv && (await mrpOn(tx, businessId))
       ? await aboveMrpLines(tx, { savedLines: before?.lines, lines: lines.map(({ l, it, packSize, stockQty }, k) => ({ item: it, qty: l.qty, stockQty, inPacks: !!packSize, amount: t.rows[k]!.amt, allocs: picked.allocs[k] ?? null })) })
       : [];
@@ -395,6 +395,7 @@ export class SalesService {
       });
       if (!d || d.deletedAt) throw new NotFoundException({ message: 'That document was not found.' });
       const items = new Map((await tx.item.findMany({ where: { id: { in: d.lines.flatMap((l) => (l.itemId ? [l.itemId] : [])) } }, include: { unit: true, brand: true, category: true, itemGroup: true } })).map((i) => [i.id, i]));
+      const useExp = await expiryOn(tx, d.businessId);
       const lineBatches = new Map((await tx.batch.findMany({ where: { id: { in: d.lines.flatMap((l) => allocsOf(l.batchAlloc).flatMap((a) => (a.batchId ? [a.batchId] : []))) } } })).map((b) => [b.id, b]));
       const bal = d.kind === 'invoice' ? ((await invoiceBalances(tx, [d.id])).get(d.id) ?? money(0)) : money(d.total.toString());
       const allocs = await tx.paymentAllocation.findMany({ where: { OR: [{ salesDocumentId: d.id }, { noteId: d.id }] }, include: { payment: true }, orderBy: { createdAt: 'asc' } });
@@ -417,10 +418,10 @@ export class SalesService {
           return {
             id: l.id, itemId: l.itemId, name: l.name, hsn: l.hsn, qty: q3(l.qty), unit: l.unit, packSize: l.packSize ? q3(l.packSize) : null, /* an item sold by the pack: its loose unit, its batches are counted in it; a line sold loose: its pack size, for the batches' MRP */ batchUnit: it?.packSize ? it.unit?.code ?? '' : '', looseOf: it?.packSize && !l.packSize ? q3(it.packSize) : null, price: d2(l.price), discPct: l.discPct.toString(), gstRate: l.gstRate.toString(),
             taxable: d2(l.taxable), tax: d2(l.tax), amount: d2(l.amount), basePrice: d2(l.basePrice), commOverride: l.commOverride, commType: l.commType, commValue: d2(l.commValue), commAmount: d2(l.commAmount),
-            batches: allocsOf(l.batchAlloc).map((a) => { const b = a.batchId ? lineBatches.get(a.batchId) : undefined; return { batchId: a.batchId, no: b?.batchNo ?? 'No batch', expiry: isoOf(b?.expiryDate ?? null), qty: a.qty, mrp: b?.mrp ? b.mrp.toFixed(2) : null }; }),
+            batches: allocsOf(l.batchAlloc).map((a) => { const b = a.batchId ? lineBatches.get(a.batchId) : undefined; return { batchId: a.batchId, no: b?.batchNo ?? 'No batch', expiry: useExp ? isoOf(b?.expiryDate ?? null) : null, qty: a.qty, mrp: b?.mrp ? b.mrp.toFixed(2) : null }; }),
             againstId: l.againstId, code: it?.code ?? '', brand: it?.brand?.name ?? '', series: it?.series ?? '', group: it?.itemGroup?.name ?? '', category: it?.category?.name ?? '', categoryId: it?.categoryId ?? null,
             // today's item prices, for the optional MRP / list / wholesale columns and "You saved" on the printed invoice
-            // per the line's unit: an item's prices are per pack, so a line sold loose shows the pack's ÷ its size (Features › mrp_pack)
+            // per the line's unit: an item's prices are per pack, so a line sold loose shows the pack's ÷ its size (Settings › Items › MRP and Pack)
             ...perLine(it, l.packSize),
           };
         }),

@@ -1,5 +1,6 @@
 import type { Permission, RoleKey } from './permissions.js';
 import type { FeatureKey } from './features.js';
+import type { ItemOptions } from './item-options.js';
 
 /** How tightly each person's screens are laid out (Settings › General › Display); Comfortable is the prototype's look. */
 export const DENSITY_KEYS = ['comfortable', 'compact'] as const;
@@ -43,6 +44,7 @@ export interface MeBusiness {
   planEndsOn: string;
   /** What the shop's owner turned on in Settings › Features. */
   features: FeatureKey[];
+  itemOptions: ItemOptions;
 }
 
 export interface MeResponse {

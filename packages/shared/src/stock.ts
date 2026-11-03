@@ -14,7 +14,7 @@
  * - A purchase return (debit note) linked to a bill takes stock out of that bill's layer first;
  *   anything else (or one not linked to a bill) is taken oldest first.
  * - Selling more than is in stock leaves a shortfall; the next stock coming in fills it first.
- * - Batch and expiry (Features › batch_expiry) only label the stock: a move with a batch uses that
+ * - Batch and expiry (Settings › Items › Batch No.) only label the stock: a move with a batch uses that
  *   batch's stock first, and a move without one uses stock without a batch first. An item with no
  *   batches at all therefore runs exactly as above.
  */
@@ -235,7 +235,7 @@ function runLots(moves: LedgerMove[], fallbackRate: MoneyInput) {
 /**
  * @param moves the item's stock ledger, all godowns, any order
  * @param fallbackRate the item's purchase price, used where the ledger has no rate (per stock unit)
- * @param packSize Features › mrp_pack: the rates are shown per pack; quantities and values stay as they are
+ * @param packSize Settings › Items › MRP and Pack: the rates are shown per pack; quantities and values stay as they are
  */
 export function stockByPurchaseRate(moves: LedgerMove[], fallbackRate: MoneyInput, packSize: MoneyInput = 1): RateTable {
   const { layers, short } = runLots(moves, fallbackRate);

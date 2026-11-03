@@ -59,7 +59,7 @@ export const saleLineSchema = z.object({
   /** referral: the rate before commission, and a rule set for this line only */
   basePrice: optNum,
   commOverride: commRuleSchema.nullable().optional(),
-  /** Features › batch_expiry: the batches this line uses; left out, the server picks earliest expiry first */
+  /** Settings › Items › Batch No.: the batches this line uses; left out, the server picks earliest expiry first */
   batches: batchAllocsSchema,
 });
 export type SaleLineInput = z.infer<typeof saleLineSchema>;
@@ -100,9 +100,9 @@ export const saleSchema = z.object({
   labour: num(),
   bankCharge: num(),
   lines: z.array(saleLineSchema).max(500),
-  /** Features › batch_expiry: "Sell anyway" was pressed for expired stock */
+  /** Settings › Items › Batch No.: "Sell anyway" was pressed for expired stock */
   confirmExpired: z.boolean().optional(),
-  /** Features › mrp_pack: "Save anyway" was pressed for a rate above MRP */
+  /** Settings › Items › MRP and Pack: "Save anyway" was pressed for a rate above MRP */
   confirmAboveMrp: z.boolean().optional(),
   payments: z.array(payPartSchema).max(10).optional().default([]),
   notes: opt(2000),
@@ -158,7 +158,7 @@ export const challanSchema = z.object({
   cashName: opt(160),
   cashPhone: opt(20).transform((v) => v.replace(/\D/g, '')),
   date: isoDate,
-  lines: z.array(z.object({ itemId: z.string().uuid(), qty: num('Enter the quantity.'), /** Features › mrp_pack: the item's pack unit, or left out for its own */ unit: opt(20) })).max(500),
+  lines: z.array(z.object({ itemId: z.string().uuid(), qty: num('Enter the quantity.'), /** Settings › Items › MRP and Pack: the item's pack unit, or left out for its own */ unit: opt(20) })).max(500),
   transport: opt(120),
   vehicle: opt(60),
   note: opt(500),

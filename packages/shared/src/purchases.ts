@@ -31,10 +31,10 @@ export const purchaseLineSchema = z.object({
   itemId: z.string().uuid({ message: 'Pick the item from the list.' }),
   name: opt(200), hsn: opt(8), unit: opt(20),
   qty: num('Enter the quantity.'), rate: num('Enter the rate.'), discPct: num('Enter the discount.'), gstRate: num('Choose the GST rate.'),
-  /** Features › batch_expiry. A bill: the batch as typed. A debit note: the batch it comes out of. */
+  /** Settings › Items › Batch No.. A bill: the batch as typed. A debit note: the batch it comes out of. */
   batchNo: z.string().trim().max(40).optional(), mfg: z.string().trim().max(12).optional(), expiry: z.string().trim().max(12).optional(),
   batchId: z.string().uuid().nullable().optional(),
-  /** Features › mrp_pack: the batch's MRP, as typed */
+  /** Settings › Items › MRP and Pack: the batch's MRP, as typed */
   batchMrp: z.string().trim().max(16).optional(),
 });
 export const puPayPartSchema = z.object({ mode: z.enum(PU_MODES), amount: num('Enter the amount.'), ref: opt(80), accountId: payAccountId });

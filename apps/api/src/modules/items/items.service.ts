@@ -10,7 +10,7 @@ import { day, isoOf, namedId, unitIdFor, uniqueMessage } from '../../common/look
 import { invoiceBalances } from '../sales/dues';
 import { withoutEditedLines } from './item-history';
 import { itemLots, rateTables } from '../stock/stock-value';
-import { batchesOn, batchRows, resolveBatch, mrpOn } from '../stock/batches';
+import { batchesOn, batchRows, packOn, resolveBatch } from '../stock/batches';
 
 const PACK_HAS_HISTORY = 'This item already has stock history, so its unit can’t change. Make a new item with pack and loose, and move the stock with an adjustment on each.';
 const include = { unit: true, secondaryUnit: true, packUnit: true, category: true, brand: true, itemGroup: true } satisfies Prisma.ItemInclude;
@@ -125,11 +125,11 @@ export class ItemsService {
       };
       return {
         ...item,
-        /** Features › mrp_pack: with stock movements its pack can't change */
+        /** Settings › Items › MRP and Pack: with stock movements its pack can't change */
         hasStockHistory: movements.length > 0,
         /** what is left in stock by the purchase rate it was bought at (first in, first out) */
         ...(item.kind === 'service' ? { rateTable: null, bought: false } : await itemLots(tx, id, { purchasePrice: item.purchase, packSize: item.packSize })),
-        /** Features › batch_expiry: stock by batch, for a tracked item or one that has batches */
+        /** Settings › Items › Batch No.: stock by batch, for a tracked item or one that has batches */
         batches: item.kind !== 'service' && (await batchesOn(tx, ctx.businessId!)) && (item.trackBatch || (await tx.batch.count({ where: { itemId: id } })) > 0) ? await batchRows(tx, { id, purchasePrice: item.purchase, packSize: item.packSize }) : null,
         godowns: godowns.map((g) => ({ id: g.id, name: g.name, stock: q3(byGodown.find((b) => b.godownId === g.id)?._sum.qty ?? '0') })),
         // a deleted document's movements (taken out and put back) still count in the stock, but aren't listed;
@@ -175,7 +175,7 @@ export class ItemsService {
   }
 
   /**
-   * Features › mrp_pack: what an item's pack set-up becomes. Only with the feature on, and only an item with no stock
+   * Settings › Items › MRP and Pack: what an item's pack set-up becomes. Only with the feature on, and only an item with no stock
    * history can change it (owner, 2 Nov 2026): its history is counted in its unit, and old records are never rewritten.
    * Nothing asked for, or the feature off: nothing changes.
    */
@@ -187,7 +187,7 @@ export class ItemsService {
       if (wasPack && unit === before!.packUnit) throw new BadRequestException({ message: 'The pack unit and the loose unit must be different.', field: 'unit' });
       return {};
     }
-    if (!(await mrpOn(tx, ctx.businessId!))) return {};
+    if (!(await packOn(tx, ctx.businessId!))) return {};
     const on = !!input.packUnit;
     const size = on ? money(input.packSize ?? 0).toDecimalPlaces(3) : null;
     const same = on ? before?.packUnit === input.packUnit && !!before.packSize && size!.eq(before.packSize) && unit === before.unit : !wasPack;
@@ -255,7 +255,7 @@ export class ItemsService {
     try {
       return await this.db.scoped(this.scope(ctx), async (tx) => {
         await this.clash(tx, input);
-        // Features › batch_expiry: only with it on, and only goods have batches
+        // Settings › Items › Batch No.: only with it on, and only goods have batches
         const track = input.kind === 'goods' && !!input.trackBatch && (await batchesOn(tx, ctx.businessId!));
         const pack = await this.packChange(tx, ctx, input, null);
         const it = await tx.item.create({

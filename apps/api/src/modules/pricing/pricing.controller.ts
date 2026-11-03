@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Put, Query } from '@nestjs/common';
 import { pinSchema, priceChangesSchema, priceListSchema, priceRuleSaveSchema, type PriceChangesInput, type PriceListInput, type PriceRuleSaveInput } from '@billing/shared';
 import { z } from 'zod';
 import { Ctx, RequirePermission } from '../../common/decorators';
@@ -31,6 +31,8 @@ export class PricingController {
   @RequirePermission('masters.manage')
   @Patch('price-lists/:id')
   update(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(listUpdate)) body: z.infer<typeof listUpdate>) {
+    // Settings › Items is the shop owner's page, the only place that turns a list on or off
+    if (ctx.role !== 'owner') throw new ForbiddenException({ message: 'Only the shop owner can change this.' });
     return this.pricing.updateList(ctx, id, body);
   }
 

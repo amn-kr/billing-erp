@@ -1,4 +1,4 @@
-import { BadRequestException, Body, ConflictException, Controller, Get, HttpCode, NotFoundException, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import { BadRequestException, Body, ConflictException, Controller, Get, ForbiddenException, HttpCode, NotFoundException, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { DEFAULT_TAXES, money } from '@billing/shared';
 import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
@@ -94,6 +94,8 @@ export class SettingsController {
   @RequirePermission('settings.manage')
   @Patch()
   update(@Ctx() ctx: RequestContext, @Body(new ZodPipe(settingsSchema)) body: z.infer<typeof settingsSchema>) {
+    // Settings › Items is the shop owner's page
+    if (body.data && 'itemPrefix' in body.data && ctx.role !== 'owner') throw new ForbiddenException({ message: 'Only the shop owner can change the item code prefix.' });
     return this.db.scoped({ businessId: ctx.businessId, userId: ctx.userId, email: ctx.email }, async (tx) => {
       const before = await tx.businessSettings.findUniqueOrThrow({ where: { businessId: ctx.businessId! } });
       const after = await tx.businessSettings.update({

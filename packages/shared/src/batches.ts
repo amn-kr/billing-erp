@@ -1,5 +1,5 @@
 /**
- * Batch and expiry (Features › batch_expiry, owner's request, 1 Nov 2026). A batch is a label on an
+ * Batch and expiry (Settings › Items › Batch No., owner's request, 1 Nov 2026). A batch is a label on an
  * item's stock: the stock itself stays in the one lot calculation (stock.ts). Stock without a label
  * is "No batch". Dates are ISO; shops mostly type them as printed on the pack, MM/YY.
  */
@@ -73,22 +73,22 @@ export function matchesExpiry(expiry: string | null | undefined, on: string, f: 
 }
 
 /** One row of an item's stock by batch. `id` null is the stock without a batch. */
-export interface BatchRow { id: string | null; no: string; mfg: string | null; expiry: string | null; qty: string; rate: string; value: string; /** Features › mrp_pack */ mrp?: string | null }
+export interface BatchRow { id: string | null; no: string; mfg: string | null; expiry: string | null; qty: string; rate: string; value: string; /** Settings › Items › MRP */ mrp?: string | null; /** only with Exp Date off: when the batch came in, so the oldest is used first */ since?: string | null }
 
 /**
  * The order batches are shown and used in (owner, 1 Nov 2026): expired ones first so they are seen, then
  * No batch (the oldest stock, so it clears first), then earliest expiry, then those with no expiry.
  */
-export function sortBatches<T extends { id: string | null; no: string; expiry: string | null }>(rows: readonly T[], on: string): T[] {
+export function sortBatches<T extends { id: string | null; no: string; expiry: string | null; since?: string | null }>(rows: readonly T[], on: string): T[] {
   const rank = (r: T) => (r.expiry && expiryState(r.expiry, on) === 'expired' ? 0 : r.id === null ? 1 : r.expiry ? 2 : 3);
-  return [...rows].sort((a, b) => rank(a) - rank(b) || (a.expiry ?? '').localeCompare(b.expiry ?? '') || a.no.localeCompare(b.no));
+  return [...rows].sort((a, b) => rank(a) - rank(b) || (a.expiry ?? '').localeCompare(b.expiry ?? '') || (a.since ?? '').localeCompare(b.since ?? '') || a.no.localeCompare(b.no));
 }
 
 /* ───────── which batches a sale uses ───────── */
 
 /** Part of a line taken from one batch. batchId null = stock without a batch, or more than is in stock. */
 export interface BatchAlloc { batchId: string | null; qty: string }
-export type PickRow = Pick<BatchRow, 'id' | 'no' | 'expiry' | 'qty'>;
+export type PickRow = Pick<BatchRow, 'id' | 'no' | 'expiry' | 'qty' | 'since'>;
 export interface BillLine { itemId: string; qty: MoneyInput; /** chosen by hand, or saved on the bill */ hand?: readonly BatchAlloc[] | null }
 
 const keyOf = (item: string, batch: string | null) => `${item}|${batch ?? ''}`;

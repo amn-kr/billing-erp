@@ -1,16 +1,26 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { batchDay, batchMonth, billAllocs, effectiveMrp, expiryState, formatQty, isAboveMrp, loosePrice, money, ratePerUnit, parseBatchDate, sortBatches, stockByBatch, stockQtyOf, todayIst, type BatchAlloc, type BatchRow, type Money, type MoneyInput } from '@billing/shared';
+import { batchDay, batchMonth, billAllocs, effectiveMrp, enabledFeatures, expiryState, formatQty, isAboveMrp, loosePrice, money, ratePerUnit, parseBatchDate, sortBatches, stockByBatch, stockQtyOf, todayIst, type BatchAlloc, type BatchRow, type Money, type MoneyInput } from '@billing/shared';
+import type { FeatureKey } from '@billing/shared';
 import type { AuditService } from '../../common/audit.service';
 import type { Tx } from '../../common/db.service';
 import { day, isoOf } from '../../common/lookups';
 import { fallbackRate, ledgerOf, type Priced } from './stock-value';
 
 interface Who { businessId: string; userId: string; ip?: string }
-export interface BatchEntry { batchNo?: string | null; mfg?: string | null; expiry?: string | null; /** only with Features › mrp_pack on */ mrp?: string | null }
+export interface BatchEntry { batchNo?: string | null; mfg?: string | null; expiry?: string | null; /** only with Settings › Items › MRP and Pack on */ mrp?: string | null }
 
-/** Whether this shop's owner has turned on MRP and pack/loose; with it off, MRP data sent for batches is ignored. */
+/** Whether this shop's owner has turned on MRP; with it off, MRP data sent for batches is ignored. */
 export async function mrpOn(tx: Tx, businessId: string): Promise<boolean> {
-  return !!(await tx.businessSettings.findUnique({ where: { businessId }, select: { features: true } }))?.features.includes('mrp_pack');
+  return featureOn(tx, businessId, 'mrp');
+}
+
+/** Whether this shop's owner has turned on Pack and loose. */
+export async function packOn(tx: Tx, businessId: string): Promise<boolean> {
+  return featureOn(tx, businessId, 'pack_loose');
+}
+
+async function featureOn(tx: Tx, businessId: string, key: FeatureKey): Promise<boolean> {
+  return enabledFeatures((await tx.businessSettings.findUnique({ where: { businessId }, select: { features: true } }))?.features).includes(key);
 }
 
 /** The MRP typed for a batch, or null when blank; a clear refusal when it isn't an amount. */
@@ -21,9 +31,19 @@ export function batchMrp(text: string | null | undefined): string | null {
   return money(t).toFixed(2);
 }
 
-/** Whether this shop's owner has turned on Batch and expiry; with it off, batch data sent is ignored. */
+/** Whether this shop's owner has turned on Batch No.; with it off, batch data sent is ignored. */
 export async function batchesOn(tx: Tx, businessId: string): Promise<boolean> {
-  return !!(await tx.businessSettings.findUnique({ where: { businessId }, select: { features: true } }))?.features.includes('batch_expiry');
+  return featureOn(tx, businessId, 'batch_no');
+}
+
+/** Whether Exp Date is on. With it off, expiries stay saved but nothing uses them: the oldest batch is sold first. */
+export async function expiryOn(tx: Tx, businessId: string): Promise<boolean> {
+  return featureOn(tx, businessId, 'exp_date');
+}
+
+/** Whether Mfg Date is on. With it off, mfg dates stay saved and aren't shown. */
+export async function mfgOn(tx: Tx, businessId: string): Promise<boolean> {
+  return featureOn(tx, businessId, 'mfg_date');
 }
 
 /** The dates typed for a batch, as ISO dates, or a clear refusal. */
@@ -40,7 +60,9 @@ export function batchDates(e: BatchEntry): { mfg: string | null; expiry: string 
  * the same dates (owner, 1 Nov 2026): different ones are refused, and a date still empty is filled in.
  * Fixing a wrong date is done from the item card (Stock by batch › Edit).
  */
-export async function resolveBatch(tx: Tx, who: Who, audit: AuditService, item: { id: string; name: string }, e: BatchEntry): Promise<string> {
+export async function resolveBatch(tx: Tx, who: Who, audit: AuditService, item: { id: string; name: string }, typed: BatchEntry): Promise<string> {
+  // a date whose box is turned off is ignored: the screen doesn't ask for it, and what is saved stays
+  const e: BatchEntry = { ...typed, ...(!(await expiryOn(tx, who.businessId)) && { expiry: null }), ...(!(await mfgOn(tx, who.businessId)) && { mfg: null }) };
   const no = (e.batchNo ?? '').trim();
   const { mfg, expiry } = batchDates(e);
   const mrp = batchMrp(e.mrp);
@@ -70,12 +92,14 @@ export async function batchRowsOf(tx: Tx, items: ({ id: string } & Priced)[], ex
   const ids = items.map((i) => i.id);
   const ledger = await ledgerOf(tx, ids);
   const info = new Map((await tx.batch.findMany({ where: { itemId: { in: ids } } })).map((b) => [b.id, b]));
+  const list = enabledFeatures((await tx.businessSettings.findFirst({ select: { features: true } }))?.features);
+  const useExp = list.includes('exp_date'), useMfg = list.includes('mfg_date');
   return new Map(items.map((item) => {
     const moves = (ledger.get(item.id) ?? []).filter((m) => !exceptDoc || m.sourceId !== exceptDoc);
     const { rows, shortQty } = stockByBatch(moves, fallbackRate(item), item.packSize?.toString() ?? 1);
     const out: BatchRow[] = rows.map((r) => {
       const b = r.batchId ? info.get(r.batchId) : undefined;
-      return { id: r.batchId, no: b?.batchNo ?? 'No batch', mfg: isoOf(b?.mfgDate ?? null), expiry: isoOf(b?.expiryDate ?? null), qty: r.qty, rate: r.rate, value: r.value, mrp: b?.mrp ? b.mrp.toFixed(2) : null };
+      return { id: r.batchId, no: b?.batchNo ?? 'No batch', mfg: useMfg ? isoOf(b?.mfgDate ?? null) : null, expiry: useExp ? isoOf(b?.expiryDate ?? null) : null, qty: r.qty, rate: r.rate, value: r.value, mrp: b?.mrp ? b.mrp.toFixed(2) : null, ...(!useExp && { since: b?.createdAt.toISOString() ?? null }) };
     });
     return [item.id, { rows: sortBatches(out, todayIst()), shortQty }];
   }));
@@ -88,13 +112,13 @@ export async function batchRows(tx: Tx, item: { id: string } & Priced, exceptDoc
 export const allocsOf = (v: unknown): BatchAlloc[] => (Array.isArray(v) ? (v as BatchAlloc[]) : []);
 
 /**
- * The batches a bill's lines use (Features › batch_expiry): what the screen sent, checked, or earliest
+ * The batches a bill's lines use (Settings › Items › Batch No.): what the screen sent, checked, or earliest
  * expiry first when it sent none (Quick sale, the API). The bill's own goods are counted as back in
  * stock when it is edited. Expired batches need "Sell anyway", unless the saved bill already has them.
  */
 export async function allocateSale(
   tx: Tx,
-  o: { date: string; confirmExpired?: boolean; docId?: string; savedLines?: { batchAlloc: unknown }[]; lines: { item: { id: string; name: string; kind: string; trackBatch: boolean } & Priced; qty: MoneyInput; batches?: { batchId: string | null; qty: MoneyInput }[] }[] },
+  o: { businessId: string; date: string; confirmExpired?: boolean; docId?: string; savedLines?: { batchAlloc: unknown }[]; lines: { item: { id: string; name: string; kind: string; trackBatch: boolean } & Priced; qty: MoneyInput; batches?: { batchId: string | null; qty: MoneyInput }[] }[] },
 ): Promise<{ allocs: (BatchAlloc[] | null)[]; expired: { item: string; batch: string; expiry: string; qty: string }[] }> {
   const tracked = [...new Map(o.lines.filter((l) => l.item.kind !== 'service' && l.item.trackBatch).map((l) => [l.item.id, l.item])).values()];
   if (!tracked.length) return { allocs: o.lines.map(() => null), expired: [] };
@@ -121,7 +145,8 @@ export async function allocateSale(
   const saved = new Map<string, Money>();
   for (const l of o.savedLines ?? []) for (const a of allocsOf(l.batchAlloc)) if (a.batchId) saved.set(a.batchId, (saved.get(a.batchId) ?? money(0)).plus(a.qty));
   const expired: { item: string; batch: string; expiry: string; qty: string }[] = [];
-  allocs.forEach((list, k) => {
+  const useExp = await expiryOn(tx, o.businessId);
+  if (useExp) allocs.forEach((list, k) => {
     for (const a of list ?? []) {
       const b = a.batchId ? known.get(a.batchId) : undefined;
       const exp = isoOf(b?.expiryDate ?? null);
@@ -162,7 +187,7 @@ export async function refuseIfBatchShort(tx: Tx, batchIds: (string | null | unde
 }
 
 /**
- * Lines whose rate is above MRP (Features › mrp_pack): they need "Save anyway". What an edited bill already sold
+ * Lines whose rate is above MRP (Settings › Items › MRP and Pack): they need "Save anyway". What an edited bill already sold
  * at that rate or higher isn't asked again. A line's rate is compared with the MRP for its own unit: the pack's, or
  * the pack's ÷ its size when sold loose (the MRP is per pack); `qty` is in the line's unit and `stockQty` in stock.
  */

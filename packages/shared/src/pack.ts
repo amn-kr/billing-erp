@@ -1,5 +1,5 @@
 /**
- * Pack and loose (Features › mrp_pack, owner's request, 2 Nov 2026). An item can be sold by the pack and loose: 1 STRIP
+ * Pack and loose (Settings › Items › MRP and Pack, owner's request, 2 Nov 2026). An item can be sold by the pack and loose: 1 STRIP
  * = 10 TAB. Its stock is always counted in the loose unit, so every tablet is exact; its prices and MRP are per pack,
  * as printed on the pack, and the loose price is the pack's ÷ the pack size, to the paisa. A document's line keeps its
  * own quantity, unit and rate, plus the pack size when it is in packs (none = the item's own unit).
