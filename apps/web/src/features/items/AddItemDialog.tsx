@@ -25,7 +25,7 @@ import { Icon, RawIcon } from '../../components/Icon';
 import { SearchSelect } from '../../components/SearchSelect';
 import { useShell } from '../shell/store';
 import { qfmt } from './ItemsPage';
-import { useFeature } from '../../lib/features';
+import { useBatchView, useFeature } from '../../lib/features';
 import { Sw } from '../settings/model';
 import { ui } from '../../styles/uiSize';
 
@@ -82,6 +82,7 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
   const [tab, setTab] = useState<'price' | 'stock'>('price');
   const [f, setF] = useState<Form>({ ...F0, od: today() });
   const batchOn = useFeature('batch_no');
+  const bv = useBatchView();
   const packOn = useFeature('pack_loose');
   const [err, setErr] = useState<Record<string, string>>({});
   const [pop, setPop] = useState<Pop>(null);
@@ -335,7 +336,7 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
                   <b className="aph">Sale price</b>
                   <div className="two">
                     <label className="apf">Sale price<span className={pre}><span>{cur('₹')}</span><input className={`fi ${bad('sale')}`} data-f="sale" id="aiSale" value={f.sale} onChange={set('sale')} inputMode="decimal" placeholder="0.00" /></span>{E('sale')}</label>
-                    <label className="apf">MRP<span className={pre}><span>{cur('₹')}</span><input className="fi" data-f="mrp" id="aiMrp" value={f.mrp} onChange={set('mrp')} inputMode="decimal" placeholder="Optional" /></span></label>
+                    <label className="apf">{bv.word('mrp', 'MRP')}<span className={pre}><span>{cur('₹')}</span><input className="fi" data-f="mrp" id="aiMrp" value={f.mrp} onChange={set('mrp')} inputMode="decimal" placeholder="Optional" /></span></label>
                   </div>
                   <div className="two">
                     <label className="apf needs-gst">Price is<select className="fi" data-f="saleTax" value={f.saleTax} onChange={set('saleTax')}><option>With tax</option><option>Without tax</option></select></label>
@@ -359,7 +360,7 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
               <div className="aiprice">
                 <div className="aibox">
                   {batchOn && (
-                    <div className="tgl" id="aiTrack" style={{ margin: ui.sp('0 0 14px') }}><div className="tx" style={{ flex: 1 }}><b>Track batch and expiry</b><small>Ask for batch no. and expiry on purchases, and pick the earliest expiry first on sales.</small></div><Sw id="aiTrackSw" on={f.track} label="Track batch and expiry" onChange={(v) => setF((x) => ({ ...x, track: v }))} /></div>
+                    <div className="tgl" id="aiTrack" style={{ margin: ui.sp('0 0 14px') }}><div className="tx" style={{ flex: 1 }}><b>{bv.exp ? 'Track batch and expiry' : 'Track batch'}</b><small>{bv.exp ? 'Ask for batch no. and expiry on purchases, and pick the earliest expiry first on sales.' : 'Ask for batch no. on purchases, and pick the oldest batch first on sales.'}</small></div><Sw id="aiTrackSw" on={f.track} label="Track batch and expiry" onChange={(v) => setF((x) => ({ ...x, track: v }))} /></div>
                   )}
                   <b className="aph">Opening stock</b>
                   <div className="two">
@@ -369,8 +370,8 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
                   <label className="apf">As of date<input className="fi" type="date" data-f="od" value={f.od} onChange={set('od')} disabled={!!edit} />{edit && <small className="aphint">Opening stock can’t be changed here. Use Adjust stock.</small>}</label>
                   {batchOn && f.track && !edit && (
                     <div className="two">
-                      <label className="apf">Batch no.<input className="fi" data-f="ob" value={f.ob} onChange={set('ob')} placeholder="Blank = No batch" autoComplete="off" /></label>
-                      <label className="apf">Expiry<input className="fi" data-f="oe" value={f.oe} onChange={set('oe')} placeholder="MM/YY" autoComplete="off" /></label>
+                      <label className="apf">{bv.word('batch', 'Batch no.')}<input className="fi" data-f="ob" value={f.ob} onChange={set('ob')} placeholder="Blank = No batch" autoComplete="off" /></label>
+                      {bv.exp ? <label className="apf">{bv.word('exp', 'Expiry')}<input className="fi" data-f="oe" value={f.oe} onChange={set('oe')} placeholder={bv.hint('expiry')} autoComplete="off" /></label> : null}
                     </div>
                   )}
                 </div>

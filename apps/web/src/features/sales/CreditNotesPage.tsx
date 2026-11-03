@@ -4,8 +4,8 @@
  * money is refunded); the same goods can't be returned twice.
  */
 import { useEffect, useRef, useState } from 'react';
-import { batchMonth, loosePrice, packQtyText, type BatchRow, type PackInfo } from '@billing/shared';
-import { useFeature } from '../../lib/features';
+import { loosePrice, packQtyText, type BatchRow, type PackInfo } from '@billing/shared';
+import { useBatchView, useFeature } from '../../lib/features';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { CN_REASONS, money } from '@billing/shared';
@@ -118,8 +118,9 @@ export function CreditNotesPage() {
 /** Where a tracked item's returned goods go (Settings › Items › Batch No.; owner-approved mock): the batch the invoice sold them from, or another. */
 function CnBatch({ itemId, line, onChange }: { itemId: string; line: CnLine; onChange: (batch: string) => void }) {
   const all = useQuery({ queryKey: ['items', 'batches'], queryFn: () => api<Record<string, BatchRow[]>>('/batches') }).data?.[itemId] ?? [];
+  const v = useBatchView();
   const sold = (line.sold0 ?? []).filter((b) => b.batchId);
-  const label = (no: string, exp: string | null | undefined) => `Back to ${no}${exp ? ` · Exp ${batchMonth(exp)}` : ''}`;
+  const label = (no: string, exp: string | null | undefined) => `Back to ${no}${exp ? ` · ${v.word('exp', 'Exp')} ${v.expText(exp)}` : ''}`;
   const others = [...sold.map((b) => ({ id: b.batchId!, no: b.no, expiry: b.expiry })), ...all.flatMap((r) => (r.id ? [{ id: r.id, no: r.no, expiry: r.expiry }] : []))].filter((b, k, a) => a.findIndex((x) => x.id === b.id) === k);
   const only = (line.sold0 ?? []).length === 1 ? line.sold0![0]! : null;
   return (

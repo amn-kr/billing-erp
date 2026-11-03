@@ -14,7 +14,7 @@ import { Copies, PaperFit, Paper, docNo, docTitle, fromSale, pageSize } from '..
 import { usePrintOpts } from '../print/opts';
 import { fileTitle, printNow, usePrintSource } from '../print/printer';
 import { useEscape } from '../../lib/useEscape';
-import { useFeature } from '../../lib/features';
+import { useBatchView, useFeature } from '../../lib/features';
 import { useOpenFocus } from '../../lib/useOpenFocus';
 import { useSettings } from '../../lib/settings';
 import { Icon, RawIcon } from '../../components/Icon';
@@ -42,7 +42,8 @@ export function InvoicePreview({ doc, challan, hsnOf, onClose, onNew, onLink }: 
   const party = useQuery({ queryKey: ['party', partyId], queryFn: () => api<{ balance: string }>(`/parties/${partyId}`), enabled: !!partyId && o.partyBal && doc?.kind === 'invoice' });
   const batchOn = useFeature('batch_no');
   const mrpFeature = useFeature('mrp');
-  const pd = doc ? fromSale(doc, { batches: batchOn, mrp: mrpFeature, challan, upi: sdata.upi ?? '', partyBalance: party.data?.balance ?? null, hsnOf, txn: txnOpts(sdata) }) : null;
+  const bv = useBatchView();
+  const pd = doc ? fromSale(doc, { batches: batchOn, mrp: mrpFeature, view: bv, challan, upi: sdata.upi ?? '', partyBalance: party.data?.balance ?? null, hsnOf, txn: txnOpts(sdata) }) : null;
   usePrintSource(open, { el: () => document.getElementById('ipvCopies'), title: pd ? fileTitle(docTitle(pd, o), docNo(pd)) : document.title, page: pageSize(o) });
   useOpenFocus(open, ref);
   useEscape(open, onClose);

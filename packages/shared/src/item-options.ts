@@ -4,6 +4,7 @@
  * left alone is whatever each screen says today, so a shop that changed nothing looks exactly as before.
  */
 import { z } from 'zod';
+import { batchDateShown, batchDateText, batchDay, type BatchDateKind } from './batches.js';
 
 export const BATCH_DATE_FORMATS = ['month', 'mm/yy', 'dd/mm/yy'] as const;
 export type BatchDateFormat = (typeof BATCH_DATE_FORMATS)[number];
@@ -28,4 +29,33 @@ export type ItemOptions = z.infer<typeof itemOptionsSchema>;
 export function readItemOptions(stored: unknown): ItemOptions {
   const r = itemOptionsSchema.safeParse(stored ?? {});
   return r.success ? r.data : { labels: {} };
+}
+
+/** How a shop's batch screens read: whether its dates show, in which words and format. */
+export interface BatchView {
+  exp: boolean;
+  mfg: boolean;
+  expFormat: BatchDateFormat;
+  /** what the owner typed in Settings › Items, else the word this screen always used */
+  word: (label: ItemLabel, usual: string) => string;
+  /** a saved date as text */
+  expText: (d: string | null | undefined) => string;
+  mfgText: (d: string | null | undefined) => string;
+  /** an expiry with its day, for messages */
+  expDay: (d: string) => string;
+  /** a saved date in its box, and what to type in an empty one */
+  boxText: (d: string | null | undefined, kind: BatchDateKind) => string;
+  hint: (kind: BatchDateKind) => string;
+}
+export function batchView(enabled: readonly string[], o: ItemOptions): BatchView {
+  const expFormat = o.expFormat ?? 'month', mfgFormat = o.mfgFormat ?? 'month';
+  const of = (kind: BatchDateKind) => (kind === 'expiry' ? expFormat : mfgFormat);
+  return {
+    exp: enabled.includes('exp_date'), mfg: enabled.includes('mfg_date'), expFormat,
+    word: (label, usual) => o.labels[label] ?? usual,
+    expText: (d) => batchDateShown(d, expFormat), mfgText: (d) => batchDateShown(d, mfgFormat),
+    expDay: (d) => (expFormat === 'month' ? batchDay(d) : batchDateShown(d, expFormat)),
+    boxText: (d, kind) => batchDateText(d, kind, of(kind)),
+    hint: (kind) => (of(kind) === 'dd/mm/yy' ? 'DD/MM/YY' : 'MM/YY'),
+  };
 }

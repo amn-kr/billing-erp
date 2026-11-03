@@ -16,6 +16,7 @@ import type { EditorData } from './data';
 import { BatchPicker, type PickFor } from './BatchPicker';
 import { batchRowsFor, lineMrp, lineOverMrp, saleAllocs } from './batches';
 import { allocText, expiryState } from '@billing/shared';
+import { useBatchView } from '../../../lib/features';
 
 const BOLT = '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>';
 
@@ -102,6 +103,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
   const [hi, setHi] = useState<number | null>(null);
   // Settings › Items › Batch No.: the line whose batches are being chosen
   const [pickAt, setPickAt] = useState<number | null>(null);
+  const bv = useBatchView();
   const tbody = useRef<HTMLTableSectionElement>(null);
   // last prices this customer got, under the price when its quantity or price is clicked into
   const ph = usePriceHistory(si, (i, h) => {
@@ -122,7 +124,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
     const others = si.lines.map((x, k) => (k === i ? { ...x, batches: undefined } : x));
     const auto = saleAllocs(d, { ...si, lines: [...others.filter((_, k) => k !== i), others[i]!] }).at(-1) ?? [];
     const pack = l.item?.pack;
-    return { name: l.name, qty: lineStock(l), unit: pack ? l.item!.unit : l.unit, rows, allocs: allocs[i] ?? [], auto, date: si.date, showMrp: !!d.mrpOn, itemMrp: l.item?.mrp, ...(pack ? { pack: { packUnit: pack.unit, packSize: pack.size }, sold: linePack(l) ? `${qfmt(l.qty)} ${l.unit} = ${qfmt(lineStock(l))} ${l.item!.unit}` : undefined } : {}) };
+    return { name: l.name, qty: lineStock(l), unit: pack ? l.item!.unit : l.unit, rows, allocs: allocs[i] ?? [], auto, date: si.date, view: bv, showMrp: !!d.mrpOn, itemMrp: l.item?.mrp, ...(pack ? { pack: { packUnit: pack.unit, packSize: pack.size }, sold: linePack(l) ? `${qfmt(l.qty)} ${l.unit} = ${qfmt(lineStock(l))} ${l.item!.unit}` : undefined } : {}) };
   };
   const up2 = (fn: (s: SI) => void) => up((s) => { fn(s); s.warnOk = false; s.dirty = true; });
   const pickItem = (i: number, v: unknown) => {
@@ -254,7 +256,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
                 {(() => {
                   const mrp = lineMrp(d, si, l, allocs[i]);
                   const over = lineOverMrp(d, si, l, allocs[i], r.amt);
-                  const mrpTxt = mrp ? <span data-mrp={i} style={over ? { color: 'var(--red)' } : undefined}>{allocs[i] ? ' · ' : ''}{over ? `MRP ${inr2f(mrp)}, rate is above it` : `MRP ${inr2f(mrp)}`}</span> : null;
+                  const mrpTxt = mrp ? <span data-mrp={i} style={over ? { color: 'var(--red)' } : undefined}>{allocs[i] ? ' · ' : ''}{over ? `${bv.word('mrp', 'MRP')} ${inr2f(mrp)}, rate is above it` : `${bv.word('mrp', 'MRP')} ${inr2f(mrp)}`}</span> : null;
                   const rows = batchRowsFor(d, si, l.item?.id) ?? [];
                   if (!allocs[i]) return mrp ? <small className="mu" style={{ display: 'block', fontWeight: 600, padding: ui.sp('1px 0 0 10px'), whiteSpace: 'nowrap' }}>{mrpTxt}</small> : null;
                   return <button type="button" className="bxl" data-bxl={i} title="Choose batch" style={{ display: 'block', fontSize: ui.fs(11.5), fontWeight: 600, textAlign: 'left', background: 'none', border: 0, padding: ui.sp('1px 0 0 10px'), cursor: 'pointer', whiteSpace: 'nowrap', color: rows.some((b) => b.expiry && expiryState(b.expiry, si.date) === 'expired' && allocs[i]!.some((x) => x.batchId === b.id)) ? 'var(--red)' : 'var(--ac)' }} onClick={() => setPickAt(i)}>{allocs[i]!.length ? allocText(allocs[i]!, rows, l.item?.pack ? l.item.unit : undefined) : 'Choose batch'}{mrpTxt} ▾</button>;

@@ -8,7 +8,7 @@
  * prototype's invoice preview #ipv, kept class for class so it still matches it).
  */
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { batchPrintLine, effectiveMrp, loosePrice, money } from '@billing/shared';
+import { batchPrintLine, effectiveMrp, loosePrice, money, type BatchView } from '@billing/shared';
 import { dmy, inr2f, timeIst } from '../../lib/format';
 import { qfmt } from '../items/ItemsPage';
 import type { SaleDoc } from '../sales/model';
@@ -30,13 +30,15 @@ export interface PDoc {
   dc?: { no: string; sub: string[]; transport: string };
   /** Settings › Transactions: number hidden, time saved ("4:35 pm") */
   hideNo?: boolean; time?: string;
+  /** Settings › Items: the word for the MRP column, and columns of boxes turned off */
+  mrpWord?: string; hideCols?: readonly ColKey[];
 }
 
 const STATES_NAME: Record<string, string> = {};
 export const stateName = (c: string, list: readonly (readonly [string, string])[]) => (STATES_NAME[c] ??= list.find((s) => s[0] === c)?.[1] ?? '');
 
 /** a SaleDoc from the API → PDoc. `challan`: the delivery challan view of an invoice. */
-export function fromSale(v: SaleDoc, o: { batches?: boolean; mrp?: boolean; challan?: boolean; upi?: string; partyBalance?: string | null; hsnOf?: (itemId: string | null) => string; txn?: { showNo: boolean; time: boolean; billName: boolean } } = {}): PDoc {
+export function fromSale(v: SaleDoc, o: { batches?: boolean; mrp?: boolean; view?: BatchView; hideCols?: readonly ColKey[]; challan?: boolean; upi?: string; partyBalance?: string | null; hsnOf?: (itemId: string | null) => string; txn?: { showNo: boolean; time: boolean; billName: boolean } } = {}): PDoc {
   const x = v.extra as Record<string, unknown>;
   const s = (k: string) => (typeof x[k] === 'string' ? (x[k] as string) : '');
   const qs = (x.quoteRefs as { no: string; date: string }[] | undefined) ?? [];
@@ -54,6 +56,7 @@ export function fromSale(v: SaleDoc, o: { batches?: boolean; mrp?: boolean; chal
   ] as [string, string][]).filter((r) => !!r[1]);
   const isDc = o.challan || v.kind === 'challan';
   return {
+    mrpWord: o.view?.word('mrp', 'MRP'), hideCols: o.hideCols,
     kind: isDc ? 'challan' : v.kind, number: v.number, date: v.date, dueDate: v.dueDate, mode: v.mode, taxMode: v.taxMode, placeOfSupply: v.placeOfSupply, cancelled: v.cancelled,
     party: { name: billTo ? v.billName : v.partyName, city: v.party?.city ?? '', phone: v.party?.phone || v.cashPhone, gstin: v.party?.gstin ?? '' },
     refs, description: s('description'), notes: v.notes,
@@ -62,7 +65,7 @@ export function fromSale(v: SaleDoc, o: { batches?: boolean; mrp?: boolean; chal
       const e = l as typeof l & { mrp?: string | null; listPrice?: string | null; wholesalePrice?: string | null; batchUnit?: string; looseOf?: string | null };
       // a batch's MRP is per pack; on a line sold loose the MRP is the loose unit's (Settings › Items › MRP and Pack)
       const batchMrps = (l.batches ?? []).map((b) => (b.mrp && e.looseOf ? loosePrice(b.mrp, e.looseOf).toFixed(2) : b.mrp));
-      return { batch: o.batches && !isDc ? batchPrintLine(l.batches ?? [], !!o.mrp, e.batchUnit || undefined) : '', name: l.group && l.brand ? l.group : l.name, code: l.code, hsn: (o.hsnOf ? o.hsnOf(l.itemId) : l.hsn) || l.hsn, brand: l.brand, series: l.series, cat: l.category, grp: l.group, qty: l.qty, unit: l.unit, mrp: o.mrp && l.batches?.length ? effectiveMrp(e.mrp, batchMrps)?.toFixed(2) ?? null : e.mrp ?? null, list: e.listPrice ?? null, whole: e.wholesalePrice ?? null, price: l.price, discPct: l.discPct, gst: l.gstRate, taxable: l.taxable, tax: l.tax, amount: l.amount };
+      return { batch: o.batches && !isDc ? batchPrintLine(l.batches ?? [], !!o.mrp, e.batchUnit || undefined, o.view) : '', name: l.group && l.brand ? l.group : l.name, code: l.code, hsn: (o.hsnOf ? o.hsnOf(l.itemId) : l.hsn) || l.hsn, brand: l.brand, series: l.series, cat: l.category, grp: l.group, qty: l.qty, unit: l.unit, mrp: o.mrp && l.batches?.length ? effectiveMrp(e.mrp, batchMrps)?.toFixed(2) ?? null : e.mrp ?? null, list: e.listPrice ?? null, whole: e.wholesalePrice ?? null, price: l.price, discPct: l.discPct, gst: l.gstRate, taxable: l.taxable, tax: l.tax, amount: l.amount };
     }),
     billDiscount: v.billDiscount, taxable: v.taxable, cgst: v.cgst, sgst: v.sgst, igst: v.igst, tcs: v.tcs, transport: v.transport, labour: v.labour, bankCharge: v.bankCharge, roundAmount: v.roundAmount, total: v.total, words: v.words,
     received: recv.toFixed(2), payMode: recv.gt(0) ? v.payment?.mode ?? '' : '', balance: (bal.isNegative() ? money(0) : bal).toFixed(2), partyBalance: o.partyBalance ?? null, upi: o.upi ?? '',
@@ -118,7 +121,7 @@ export function columns(d: PDoc, o: PrintOpts, m: (v: string | number) => string
     // a delivery challan carries no prices
     if (d.kind === 'challan' && x.money) return false;
     return true;
-  }).map((k) => ({ key: k, label: o.cols[k].label, n: !!def.get(k)!.n, v: val(k) }));
+  }).filter((k) => !d.hideCols?.includes(k)).map((k) => ({ key: k, label: k === 'mrp' && o.cols.mrp.label === 'MRP' && d.mrpWord ? d.mrpWord : o.cols[k].label, n: !!def.get(k)!.n, v: val(k) }));
 }
 
 const fmt = (o: PrintOpts) => (v: string | number) => (o.grouping ? inr2f(String(v)) : Number(v).toFixed(2));

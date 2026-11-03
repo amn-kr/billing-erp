@@ -4,6 +4,7 @@
  * is "No batch". Dates are ISO; shops mostly type them as printed on the pack, MM/YY.
  */
 import { daysBetween } from './dates.js';
+import type { BatchDateFormat, BatchView, ItemLabel } from './item-options.js';
 import { formatQty, money, type Money, type MoneyInput } from './money.js';
 
 export type BatchDateKind = 'mfg' | 'expiry';
@@ -40,9 +41,16 @@ export function parseBatchDate(text: string | null | undefined, kind: BatchDateK
 export const batchMonth = (d: string | null | undefined): string => (d ? `${MONTHS[Number(d.slice(5, 7)) - 1]} ${d.slice(0, 4)}` : '—');
 /** "31 Mar 2027". */
 export const batchDay = (d: string): string => `${Number(d.slice(8, 10))} ${batchMonth(d)}`;
-/** A saved date in the box: as MM/YY when typing MM/YY gives the same date back, else in full. */
-export function batchDateText(d: string | null | undefined, kind: BatchDateKind): string {
+/** A saved date as Settings › Items shows it: "Mar 2027" unless the owner chose another format; "—" with no date. */
+export function batchDateShown(d: string | null | undefined, format: BatchDateFormat = 'month'): string {
+  if (!d || format === 'month') return batchMonth(d);
+  const my = `${d.slice(5, 7)}/${d.slice(2, 4)}`;
+  return format === 'mm/yy' ? my : `${d.slice(8, 10)}/${my}`;
+}
+/** A saved date in the box: as MM/YY when typing MM/YY gives the same date back, else in full; as DD/MM/YY in that format. */
+export function batchDateText(d: string | null | undefined, kind: BatchDateKind, format?: BatchDateFormat): string {
   if (!d) return '';
+  if (format === 'dd/mm/yy') return batchDateShown(d, format);
   const short = `${d.slice(5, 7)}/${d.slice(2, 4)}`;
   return parseBatchDate(short, kind) === d ? short : `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
 }
@@ -159,12 +167,14 @@ export function allocText(allocs: readonly BatchAlloc[], rows: readonly Pick<Pic
 }
 
 /** "Batch A123 × 3 (Exp 03/2040, MRP 120.00), No batch × 1", for the printed invoice; nothing when no batch is named. */
-export function batchPrintLine(list: readonly { batchId: string | null; no: string; expiry: string | null; qty: MoneyInput; mrp?: string | null }[], withMrp = false, unit?: string): string {
+export function batchPrintLine(list: readonly { batchId: string | null; no: string; expiry: string | null; qty: MoneyInput; mrp?: string | null }[], withMrp = false, unit?: string, view?: BatchView): string {
+  const word = (k: ItemLabel, usual: string) => view?.word(k, usual) ?? usual;
+  const fmt = view?.expFormat ?? 'month';
   const named = list.filter((b) => b.batchId), none = list.filter((b) => !b.batchId);
   if (!named.length) return '';
   const text = (b: (typeof list)[number]) => {
-    const notes = [b.expiry ? `Exp ${b.expiry.slice(5, 7)}/${b.expiry.slice(0, 4)}` : '', withMrp && b.mrp ? `MRP ${money(b.mrp).toFixed(2)}` : ''].filter(Boolean);
+    const notes = [b.expiry ? `${word('exp', 'Exp')} ${fmt === 'month' ? `${b.expiry.slice(5, 7)}/${b.expiry.slice(0, 4)}` : batchDateShown(b.expiry, fmt)}` : '', withMrp && b.mrp ? `${word('mrp', 'MRP')} ${money(b.mrp).toFixed(2)}` : ''].filter(Boolean);
     return `${b.no} × ${formatQty(b.qty)}${unit ? ` ${unit}` : ''}${notes.length ? ` (${notes.join(', ')})` : ''}`;
   };
-  return `Batch ${[...named, ...none].map(text).join(', ')}`;
+  return `${word('batch', 'Batch')} ${[...named, ...none].map(text).join(', ')}`;
 }

@@ -1,4 +1,4 @@
-import { itemFieldOn, type FeatureKey, type ItemField, type ItemLabel, type ItemOptions } from '@billing/shared';
+import { batchView, itemFieldOn, type BatchView, type FeatureKey, type ItemField, type ItemLabel, type ItemOptions } from '@billing/shared';
 import { useMe } from './me';
 
 /** What this shop's owner turned on in Settings › Items; nothing until the shop has loaded. */
@@ -16,3 +16,5 @@ export function useItemWord(): (label: ItemLabel, usual: string) => string {
   const { labels } = useItemOptions();
   return (label, usual) => labels[label] ?? usual;
 }
+/** Whether batch screens show their dates, and in which words and format. */
+export const useBatchView = (): BatchView => batchView(useFeatures(), useItemOptions());
