@@ -51,8 +51,11 @@ beforeAll(async () => {
 afterAll(async () => {
   await db?.$disconnect();
   if (dir) rmSync(dir, { recursive: true, force: true });
+  // only tidying up: Postgres's own background work on a new database can refuse this for a moment
   const admin = new PrismaClient({ datasourceUrl: TEST_MIGRATE_DB });
-  await admin.$executeRawUnsafe(`DROP DATABASE IF EXISTS "${dbName}" WITH (FORCE)`);
+  for (let tries = 0; tries < 5; tries++) {
+    try { await admin.$executeRawUnsafe(`DROP DATABASE IF EXISTS "${dbName}" WITH (FORCE)`); break; } catch { await new Promise((r) => setTimeout(r, 1000)); }
+  }
   await admin.$disconnect();
 });
 
