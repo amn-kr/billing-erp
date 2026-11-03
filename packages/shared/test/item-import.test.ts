@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkImportRows, IMPORT_KEYS, parseImportDate, parseImportNumber, rowProblems, type ImportContext, type ImportRow } from '../src/item-import';
+import { checkImportRows, IMPORT_KEYS, importColumns, parseImportDate, parseImportNumber, rowProblems, type ImportContext, type ImportRow } from '../src/item-import';
 
 const ctx: ImportContext = {
   today: '2026-10-12',
@@ -52,7 +52,7 @@ describe('import checks: a good row', () => {
     expect(c.cells).toEqual({});
     expect(c.item).toEqual({
       line: 2, kind: 'single', name: 'Ceiling fan', group: '', brand: 'Bajaj', series: '', code: 'CF1', qty: '5.000', rate: '900.00', date: '2026-04-01',
-      unit: 'PCS', sale: '1200.00', minStock: '2.000', godown: 'Main shop', category: 'Fans', gst: '18', hsn: '8414',
+      unit: 'PCS', sale: '1200.00', minStock: '2.000', godown: 'Main shop', category: 'Fans', gst: '18', hsn: '8414', location: '',
       newBrand: false, newSeries: false, newGroup: false, newCategory: false,
     });
   });
@@ -227,5 +227,35 @@ describe('import checks: warnings (the row can still be imported)', () => {
   it('a new name typed with other capitals on later rows uses the first row’s spelling', () => {
     const r = check([good({ brand: 'Polycab', code: 'P1', name: 'A' }, 2), good({ brand: 'POLYCAB', code: 'P2', name: 'B' }, 3)]);
     expect(r.map((c) => c.item!.brand)).toEqual(['Polycab', 'Polycab']);
+  });
+});
+
+describe('import checks: Settings › Items', () => {
+  const check = (v: Partial<ImportRow>, ctx2: Partial<ImportContext> = {}) => checkImportRows([good(v)], { ...ctx, ...ctx2 })[0]!;
+  it('Rack / shelf is saved as the location and is optional', () => {
+    expect(check({ rack: ' Rack A1 ' }).item!.location).toBe('Rack A1');
+    expect(check({}).item!.location).toBe('');
+    expect(check({ rack: 'x'.repeat(81) }).status).toBe('error');
+  });
+  it('a box turned off: its column is left out and what a file holds is ignored, so nothing new is created', () => {
+    expect(importColumns().map((c) => c.key)).toContain('rack');
+    expect(importColumns(['location', 'category']).map((c) => c.key)).not.toEqual(expect.arrayContaining(['rack']));
+    expect(importColumns(['brand', 'series']).map((c) => c.key)).toEqual(['type', 'name', 'code', 'qty', 'rate', 'date', 'unit', 'sale', 'min', 'godown', 'category', 'gst', 'hsn', 'rack']);
+    const c = check({ brand: 'Brand new', category: 'New category', rack: 'Rack A1' }, { off: ['brand', 'series', 'category', 'location'] });
+    expect(c.item).toMatchObject({ brand: '', newBrand: false, category: '', newCategory: false, location: '' });
+  });
+  it('Multi Range is refused with Brand or Series off, in plain words', () => {
+    const v = { type: 'Multi Range', name: 'Switch', brand: 'Havells', series: 'Roma' };
+    expect(check(v).status).not.toBe('error');
+    for (const off of [['brand', 'series'], ['series']] as const) {
+      const c = check(v, { off: [...off] });
+      expect(c.status).toBe('error');
+      expect(c.cells.type![0]!.message).toContain('turned off in Settings › Items');
+    }
+  });
+  it('a row with no unit takes the Default unit', () => {
+    expect(check({ unit: '' }).item!.unit).toBe('PCS');
+    expect(check({ unit: '' }, { defaultUnit: 'BOX' }).item!.unit).toBe('BOX');
+    expect(check({ unit: 'PCS' }, { defaultUnit: 'BOX' }).item!.unit).toBe('PCS');
   });
 });

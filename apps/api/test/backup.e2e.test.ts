@@ -386,7 +386,7 @@ describe('restore', () => {
     await svc.runDue();
     const r = (await http().post('/api/backup/restore').set(auth(o)).send({ from: 'drive', confirm: true }).expect(200)).body;
     const n = { token: (await http().post('/api/businesses/switch').set(auth(o)).send({ businessId: r.businessId }).expect(201)).body.accessToken as string };
-    expect((await http().get('/api/me').set(auth(n)).expect(200)).body.business.features).toEqual(['batch_expiry', 'mrp_pack', 'medical']);
+    expect((await http().get('/api/me').set(auth(n)).expect(200)).body.business.features).toEqual(['batch_no', 'exp_date', 'mfg_date', 'mrp', 'pack_loose', 'medical']);
   });
 
   it('an old backup, made before Features existed, restores with everything off', async () => {
@@ -404,6 +404,42 @@ describe('restore', () => {
     const r = (await http().post('/api/backup/restore').set(auth(o)).send({ from: 'drive', confirm: true }).expect(200)).body;
     const n = { token: (await http().post('/api/businesses/switch').set(auth(o)).send({ businessId: r.businessId }).expect(201)).body.accessToken as string };
     expect((await http().get('/api/me').set(auth(n)).expect(200)).body.business.features).toEqual([]);
+  });
+
+  it('a backup made before Settings › Items: the old switch words read as today’s boxes, labels start empty', async () => {
+    const { o } = await shop();
+    await useDrive(o);
+    await svc.runDue();
+    const snap = (await files(o)).find((f) => f.kind === 'snapshot')!;
+    const { header, body } = openFile<SnapshotBody>(KEY, o.businessId, drive.files.get(snap.ref)!);
+    for (const row of body.tables.business_settings!) { row.features = ['batch_expiry', 'mrp_pack']; delete row.item_options; }
+    const old = lockFile(KEY, { business: header.business, kind: header.kind, afterSeq: header.afterSeq, toSeq: header.toSeq, createdAt: header.createdAt }, body);
+    drive.files.set(snap.ref, old);
+    await asShop(o.businessId, (tx) => tx.backupFile.update({ where: { id: snap.id }, data: { sha256: sha256(old) } }));
+    const r = (await http().post('/api/backup/restore').set(auth(o)).send({ from: 'drive', confirm: true }).expect(200)).body;
+    const n = { token: (await http().post('/api/businesses/switch').set(auth(o)).send({ businessId: r.businessId }).expect(201)).body.accessToken as string };
+    const b = (await http().get('/api/me').set(auth(n)).expect(200)).body.business;
+    expect(b.features).toEqual(['batch_no', 'exp_date', 'mfg_date', 'mrp', 'pack_loose']);
+    expect(b.itemOptions).toEqual({ labels: {} });
+    // and turning one off then stays off
+    await http().put('/api/settings/features').set(auth(n)).send({ enabled: ['batch_no', 'mfg_date', 'mrp', 'pack_loose'] }).expect(200);
+    expect((await http().get('/api/me').set(auth(n)).expect(200)).body.business.features).toEqual(['batch_no', 'mfg_date', 'mrp', 'pack_loose']);
+  });
+
+  it('restored books keep the labels, date formats, default unit and location', async () => {
+    const { o } = await shop();
+    await http().put('/api/settings/features').set(auth(o)).send({ enabled: ['no_category', 'no_location'] }).expect(200);
+    await http().put('/api/settings/item-options').set(auth(o)).send({ labels: { batch: 'Lot' }, expFormat: 'mm/yy', defaultUnit: 'BOX' }).expect(200);
+    await http().post('/api/items').set(auth(o)).send({ name: 'Shelf item', kind: 'goods', unit: 'PCS', gstRate: 0, location: 'Rack A1' }).expect(201);
+    await useDrive(o);
+    await svc.runDue();
+    const r = (await http().post('/api/backup/restore').set(auth(o)).send({ from: 'drive', confirm: true }).expect(200)).body;
+    const n = { token: (await http().post('/api/businesses/switch').set(auth(o)).send({ businessId: r.businessId }).expect(201)).body.accessToken as string };
+    const b = (await http().get('/api/me').set(auth(n)).expect(200)).body.business;
+    expect(b.features).toEqual(['no_category', 'no_location']);
+    expect(b.itemOptions).toEqual({ labels: { batch: 'Lot' }, expFormat: 'mm/yy', defaultUnit: 'BOX' });
+    const items = (await http().get('/api/items').set(auth(n)).expect(200)).body as { name: string; location: string }[];
+    expect(items.find((i) => i.name === 'Shelf item')!.location).toBe('Rack A1');
   });
 
   it('restored books keep batches and their stock under new ids — from the full copy and from later changes', async () => {
@@ -466,7 +502,7 @@ describe('restore', () => {
     await svc.runDue();
     const r = (await http().post('/api/backup/restore').set(auth(o)).send({ from: 'drive', confirm: true }).expect(200)).body;
     const n = { token: (await http().post('/api/businesses/switch').set(auth(o)).send({ businessId: r.businessId }).expect(201)).body.accessToken as string };
-    expect((await http().get('/api/me').set(auth(n)).expect(200)).body.business.features).toEqual(['batch_expiry', 'mrp_pack']);
+    expect((await http().get('/api/me').set(auth(n)).expect(200)).body.business.features).toEqual(['batch_no', 'exp_date', 'mfg_date', 'mrp', 'pack_loose']);
     const newIt = ((await http().get('/api/items').set(auth(n)).expect(200)).body as { id: string; name: string }[]).find((i) => i.name === 'Tablet')!;
     expect(((await http().get(`/api/items/${newIt.id}`).set(auth(n)).expect(200)).body as { batches: { rows: { mrp: string }[] } }).batches.rows[0]!.mrp).toBe('120.00');
   });
