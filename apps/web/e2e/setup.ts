@@ -11,7 +11,19 @@ const common = createRequire(import.meta.url)('../../../tools/design-baseline/co
   newPage: (b: Browser, w: number) => Promise<Page>;
 };
 
-export const { WIDTHS } = common;
+/**
+ * The picture widths: all three, or only those in PICTURE_WIDTHS (e.g. "1366" on pull requests,
+ * "1280,1920" after the merge; see ci.yml). A width that is not one of the three stops the run.
+ */
+export const WIDTHS = pictureWidths(common.WIDTHS, process.env.PICTURE_WIDTHS);
+
+function pictureWidths(all: number[], wanted: string | undefined): number[] {
+  if (!wanted?.trim()) return all;
+  const widths = wanted.split(',').map((w) => Number(w.trim()));
+  const bad = widths.filter((w) => !all.includes(w));
+  if (bad.length) throw new Error(`PICTURE_WIDTHS="${wanted}": each width must be one of ${all.join(', ')}`);
+  return all.filter((w) => widths.includes(w));
+}
 
 /* ---------- waiting for a page to be still before a screenshot ---------- */
 const pending = new WeakMap<Page, number>();
