@@ -3,6 +3,8 @@
  * tiles, recent invoices, receivables by age, top selling items, quick actions, cash & bank,
  * this month's GST and low stock. Every figure comes from the books; markup as the prototype.
  */
+import { usePhone } from '../../lib/usePhone';
+import { MobileHome } from './MobileHome';
 import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useFeature } from '../../lib/features';
@@ -47,7 +49,12 @@ function Stat({ icon, color, label, value, em, emc, sub, cls = '', view, soonOf,
   );
 }
 
+/** Home: the phone gets its own screen (MobileHome, owner's request 6 Nov 2026); wider screens keep this one. */
 export function HomePage() {
+  return usePhone() ? <MobileHome /> : <DesktopHome />;
+}
+
+function DesktopHome() {
   useFitTables();
   const me = useOutletContext<MeResponse>();
   const nav = useNavigate();

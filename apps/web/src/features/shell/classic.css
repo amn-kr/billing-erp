@@ -1,0 +1,10 @@
+/* Classic (owner's choice, 6 Nov 2026; not in the prototype): the default look for everyone, desktop and phone.
+   Blue with a red Save, on a light grey page. Replaces Ledger teal. Named colours only, so every screen follows.
+   --sale: the Save button on the phone sale screen; --get: "you'll get" amounts; --dark: dark summary cards and the side menu. */
+:root[data-pal="classic"]{
+  --bg:#f4f6fa;--sf:#fff;--sf2:#f7f9fc;--bd:#e3e7ef;--t1:#111827;--t2:#5b6475;
+  --ac:#1d4ed8;--acs:#e8efff;--ac2:#2563eb;--ac3:#f59e0b;--on-ac:#fff;
+  --red:#c8102e;--green:#0f7b45;--sale:#c8102e;--get:#0f7b45;--dark:#0b1f4d;
+  --sb:#0b1f4d;--sb0:#081838;
+  --sf3:#eef1f6;--t3:#4b5466;--t4:#6b7385;--buy:#b45309;--buys:#fff1e6;
+  --font:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
