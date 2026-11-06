@@ -96,3 +96,13 @@
 .ms-ok h1{margin:0;font-size:22px;font-weight:800}
 .ms-ok p{margin:0;font-size:14px;color:var(--t2)}.ms-ok p b{color:var(--t1)}
 .ms-ok-amt{margin-top:14px;font-size:34px;font-weight:800;letter-spacing:-.5px}
+/* the purchase bill / order on a phone (MobilePurchase.tsx) uses this screen too; its own bits: */
+.ms-tag{flex:none;height:30px;padding:0 10px;border-radius:10px;background:var(--sf3,#eef1f6);color:var(--t3,#4b5466);font-size:12px;font-weight:700;display:flex;align-items:center}
+.ms-tag.in{background:var(--buys,#fff1e6);color:var(--buy,#b45309)}
+.ms-rate{display:flex;align-items:center;gap:6px}.ms-rate .ms-in{width:104px}.ms-rate small{font-size:12px;color:var(--t2);white-space:nowrap}
+.ms-bt{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.ms-bt label{display:flex;flex-direction:column;gap:2px;padding:6px 10px;border-radius:12px;background:var(--bg)}
+.ms-bt span{font-size:11px;font-weight:600;color:var(--t2)}
+.ms-bt input{height:22px;padding:0;border:0;outline:0;background:transparent;color:var(--t1);font:700 14px var(--font)}
+.ms-stk{font-size:12px;color:var(--t2)}.ms-stk:empty{display:none}
+.ms-sel{height:40px;max-width:60%;padding:0 6px;border:1px solid var(--sf3,#eef1f6);border-radius:12px;background:var(--sf);color:var(--t1);font:600 13px var(--font)}

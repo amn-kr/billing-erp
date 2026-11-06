@@ -185,8 +185,8 @@ export function MobileSale({ d, s, title, busy, up, pickParty, setMode, back, sa
               <label className="ms-tr ms-ro"><span><input type="checkbox" id="siRound" checked={s.roundOff} onChange={(e) => up((x) => { x.roundOff = e.target.checked; })} />Round off</span><b>{t.round >= 0 ? '+' : '−'} ₹{inr2f(Math.abs(t.round))}</b></label>
             </div>
           )}
-          {/* prices with GST in them: the GST is shown as included, so the lines still add up to the total */}
-          {G ? <div className="ms-tl"><span>{s.incl ? 'GST included' : 'GST'}{t.inter ? ' (IGST)' : ' (CGST + SGST)'}</span><b className={s.incl ? 'mu' : ''}>₹{inr2f(t.tax)}</b></div> : null}
+          {/* the item amounts and the subtotal already have the GST in them, so it is shown as included and the lines add up to the total */}
+          {G ? <div className="ms-tl"><span>GST included{t.inter ? ' (IGST)' : ' (CGST + SGST)'}</span><b className="mu">₹{inr2f(t.tax)}</b></div> : null}
           <div className="ms-hr"></div>
           <div className="ms-total"><span>Total</span><b id="siTotal">₹{inr2f(t.total)}</b></div>
           {!quote && (
