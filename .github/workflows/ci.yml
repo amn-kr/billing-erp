@@ -20,8 +20,9 @@ permissions:
 # Every job stays on Ubuntu 24.04: "ubuntu-latest" moved to 26.04 (Oct 2026), where Playwright 1.56 can't
 # install its browser, and the approved pictures were all taken on 24.04.
 jobs:
-  # After a merge: did a green PR run already test exactly these files? Only a clear yes skips the
-  # full check below; anything missing or unclear runs it (see .github/scripts/already-tested.sh).
+  # After a merge: did a green PR run already test exactly these files? A clear yes skips the quick
+  # checks and the flow tests, and runs only the picture tests at 1280 and 1920 px (the PR checked
+  # 1366 px); anything missing or unclear runs the full check (see .github/scripts/already-tested.sh).
   already-tested:
     name: Same files already tested on the PR?
     if: github.event_name == 'push'
@@ -39,7 +40,7 @@ jobs:
         run: bash .github/scripts/already-tested.sh
 
   skipped:
-    name: Full check skipped - these exact files already passed on the PR
+    name: Quick checks and flow tests skipped - these exact files already passed on the PR
     needs: already-tested
     if: needs.already-tested.outputs.run != ''
     runs-on: ubuntu-24.04
@@ -49,18 +50,25 @@ jobs:
         env:
           URL: ${{ needs.already-tested.outputs.url }}
         run: |
-          echo "These exact files passed every test and picture check on the PR: $URL"
-          echo "Full check skipped: these exact files already passed on the PR: $URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "These exact files passed the quick checks, the flow tests and the 1366 px pictures on the PR: $URL"
+          echo "Quick checks and flow tests skipped: these exact files already passed on the PR: $URL" >> "$GITHUB_STEP_SUMMARY"
 
+  # Runs on every pull request and every push: decides which tests run and at which picture widths
+  # (one plain sentence about it on the run's summary page).
   changes:
-    name: What changed (only docs/ or .md files skips the browser and picture tests)
+    name: What changed (decides which tests and picture widths run)
     needs: already-tested
-    if: ${{ !cancelled() && needs.already-tested.outputs.run == '' }}
+    # !cancelled() because GitHub would otherwise skip this job whenever already-tested was skipped (every PR)
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
       tree: ${{ steps.changes.outputs.tree }}
-      docs_only: ${{ steps.changes.outputs.docs_only }}
+      run_e2e: ${{ steps.plan.outputs.run_e2e }}
+      quick_checks: ${{ steps.plan.outputs.quick_checks }}
+      widths: ${{ steps.plan.outputs.widths }}
+      pictures_only: ${{ steps.plan.outputs.pictures_only }}
+      skip_visual: ${{ steps.plan.outputs.skip_visual }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -71,13 +79,23 @@ jobs:
           EVENT: ${{ github.event_name }}
           BEFORE: ${{ github.event.before }}
         run: bash .github/scripts/changes.sh
+      - id: plan
+        name: Which tests run
+        env:
+          EVENT: ${{ github.event_name }}
+          ALREADY_TESTED_RUN: ${{ needs.already-tested.outputs.run }}
+          DOCS_ONLY: ${{ steps.changes.outputs.docs_only }}
+          VISUAL_NEEDED: ${{ steps.changes.outputs.visual_needed }}
+          APPROVED_CHANGED: ${{ steps.changes.outputs.approved_changed }}
+        run: bash .github/scripts/picture-plan.sh
 
   quick-checks:
     name: Quick checks (brand, typecheck, unit and API tests, build)
     needs: changes
-    # run only after What changed ran; !cancelled() because GitHub would otherwise skip this job whenever
-    # an earlier job in the chain was skipped (already-tested is skipped on every pull request)
-    if: ${{ !cancelled() && needs.changes.result == 'success' }}
+    # run only after What changed ran, and not after a merge that already passed them on the PR;
+    # !cancelled() because GitHub would otherwise skip this job whenever an earlier job in the chain
+    # was skipped (already-tested is skipped on every pull request)
+    if: ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.quick_checks != 'false' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     services:
@@ -170,12 +188,20 @@ jobs:
         run: pnpm --filter @billing/web exec playwright install --with-deps chromium
       - name: Build
         run: pnpm build
-      - name: End-to-end and screenshot tests, part ${{ matrix.part }} of 4 (rebuild vs prototype at 1280/1366/1920)
-        if: needs.changes.outputs.docs_only != 'true'
-        run: pnpm --filter @billing/web e2e --shard=${{ matrix.part }}/4
-      - name: Browser and picture tests skipped - only docs/ or .md files changed
-        if: needs.changes.outputs.docs_only == 'true'
-        run: echo "Browser and picture tests skipped - only docs/ or .md files changed" >> "$GITHUB_STEP_SUMMARY"
+      # Which tests and widths: see the What changed job (empty widths = all three).
+      # --pass-with-no-tests: a part left with no test (e.g. pictures skipped) is not a failure.
+      - name: End-to-end and screenshot tests, part ${{ matrix.part }} of 4 (rebuild vs prototype at ${{ needs.changes.outputs.widths || '1280/1366/1920' }})
+        if: needs.changes.outputs.run_e2e == 'true'
+        env:
+          PICTURE_WIDTHS: ${{ needs.changes.outputs.widths }}
+          PICTURES_ONLY: ${{ needs.changes.outputs.pictures_only }}
+          SKIP_VISUAL: ${{ needs.changes.outputs.skip_visual }}
+          # after a merge a failed picture is reported in plain words with its width (e2e/summary-reporter.ts)
+          AFTER_MERGE: ${{ github.event_name == 'push' && '1' || '' }}
+        run: pnpm --filter @billing/web e2e --shard=${{ matrix.part }}/4 --pass-with-no-tests
+      - name: Browser and picture tests skipped (the reason is on the What changed job)
+        if: needs.changes.outputs.run_e2e != 'true'
+        run: echo "Browser and picture tests skipped - see What changed for the reason"
       # each part saves its own pictures; the test job also puts all parts together in visual-diffs
       - name: Upload screenshot differences (this part)
         if: failure()
@@ -187,8 +213,8 @@ jobs:
           overwrite: true
 
   # The required check (the `protect main` ruleset needs a check named exactly `test`). It always runs
-  # and is green only when every job above passed, or when the full check was skipped on purpose
-  # because these exact files already passed on the PR (see .github/scripts/gate.sh).
+  # and is green only when every job above passed; after a merge whose files already passed on the
+  # PR, the quick checks are skipped on purpose and only the pictures must pass (see .github/scripts/gate.sh).
   test:
     needs: [already-tested, changes, quick-checks, e2e]
     if: ${{ always() }}
