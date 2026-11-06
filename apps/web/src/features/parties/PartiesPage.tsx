@@ -6,6 +6,7 @@
 import { useMemo, useState, type MouseEvent as RMouseEvent } from 'react';
 import { go } from '../../lib/go';
 import { useQuery } from '@tanstack/react-query';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { money, todayIst } from '@billing/shared';
 import { api } from '../../lib/api';
 import { dmy, inr, inr2f } from '../../lib/format';
@@ -18,6 +19,8 @@ import { statementOf } from '../reports/party';
 import { InactiveList, useMasterDelete } from '../../components/MasterDelete';
 import { AddPartyDialog, type EditParty } from './AddPartyDialog';
 import { ui } from '../../styles/uiSize';
+import { usePhone } from '../../lib/usePhone';
+import { MobileParty } from './MobileParty';
 
 export interface Party extends EditParty {
   id: string;
@@ -85,7 +88,14 @@ function partyTx(rows: PartyTxRow[], cur: (s: string) => string): Tx[] {
   return rows.map((t, i) => ({ i, type: t.type, no: t.no, ref: t.supplierRef ?? '', date: dmy(t.date), total: t.total, bal: t.bal, due: t.due ? dmy(t.due) : '', st: txStatus(t, today, cur) }));
 }
 
+/** On a phone, ?sel=<party id> (a party tapped on the phone Home) opens the phone party screen. */
 export function PartiesPage() {
+  const nav = useNavigate();
+  const sel = new URLSearchParams(useLocation().search).get('sel');
+  return usePhone() && sel ? <MobileParty id={sel} onBack={() => (history.state?.idx ? nav(-1) : nav('/'))} /> : <DesktopParties />;
+}
+
+function DesktopParties() {
   useFitTables();
   const cur = useCur();
   const me = useMe().data;

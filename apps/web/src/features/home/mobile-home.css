@@ -85,7 +85,8 @@
 .mh-menu ul{list-style:none;margin:0;padding:8px 10px;flex:1;overflow:auto}
 .mh-menu li>button{width:100%;min-height:48px;border:0;background:transparent;border-radius:14px;display:flex;align-items:center;gap:14px;padding:0 12px;color:var(--t1);cursor:pointer;text-align:left}
 .mh-menu li>button.on{background:var(--acs);color:var(--ac)}
-.mh-menu li>button>span{flex:1;font-size:15px;font-weight:600}
+.mh-menu li>button>span{flex:1;font-size:15px;font-weight:600;display:flex;flex-direction:column}
+.mh-menu li>button>span small{font-size:12px;font-weight:500;color:var(--buy,#b45309)}.mh-menu li>button>span small.on{color:var(--get,#0f7b45)}
 .mh-menu li>button>svg.i:last-child:not(:first-child){width:18px;height:18px;color:var(--t4,#6b7385);transition:transform .15s}
 .mh-menu li>button[aria-expanded="true"]>svg.i:last-child{transform:rotate(180deg)}
 .mh-subs{display:flex;flex-direction:column;padding:0 0 6px 46px}

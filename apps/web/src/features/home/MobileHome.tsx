@@ -6,8 +6,9 @@
  */
 import { useMemo, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
-import { daysBetween, type MeResponse } from '@billing/shared';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { can, daysBetween, type MeResponse } from '@billing/shared';
+import { api } from '../../lib/api';
 import { inr2f } from '../../lib/format';
 import { today } from '../../lib/time';
 import { RawIcon } from '../../components/Icon';
@@ -18,6 +19,7 @@ import { useEditorData } from '../sales/editor/data';
 import { useSales } from '../sales/model';
 import { useQuick } from '../sales/QuickSale';
 import { AddPartyDialog } from '../parties/AddPartyDialog';
+import { useBackup } from '../settings/BackupCard';
 import css from './mobile-home.css?inline';
 
 const I = {
@@ -39,11 +41,11 @@ const I = {
   open: '<path d="M6 9l6 6 6-6"/>',
 };
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const longDate = (iso: string) => { const [y, m, d] = iso.split('-'); return `${d} ${MON[Number(m) - 1] ?? ''} ${y}`; };
-const initials = (n: string) => n.replace(/\(.*?\)/g, '').trim().split(/\s+/).filter((w) => /[a-z0-9]/i.test(w[0] ?? '')).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('') || '?';
+export const longDate = (iso: string) => { const [y, m, d] = iso.split('-'); return `${d} ${MON[Number(m) - 1] ?? ''} ${y}`; };
+export const initials = (n: string) => n.replace(/\(.*?\)/g, '').trim().split(/\s+/).filter((w) => /[a-z0-9]/i.test(w[0] ?? '')).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('') || '?';
 /** rupees and paise apart, as the mock shows the big amounts */
 const split = (n: number) => { const [r, p] = inr2f(n).split('.'); return <>₹{r}<small>.{p}</small></>; };
-const amt = (n: number) => (Math.round(n * 100) % 100 ? inr2f(n) : inr2f(n).replace(/\.00$/, ''));
+export const amt = (n: number) => (Math.round(n * 100) % 100 ? inr2f(n) : inr2f(n).replace(/\.00$/, ''));
 
 type Tab = 'parties' | 'txns' | 'items';
 
@@ -66,6 +68,10 @@ export function MobileHome() {
   const left = daysBetween(today(), b.planEndsOn);
   const sub = b.plan === 'trial' ? `Trial · ${Math.max(0, left)} day${left === 1 ? '' : 's'} left` : b.plan === 'expired' ? 'Plan ended' : b.city || 'Paid plan';
 
+  // under each party: the date of its latest sale, purchase, payment, note or bounce (owner, 6 Nov 2026), worked out
+  // by the All parties report; people who can't see reports, and parties with no entries yet, get the phone number
+  const lastQ = useQuery({ queryKey: ['reports', 'all-parties'], queryFn: () => api<{ id: string; last: string }[]>('/reports/all-parties'), enabled: can(me.permissions, 'reports.view'), retry: false });
+  const last = useMemo(() => new Map((lastQ.data ?? []).map((p) => [p.id, p.last])), [lastQ.data]);
   const PT = d?.PT ?? [];
   const get = PT.filter((p) => p.balance > 0), give = PT.filter((p) => p.balance < 0);
   const sum = (L: typeof PT) => L.reduce((a, p) => a + Math.abs(p.balance), 0);
@@ -105,9 +111,9 @@ export function MobileHome() {
 
       <ul className="mh-list" aria-label={tab === 'parties' ? 'Parties' : tab === 'txns' ? 'Transactions' : 'Items'}>
         {tab === 'parties' && parties.map((p, i) => (
-          <li key={p.id}><button type="button" onClick={() => nav('/parties')}>
+          <li key={p.id}><button type="button" onClick={() => nav(`/parties?sel=${p.id}`)}>
             <span className={`mh-av t${i % 5}`} aria-hidden="true">{initials(p.name)}</span>
-            <span className="mh-mid"><b>{p.name}</b><small>{p.phone ? '+91 ' + p.phone : p.supplier ? 'Supplier' : 'Customer'}</small></span>
+            <span className="mh-mid"><b>{p.name}</b><small>{last.get(p.id) ? longDate(last.get(p.id)!) : p.phone ? '+91 ' + p.phone : p.supplier ? 'Supplier' : 'Customer'}</small></span>
             {p.balance ? <span className={`mh-amt ${p.balance > 0 ? 'get' : 'give'}`}><b>₹{amt(Math.abs(p.balance))}</b><small>{p.balance > 0 ? 'You’ll Get' : 'You’ll Give'}</small></span> : <span className="mh-amt"><b>₹0</b><small>Settled</small></span>}
           </button></li>
         ))}
@@ -195,6 +201,9 @@ const MENU: Row[] = [
 function SideMenu({ me, onClose, nav, soon }: { me: MeResponse; onClose: () => void; nav: (to: string) => void; soon: (w: string) => void }) {
   const [open, setOpen] = useState<string | null>(null);
   const b = me.business!;
+  // the real backup status (owner, 6 Nov 2026): on when Google Drive or this computer's folder is switched on
+  const bk = useBackup().data;
+  const bkOn = !!(bk?.drive?.enabled || bk?.local?.enabled);
   return (
     <div className="mh-ov" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <nav className="mh-menu" aria-label="Main menu">
@@ -206,7 +215,7 @@ function SideMenu({ me, onClose, nav, soon }: { me: MeResponse; onClose: () => v
           {MENU.map(([l, ic, to, subs]) => (
             <li key={l}>
               <button type="button" className={to === '/' ? 'on' : ''} aria-expanded={subs ? open === l : undefined} onClick={() => (subs ? setOpen(open === l ? null : l) : nav(to!))}>
-                <RawIcon d={ic} /><span>{l}</span>{subs ? <RawIcon d={I.open} /> : null}
+                <RawIcon d={ic} /><span>{l}{l === 'Backup & Restore' && bk ? <small className={bkOn ? 'on' : ''}>Auto backup is {bkOn ? 'on' : 'off'}</small> : null}</span>{subs ? <RawIcon d={I.open} /> : null}
               </button>
               {subs && open === l ? <div className="mh-subs">{subs.map(([sl, st]) => <button type="button" key={st} onClick={() => nav(st)}>{sl}</button>)}</div> : null}
             </li>
