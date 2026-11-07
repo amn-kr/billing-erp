@@ -68,6 +68,12 @@ export function MobilePurchase({ d, s, t, busy, pre, bp, up, pickParty, pickItem
   const bal = r2(total - paid - s.settled);
   const ch = r2(Number(t.chTr) + Number(t.chLab));
   const bdisc = Number(t.bdisc);
+  // prices without GST: item amounts and the subtotal are before GST and the GST is an added line (owner, 7 Nov);
+  // prices with GST: amounts already have it, so it is shown as included
+  const added = G && !s.incl;
+  const preTv = r2(t.rows.reduce((a, r) => a + Number(r.tv), 0));
+  const preTx = r2(Number(t.items) - preTv);
+  const gstName = t.inter ? 'IGST' : 'CGST + SGST';
 
   /** an item tapped: one more of it when it is already on the bill */
   const addLine = (it: EItem) => {
@@ -157,7 +163,7 @@ export function MobilePurchase({ d, s, t, busy, pre, bp, up, pickParty, pickItem
             const q = n(l.qty);
             return (
               <li key={i} data-ln={i}>
-                <div className="ms-l1"><span>{l.name}</span><b>₹{amt(Number(t.rows[i]?.amt ?? 0))}</b></div>
+                <div className="ms-l1"><span>{l.name}</span><b>₹{amt(Number((added ? t.rows[i]?.tv : t.rows[i]?.amt) ?? 0))}</b></div>
                 <div className="ms-l2">
                   <span className="ms-rate"><span className="ms-in"><i>₹</i><input value={String(l.rate || '')} inputMode="decimal" placeholder="Rate" aria-label={`Rate of ${l.name}`} onChange={(e) => setL(i, 'rate', num(e.target.value))} /></span><small>/{l.unit}{G ? ` · GST ${l.gst}%` : ''}</small></span>
                   <div className="ms-qty">
@@ -182,7 +188,8 @@ export function MobilePurchase({ d, s, t, busy, pre, bp, up, pickParty, pickItem
         </ul>
 
         <div className="ms-card ms-tot" id="peTot">
-          <div className="ms-tl"><span>Subtotal</span><b>₹{inr2f(Number(t.items))}</b></div>
+          <div className="ms-tl"><span>Subtotal{added ? ' (before GST)' : ''}</span><b>₹{inr2f(added ? preTv : Number(t.items))}</b></div>
+          {added ? <div className="ms-tl" id="peGst"><span>GST ({gstName})</span><b>+ ₹{inr2f(preTx)}</b></div> : null}
           <button type="button" className="ms-tl ms-chg" id="peChgBtn" aria-expanded={chg} onClick={() => setChg(!chg)}>
             <span>Discount &amp; charges<RawIcon d={DOWN} /></span>
             <b>{bdisc ? <em className="get">− ₹{inr2f(bdisc)}</em> : null}{ch ? <em>+ ₹{inr2f(ch)}</em> : null}{!bdisc && !ch ? <em className="mu">None</em> : null}</b>
@@ -199,8 +206,8 @@ export function MobilePurchase({ d, s, t, busy, pre, bp, up, pickParty, pickItem
               <label className="ms-tr ms-ro"><span><input type="checkbox" id="peRound" checked={s.roundOff} onChange={(e) => up((x) => { x.roundOff = e.target.checked; })} />Round off</span><b>{Number(t.round) >= 0 ? '+' : '−'} ₹{inr2f(Math.abs(Number(t.round)))}</b></label>
             </div>
           )}
-          {/* the item amounts and the subtotal already have the GST in them, so it is shown as included */}
-          {G ? <div className="ms-tl"><span>GST included{t.inter ? ' (IGST)' : ' (CGST + SGST)'}</span><b className="mu">₹{inr2f(Number(t.tax))}</b></div> : null}
+          {added && bdisc ? <div className="ms-tl ms-note"><span>GST on the bill after discount</span><b className="mu">₹{inr2f(Number(t.tax))}</b></div> : null}
+          {G && !added ? <div className="ms-tl" id="peGst"><span>GST included ({gstName})</span><b className="mu">₹{inr2f(Number(t.tax))}</b></div> : null}
           <div className="ms-hr"></div>
           <div className="ms-total"><span>Total</span><b id="peTotal">₹{inr2f(total)}</b></div>
           {bill && (

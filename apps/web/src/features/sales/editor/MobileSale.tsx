@@ -59,6 +59,12 @@ export function MobileSale({ d, s, title, busy, up, pickParty, setMode, back, sa
   const rec = r2(s.pays.reduce((a, x) => a + (Number(x.amt) || 0), 0));
   const bal = r2(t.total - rec);
   const ch = r2(t.chTr + t.chLab + t.chBank);
+  // prices without GST: item amounts and the subtotal are before GST and the GST is an added line (owner, 7 Nov);
+  // prices with GST: amounts already have it, so it is shown as included
+  const added = G && !s.incl;
+  const preTv = r2(t.rows.reduce((a, r) => a + r.tv, 0));
+  const preTx = r2(t.items - preTv);
+  const gstName = t.inter ? 'IGST' : 'CGST + SGST';
 
   /** an item tapped (or scanned): one more of it when it is already on the bill */
   const addLine = (it: EItem) => {
@@ -152,7 +158,7 @@ export function MobileSale({ d, s, title, busy, up, pickParty, setMode, back, sa
             const q = Number(l.qty) || 0;
             return (
               <li key={i} data-ln={i}>
-                <div className="ms-l1"><span>{l.name}</span><b>₹{amt(t.rows[i]?.amt ?? 0)}</b></div>
+                <div className="ms-l1"><span>{l.name}</span><b>₹{amt((added ? t.rows[i]?.tv : t.rows[i]?.amt) ?? 0)}</b></div>
                 <div className="ms-l2">
                   <span>₹{amt(finalRate(l))} × {q}{G ? ` · GST ${l.gst}%` : ''}</span>
                   <div className="ms-qty">
@@ -168,7 +174,8 @@ export function MobileSale({ d, s, title, busy, up, pickParty, setMode, back, sa
         </ul>
 
         <div className="ms-card ms-tot" id="siTot">
-          <div className="ms-tl"><span>Subtotal</span><b>₹{inr2f(t.items)}</b></div>
+          <div className="ms-tl"><span>Subtotal{added ? ' (before GST)' : ''}</span><b>₹{inr2f(added ? preTv : t.items)}</b></div>
+          {added ? <div className="ms-tl" id="siGst"><span>GST ({gstName})</span><b>+ ₹{inr2f(preTx)}</b></div> : null}
           <button type="button" className="ms-tl ms-chg" id="siChgBtn" aria-expanded={chg} onClick={() => setChg(!chg)}>
             <span>Discount &amp; charges<RawIcon d={DOWN} /></span>
             <b>{t.bdisc ? <em className="get">− ₹{inr2f(t.bdisc)}</em> : null}{ch ? <em>+ ₹{inr2f(ch)}</em> : null}{!t.bdisc && !ch ? <em className="mu">None</em> : null}</b>
@@ -185,8 +192,8 @@ export function MobileSale({ d, s, title, busy, up, pickParty, setMode, back, sa
               <label className="ms-tr ms-ro"><span><input type="checkbox" id="siRound" checked={s.roundOff} onChange={(e) => up((x) => { x.roundOff = e.target.checked; })} />Round off</span><b>{t.round >= 0 ? '+' : '−'} ₹{inr2f(Math.abs(t.round))}</b></label>
             </div>
           )}
-          {/* the item amounts and the subtotal already have the GST in them, so it is shown as included and the lines add up to the total */}
-          {G ? <div className="ms-tl"><span>GST included{t.inter ? ' (IGST)' : ' (CGST + SGST)'}</span><b className="mu">₹{inr2f(t.tax)}</b></div> : null}
+          {added && t.bdisc ? <div className="ms-tl ms-note"><span>GST on the bill after discount</span><b className="mu">₹{inr2f(t.tax)}</b></div> : null}
+          {G && !added ? <div className="ms-tl" id="siGst"><span>GST included ({gstName})</span><b className="mu">₹{inr2f(t.tax)}</b></div> : null}
           <div className="ms-hr"></div>
           <div className="ms-total"><span>Total</span><b id="siTotal">₹{inr2f(t.total)}</b></div>
           {!quote && (

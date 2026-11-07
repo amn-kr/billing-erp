@@ -80,7 +80,7 @@
 .ms-total span{font-weight:700}.ms-total b{font-size:22px;font-weight:800}
 .ms-recv{display:flex;align-items:center;gap:8px;min-height:40px;padding-top:6px;border-top:1px solid var(--sf3,#eef1f6)}
 .ms-tick{flex:1;display:flex;align-items:center;min-height:40px;font-weight:700;cursor:pointer}
-.ms-recv select{height:40px;max-width:96px;padding:0 6px;border:1px solid var(--sf3,#eef1f6);border-radius:12px;background:var(--sf);color:var(--t1);font:600 13px var(--font)}
+.ms-recv select{height:40px;flex:none;width:auto;max-width:none;padding:0 6px;border:1px solid var(--sf3,#eef1f6);border-radius:12px;background:var(--sf);color:var(--t1);font:600 13px var(--font)}
 .ms-due{color:var(--t3,#4b5466)}.ms-due b{margin-left:4px;font-weight:700}
 .ms-bar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--sf);padding:14px 16px calc(22px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 20px rgba(15,23,42,.08);border-radius:22px 22px 0 0}
 .ms-bb{display:flex;gap:10px}
@@ -106,3 +106,4 @@
 .ms-bt input{height:22px;padding:0;border:0;outline:0;background:transparent;color:var(--t1);font:700 14px var(--font)}
 .ms-stk{font-size:12px;color:var(--t2)}.ms-stk:empty{display:none}
 .ms-sel{height:40px;max-width:60%;padding:0 6px;border:1px solid var(--sf3,#eef1f6);border-radius:12px;background:var(--sf);color:var(--t1);font:600 13px var(--font)}
+.ms-note{font-size:12px}
