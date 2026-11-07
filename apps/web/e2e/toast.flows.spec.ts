@@ -6,8 +6,9 @@
 import { expect, request as playwrightRequest, test, type Page } from '@playwright/test';
 import { APP, freshShop, newPage, signInAs } from './setup';
 
-const GREEN = 'rgb(16, 185, 129)'; // the prototype's --green (#10b981)
-const RED = 'rgb(239, 68, 68)'; // the prototype's --red (#ef4444)
+const GREEN = 'rgb(15, 123, 69)'; // Classic's --green (#0f7b45, classic.css; the prototype's was #10b981)
+const RED = 'rgb(200, 16, 46)'; // Classic's --red (#c8102e, classic.css; the prototype's was #ef4444)
+const NAVY_RED = 'rgb(239, 68, 68)'; // the other colour combinations keep the prototype's --red (#ef4444)
 const toast = (page: Page) => page.locator('#toast');
 const tabs = (page: Page) => page.locator('#siTabs .bttab');
 
@@ -89,14 +90,14 @@ async function looks(page: Page) {
     return { centre: x - innerWidth / 2, top: r.top, bg: cs.backgroundColor, black, pe: cs.pointerEvents, z: cs.zIndex, under: document.elementFromPoint(x, r.top + r.height / 2) !== t };
   });
 }
-async function atTopCentre(page: Page, bg: 'green' | 'red' | 'black') {
+async function atTopCentre(page: Page, bg: 'green' | 'red' | 'black', red = RED) {
   const l = await looks(page);
   expect(Math.abs(l.centre)).toBeLessThanOrEqual(1);
   expect(l.top).toBe(28);
   expect(l.pe).toBe('none');
   expect(l.under, 'clicks go through to what is under the message').toBe(true);
   expect(l.z).toBe('120');
-  expect(l.bg).toBe(bg === 'green' ? GREEN : bg === 'red' ? RED : l.black);
+  expect(l.bg).toBe(bg === 'green' ? GREEN : bg === 'red' ? red : l.black);
 }
 
 test('a renewed token keeps the typed bill, opens no new tab and shows no old message', async ({ browser, request }) => {
@@ -216,12 +217,12 @@ for (const width of [1280, 1366, 1920]) {
     await page.waitForSelector('#siSave');
     await saveBill(page);
     await expect(toast(page)).toHaveText('Choose who this bill is for. For a counter sale, switch to Cash.');
-    await atTopCentre(page, 'red');
+    await atTopCentre(page, 'red', NAVY_RED); // the Navy combination chosen above
     await page.goto(APP + '/purchases/new?kind=bill&n=1');
     await page.waitForSelector('#peSave');
     await page.click('#peSave');
     await expect(toast(page)).toHaveText('Choose the supplier.');
-    await atTopCentre(page, 'red');
+    await atTopCentre(page, 'red', NAVY_RED); // the Navy combination chosen above
     // the Save button still takes a click while the message shows
     await page.click('#peSave', { timeout: 2000 });
   });

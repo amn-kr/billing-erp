@@ -93,7 +93,7 @@ test('add items (with opening stock, service, brands/sizes) and adjust stock', a
   // the item card's layout (owner, Oct 2026): the margin percent is a green tag on the sale price, no separate Margin figure
   await expect(page.locator('#itHead .itfl small')).toHaveText(['Sale Price', 'Purchase Price', 'In Stock', 'Stock Value']);
   await expect(page.locator('#itMarginPct')).toHaveText('53%');
-  await expect(page.locator('#itMarginPct')).toHaveCSS('color', 'rgb(16, 185, 129)');
+  await expect(page.locator('#itMarginPct')).toHaveCSS('color', 'rgb(15, 123, 69)'); // Classic's --green
   await expect(page.locator('#itHead .itfl > div', { hasText: 'Purchase Price' }).locator('.tagw')).toHaveText('Latest/Avg');
   // a plain item has no group to go back to
   await expect(page.locator('#itHead [data-gback]')).toHaveCount(0);
