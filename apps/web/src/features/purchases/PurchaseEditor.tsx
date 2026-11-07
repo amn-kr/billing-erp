@@ -401,11 +401,11 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
         <SlModal m={modal} onClose={() => setModal(null)} />
     </>
   );
-  // a phone gets its own one-column screen (MobilePurchase) for bills and orders; the document and its saving are the same
-  if (phone && k !== 'debit_note') {
+  // a phone gets its own one-column screen (MobilePurchase) for bills, orders and debit notes; the document and its saving are the same
+  if (phone) {
     return (
       <>
-        <MobilePurchase d={d} s={s} t={t} busy={busy} pre={pre} bp={bp} up={up} pickParty={pickParty} pickItem={(i, it) => pickItem(i, it)} tracked={tracked} stockTxt={stockTxt} mrpOn={mrpOn}
+        <MobilePurchase d={d} s={s} t={t} busy={busy} pre={pre} bp={bp} up={up} pickParty={pickParty} pickItem={(i, it) => pickItem(i, it)} tracked={tracked} stockTxt={stockTxt} mrpOn={mrpOn} partyBills={partyBills} batchOn={batchOn}
           back={back} save={(again) => void save(false, again)} addParty={(q) => setAddParty(q)} addItem={(q, i) => setAddItem({ q, i })} toast={showToast} />
         {dialogs}
       </>

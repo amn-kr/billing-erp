@@ -163,7 +163,7 @@ function CreateSheet({ onClose, go, nav, soon }: { onClose: () => void; go: (to:
   const buy: Tile[] = [
     ['Purchase Bill', '<path d="M3 4h2l2.5 11h11L21 7H6.5M9 20a1 1 0 1 0 0-.1M18 20a1 1 0 1 0 0-.1"/>', () => nav(`/purchases/new?kind=bill&n=${n()}`)],
     ['Payment Out', '<path d="M12 13V3M8 7l4-4 4 4M5 17h14M5 21h14"/>', () => nav('/payments-made?new=1')],
-    ['Purchase Return', '<path d="M15 7h4V3M19 7a8 8 0 1 0 1 7"/>', () => nav(`/purchases/new?kind=debit&n=${n()}`)],
+    ['Purchase Return', '<path d="M15 7h4V3M19 7a8 8 0 1 0 1 7"/>', () => nav(`/purchases/new?kind=debit_note&n=${n()}`)],
     ['Purchase Order', '<path d="M8 4h8v3H8zM6 5H5v16h14V5h-1M12 11v6M9 14l3 3 3-3"/>', () => nav(`/purchases/new?kind=order&n=${n()}`)],
   ];
   const other: Tile[] = [

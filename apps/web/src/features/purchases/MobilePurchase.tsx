@@ -1,19 +1,23 @@
 /**
- * A purchase bill or order on a phone (owner's request, 6 Nov 2026), in the style of the owner's approved new-sale
+ * A purchase bill, order or debit note on a phone (owner's request, 6 Nov 2026; debit notes 7 Nov), in the style of the owner's approved new-sale
  * mock: a white header (back, title, number and date), the supplier card, the items as small cards with the rate
  * and − / +, batch boxes for batch-tracked items, the totals card (Discount & charges opens in place, Paid with a
  * tick box) and a bar that always stays at the bottom: Save & New and Save. Nothing opens over the bill.
+ * A debit note has Against bill and Reason under the supplier, picks the batch a tracked item goes back from,
+ * and has no Paid row: it lowers what is owed on the bill or stays as credit with the supplier.
  * The document, its maths and saving are the desktop editor's own (PurchaseEditor passes them in).
  */
 import { useState, type ReactNode } from 'react';
-import { PU_MODES, isBankMode, type TotalsOut } from '@billing/shared';
-import { inr, inr2f } from '../../lib/format';
+import { DN_REASONS, PU_MODES, isBankMode, type TotalsOut } from '@billing/shared';
+import { dmy, inr, inr2f } from '../../lib/format';
+import { useBatchView } from '../../lib/features';
 import { RawIcon } from '../../components/Icon';
 import { useStyles } from '../../lib/useStyles';
 import { bankOf, type useBankPick } from '../banking/BankPick';
 import type { EditorData } from '../sales/editor/data';
 import { r2, type EItem, type EParty } from '../sales/editor/state';
 import { PE_T } from './model';
+import { batchOption, useItemBatches } from './BatchRow';
 import type { PE } from './PurchaseEditor';
 import css from '../sales/editor/mobile-sale.css?inline';
 
@@ -30,6 +34,22 @@ const amt = (n: number) => (Math.round(n * 100) % 100 ? inr2f(n) : inr2f(n).repl
 const num = (v: string) => v.replace(/[^\d.]/g, '');
 const n = (v: string | number | undefined) => Number(v) || 0;
 const TITLE = { bill: 'Purchase Bill', order: 'Purchase Order', debit_note: 'Debit Note' };
+const NO_LBL = { bill: 'Bill no.', order: 'Order no.', debit_note: 'Debit note no.' };
+const SHORT = { bill: 'Bill', order: 'Order', debit_note: 'Note' };
+
+/** debit note: the batch a tracked item goes back from (the desktop's batch row) */
+function DnBatch({ i, itemId, against, value, onChange }: { i: number; itemId: string; against: boolean; value: string; onChange: (v: string) => void }) {
+  const rows = useItemBatches(itemId, true).data?.rows ?? [];
+  const v = useBatchView();
+  return (
+    <label className="ms-dnb" data-bx={i}><span>{v.word('batch', 'Batch')}</span>
+      <select data-bf="batchId" value={value} aria-label={`Batch for row ${i + 1}`} onChange={(e) => onChange(e.target.value)}>
+        <option value="">{against ? 'Same as the bill' : 'No batch'}</option>
+        {rows.filter((r) => r.id).map((r) => <option value={r.id!} key={r.id}>{batchOption(r, v)}</option>)}
+      </select>
+    </label>
+  );
+}
 
 export interface MobilePurchaseProps {
   d: EditorData;
@@ -46,6 +66,9 @@ export interface MobilePurchaseProps {
   tracked: (l: PE['lines'][number]) => boolean;
   stockTxt: (l: PE['lines'][number]) => ReactNode;
   mrpOn: boolean;
+  /** debit note: the supplier's bills it can be against, and whether Settings › Items › Batch No. is on */
+  partyBills: { id: string; number: string; date: string; total: string | number }[];
+  batchOn: boolean;
   back: () => void;
   save: (again: boolean) => void;
   addParty: (q: string) => void;
@@ -53,11 +76,13 @@ export interface MobilePurchaseProps {
   toast: (m: string) => void;
 }
 
-export function MobilePurchase({ d, s, t, busy, pre, bp, up, pickParty, pickItem, tracked, stockTxt, mrpOn, back, save, addParty, addItem, toast }: MobilePurchaseProps) {
+export function MobilePurchase({ d, s, t, busy, pre, bp, up, pickParty, pickItem, tracked, stockTxt, mrpOn, partyBills, batchOn, back, save, addParty, addItem, toast }: MobilePurchaseProps) {
   useStyles([css], 'mobile-sale');
   const k = s.kind;
   const G = d.ctx.mode === 'gst';
   const bill = k === 'bill';
+  const dn = k === 'debit_note';
+  const againstNo = dn && s.against ? partyBills.find((b) => b.id === s.against)?.number ?? '' : '';
   const p = s.party;
   const total = Number(t.total);
   const [pq, setPq] = useState<string | null>(null);
@@ -98,18 +123,18 @@ export function MobilePurchase({ d, s, t, busy, pre, bp, up, pickParty, pickItem
       <header className="ms-top">
         <button className="ms-ib" type="button" id="peBack" aria-label="Back" onClick={back}><RawIcon d={BACK} /></button>
         <button type="button" className="ms-tt" aria-expanded={meta} aria-label="Number and date" onClick={() => setMeta(!meta)}>
-          <b id="peTitle">{s.editId ? `Edit ${PE_T[k].toLowerCase()}` : TITLE[k]}</b><small>{bill ? 'Bill' : 'Order'} #{s.no} · {longDate(s.date)}</small>
+          <b id="peTitle">{s.editId ? `Edit ${PE_T[k].toLowerCase()}` : TITLE[k]}</b><small>{SHORT[k]} #{s.no} · {longDate(s.date)}</small>
         </button>
-        <span className={`ms-tag ${bill ? 'in' : ''}`}>{bill ? 'Stock in' : 'No stock change'}</span>
+        <span className={`ms-tag ${bill ? 'in' : dn ? 'out' : ''}`} id="peKindTag">{bill ? 'Stock in' : dn ? 'Stock out' : 'No stock change'}</span>
       </header>
 
       <div className="ms-body">
         {meta && (
           <div className="ms-nd">
-            <label><span>{bill ? 'Bill no.' : 'Order no.'}</span><input id="peNo" value={s.no} readOnly={!!s.editId} autoComplete="off" onChange={(e) => up((x) => { x.no = e.target.value.trim(); x.autoNo = false; })} /></label>
+            <label><span>{NO_LBL[k]}</span><input id="peNo" value={s.no} readOnly={!!s.editId} autoComplete="off" onChange={(e) => up((x) => { x.no = e.target.value.trim(); x.autoNo = false; })} /></label>
             <label><span>Date</span><input id="peDate" type="date" value={s.date} onChange={(e) => up((x) => { x.date = e.target.value; })} /></label>
             {bill ? <label><span>Supplier’s bill no.</span><input id="peRef" value={s.ref} autoComplete="off" onChange={(e) => up((x) => { x.ref = e.target.value; })} /></label> : null}
-            <label><span>{bill ? 'Due date' : 'Expected by'}</span><input id="peDue" type="date" value={bill ? s.due : s.exp} onChange={(e) => up((x) => { if (bill) x.due = e.target.value; else x.exp = e.target.value; })} /></label>
+            {dn ? null : <label><span>{bill ? 'Due date' : 'Expected by'}</span><input id="peDue" type="date" value={bill ? s.due : s.exp} onChange={(e) => up((x) => { if (bill) x.due = e.target.value; else x.exp = e.target.value; })} /></label>}
           </div>
         )}
 
@@ -138,7 +163,19 @@ export function MobilePurchase({ d, s, t, busy, pre, bp, up, pickParty, pickItem
           </div>
         )}
 
-        <div className="ms-ih"><span>Items ({lines.length})</span>
+        {dn ? (
+          <div className="ms-nd ms-dn">
+            <label><span>Against bill</span><select id="peAgainst" value={s.against} onChange={(e) => up((x) => { x.against = e.target.value; })}>
+              <option value="">Not linked to a bill</option>
+              {partyBills.map((b) => <option value={b.id} key={b.id}>{b.number} · {dmy(b.date)} · ₹{inr2f(Number(b.total))}</option>)}
+            </select></label>
+            <label><span>Reason</span><select id="peReason" value={s.reason} onChange={(e) => up((x) => { x.reason = e.target.value; })}>
+              {DN_REASONS.filter((r) => r !== 'Expired goods' || batchOn || s.reason === r).map((r) => <option key={r}>{r}</option>)}
+            </select></label>
+          </div>
+        ) : null}
+
+        <div className="ms-ih"><span>{dn ? 'Items returned' : 'Items'} ({lines.length})</span>
           <div>
             <button type="button" className="ms-sm" id="mpScan" onClick={() => toast('Scanning is coming with the Android app')}><RawIcon d={SCAN} />Scan</button>
             <button type="button" className="ms-sm p" id="mpAddItem" aria-expanded={iq !== null} onClick={() => setIq(iq === null ? '' : null)}><RawIcon d={PLUS} />Add item</button>
@@ -158,7 +195,7 @@ export function MobilePurchase({ d, s, t, busy, pre, bp, up, pickParty, pickItem
             </div>
           </div>
         )}
-        <ul className="ms-items" id="mpItems" aria-label="Bill items">
+        <ul className="ms-items" id="mpItems" aria-label={dn ? 'Items returned' : 'Bill items'}>
           {lines.length ? lines.map(({ l, i }) => {
             const q = n(l.qty);
             return (
@@ -181,6 +218,7 @@ export function MobilePurchase({ d, s, t, busy, pre, bp, up, pickParty, pickItem
                     {mrpOn ? <label><span>MRP</span><input data-bf="mrp" value={l.mrp ?? ''} inputMode="decimal" autoComplete="off" onChange={(e) => setL(i, 'mrp', num(e.target.value))} /></label> : null}
                   </div>
                 ) : null}
+                {dn && tracked(l) ? <DnBatch i={i} itemId={l.id} against={!!s.against} value={l.batchId ?? ''} onChange={(v) => setL(i, 'batchId', v)} /> : null}
                 <small className="ms-stk">{stockTxt(l)}</small>
               </li>
             );
@@ -224,6 +262,7 @@ export function MobilePurchase({ d, s, t, busy, pre, bp, up, pickParty, pickItem
             <div className="ms-tr"><span>Paid from</span><select className="ms-sel" aria-label="Paid from" value={bankOf(bp, s.pays[0]?.acct)} onChange={(e) => up((x) => { x.pays[0]!.acct = e.target.value; })}>{bp.banks.map((a) => <option value={a.id} key={a.id}>{a.name}</option>)}</select></div>
           ) : null}
           {bill && paid > 0 && bal > 0.004 ? <div className="ms-tl"><span>Balance due</span><b className="give">₹{inr2f(bal)}</b></div> : null}
+          {dn ? <p className="ms-hint" id="peDnHint">{againstNo ? `Lowers what you owe on ${againstNo}.` : 'Kept as credit with this supplier.'} Stock goes down by the returned quantity.</p> : null}
           {bill && !s.editId ? <label className="ms-tr ms-ro"><span><input type="checkbox" id="peUpd" checked={s.updPrice} onChange={(e) => up((x) => { x.updPrice = e.target.checked; })} />Update items’ purchase price</span></label> : null}
         </div>
       </div>
