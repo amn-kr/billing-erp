@@ -21,6 +21,7 @@ import { APP_STYLES } from '../../styles';
 import toastCss from './toast.css?inline';
 import rowMenuCss from './row-menu.css?inline';
 import rowHeightCss from './row-height.css?inline';
+import gridFitCss from '../sales/editor/grid-fit.css?inline';
 import { VIEW_LABEL, VIEW_PATH, type NavLink } from './nav';
 import { REPSEC, repOf } from '../reports/catalogue';
 import { Sidebar } from './Sidebar';
@@ -56,7 +57,7 @@ export function AppShell() {
 
 function AppFrame() {
   // the owner-approved toast change comes after the prototype's CSS, so it wins
-  useStyles([...APP_STYLES, toastCss, rowMenuCss, rowHeightCss], 'app');
+  useStyles([...APP_STYLES, toastCss, rowMenuCss, rowHeightCss, gridFitCss], 'app');
   const token = useSession((s) => s.accessToken);
   const me = useMe();
   // this person's density and text size (Settings › General › Display); the default changes nothing

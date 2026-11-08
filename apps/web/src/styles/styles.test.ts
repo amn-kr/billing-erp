@@ -105,6 +105,15 @@ describe('row actions ⋮ on the other lists', () => {
  * Owner's request, 25 Oct 2026 (answers 31 Oct 2026): every table row as tall as a Sales invoices row (39px),
  * heading rows 35px. features/shell/row-height.css holds exactly these rules, and nothing else.
  */
+describe('grids that have to fit the screen', () => {
+  it('features/sales/editor/grid-fit.css only touches tables marked data-fit, so a shop without these columns is unchanged', () => {
+    const t = fs.readFileSync(path.join(__dirname, '../features/sales/editor/grid-fit.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const selectors = t.split('}').map((r) => r.split('{')[0]!.trim()).filter(Boolean).flatMap((s) => s.split(','));
+    expect(selectors.length).toBeGreaterThan(0);
+    for (const s of selectors) expect(s).toMatch(/^\.dgt\[data-fit(="tight")?\]/);
+  });
+});
+
 describe('one row height for every table', () => {
   it('features/shell/row-height.css holds only the approved row, heading and amount-box rules', () => {
     const t = fs.readFileSync(path.join(__dirname, '../features/shell/row-height.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
