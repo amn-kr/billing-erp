@@ -31,10 +31,8 @@ test('a purchase bill asks for the batch of a tracked item; the item card shows 
   await startDoc(page, 'bill');
   await page.fill('#peRows tr[data-ln="0"] [data-pf="qty"]', '6');
   await page.fill('#peRows tr[data-ln="0"] [data-pf="rate"]', '11');
-  // Enter moves through the batch row too, then on to the next item
-  await page.focus('#peRows tr[data-ln="0"] [data-pf="damt"]');
-  await page.keyboard.press('Enter');
-  await expect(page.locator('#peRows tr[data-ln="0"] [data-pf="gst"]')).toBeFocused();
+  // Batch has its own column, right after HSN: Enter moves along the row into it
+  await page.focus('#peRows tr[data-ln="0"] [data-pf="hsn"]');
   await page.keyboard.press('Enter');
   await expect(page.locator('[data-bf="batchNo"]')).toBeFocused();
 
