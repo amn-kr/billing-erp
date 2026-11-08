@@ -15,6 +15,7 @@ import { blankLine, calc, finalRate, frSet, lineFor, linePack, lineStock, r2, se
 import type { EditorData } from './data';
 import { BatchPicker, type PickFor } from './BatchPicker';
 import { batchRowsFor, lineMrp, lineOverMrp, saleAllocs } from './batches';
+import { GridColGroup, footCells, type ColOpts } from './columns';
 import { allocText, expiryState } from '@billing/shared';
 import { useBatchView, useItemFields } from '../../../lib/features';
 
@@ -116,6 +117,8 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
   if (!si) return null;
   const G = ctx.mode === 'gst';
   const gstCol = d.gstOn;
+  // which columns are on: the colgroup widths and the Total row follow this list
+  const co: ColOpts = { brand: show.brand, series: show.series, hsn: gstCol, tax: G };
   const t = calc(ctx, si);
   const allocs = saleAllocs(d, si);
   const pickFor = (i: number): PickFor | null => {
@@ -215,6 +218,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
 
   return (
     <>
+      <GridColGroup o={co} />
       <thead id="siHead">
         <tr><th rowSpan={2} className="c">#</th><th rowSpan={2} className="it">Item</th><th rowSpan={2} className="hic">Item code</th>{show.brand ? <th rowSpan={2} className="hib">Brand</th> : null}{show.series ? <th rowSpan={2} className="his">Series</th> : null}{gstCol ? <th rowSpan={2} className="hs">HSN</th> : null}<th rowSpan={2} className="n qt">Qty</th><th rowSpan={2} className="un">Unit</th>
           <th rowSpan={2} className="n pr">Sale Price{G ? <label className="siincl"><input type="checkbox" id="siIncl" checked={si.incl} onChange={(e) => { up2((s) => { s.incl = e.target.checked; }); full(); }} /> incl. GST</label> : null}</th><th colSpan={2} className="c grp">Discount</th><th rowSpan={2} className="n fr">Final rate</th>{G ? <th colSpan={2} className="c grp">Tax</th> : null}<th rowSpan={2} className="n am">Amount</th><th rowSpan={2} className="x"><span className="sr">Remove</span></th></tr>
@@ -280,10 +284,14 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
       {ph.pop}
       {d.batches ? createPortal(<BatchPicker pick={pickAt === null ? null : pickFor(pickAt)} onClose={() => setPickAt(null)} onDone={(a) => { const i = pickAt!; up2((s) => { if (a) s.lines[i]!.batches = a; else delete s.lines[i]!.batches; }); setPickAt(null); full(); }} />, document.body) : null}
       <tfoot id="siFoot">
-        <tr><td></td><td><div className="dgft"><button type="button" className="btn sm" id="siAddRow" onClick={() => { up2((s) => { s.lines.push(blankLine()); }); full(); focusRow(si.lines.length, 'name'); }}><Icon name="plus" />Add row</button>
-          {si.doc === 'sale' ? <button type="button" className="btn sm" id="siImpQ" title="Add items from a saved quotation" data-impq><Icon name="doc" />Import quotation</button> : null}<b>Total</b></div></td>
-          <td></td><td></td><td></td>{gstCol ? <td></td> : null}<td className="ro" data-t="qty">{qfmt(si.lines.reduce((a, l) => a + (l.item || l.name ? Number(l.qty) || 0 : 0), 0))}</td><td></td><td></td><td></td>
-          <td className="ro" data-t="disc">{inr2f(t.rows.reduce((a, r) => a + (r.disc || 0), 0))}</td><td></td>{G ? <><td></td><td className="ro" data-t="tx">{inr2f(t.rows.reduce((a, r) => a + r.tx, 0))}</td></> : null}<td className="ro b" data-t="amt">{inr2f(t.rows.reduce((a, r) => a + r.amt, 0))}</td><td></td></tr>
+        <tr>{footCells(co, {
+          it: <td><div className="dgft"><button type="button" className="btn sm" id="siAddRow" onClick={() => { up2((s) => { s.lines.push(blankLine()); }); full(); focusRow(si.lines.length, 'name'); }}><Icon name="plus" />Add row</button>
+            {si.doc === 'sale' ? <button type="button" className="btn sm" id="siImpQ" title="Add items from a saved quotation" data-impq><Icon name="doc" />Import quotation</button> : null}<b>Total</b></div></td>,
+          qt: <td className="ro" data-t="qty">{qfmt(si.lines.reduce((a, l) => a + (l.item || l.name ? Number(l.qty) || 0 : 0), 0))}</td>,
+          da: <td className="ro" data-t="disc">{inr2f(t.rows.reduce((a, r) => a + (r.disc || 0), 0))}</td>,
+          ta: <td className="ro" data-t="tx">{inr2f(t.rows.reduce((a, r) => a + r.tx, 0))}</td>,
+          am: <td className="ro b" data-t="amt">{inr2f(t.rows.reduce((a, r) => a + r.amt, 0))}</td>,
+        })}</tr>
       </tfoot>
     </>
   );
