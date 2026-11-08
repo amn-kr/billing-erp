@@ -6,6 +6,7 @@
  * pack/loose on, at 1280, 1366 and 1920 px.
  */
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { packShop } from './batch.data';
 import { APP, freshShop, newPage, openItemSettings, signInAs, untick } from './setup';
 
 const WIDTHS = [1280, 1366, 1920];
@@ -115,10 +116,36 @@ test('item grids: every row lines up and a switched-off column’s width is shar
   await page.click('#miDisplay');
   await page.click('#dspDen [data-v="compact"]');
   await page.click('#dspDone');
-  await checkBoth(page, 'Compact');
+  const compact = await checkBoth(page, 'Compact');
 
   // GST off: HSN and both Tax columns go too
   await setGst(request, owner, false);
   const noGst = await checkBoth(page, 'GST off');
-  for (const sec of ['#vNewInv', '#vPEd']) expect(noGst[sec]!.th.am, `${sec}: Amount grows more with GST off`).toBeGreaterThan(off[sec]!.th.am + 5);
+  for (const sec of ['#vNewInv', '#vPEd']) expect(noGst[sec]!.th.am, `${sec}: Amount grows more with GST off`).toBeGreaterThan(compact[sec]!.th.am + 5);
+});
+
+test('Batch, Expiry, MRP and Pack are their own columns and every column fits with no side scroll', async ({ browser, request }) => {
+  test.setTimeout(120_000);
+  const owner = await freshShop(request);
+  await packShop(owner);
+  const page = await newPage(browser, 1366);
+  await signInAs(page, owner);
+  await checkBoth(page, 'own columns');
+  // no side scroll at any width; at 1920 px they fit as they are, so no widths of ours
+  for (const [sec, path] of [['#vNewInv', '/sales/new'], ['#vPEd', '/purchases/new?kind=bill']] as const) {
+    await page.goto(APP + path);
+    await page.waitForSelector(`${sec} .dgt tfoot tr`);
+    for (const w of WIDTHS) {
+      await page.setViewportSize({ width: w, height: 800 });
+      await page.waitForTimeout(200);
+      const [sw, cw, cols] = await page.evaluate((s) => { const b = document.querySelector(`${s} .dgw`)!; return [b.scrollWidth, b.clientWidth, b.querySelectorAll('colgroup col').length]; }, sec);
+      expect(sw, `${sec} ${w}px: no side scroll`).toBeLessThanOrEqual(cw);
+      if (w === 1920 && sec !== '#vPEd') expect(cols, `${sec}: fits as it is`).toBe(0); // purchase has Mfg too: there Item gives up a little even at 1920
+    }
+  }
+  await expect(page.locator('#vPEd thead')).toContainText('Batch');
+  await expect(page.locator('#vPEd thead')).toContainText('Expiry');
+  await expect(page.locator('#vPEd thead')).toContainText('MRP');
+  await expect(page.locator('#vPEd thead')).toContainText('Pack');
+  await expect(page.locator('#peRows tr.bxr')).toHaveCount(0);
 });

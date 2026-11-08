@@ -114,7 +114,7 @@ test('Purchase: a line starts on the pack with the rate per pack; the Unit list 
   const unit = page.locator('#peRows [data-pf="unit"]');
   await expect(unit).toHaveValue('STRIP');
   await expect(page.locator('#peRows [data-pf="rate"]').first()).toHaveValue('70');
-  await expect(page.locator('[data-bxmsg]')).toContainText('per STRIP');
+  await expect(page.locator('[data-mrpnote]')).toContainText('per STRIP');
   await page.locator('#peRows [data-pf="qty"]').first().fill('2');
   await expect(page.locator('#peRows')).toContainText('Stock 5 STRIP → 7 STRIP');
   await unit.selectOption('TAB');
