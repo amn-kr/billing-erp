@@ -7,8 +7,8 @@
  *
  * When a column is off, its width is shared out over the other columns in proportion
  * to their own widths (owner's choice "A", 7 Nov 2026), so no gap is left and the Item
- * column doesn't take all of it. With every column on, the widths are exactly the CSS
- * ones from the prototype (styles/app.css), so the screen looks the same as before.
+ * column doesn't take all of it. With every column on, no widths are set here at all:
+ * the prototype's CSS (styles/app.css) decides, so the screen looks the same as before.
  */
 import { Fragment, type ReactNode } from 'react';
 
@@ -44,8 +44,13 @@ export function colWidths(o: ColOpts): { key: ColKey; w?: number }[] {
   return on.map((key) => (key === FLEX ? { key } : { key, w: FIXED.includes(key) ? BASE[key] : Math.round(BASE[key] * f * 100) / 100 }));
 }
 
-/** The table's <colgroup>: one <col> per shown column, with the shared-out widths. */
+/**
+ * The table's <colgroup>: one <col> per shown column, with the shared-out widths.
+ * With every column on there's nothing to share: no <colgroup> at all, so the CSS alone
+ * sizes the table, in Compact and Comfortable alike, exactly as in the prototype.
+ */
 export function GridColGroup({ o }: { o: ColOpts }) {
+  if (gridCols(o).length === ALL.length) return null;
   return <colgroup>{colWidths(o).map((c) => <col key={c.key} data-col={c.key} style={c.w ? { width: c.w } : undefined} />)}</colgroup>;
 }
 

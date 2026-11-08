@@ -54,7 +54,8 @@ async function checkLined(page: Page, sec: string, what: string): Promise<Grid> 
   expect(g.amtCount, `${what}: the total shows once`).toBe(1);
   expect(Math.abs(g.amtAt - g.th.amR) <= 1, `${what}: the total sits under Amount`).toBe(true);
   expect(Math.abs(g.qtyAt - g.th.qtR) <= 1, `${what}: the quantity total sits under Qty`).toBe(true);
-  expect(g.line.length, `${what}: one <col> per column`).toBe(g.cols);
+  // no <colgroup> when every column is on; otherwise one <col> per column
+  if (g.cols) expect(g.line.length, `${what}: one <col> per column`).toBe(g.cols);
   return g;
 }
 
@@ -87,22 +88,9 @@ test('item grids: every row lines up and a switched-off column’s width is shar
   const page = await newPage(browser, 1366);
   await signInAs(page, owner);
 
-  // every column on: the prototype's widths, unchanged (the same as without the shared-out widths)
+  // every column on: the CSS alone sizes the table (no widths of ours), as in the prototype
   const all = await checkBoth(page, 'all on');
-  for (const [sec, path] of [['#vNewInv', '/sales/new'], ['#vPEd', '/purchases/new?kind=bill']] as const) {
-    await page.goto(APP + path);
-    await page.waitForSelector(`${sec} .dgt tfoot tr`);
-    for (const w of WIDTHS) {
-      await page.setViewportSize({ width: w, height: 800 });
-      await page.waitForTimeout(150);
-      const widths = () => page.evaluate((s) => [...document.querySelectorAll(`${s} .dgt thead th`)].map((t) => Math.round(t.getBoundingClientRect().width * 10) / 10), sec);
-      const now = await widths();
-      await page.evaluate((s) => document.querySelector(`${s} .dgt colgroup`)!.remove(), sec);
-      expect(now, `${sec} ${w}px: every column on looks as before`).toEqual(await widths());
-      await page.reload();
-      await page.waitForSelector(`${sec} .dgt tfoot tr`);
-    }
-  }
+  for (const sec of ['#vNewInv', '#vPEd']) expect(all[sec]!.cols, `${sec}: every column on sets no widths`).toBe(0);
 
   // Brand and Series off (Brand takes Series with it): no gap, the other columns grow
   await openItemSettings(page);
