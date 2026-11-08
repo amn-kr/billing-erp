@@ -1361,3 +1361,13 @@ input[type=checkbox]:focus-visible,input[type=radio]:focus-visible{outline:2px s
 .rpbar{display:inline-block;width:60px;height:6px;border-radius:99px;background:var(--sf2);margin-right:8px;vertical-align:middle;overflow:hidden}.rpbar i{display:block;height:100%;background:var(--ac);border-radius:99px}
 .rpw.rpfull{grid-template-columns:minmax(0,1fr)}.rpw.rpfull>.rpl{display:none}.rptg{flex:none;margin-top:4px}
 .rpt th,.rpt td{padding:9px 10px!important}.rpt td{font-size:13px}
+
+/* Item grids with Batch/Expiry/MRP/Pack that have to fit the screen (owner, 8 Nov 2026): set by useGridFit only */
+.dgt[data-fit]{table-layout:fixed;min-width:0;font-size:12px}
+.dgt[data-fit] th{padding:8px 5px;font-size:10px;letter-spacing:0;white-space:normal;overflow-wrap:anywhere}.dgt[data-fit] th.sub{padding:4px 5px;font-size:9.5px}
+.dgt[data-fit] td.ro{padding:0 5px;overflow:hidden;text-overflow:ellipsis}.dgt[data-fit] td[data-pk]{white-space:normal;line-height:1.15;font-size:11px}
+.dgt[data-fit] .gi{padding:0 5px;font-size:12.5px}.dgt[data-fit] select.gi{padding:0 0 0 4px;min-width:0}
+.dgt[data-fit] td.dgc1,.dgt[data-fit] td.dgc2{max-width:none;font-size:11.5px}
+.dgt[data-fit] .gic small{padding:0 4px;max-width:38%}
+.dgt[data-fit] .dgft{gap:5px;padding:0 5px}.dgt[data-fit] .dgft .btn{height:26px;padding:0 7px;font-size:11.5px;white-space:nowrap}
+.dgt[data-fit="tight"] .dgft .btn{font-size:0;gap:0;padding:0 6px}.dgt[data-fit="tight"] .dgft b{font-size:11px}
