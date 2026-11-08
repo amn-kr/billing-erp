@@ -26,6 +26,7 @@ import type { Party } from '../parties/PartiesPage';
 import { pct } from '../sales/InvoicePreview';
 import { useEditorData, type EditorData } from '../sales/editor/data';
 import { ComboList, comboKey, useCombo, type ComboOpt } from '../sales/editor/Grid';
+import { GridColGroup, footCells, type ColOpts } from '../sales/editor/columns';
 import { useEditorLayout } from '../sales/editor/layout';
 import { PhDrop, type PH } from '../sales/editor/PriceHistory';
 import { DGACC, DGIMG } from '../sales/editor/ToolsPop';
@@ -208,6 +209,8 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
   const mrpOn = useFeature('mrp');
   const packOn = useFeature('pack_loose');
   const show = useItemFields();
+  // which columns are on: the colgroup widths and the Total row follow this list
+  const co: ColOpts = { brand: show.brand, series: show.series, hsn: gstOn, tax: G };
   const word = useItemWord();
   const stockTxt = (l: PLine) => {
     const it = item(l);
@@ -403,6 +406,7 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
       </div>
 
       <div className="card dggrid"><div className="tw dgw"><table className="dgt">
+        <GridColGroup o={co} />
         <thead id="peHead"><tr><th rowSpan={2} className="c">#</th><th rowSpan={2} className="it">Item</th><th rowSpan={2} className="hic">Item code</th>{show.brand ? <th rowSpan={2} className="hib">Brand</th> : null}{show.series ? <th rowSpan={2} className="his">Series</th> : null}{gstOn ? <th rowSpan={2} className="hs">HSN</th> : null}<th rowSpan={2} className="n qt">Qty</th><th rowSpan={2} className="un">Unit</th>
           <th rowSpan={2} className="n pr">Rate{G ? <label className="siincl"><input type="checkbox" id="peIncl" checked={s.incl} onChange={(e) => up((x) => { x.incl = e.target.checked; })} /> incl. GST</label> : null}</th><th colSpan={2} className="c grp">Discount</th><th rowSpan={2} className="n fr">Final rate</th>{G ? <th colSpan={2} className="c grp">Tax</th> : null}<th rowSpan={2} className="n am">Amount</th><th rowSpan={2} className="x"><span className="sr">Remove</span></th></tr>
           <tr><th className="n sub dp">%</th><th className="n sub da">Amount</th>{G ? <><th className="n sub tp">%</th><th className="n sub ta">Amount</th></> : null}</tr></thead>
@@ -427,8 +431,13 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
             {tracked(l) && k !== 'order' ? <BatchRowCells i={i} cols={2 + (show.brand ? 1 : 0) + (show.series ? 1 : 0) + (gstOn ? 1 : 0) + 6 + (G ? 2 : 0) + 2} kind={k} itemId={l.id} against={!!s.against} showMrp={mrpOn} packUnit={it?.pack?.unit} b={{ batchNo: l.batchNo ?? '', mfg: l.mfg ?? '', expiry: l.expiry ?? '', batchId: l.batchId ?? '', mrp: l.mrp ?? '' }} onChange={(f, v) => setLine(i, f, v)} onKeyDown={enterNext} /> : null}</Fragment>
           );
         })}</tbody>
-        <tfoot id="peFoot"><tr><td></td><td><div className="dgft"><button type="button" className="btn sm" id="peAddRow" onClick={() => { up((x) => { x.lines.push(peLine()); }); setTimeout(() => [...document.querySelectorAll<HTMLElement>('#peRows .pe-item')].pop()?.focus(), 0); }}><Icon name="plus" />Add row</button><b>Total</b></div></td><td></td><td></td><td></td>{gstOn ? <td></td> : null}
-          <td className="ro" data-t="qty">{qfmt(s.lines.reduce((a, l) => a + (l.id || l.name ? n(l.qty) : 0), 0))}</td><td></td><td></td><td></td><td className="ro" data-t="disc">{inr2f(t.rows.reduce((a, r) => a + Number(r.disc), 0))}</td><td></td>{G ? <><td></td><td className="ro" data-t="tx">{inr2f(t.rows.reduce((a, r) => a + Number(r.tx), 0))}</td></> : null}<td className="ro b" data-t="amt">{inr2f(t.rows.reduce((a, r) => a + Number(r.amt), 0))}</td><td></td></tr></tfoot>
+        <tfoot id="peFoot"><tr>{footCells(co, {
+          it: <td><div className="dgft"><button type="button" className="btn sm" id="peAddRow" onClick={() => { up((x) => { x.lines.push(peLine()); }); setTimeout(() => [...document.querySelectorAll<HTMLElement>('#peRows .pe-item')].pop()?.focus(), 0); }}><Icon name="plus" />Add row</button><b>Total</b></div></td>,
+          qt: <td className="ro" data-t="qty">{qfmt(s.lines.reduce((a, l) => a + (l.id || l.name ? n(l.qty) : 0), 0))}</td>,
+          da: <td className="ro" data-t="disc">{inr2f(t.rows.reduce((a, r) => a + Number(r.disc), 0))}</td>,
+          ta: <td className="ro" data-t="tx">{inr2f(t.rows.reduce((a, r) => a + Number(r.tx), 0))}</td>,
+          am: <td className="ro b" data-t="amt">{inr2f(t.rows.reduce((a, r) => a + Number(r.amt), 0))}</td>,
+        })}</tr></tfoot>
       </table></div></div>
 
       <div className="dgb">
