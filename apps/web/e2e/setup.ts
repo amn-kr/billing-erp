@@ -83,7 +83,8 @@ export async function settle(page: Page, quietMs = 300, maxMs = 15_000): Promise
 const ROOT = path.resolve(HERE, '../../..');
 export const PROTOTYPE = 'file://' + path.join(ROOT, 'reference/design/app.html');
 export const PROTOTYPE_LOGIN = 'file://' + path.join(ROOT, 'reference/firebase-site/public/index.html');
-export const APP = 'http://localhost:5174';
+/** E2E_APP: run against an app that is already running (another port), e.g. a worktree's own copy */
+export const APP = process.env.E2E_APP ?? 'http://localhost:5174';
 
 export const OWNER = { email: 'aman@sharma.example.com', password: 'demo-password-1' };
 
