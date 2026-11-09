@@ -37,11 +37,17 @@ const daysBetween = (a: string, b: string) => Math.round((Date.parse(b) - Date.p
 
 let token = '';
 async function call<T = any>(method: string, path: string, body?: unknown): Promise<T> {
-  const res = await fetch(API + path, {
-    method,
-    headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  let res: Response;
+  // the server limits requests per minute: wait and try again
+  for (let tries = 0; ; tries++) {
+    res = await fetch(API + path, {
+      method,
+      headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    if (res.status !== 429 || tries >= 20) break;
+    await new Promise((r) => setTimeout(r, 5000));
+  }
   const text = await res.text();
   const json = text ? JSON.parse(text) : null;
   if (!res.ok) throw new Error(`${method} ${path} → ${res.status}: ${json?.message ?? text}\n${JSON.stringify(body).slice(0, 400)}`);
