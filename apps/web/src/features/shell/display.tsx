@@ -16,6 +16,7 @@ import { DENSITIES, TEXT_SIZES, uiSizeSheet, ui } from '../../styles/uiSize';
 import toastCss from './toast.css?inline';
 import rowMenuCss from './row-menu.css?inline';
 import rowHeightCss from './row-height.css?inline';
+import gridFitCss from '../sales/editor/grid-fit.css?inline';
 import entryFrameCss from './entry-frame.css?inline';
 import editGridCss from '../../components/edit-grid.css?inline';
 import sheetGridCss from '../../components/sheet-grid.css?inline';
@@ -32,7 +33,7 @@ const TEXT = '<path d="M4 7V5h10v2M9 5v14M7 19h4M14 13v-1h6v1M17 12v7M15.5 19h3"
 const tile = (c: string) => ({ background: `color-mix(in srgb,${c} 14%,transparent)`, color: c });
 
 /** Every screen stylesheet, in the order they reach the page (print.css is paper only, so not here). */
-const SHEETS = [...APP_STYLES, toastCss, rowMenuCss, rowHeightCss, entryFrameCss, editGridCss, sheetGridCss, searchSelectCss, itemFiguresCss, rateTableCss];
+const SHEETS = [...APP_STYLES, toastCss, rowMenuCss, rowHeightCss, gridFitCss, entryFrameCss, editGridCss, sheetGridCss, searchSelectCss, itemFiguresCss, rateTableCss];
 
 export const isDefault = (d: Display) => d.density === 'comfortable' && d.textSize === 'normal';
 export const displayLabel = (d: Display) => `${DENSITIES.find((x) => x[0] === d.density)![1]} · ${TEXT_SIZES.find((x) => x[0] === d.textSize)![1]} text`;

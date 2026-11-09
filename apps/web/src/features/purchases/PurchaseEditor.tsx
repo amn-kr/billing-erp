@@ -9,7 +9,7 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { DN_REASONS, PU_MODES, amountInWords, batchDateText, isBankMode, money, parseBatchDate, purchaseTotals, type PurchaseInput } from '@billing/shared';
+import { DN_REASONS, PU_MODES, amountInWords, batchDateText, formatQty, isBankMode, money, parseBatchDate, purchaseTotals, type PurchaseInput } from '@billing/shared';
 import { bankFor, bankOf, useBankPick } from '../banking/BankPick';
 import { api, ApiError } from '../../lib/api';
 import { dmy, inr, inr2f } from '../../lib/format';
@@ -26,14 +26,15 @@ import type { Party } from '../parties/PartiesPage';
 import { pct } from '../sales/InvoicePreview';
 import { useEditorData, type EditorData } from '../sales/editor/data';
 import { ComboList, comboKey, useCombo, type ComboOpt } from '../sales/editor/Grid';
+import { ExtraTh, GridColGroup, footCells, useGridFit, type ColOpts } from '../sales/editor/columns';
 import { useEditorLayout } from '../sales/editor/layout';
 import { PhDrop, type PH } from '../sales/editor/PriceHistory';
 import { DGACC, DGIMG } from '../sales/editor/ToolsPop';
 import { stockText, DG_TERMS, addDaysIso, daysDiff, partyState, r2, type EItem, type EParty } from '../sales/editor/state';
 import { PE_T, PU_KEYS, usePurchases, type PKind, type PurchaseDoc } from './model';
 import { editAsk, withPasscode } from '../settings/passcode';
-import { useFeature, useItemFields, useItemWord } from '../../lib/features';
-import { BatchRowCells, type LineBatch } from './BatchRow';
+import { useBatchView, useFeature, useItemFields, useItemWord } from '../../lib/features';
+import { BatchCells, type LineBatch } from './BatchRow';
 import { SlModal, type SlModalProps } from '../sales/SlModal';
 import { ui } from '../../styles/uiSize';
 import { usePhone } from '../../lib/usePhone';
@@ -213,6 +214,11 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
   const mrpOn = useFeature('mrp');
   const packOn = useFeature('pack_loose');
   const show = useItemFields();
+  // which columns are on: the colgroup widths and the Total row follow this list
+  const bv = useBatchView();
+  const batchCol = useFeature('batch_no') && k !== 'order';
+  const co: ColOpts = { brand: show.brand, series: show.series, hsn: gstOn, tax: G, batch: batchCol, mfg: batchCol && k === 'bill' && bv.mfg, exp: batchCol && k === 'bill' && bv.exp, mrp: batchCol && k === 'bill' && mrpOn, pack: packOn };
+  const fit = useGridFit('#vPEd .dgw', co);
   const word = useItemWord();
   const stockTxt = (l: PLine) => {
     const it = item(l);
@@ -438,13 +444,14 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
       </div>
 
       <div className="card dggrid"><div className="tw dgw"><table className="dgt">
-        <thead id="peHead"><tr><th rowSpan={2} className="c">#</th><th rowSpan={2} className="it">Item</th><th rowSpan={2} className="hic">Item code</th>{show.brand ? <th rowSpan={2} className="hib">Brand</th> : null}{show.series ? <th rowSpan={2} className="his">Series</th> : null}{gstOn ? <th rowSpan={2} className="hs">HSN</th> : null}<th rowSpan={2} className="n qt">Qty</th><th rowSpan={2} className="un">Unit</th>
+        <GridColGroup o={co} fit={fit ?? undefined} />
+        <thead id="peHead"><tr><th rowSpan={2} className="c">#</th><th rowSpan={2} className="it">Item</th><th rowSpan={2} className="hic">Item code</th>{show.brand ? <th rowSpan={2} className="hib">Brand</th> : null}{show.series ? <th rowSpan={2} className="his">Series</th> : null}{gstOn ? <th rowSpan={2} className="hs">HSN</th> : null}{co.batch ? <ExtraTh k="bt" label={bv.word('batch', 'Batch')} /> : null}{co.mfg ? <ExtraTh k="mf" label={bv.word('mfg', 'Mfg')} /> : null}{co.exp ? <ExtraTh k="ex" label={bv.word('exp', 'Expiry')} /> : null}{co.mrp ? <ExtraTh k="mr" label={bv.word('mrp', 'MRP')} /> : null}<th rowSpan={2} className="n qt">Qty</th><th rowSpan={2} className="un">Unit</th>{co.pack ? <ExtraTh k="pk" label="Pack" /> : null}
           <th rowSpan={2} className="n pr">Rate{G ? <label className="siincl"><input type="checkbox" id="peIncl" checked={s.incl} onChange={(e) => up((x) => { x.incl = e.target.checked; })} /> incl. GST</label> : null}</th><th colSpan={2} className="c grp">Discount</th><th rowSpan={2} className="n fr">Final rate</th>{G ? <th colSpan={2} className="c grp">Tax</th> : null}<th rowSpan={2} className="n am">Amount</th><th rowSpan={2} className="x"><span className="sr">Remove</span></th></tr>
           <tr><th className="n sub dp">%</th><th className="n sub da">Amount</th>{G ? <><th className="n sub tp">%</th><th className="n sub ta">Amount</th></> : null}</tr></thead>
         <tbody id="peRows">{s.lines.map((l, i) => {
           const it = item(l), r = t.rows[i]!, sk = `item${i}`, stx = stockTxt(l);
           return (
-            <Fragment key={i}><tr data-ln={i}><td className="c">{i + 1}</td>
+            <Fragment key={i}><tr data-ln={i} data-bx={tracked(l) ? i : undefined}><td className="c">{i + 1}</td>
               <td><div className="gic"><div className="combo"><input className="gi pe-item" data-pf="name" value={it && it.grp && it.brand ? it.grp : l.name} title={l.name} placeholder="Search item, brand or code" autoComplete="off" aria-label={`Item ${i + 1}`}
                 onChange={(e) => { const v = e.target.value; up((x) => { Object.assign(x.lines[i]!, { name: v, id: '' }); }); c.show(sk, itemOpts(v), (o) => pickItem(i, o)); }}
                 onFocus={(e) => { if (!l.id) c.show(sk, itemOpts(e.target.value), (o) => pickItem(i, o)); }}
@@ -452,18 +459,24 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
                 onBlur={() => setTimeout(() => { const a = document.activeElement as HTMLElement | null; if (!a?.closest('.combo')) c.hide(); }, 120)} /><ComboList c={c} k={sk} grid /></div>{stx ? <small className="mu">{stx}</small> : null}</div></td>
               <td className="ro l mono dgc1">{it?.code ?? ''}</td>{show.brand ? <td className="ro l dgc2">{it?.brand ?? ''}</td> : null}{show.series ? <td className="ro l dgc2">{it?.series ?? ''}</td> : null}
               {gstOn ? <td><input className="gi" data-pf="hsn" value={l.hsn} inputMode="numeric" aria-label="HSN" onChange={(e) => setLine(i, 'hsn', e.target.value)} onKeyDown={enterNext} /></td> : null}
-              <td><input className="gi n" data-pf="qty" value={l.qty} inputMode="decimal" aria-label="Quantity" onChange={(e) => setLine(i, 'qty', e.target.value)} onKeyDown={enterNext} /></td>{it?.pack && packOn ? <td><select className="gi" data-pf="unit" aria-label={`Unit for row ${i + 1}`} style={{ color: 'var(--ac)', fontWeight: 600 }} value={l.unit} onKeyDown={tracked(l) ? (e) => enterNext(e as unknown as React.KeyboardEvent<HTMLInputElement>) : undefined} onChange={(e) => { const v = e.target.value, size = money(it.pack!.size); up((x) => { const L = x.lines[i]!; if (L.unit === v) return; L.rate = (v === it.pack!.unit ? money(n(L.rate)).times(size) : money(n(L.rate)).div(size)).toDecimalPlaces(2).toNumber(); L.unit = v; }); }}><option value={it.pack.unit}>{it.pack.unit}</option><option value={it.unit}>{it.unit}</option></select></td> : <td className="ro l">{l.unit || '—'}</td>}
+              {co.batch ? <BatchCells i={i} tracked={tracked(l)} o={co} kind={k === 'order' ? 'bill' : k} itemId={l.id} against={!!s.against} packUnit={it?.pack?.unit} b={{ batchNo: l.batchNo ?? '', mfg: l.mfg ?? '', expiry: l.expiry ?? '', batchId: l.batchId ?? '', mrp: l.mrp ?? '' }} onChange={(f, v) => setLine(i, f, v)} onKeyDown={enterNext} /> : null}
+              <td><input className="gi n" data-pf="qty" value={l.qty} inputMode="decimal" aria-label="Quantity" onChange={(e) => setLine(i, 'qty', e.target.value)} onKeyDown={enterNext} /></td>{it?.pack && packOn ? <td><select className="gi" data-pf="unit" aria-label={`Unit for row ${i + 1}`} style={{ color: 'var(--ac)', fontWeight: 600 }} value={l.unit} onKeyDown={tracked(l) ? (e) => enterNext(e as unknown as React.KeyboardEvent<HTMLInputElement>) : undefined} onChange={(e) => { const v = e.target.value, size = money(it.pack!.size); up((x) => { const L = x.lines[i]!; if (L.unit === v) return; L.rate = (v === it.pack!.unit ? money(n(L.rate)).times(size) : money(n(L.rate)).div(size)).toDecimalPlaces(2).toNumber(); L.unit = v; }); }}><option value={it.pack.unit}>{it.pack.unit}</option><option value={it.unit}>{it.unit}</option></select></td> : <td className="ro l">{l.unit || '—'}</td>}{co.pack ? <td className="ro l" data-pk={i}>{it?.pack ? `1 ${it.pack.unit} = ${formatQty(it.pack.size)} ${it.unit}` : ''}</td> : null}
               <td><input className="gi n" data-pf="rate" value={l.rate} inputMode="decimal" aria-label="Rate" onChange={(e) => setLine(i, 'rate', e.target.value)} onKeyDown={enterNext} /></td>
               <td><input className="gi n" data-pf="disc" value={typeof l.disc === 'string' ? l.disc : l.disc ? r2(l.disc) : ''} placeholder="0" inputMode="decimal" aria-label="Discount percent" onChange={(e) => setLine(i, 'disc', e.target.value)} onKeyDown={enterNext} /></td>
               <td><DiscAmt value={Number(r.disc)} onSet={(a) => up((x) => { const L = x.lines[i]!; const g = n(L.qty) * n(L.rate); L.disc = g > 0 ? Math.min(100, (a / g) * 100) : 0; })} onKeyDown={enterNext} /></td>
               <td className="ro b" data-o="fr">{inr2f(r2(n(l.rate) * (1 - n(l.disc) / 100)))}</td>
               {G ? <><td><select className="gi" data-pf="gst" aria-label="GST rate" value={String(l.gst)} onKeyDown={tracked(l) ? (e) => enterNext(e as unknown as React.KeyboardEvent<HTMLInputElement>) : undefined} onChange={(e) => up((x) => { x.lines[i]!.gst = Number(e.target.value); })}>{d.gstRates.map((g) => <option value={String(g)} key={g}>{pct(g)}</option>)}</select></td><td className="ro" data-o="tx">{inr2f(r.tx.toString())}</td></> : null}
               <td className="ro b" data-o="amt">{inr2f(r.amt.toString())}</td><td className="x"><button type="button" className="ix" data-pdel={i} aria-label={`Remove row ${i + 1}`} disabled={s.lines.length === 1} onClick={() => up((x) => { x.lines.splice(i, 1); if (!x.lines.length) x.lines.push(peLine()); })}><Icon name="x" /></button></td></tr>
-            {tracked(l) && k !== 'order' ? <BatchRowCells i={i} cols={2 + (show.brand ? 1 : 0) + (show.series ? 1 : 0) + (gstOn ? 1 : 0) + 6 + (G ? 2 : 0) + 2} kind={k} itemId={l.id} against={!!s.against} showMrp={mrpOn} packUnit={it?.pack?.unit} b={{ batchNo: l.batchNo ?? '', mfg: l.mfg ?? '', expiry: l.expiry ?? '', batchId: l.batchId ?? '', mrp: l.mrp ?? '' }} onChange={(f, v) => setLine(i, f, v)} onKeyDown={enterNext} /> : null}</Fragment>
+            </Fragment>
           );
         })}</tbody>
-        <tfoot id="peFoot"><tr><td></td><td><div className="dgft"><button type="button" className="btn sm" id="peAddRow" onClick={() => { up((x) => { x.lines.push(peLine()); }); setTimeout(() => [...document.querySelectorAll<HTMLElement>('#peRows .pe-item')].pop()?.focus(), 0); }}><Icon name="plus" />Add row</button><b>Total</b></div></td><td></td><td></td><td></td>{gstOn ? <td></td> : null}
-          <td className="ro" data-t="qty">{qfmt(s.lines.reduce((a, l) => a + (l.id || l.name ? n(l.qty) : 0), 0))}</td><td></td><td></td><td></td><td className="ro" data-t="disc">{inr2f(t.rows.reduce((a, r) => a + Number(r.disc), 0))}</td><td></td>{G ? <><td></td><td className="ro" data-t="tx">{inr2f(t.rows.reduce((a, r) => a + Number(r.tx), 0))}</td></> : null}<td className="ro b" data-t="amt">{inr2f(t.rows.reduce((a, r) => a + Number(r.amt), 0))}</td><td></td></tr></tfoot>
+        <tfoot id="peFoot"><tr>{footCells(co, {
+          it: <td><div className="dgft"><button type="button" className="btn sm" id="peAddRow" onClick={() => { up((x) => { x.lines.push(peLine()); }); setTimeout(() => [...document.querySelectorAll<HTMLElement>('#peRows .pe-item')].pop()?.focus(), 0); }}><Icon name="plus" />Add row</button><b>Total</b></div></td>,
+          qt: <td className="ro" data-t="qty">{qfmt(s.lines.reduce((a, l) => a + (l.id || l.name ? n(l.qty) : 0), 0))}</td>,
+          da: <td className="ro" data-t="disc">{inr2f(t.rows.reduce((a, r) => a + Number(r.disc), 0))}</td>,
+          ta: <td className="ro" data-t="tx">{inr2f(t.rows.reduce((a, r) => a + Number(r.tx), 0))}</td>,
+          am: <td className="ro b" data-t="amt">{inr2f(t.rows.reduce((a, r) => a + Number(r.amt), 0))}</td>,
+        })}</tr></tfoot>
       </table></div></div>
 
       <div className="dgb">

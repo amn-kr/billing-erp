@@ -38,7 +38,8 @@ test('a rate above MRP shows on the line and asks on saving; it prints with the 
   // No batch first, at the item's MRP 100, alongside A123's 120: the lowest counts
   const line = page.locator('[data-bxl="0"]');
   await expect(line).toContainText('A123');
-  await expect(line).toContainText('MRP 100.00, rate is above it');
+  await expect(page.locator('[data-mrp="0"]')).toHaveText('100.00');
+  await expect(page.locator('[data-mrp="0"]')).toHaveAttribute('title', 'The rate is above the MRP');
   await expect(page.locator('#siRows tr[data-ln="0"] td.frc')).toHaveAttribute('data-mrpbad', '1');
 
   await charges(page);

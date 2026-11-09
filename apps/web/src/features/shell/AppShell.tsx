@@ -22,6 +22,7 @@ import toastCss from './toast.css?inline';
 import classicCss from './classic.css?inline';
 import rowMenuCss from './row-menu.css?inline';
 import rowHeightCss from './row-height.css?inline';
+import gridFitCss from '../sales/editor/grid-fit.css?inline';
 import { VIEW_LABEL, VIEW_PATH, type NavLink } from './nav';
 import { REPSEC, repOf } from '../reports/catalogue';
 import { Sidebar } from './Sidebar';
