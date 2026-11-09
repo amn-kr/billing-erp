@@ -5,9 +5,10 @@
  * 50 items, 50 parties and 50 sales invoices of about ₹10 lakh per shop, plus purchase bills,
  * payments, expenses, quotations and credit notes. All names, phone numbers and GSTINs are invented.
  *
- *   API_URL=http://localhost:3310 DATABASE_URL=... DEMO_EMAIL=demo@billing-erp.example.com \
+ *   API_URL=http://localhost:3310 DATABASE_URL=... \
  *   DEMO_PASSWORD=... pnpm --filter @billing/api db:seed-demo-shop
  *
+ * The medical shop also has batches, expiry dates and strip/tablet selling, so the Expiry Report has something to show.
  * Run it once on an empty database. Needs the API running (it signs in as the demo user).
  */
 import 'reflect-metadata';
@@ -17,7 +18,8 @@ import { DbService } from '../src/common/db.service';
 import { BusinessesService } from '../src/modules/businesses/businesses.service';
 
 const API = (process.env.API_URL ?? 'http://localhost:3000') + '/api';
-const EMAIL = process.env.DEMO_EMAIL ?? 'demo@billing-erp.example.com';
+// fixed on purpose: Prisma quietly loads apps/api/.env, whose DEMO_EMAIL once sent the fill to another login
+const EMAIL = 'demo@billing-erp.example.com';
 const PASSWORD = process.env.DEMO_PASSWORD ?? '';
 const TODAY = process.env.DEMO_TODAY ?? new Date().toISOString().slice(0, 10);
 
@@ -55,7 +57,7 @@ async function call<T = any>(method: string, path: string, body?: unknown): Prom
 }
 
 /* ── the shop's items: name, unit, HSN, GST %, sale price, category, brand, sold-in-bulk factor ─ */
-type ItemDef = { name: string; unit: string; hsn: string; gst: number; sale: number; cat: string; brand: string; w: number };
+type ItemDef = { name: string; unit: string; hsn: string; gst: number; sale: number; cat: string; brand: string; w: number; pack?: { size: number; loose: string } };
 const ITEMS: ItemDef[] = [
   { name: 'Havells FHR 1.5 sq mm wire 90 m', unit: 'COIL', hsn: '8544', gst: 18, sale: 2450, cat: 'Wires & cables', brand: 'Havells', w: 5 },
   { name: 'Havells FHR 2.5 sq mm wire 90 m', unit: 'COIL', hsn: '8544', gst: 18, sale: 3980, cat: 'Wires & cables', brand: 'Havells', w: 5 },
@@ -176,6 +178,14 @@ const MEDICAL_ITEMS = expand([
   'Sanitary and baby care|PACK|9619|12|Baby care|Pampers|10|Pampers M 58 pcs:1090,Whisper Ultra 30 pcs:295,Dettol hand wash 900 ml:185',
 ]);
 
+/** Medical: a strip that says how many it holds is sold by the strip or loose (1 STRIP = 15 TAB); the others are single pieces. */
+const withPacks = (rows: ItemDef[]): ItemDef[] =>
+  rows.map((d) => {
+    if (d.unit !== 'STRIP') return d;
+    const m = /(\d+) (tabs|caps)/.exec(d.name);
+    return m ? { ...d, pack: { size: Number(m[1]), loose: m[2] === 'tabs' ? 'TAB' : 'CAP' } } : { ...d, unit: 'BTL' };
+  });
+
 const CLOTHING_ITEMS = expand([
   "Men's cotton shirt|PCS|6205|5|Menswear|Raymond|20|M:540,L:560,XL:590",
   "Men's jeans|PCS|6203|5|Menswear|Levi's|14|30 in:1290,32 in:1290,34 in:1340",
@@ -241,7 +251,7 @@ const sup = (names: string[]): [string, string, string, string, string][] => nam
 
 const SHOPS: Shop[] = [
   { key: 'hardware', name: 'Sharma Electricals & Hardware', owner: 'Rajesh Sharma', addr: 'Shop 12, Naka Hindola', pin: '226018', withGst: true, items: ITEMS, customers: CUSTOMERS, suppliers: SUPPLIERS, billNote: '' },
-  { key: 'medical', name: 'Sanjeevani Medical Store', owner: 'Dr. Anil Mehra', addr: '14, Near District Hospital, Hazratganj', pin: '226001', withGst: true, items: MEDICAL_ITEMS, billNote: '',
+  { key: 'medical', name: 'Sanjeevani Medical Store', owner: 'Dr. Anil Mehra', addr: '14, Near District Hospital, Hazratganj', pin: '226001', withGst: true, items: withPacks(MEDICAL_ITEMS), billNote: '',
     customers: people(38, ['Dr. Kapoor Clinic', 'Lifeline Nursing Home', 'City Care Hospital', 'Shanti Dental Clinic', 'Aarogya Diagnostics', 'Sunrise Old Age Home', 'Dr. Rizvi Child Clinic', 'Navjeevan Health Centre']),
     suppliers: sup(['Cipla Distributors – Lucknow', 'Sun Pharma Stockist', 'Mankind Pharma Agency', 'Alkem Laboratories Dealer', 'Zydus Healthcare Depot', 'Torrent Pharma Stockist', 'Abbott India Distributor', 'Omron Healthcare Dealer', 'Dabur & Himalaya Wholesale', 'Medico Surgicals Traders', 'Pampers & Baby Care Agency', 'Generic Disposables Supply']) },
   { key: 'clothing', name: 'Royal Fashion Point', owner: 'Neha Agarwal', addr: '27, Main Market, Aminabad', pin: '226018', withGst: true, items: CLOTHING_ITEMS, billNote: '',
@@ -266,6 +276,9 @@ async function fillShop(shop: Shop, businessId: string) {
 
   await call('POST', '/banking/accounts', { name: 'HDFC Bank – Current A/c', sub: 'Current account', accountNo: String(between(10000000000000, 99999999999999)), ifsc: 'HDFC0000123', branch: 'Lucknow', openingBalance: '600000', openingDate: addDays(TODAY, -215), isDefault: true });
 
+  const medical = shop.key === 'medical';
+  if (medical) await call('PUT', '/settings/features', { enabled: ['batch_no', 'exp_date', 'mfg_date', 'mrp', 'pack_loose'] });
+
   /* parties */
   const parties: { id: string; kind: 'customer' | 'supplier'; state: string }[] = [];
   const mk = async (kind: 'customer' | 'supplier', d: readonly [string, string, string, string, string], i: number) => {
@@ -286,8 +299,8 @@ async function fillShop(shop: Shop, businessId: string) {
   for (const [i, d] of defs.entries()) {
     const purchase = r2(d.sale * (0.74 + rnd() * 0.12));
     const it = await call('POST', '/items', {
-      name: d.name, kind: d.cat === 'Services' ? 'service' : 'goods', code: `${shop.key.slice(0, 2).toUpperCase()}${String(i + 1).padStart(3, '0')}`, hsn: d.hsn, unit: d.unit, category: d.cat, brand: d.brand,
-      gstRate: d.gst, sale: String(d.sale), purchase: String(purchase), mrp: String(Math.round(d.sale * 1.1)), minStock: d.w ? String(Math.max(2, Math.round(d.w / 3))) : '0',
+      name: d.name, kind: d.cat === 'Services' ? 'service' : 'goods', code: `${shop.key.slice(0, 2).toUpperCase()}${String(i + 1).padStart(3, '0')}`, hsn: d.hsn, unit: d.pack ? d.pack.loose : d.unit, ...(d.pack ? { packUnit: d.unit, packSize: String(d.pack.size) } : {}), trackBatch: medical && d.cat !== 'Devices', category: d.cat, brand: d.brand,
+      gstRate: d.gst, sale: String(d.sale), purchase: String(purchase), mrp: String(Math.round(d.sale * 1.1)), minStock: d.w ? String(Math.max(2, Math.round(d.w / 3)) * (d.pack?.size ?? 1)) : '0',
     });
     items.push({ id: it.id, def: d, purchase, sold: 0 });
   }
@@ -300,7 +313,7 @@ async function fillShop(shop: Shop, businessId: string) {
   const suppliers = parties.filter((p) => p.kind === 'supplier');
   const firstSale = addDays(TODAY, -150);
   const dates = Array.from({ length: 50 }, () => addDays(firstSale, between(0, 149))).sort();
-  type Plan = { date: string; party: (typeof parties)[number] | null; cashName: string; mode: 'credit' | 'cash'; lines: { item: (typeof items)[number]; qty: number; disc: number }[] };
+  type Plan = { date: string; party: (typeof parties)[number] | null; cashName: string; mode: 'credit' | 'cash'; lines: { item: (typeof items)[number]; qty: number; disc: number; loose?: boolean }[] };
   const plans: Plan[] = dates.map((date, n) => {
     const cash = n % 4 === 3;
     const chosen = new Set<(typeof goods)[number]>();
@@ -318,11 +331,28 @@ async function fillShop(shop: Shop, businessId: string) {
     for (const p of plans) for (const l of p.lines) l.qty = Math.max(1, Math.round(l.qty * k));
   }
   for (const p of plans) for (const l of p.lines) l.item.sold += l.qty;
+  // medical: about one line in four is sold loose (strips and a few tablets), not in whole strips
+  for (const p of plans)
+    for (const l of p.lines)
+      if (l.item.def.pack && rnd() < 0.25) {
+        l.qty = l.qty * l.item.def.pack.size - between(1, l.item.def.pack.size - 1);
+        l.loose = true;
+      }
+  const rateOfLine = (l: Plan['lines'][number]) => (l.loose ? r2(l.item.def.sale / l.item.def.pack!.size) : l.item.def.sale);
 
   /* purchase bills: a big first order and a top-up, per supplier */
   const bySupplier = new Map<string, typeof items>();
   goods.forEach((it, i) => { const id = suppliers[i % suppliers.length]!.id; bySupplier.set(id, [...(bySupplier.get(id) ?? []), it]); });
-  const billPlans: { sup: string; date: string; lines: { it: (typeof items)[number]; qty: number; rate: number }[] }[] = [];
+  type BillPlan = { sup: string; date: string; stage: 'first' | 'top' | 'extra'; lines: { it: (typeof items)[number]; qty: number; rate: number }[] };
+  const billPlans: BillPlan[] = [];
+  // what the medical shop's last small purchase of each item looks like on the Expiry Report
+  const expiryBucket = (it: (typeof items)[number]) => ['expired', 'soon30', 'soon90', 'soon90', 'later', 'later'][goods.indexOf(it) % 6] as 'expired' | 'soon30' | 'soon90' | 'later';
+  const batchOf = (b: BillPlan, it: (typeof items)[number]) => {
+    if (!medical || it.def.cat === 'Devices') return {};
+    const days = b.stage === 'first' ? between(420, 760) : b.stage === 'top' ? between(560, 900) : { expired: -between(8, 60), soon30: between(6, 28), soon90: between(35, 85), later: between(200, 500) }[expiryBucket(it)];
+    const expiry = addDays(TODAY, days);
+    return { batchNo: `${it.def.brand.slice(0, 2).toUpperCase()}${between(10000, 99999)}`, mfg: addDays(b.date, -between(30, 120)), expiry, batchMrp: String(Math.round(it.def.sale * 1.12)) };
+  };
   // each bill buys at its own rate (a little up or down), so an item's stock shows several purchase rates
   const rateOf = (it: (typeof items)[number]) => r2(it.purchase * (0.93 + rnd() * 0.16));
   for (const [id, its] of bySupplier) {
@@ -330,39 +360,49 @@ async function fillShop(shop: Shop, businessId: string) {
     const first = want.map((w) => ({ it: w.it, qty: Math.max(1, Math.ceil(w.total * 0.8)), rate: rateOf(w.it) }));
     const top = want.map((w) => ({ it: w.it, qty: w.total - Math.max(1, Math.ceil(w.total * 0.8)), rate: rateOf(w.it) })).filter((l) => l.qty > 0);
     const half = Math.ceil(first.length / 2);
-    billPlans.push({ sup: id, date: addDays(firstSale, -between(60, 80)), lines: first.slice(0, half) });
-    if (first.length > half) billPlans.push({ sup: id, date: addDays(firstSale, -between(25, 55)), lines: first.slice(half) });
+    billPlans.push({ sup: id, stage: 'first', date: addDays(firstSale, -between(60, 80)), lines: first.slice(0, half) });
+    if (first.length > half) billPlans.push({ sup: id, stage: 'first', date: addDays(firstSale, -between(25, 55)), lines: first.slice(half) });
     // one more small bill of every item, bought recently at yet another rate
-    billPlans.push({ sup: id, date: addDays(TODAY, -between(4, 30)), lines: its.map((it) => ({ it, qty: Math.max(2, Math.round(it.def.w * 0.4)), rate: rateOf(it) })) });
-    if (top.length) billPlans.push({ sup: id, date: addDays(firstSale, between(45, 70)), lines: top });
+    const extra = its.map((it) => ({ it, qty: Math.max(2, Math.round(it.def.w * 0.4)), rate: rateOf(it) }));
+    const extraDate = addDays(TODAY, -between(4, 30));
+    // medical: stock that has already run out of date came in on an old bill, the rest on a recent one
+    const expired = medical ? extra.filter((l) => expiryBucket(l.it) === 'expired') : [];
+    const fresh = extra.filter((l) => !expired.includes(l));
+    if (expired.length) billPlans.push({ sup: id, stage: 'extra', date: addDays(TODAY, -between(150, 175)), lines: expired });
+    if (fresh.length) billPlans.push({ sup: id, stage: 'extra', date: extraDate, lines: fresh });
+    if (top.length) billPlans.push({ sup: id, stage: 'top', date: addDays(firstSale, between(45, 70)), lines: top });
   }
   billPlans.sort((a, b) => a.date.localeCompare(b.date));
   const bills: { id: string; sup: string; date: string; total: number }[] = [];
-  for (const b of billPlans) {
+  const postBill = async (b: BillPlan) => {
     const total = billTotal(b.lines.map((l) => ({ qty: l.qty, price: l.rate, disc: 0, gst: l.it.def.gst })));
     const r = await call('POST', '/purchases', {
       kind: 'bill', supplierRef: `INV/${between(1000, 9999)}`, date: b.date, dueDate: addDays(b.date, 30), partyId: b.sup, pricesInclTax: false, updatePrices: false,
-      lines: b.lines.map((l) => ({ itemId: l.it.id, name: l.it.def.name, hsn: l.it.def.hsn, unit: l.it.def.unit, qty: String(l.qty), rate: String(l.rate), discPct: '0', gstRate: String(l.it.def.gst) })),
+      lines: b.lines.map((l) => ({ itemId: l.it.id, name: l.it.def.name, hsn: l.it.def.hsn, unit: l.it.def.unit, qty: String(l.qty), rate: String(l.rate), discPct: '0', gstRate: String(l.it.def.gst), ...batchOf(b, l.it) })),
     });
     bills.push({ id: r.id, sup: b.sup, date: b.date, total });
-  }
-  log(`${bills.length} purchase bills`);
+  };
+  // medical: earliest expiry is sold first, so the short-dated stock goes in after the sales or it would all be sold
+  const afterSales = medical ? billPlans.filter((b) => b.stage === 'extra') : [];
+  for (const b of billPlans) if (!afterSales.includes(b)) await postBill(b);
 
   /* the 50 sales invoices, in date order (counter sales are paid in full at once) */
   const sales: { id: string; party: string | null; date: string; total: number; plan: Plan }[] = [];
   for (const p of plans) {
-    const lines = p.lines.map((l) => ({ itemId: l.item.id, name: l.item.def.name, hsn: l.item.def.hsn, unit: l.item.def.unit, qty: String(l.qty), price: String(l.item.def.sale), discPct: String(l.disc), gstRate: String(l.item.def.gst) }));
-    const calc = p.lines.map((l) => ({ qty: l.qty, price: l.item.def.sale, disc: l.disc, gst: l.item.def.gst }));
+    const lines = p.lines.map((l) => ({ itemId: l.item.id, name: l.item.def.name, hsn: l.item.def.hsn, unit: l.loose ? l.item.def.pack!.loose : l.item.def.unit, qty: String(l.qty), price: String(rateOfLine(l)), discPct: String(l.disc), gstRate: String(l.item.def.gst) }));
+    const calc = p.lines.map((l) => ({ qty: l.qty, price: rateOfLine(l), disc: l.disc, gst: l.item.def.gst }));
     if (service && rnd() < 0.15) { lines.push({ itemId: service.id, name: service.def.name, hsn: service.def.hsn, unit: service.def.unit, qty: '1', price: '500', discPct: '0', gstRate: '18' }); calc.push({ qty: 1, price: 500, disc: 0, gst: 18 }); }
     const total = billTotal(calc);
     const mode = pick(PAY_MODES_DEMO);
     const r = await call('POST', '/sales', {
       kind: 'invoice', date: p.date, dueDate: addDays(p.date, 30), mode: p.mode, partyId: p.party?.id ?? null, cashName: p.cashName, pricesInclTax: false,
-      placeOfSupply: p.party?.state ?? '09', confirmOverLimit: true, lines, payments: p.mode === 'cash' ? [{ mode, amount: String(total) }] : [],
+      placeOfSupply: p.party?.state ?? '09', confirmOverLimit: true, confirmAboveMrp: true, lines, payments: p.mode === 'cash' ? [{ mode, amount: String(total) }] : [],
     });
     sales.push({ id: r.id, party: p.party?.id ?? null, date: p.date, total, plan: p });
   }
   log(`${sales.length} sales invoices`);
+  for (const b of afterSales) await postBill(b);
+  log(`${bills.length} purchase bills`);
 
   /* customers pay most credit bills, some in part; the newest stay due */
   let receipts = 0;
