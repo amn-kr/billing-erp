@@ -3,7 +3,7 @@
  * to the database. Nothing else is touched: only shops with the four demo names that belong to the
  * demo login are removed, and it stops if anyone else is a member of one of them.
  *
- *   MIGRATE_DATABASE_URL=<owner connection string> DEMO_EMAIL=demo@billing-erp.example.com \
+ *   MIGRATE_DATABASE_URL=<owner connection string> \
  *   pnpm --filter @billing/api db:demo-clean
  *
  * Use db:demo-reset to clean and fill again (needs API_URL and DEMO_PASSWORD too, see seed-demo-shop.ts).
@@ -14,7 +14,9 @@
 import { PrismaClient } from '@prisma/client';
 
 const URL = process.env.MIGRATE_DATABASE_URL;
-const EMAIL = process.env.DEMO_EMAIL ?? 'demo@billing-erp.example.com';
+// fixed on purpose: Prisma quietly loads apps/api/.env, whose DEMO_EMAIL once named another login. To clear another
+// login's demo-named shops, say so on the command line: --email=someone@example.com
+const EMAIL = process.argv.find((a) => a.startsWith('--email='))?.slice(8) ?? 'demo@billing-erp.example.com';
 export const DEMO_SHOP_NAMES = ['Sharma Electricals & Hardware', 'Sanjeevani Medical Store', 'Royal Fashion Point', 'Gupta Kirana & General Store'];
 
 async function main() {
