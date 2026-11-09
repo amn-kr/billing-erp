@@ -316,23 +316,27 @@ async function fillShop(shop: Shop, businessId: string) {
   /* purchase bills: a big first order and a top-up, per supplier */
   const bySupplier = new Map<string, typeof items>();
   goods.forEach((it, i) => { const id = suppliers[i % suppliers.length]!.id; bySupplier.set(id, [...(bySupplier.get(id) ?? []), it]); });
-  const billPlans: { sup: string; date: string; lines: { it: (typeof items)[number]; qty: number }[] }[] = [];
+  const billPlans: { sup: string; date: string; lines: { it: (typeof items)[number]; qty: number; rate: number }[] }[] = [];
+  // each bill buys at its own rate (a little up or down), so an item's stock shows several purchase rates
+  const rateOf = (it: (typeof items)[number]) => r2(it.purchase * (0.93 + rnd() * 0.16));
   for (const [id, its] of bySupplier) {
     const want = its.map((it) => ({ it, total: Math.max(1, Math.ceil(it.sold * (1.03 + rnd() * 0.27))) }));
-    const first = want.map((w) => ({ it: w.it, qty: Math.max(1, Math.ceil(w.total * 0.8)) }));
-    const top = want.map((w) => ({ it: w.it, qty: w.total - Math.max(1, Math.ceil(w.total * 0.8)) })).filter((l) => l.qty > 0);
+    const first = want.map((w) => ({ it: w.it, qty: Math.max(1, Math.ceil(w.total * 0.8)), rate: rateOf(w.it) }));
+    const top = want.map((w) => ({ it: w.it, qty: w.total - Math.max(1, Math.ceil(w.total * 0.8)), rate: rateOf(w.it) })).filter((l) => l.qty > 0);
     const half = Math.ceil(first.length / 2);
     billPlans.push({ sup: id, date: addDays(firstSale, -between(60, 80)), lines: first.slice(0, half) });
     if (first.length > half) billPlans.push({ sup: id, date: addDays(firstSale, -between(25, 55)), lines: first.slice(half) });
+    // one more small bill of every item, bought recently at yet another rate
+    billPlans.push({ sup: id, date: addDays(TODAY, -between(4, 30)), lines: its.map((it) => ({ it, qty: Math.max(2, Math.round(it.def.w * 0.4)), rate: rateOf(it) })) });
     if (top.length) billPlans.push({ sup: id, date: addDays(firstSale, between(45, 70)), lines: top });
   }
   billPlans.sort((a, b) => a.date.localeCompare(b.date));
   const bills: { id: string; sup: string; date: string; total: number }[] = [];
   for (const b of billPlans) {
-    const total = billTotal(b.lines.map((l) => ({ qty: l.qty, price: l.it.purchase, disc: 0, gst: l.it.def.gst })));
+    const total = billTotal(b.lines.map((l) => ({ qty: l.qty, price: l.rate, disc: 0, gst: l.it.def.gst })));
     const r = await call('POST', '/purchases', {
       kind: 'bill', supplierRef: `INV/${between(1000, 9999)}`, date: b.date, dueDate: addDays(b.date, 30), partyId: b.sup, pricesInclTax: false, updatePrices: false,
-      lines: b.lines.map((l) => ({ itemId: l.it.id, name: l.it.def.name, hsn: l.it.def.hsn, unit: l.it.def.unit, qty: String(l.qty), rate: String(l.it.purchase), discPct: '0', gstRate: String(l.it.def.gst) })),
+      lines: b.lines.map((l) => ({ itemId: l.it.id, name: l.it.def.name, hsn: l.it.def.hsn, unit: l.it.def.unit, qty: String(l.qty), rate: String(l.rate), discPct: '0', gstRate: String(l.it.def.gst) })),
     });
     bills.push({ id: r.id, sup: b.sup, date: b.date, total });
   }
