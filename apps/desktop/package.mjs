@@ -2,8 +2,13 @@
 //   node package.mjs              build only (pull requests: the installer to try)
 //   node package.mjs --publish    build and put it on GitHub Releases as tag v<version> (auto-update reads it)
 // The app's name comes from packages/shared/src/brand.ts; the program's file name and id never change with it.
+import { createRequire } from 'node:module';
 import { Arch, build, Platform } from 'electron-builder';
 import { BRAND } from '@billing/shared';
+
+// single-PC mode's parts, next to the app outside its archive (programs and native modules cannot run from inside it)
+const { ensurePostgres } = createRequire(import.meta.url)('./scripts/ensure-postgres.cjs');
+const postgres = ensurePostgres('win32-x64');
 
 const publish = process.argv.includes('--publish') ? 'always' : 'never';
 
@@ -17,7 +22,12 @@ await build({
     copyright: `© ${new Date().getFullYear()} ${BRAND.name}`,
     directories: { output: 'release', buildResources: 'resources' },
     // everything the app needs is bundled into dist/ (build.mjs); no node_modules go in
-    files: ['dist/**/*', '!dist/**/*.map', 'package.json'],
+    files: ['dist/**/*', '!dist/**/*.map', '!dist/server/**', '!dist/web/**', 'package.json'],
+    extraResources: [
+      { from: postgres, to: 'postgres', filter: ['**/*', '!pg-symlinks.json', '!.ready'] },
+      { from: 'dist/server', to: 'server', filter: ['**/*', '!**/*.map'] },
+      { from: 'dist/web', to: 'web' },
+    ],
     // a plain internal name (folders, update cache); people see productName
     extraMetadata: { name: 'billing-erp-desktop' },
     asar: true,

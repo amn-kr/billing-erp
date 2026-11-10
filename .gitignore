@@ -19,3 +19,5 @@ playwright-report/
 .turbo/
 # the Windows installer made by package.mjs
 apps/desktop/release/
+# PostgreSQL programs for the Windows app (scripts/ensure-postgres.cjs)
+apps/desktop/.cache/

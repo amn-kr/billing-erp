@@ -47,8 +47,9 @@ jobs:
         run: |
           want="v$(node -p "require('./apps/desktop/package.json').version")"
           [ "$GITHUB_REF_NAME" = "$want" ] || { echo "Tag $GITHUB_REF_NAME does not match apps/desktop/package.json ($want)"; exit 1; }
-      - name: Build the shared package
-        run: pnpm exec turbo run build --filter=@billing/shared
+      # the Windows app carries the server (apps/api) and the app's pages (apps/web) for single-PC mode
+      - name: Build the server, the pages and the shared package
+        run: pnpm exec turbo run build --filter=@billing/api --filter=@billing/web
       - name: Make the installer
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         run: pnpm --filter @billing/desktop package
