@@ -21,6 +21,7 @@ if (origin && location.origin === origin) {
       chooseFolder: (title?: string) => ipcRenderer.invoke('backup:chooseFolder', title),
       recoveryKey: () => ipcRenderer.invoke('backup:recoveryKey'),
       printRecoveryKey: () => ipcRenderer.invoke('backup:printKey'),
+      useCloud: (moved: { code: string; email: string }) => ipcRenderer.invoke('cloud:switch', moved),
     } : {}),
   });
 } else if (location.protocol === 'file:' && location.pathname.endsWith('/static/welcome.html')) {

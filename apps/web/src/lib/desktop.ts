@@ -14,6 +14,8 @@ export interface Desktop {
   recoveryKey?(): Promise<{ key: string; printedAt: string | null }>;
   /** single-PC mode only: prints the recovery key on its own page (Windows' print window) */
   printRecoveryKey?(): Promise<{ ok: boolean }>;
+  /** single-PC mode only, after Move to cloud: this computer works online from now on (opens the online app) */
+  useCloud?(moved: { code: string; email: string }): Promise<void>;
   /** the printers Windows knows, and the one chosen on this PC (null: open the print window) */
   printers(): Promise<{ printers: DesktopPrinter[]; chosen: string | null }>;
   choosePrinter(name: string | null): Promise<{ chosen: string | null }>;

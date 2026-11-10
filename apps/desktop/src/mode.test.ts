@@ -31,6 +31,13 @@ describe('the first-start choice (mode.json)', () => {
     fs.writeFileSync(path.join(d, 'mode.json'), '{not json');
     expect(readMode(d, {})).toBeNull();
   });
+  it('after Move to cloud: online, with where the books went', () => {
+    const d = dir();
+    writeMode(d, 'local');
+    writeMode(d, 'online', { code: 'BE-1042', email: 'owner@shop.example.com' });
+    expect(readMode(d, {})).toBe('online');
+    expect(JSON.parse(fs.readFileSync(path.join(d, 'mode.json'), 'utf8')).movedToCloud).toMatchObject({ code: 'BE-1042', email: 'owner@shop.example.com' });
+  });
   it('only the two modes can be written', () => {
     expect(() => writeMode(dir(), 'phone' as never)).toThrow();
   });

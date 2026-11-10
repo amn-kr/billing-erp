@@ -8,7 +8,7 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Prisma, type BackupDestination, type BackupFile } from '@prisma/client';
-import { financialYearOf, todayIst } from '@billing/shared';
+import { addDays, financialYearOf, todayIst } from '@billing/shared';
 import { config } from '../../config';
 import { DbService, type DbScope, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
@@ -390,18 +390,24 @@ export class BackupService {
    * the backup came from (activity log); `sourceId`: the shop the backup was made from (another
    * computer's shop when restoring from files), by default the current one.
    */
-  async restoreInto(ctx: RequestContext, b: { tables: TableInfo[]; books: ReturnType<typeof replay>['books']; lastAt: string | null }, from: string, fullCopyAt: Date, sourceId = ctx.businessId!) {
+  async restoreInto(ctx: RequestContext, b: { tables: TableInfo[]; books: ReturnType<typeof replay>['books']; lastAt: string | null }, from: string, fullCopyAt: Date, sourceId = ctx.businessId!, newId: string = randomUUID()) {
     const kind = from;
-    const oldId = ctx.businessId!;
-    const newId = randomUUID();
+    // Move to cloud: the person may have no books open here yet (then the books start a new free trial)
+    const oldId = ctx.businessId ?? null;
     const books = remapIds(b.books, b.tables, sourceId, newId);
     upgradeSeries(books);
     const biz = [...(books.get('businesses')?.values() ?? [])][0];
     if (!biz) throw new BadRequestException({ message: 'This backup has no business details.' });
-    const { cur, me } = await this.db.scoped(scopeOf(ctx), async (tx) => ({
-      cur: await tx.business.findUniqueOrThrow({ where: { id: oldId } }),
-      me: await tx.membership.findFirst({ where: { businessId: oldId, userId: ctx.userId } }),
-    }));
+    const { cur, me, name } = oldId
+      ? await this.db.scoped(scopeOf(ctx), async (tx) => ({
+        cur: await tx.business.findUniqueOrThrow({ where: { id: oldId } }),
+        me: await tx.membership.findFirst({ where: { businessId: oldId, userId: ctx.userId } }),
+        name: '',
+      }))
+      : { cur: null, me: null, name: (await this.db.scoped({ businessId: newId, userId: ctx.userId, email: ctx.email }, (tx) => tx.user.findUnique({ where: { id: ctx.userId } })))?.name ?? '' };
+    const plan = cur
+      ? { plan_status: cur.planStatus, trial_ends_on: dateOnly(cur.trialEndsOn), paid_until: cur.paidUntil ? dateOnly(cur.paidUntil) : null }
+      : { plan_status: 'trial', trial_ends_on: addDays(todayIst(), config().TRIAL_DAYS), paid_until: null };
     const upTo = b.lastAt ?? fullCopyAt.toISOString();
     const created = await this.db.scoped({ businessId: newId, userId: ctx.userId, email: ctx.email }, async (tx) => {
       const [row] = await tx.$queryRaw<{ code: string }[]>`SELECT 'BE-' || nextval('business_code_seq') AS code`;
@@ -409,22 +415,23 @@ export class BackupService {
       const info = (n: string) => b.tables.find((t) => t.name === n)!;
       // the plan stays as it is now: a restore is not a new free trial
       await insertRows(tx, info('businesses'), [{
-        ...biz, id: newId, code, owner_user_id: ctx.userId, created_by: ctx.userId, updated_at: new Date().toISOString(),
-        plan_status: cur.planStatus, trial_ends_on: dateOnly(cur.trialEndsOn), paid_until: cur.paidUntil ? dateOnly(cur.paidUntil) : null,
+        ...biz, id: newId, code, owner_user_id: ctx.userId, created_by: ctx.userId, updated_at: new Date().toISOString(), ...plan,
       }]);
       const owner = await tx.role.findFirstOrThrow({ where: { businessId: null, key: 'owner' } });
-      await tx.membership.create({ data: { businessId: newId, userId: ctx.userId, roleId: owner.id, displayName: me?.displayName ?? '', createdBy: ctx.userId } });
+      await tx.membership.create({ data: { businessId: newId, userId: ctx.userId, roleId: owner.id, displayName: me?.displayName ?? name, createdBy: ctx.userId } });
       for (const t of b.tables) {
         if (t.name === 'businesses' || (NOT_RESTORED as readonly string[]).includes(t.name)) continue;
         const rows = [...(books.get(t.name)?.values() ?? [])];
         if (rows.length) await insertRows(tx, t, rows);
       }
-      await this.audit.log(tx, { businessId: newId, userId: ctx.userId, action: 'restore', entity: 'backup', entityId: newId, after: { from: kind, fromBooks: cur.code, fullCopyAt, upTo }, ip: ctx.ip });
+      await this.audit.log(tx, { businessId: newId, userId: ctx.userId, action: 'restore', entity: 'backup', entityId: newId, after: { from: kind, fromBooks: cur?.code ?? null, fullCopyAt, upTo }, ip: ctx.ip });
       return { businessId: newId, code, name: String(biz.name ?? '') };
     }, { timeout: 600_000 });
-    await this.db.scoped(scopeOf(ctx), (tx) =>
-      this.audit.log(tx, { businessId: oldId, userId: ctx.userId, action: 'restore', entity: 'backup', entityId: newId, after: { from: kind, intoBooks: created.code, fullCopyAt, upTo }, ip: ctx.ip }),
-    );
+    if (oldId) {
+      await this.db.scoped(scopeOf(ctx), (tx) =>
+        this.audit.log(tx, { businessId: oldId, userId: ctx.userId, action: 'restore', entity: 'backup', entityId: newId, after: { from: kind, intoBooks: created.code, fullCopyAt, upTo }, ip: ctx.ip }),
+      );
+    }
     return created;
   }
 }
