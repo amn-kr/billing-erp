@@ -5,7 +5,7 @@
 # for another reason makes it red.
 # Reads (results of the jobs it waits for: success, failure, cancelled or skipped):
 #   ALREADY_TESTED_RUN, ALREADY_TESTED_URL  outputs of the already-tested job
-#   CHANGES, QUICK, E2E                     results of the changes, quick-checks and e2e (4 parts) jobs
+#   CHANGES, QUICK, E2E, DESKTOP            results of the changes, quick-checks, e2e (4 parts) and desktop jobs
 set -u
 summary="${GITHUB_STEP_SUMMARY:-/dev/null}"
 
@@ -25,8 +25,9 @@ else
     check "What changed" "${CHANGES:-missing}"
     check "Quick checks (brand, typecheck, unit and API tests, build)" "${QUICK:-missing}"
     check "Browser and picture tests (all 4 parts)" "${E2E:-missing}"
+    check "Windows app tests" "${DESKTOP:-missing}"
   } | tee -a "$summary"
-  required=("${CHANGES:-}" "${QUICK:-}" "${E2E:-}")
+  required=("${CHANGES:-}" "${QUICK:-}" "${E2E:-}" "${DESKTOP:-}")
 fi
 bad=0
 for r in "${required[@]}"; do [ "$r" = success ] || bad=1; done
