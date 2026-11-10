@@ -255,6 +255,15 @@ jobs:
         run: pnpm --filter @billing/web exec playwright install --with-deps chromium
       - name: Build
         run: pnpm build
+      # Linux only (the test machine): Electron's security sandbox helper must belong to root, as an
+      # installed Linux app's would; this keeps the sandbox on instead of switching it off
+      - name: Electron, with its sandbox helper set up
+        working-directory: apps/desktop
+        run: |
+          node scripts/ensure-electron.cjs
+          helper="$(dirname "$(node -p "require('electron')")")/chrome-sandbox"
+          sudo chown root:root "$helper"
+          sudo chmod 4755 "$helper"
       - name: Windows app tests (Electron, on a virtual screen)
         run: xvfb-run --auto-servernum pnpm --filter @billing/desktop e2e
       - name: Upload screenshot differences
