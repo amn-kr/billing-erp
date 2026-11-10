@@ -2,7 +2,9 @@
 //   node package.mjs              build only (pull requests: the installer to try)
 //   node package.mjs --publish    build and put it on GitHub Releases as tag v<version> (auto-update reads it)
 // The app's name comes from packages/shared/src/brand.ts; the program's file name and id never change with it.
+import fs from 'node:fs';
 import { createRequire } from 'node:module';
+import path from 'node:path';
 import { Arch, build, Platform } from 'electron-builder';
 import { BRAND } from '@billing/shared';
 
@@ -25,12 +27,18 @@ await build({
     files: ['dist/**/*', '!dist/**/*.map', '!dist/server/**', '!dist/web/**', 'package.json'],
     extraResources: [
       { from: postgres, to: 'postgres', filter: ['**/*', '!pg-symlinks.json', '!.ready'] },
-      { from: 'dist/server', to: 'server', filter: ['**/*', '!**/*.map'] },
       { from: 'dist/web', to: 'web' },
     ],
     // a plain internal name (folders, update cache); people see productName
     extraMetadata: { name: 'billing-erp-desktop' },
     asar: true,
+    // the server (dist/server) is copied here, not as an extra file: electron-builder always leaves out
+    // node_modules (and .prisma) from extra files, and the server needs its native modules from there
+    afterPack: async ({ appOutDir }) => {
+      const to = path.join(appOutDir, 'resources', 'server');
+      fs.rmSync(to, { recursive: true, force: true });
+      fs.cpSync('dist/server', to, { recursive: true, filter: (f) => !f.endsWith('.map') });
+    },
     win: { icon: 'resources/icon.png' },
     nsis: {
       // one click, for this Windows user only: no administrator password, and updates install the same way
