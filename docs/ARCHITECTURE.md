@@ -53,6 +53,30 @@ Tables by area:
 | 4 | Reports + Home: tiles, 9 built reports, GSTR-1/3B, P&L, stock, day book, exports | 13–15 | Figures match the pilot for 3 shops |
 | 5 | SaaS + launch: Razorpay, admin console, onboarding, security review, load test, beta | 16–19 | Beta sign-off, restore drill passes |
 
+## Desktop and mobile apps (owner's decisions, 10 Nov 2026)
+These phases start only after Phase 5's gate passes.
+
+**Two ways a shop runs the software**
+- **Single PC (offline):** the shop's data lives on one Windows PC. Billing works without internet. That PC assigns document numbers itself, using the same prefix and counter rules as the server.
+- **Multi-device (online):** the data lives on the cloud server. PCs, staff phones and field salesmen all connect to it. Internet is required.
+- **Move to cloud:** a single-PC shop can switch to multi-device once. The whole book is uploaded and the PC then works online. There is no two-way sync between offline copies.
+
+**Who uses what**
+- Windows app (Mac later): counter staff and owner. It uses **the prototype screens exactly**, with the same CSS, classes and DOM as the web app.
+- Android app (iPhone later): staff, field salesmen and owner. It is online only. It has **its own mobile screens**, designed separately (the owner's exception to the "look exactly like the prototype" rule). Invoices and quotations are shared as PDFs on WhatsApp through the Android share sheet. No Bluetooth printing.
+
+**Technology**
+- **Windows/Mac:** Electron, because it has Node built in, so the existing NestJS API runs inside the app in single-PC mode. A bundled PostgreSQL 16 runs locally, so Prisma, raw-SQL reports and RLS work unchanged. In online mode the same app talks to the cloud API.
+- **Android/iPhone:** Capacitor with React (`apps/mobile`). The data layer (`api.ts`, `hooks.ts`, Zod schemas) is shared with the web app. Only the screens are new.
+- **Printing:** the Windows app prints directly to thermal receipt printers and to A4 printers. Paper sizes come from Settings.
+
+| # | Phase | Gate to move on |
+|---|---|---|
+| 6 | Windows app + single-PC offline mode: Electron shell, local API + bundled PostgreSQL, local numbering, direct thermal/A4 printing, automatic cloud backup when online + backup to pen drive, subscription grace of 15 days offline, Move to cloud, installer with auto-update | All flow tests pass in the Windows app with the internet off. Move to cloud test passes. A restore drill from both backup types passes. Screens match the prototype at 1280, 1366 and 1920 px |
+| 7 | Mobile design: phone screens for the jobs staff, field salesmen and owner do on a phone (`reference/design/mobile.html`) | Owner approves the mobile design |
+| 8 | Android app (APK): Capacitor, online only, WhatsApp PDF sharing, in-app "update available" check. The APK is shared directly at first; Play Store comes later | Flow tests pass on an Android emulator. Screens match the approved mobile design |
+| 9 | iPhone + Mac builds from the same code | Same tests pass on iPhone simulator and Mac. Apple developer account (about ₹8,500 a year) approved by owner |
+
 ## Production rules that differ from the prototype
 1. The server assigns document numbers from the type's active prefix (Settings › Transactions). Each prefix has its own counter, which keeps going across financial years (owner's choice, 14 Oct 2026); a number already used is never given again.
 2. Saving a document is one transaction covering stock, party balance, cash/bank and the journal.

@@ -5,6 +5,7 @@
 - Copy its CSS unchanged and keep its class names and DOM structure.
 - Do not redesign, restyle or "modernise" anything unless the owner asks.
 - Every rebuilt screen is checked with a Playwright screenshot against the prototype at 1280, 1366 and 1920 px.
+- The web app and the Windows/Mac app follow this rule. **Exception (owner, 10 Nov 2026):** the Android/iPhone app has its own mobile screens. They are checked against the approved mobile design (`reference/design/mobile.html`) instead. See "Desktop and mobile apps" in `docs/ARCHITECTURE.md`.
 
 ## Who you are working for
 The owner runs a business in India and is not a programmer.
