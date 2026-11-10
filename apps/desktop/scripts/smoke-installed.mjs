@@ -54,7 +54,7 @@ const version = JSON.parse(fs.readFileSync(new URL('../package.json', import.met
   } catch (e) {
     const shown = app.windows().map((p) => p.url()).join(', ');
     const log = (f) => { try { return fs.readFileSync(path.join(profile, 'local', f), 'utf8').slice(-2000); } catch { return '(none)'; } };
-    throw new Error(`Single-PC mode did not open (${shown})\npostgres.log:\n${log('postgres.log')}\nserver.log:\n${log('server.log')}`);
+    throw new Error(`Single-PC mode did not open (${shown})\npg_ctl.log:\n${log('pg_ctl.log')}\npostgres.log:\n${log('postgres.log')}\nserver.log:\n${log('server.log')}`);
   }
   await win.waitForSelector('#vAuth:not([hidden])', { timeout: 60_000 });
   console.log(`OK  single-PC mode: the books opened on this computer in ${Math.round((Date.now() - started) / 1000)} s (${new URL(win.url()).origin})`);

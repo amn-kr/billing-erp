@@ -31,12 +31,16 @@ function run(o: DbOptions, program: string, args: string[], log: string): Promis
 
 export class LocalDatabase {
   readonly data: string;
+  /** PostgreSQL's own log (pg_ctl -l) */
   readonly log: string;
+  /** what initdb and pg_ctl themselves print — a separate file: on Windows PostgreSQL cannot open its log while another program holds it */
+  readonly toolsLog: string;
   port = 0;
 
   constructor(private o: DbOptions) {
     this.data = path.join(o.root, 'pgdata');
     this.log = path.join(o.root, 'postgres.log');
+    this.toolsLog = path.join(o.root, 'pg_ctl.log');
   }
 
   exists() {
@@ -52,29 +56,29 @@ export class LocalDatabase {
     const pw = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'billing-pg-')), 'pw');
     fs.writeFileSync(pw, adminPassword, { mode: 0o600 });
     try {
-      const code = await run(this.o, 'initdb', ['-D', this.data, '-U', 'postgres', '-A', 'scram-sha-256', `--pwfile=${pw}`, '-E', 'UTF8', '--locale=C', '--no-instructions'], this.log);
-      if (code !== 0 || !this.exists()) throw new Error(`Could not make the database (initdb ended with ${code}); see ${this.log}`);
+      const code = await run(this.o, 'initdb', ['-D', this.data, '-U', 'postgres', '-A', 'scram-sha-256', `--pwfile=${pw}`, '-E', 'UTF8', '--locale=C', '--no-instructions'], this.toolsLog);
+      if (code !== 0 || !this.exists()) throw new Error(`Could not make the database (initdb ended with ${code}); see ${this.toolsLog}`);
     } finally {
       fs.rmSync(path.dirname(pw), { recursive: true, force: true });
     }
   }
 
   async running(): Promise<boolean> {
-    return (await run(this.o, 'pg_ctl', ['status', '-D', this.data], this.log)) === 0;
+    return (await run(this.o, 'pg_ctl', ['status', '-D', this.data], this.toolsLog)) === 0;
   }
 
   async start(port: number) {
     // still running from a crash of the app: stop it first, so it starts on this port
     if (await this.running()) await this.stop();
     const opts = `-p ${port} -c listen_addresses=127.0.0.1 -c unix_socket_directories= -c max_connections=30`;
-    const code = await run(this.o, 'pg_ctl', ['start', '-D', this.data, '-w', '-t', '120', '-l', this.log, '-o', opts], this.log);
+    const code = await run(this.o, 'pg_ctl', ['start', '-D', this.data, '-w', '-t', '120', '-l', this.log, '-o', opts], this.toolsLog);
     if (code !== 0) throw new Error(`The database did not start (pg_ctl ended with ${code}); see ${this.log}`);
     this.port = port;
   }
 
   /** Clean stop: everything written is on disk. */
   async stop() {
-    await run(this.o, 'pg_ctl', ['stop', '-D', this.data, '-m', 'fast', '-w', '-t', '60'], this.log);
+    await run(this.o, 'pg_ctl', ['stop', '-D', this.data, '-m', 'fast', '-w', '-t', '60'], this.toolsLog);
     this.port = 0;
   }
 
