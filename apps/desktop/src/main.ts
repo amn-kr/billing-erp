@@ -7,15 +7,15 @@
  * app cannot be reached, a "Not connected" page tries again on its own.
  *
  * Two ways to run (docs/ARCHITECTURE.md, Phase 6): online (the live app) or single-PC (mode "local": the
- * shop's own database and server on this computer, local/run.ts). Step 5 adds the first-start choice;
- * until then single-PC mode is chosen by <userData>/mode.json {"mode":"local"} or BILLING_MODE=local.
+ * shop's own database and server on this computer, local/run.ts). The first start asks which
+ * (static/welcome.html) and keeps the answer in <userData>/mode.json (mode.ts).
  */
-import fs from 'node:fs';
 import path from 'node:path';
 import { app, BaseWindow, ipcMain, Menu, nativeTheme, session, shell, WebContentsView, type WebContents } from 'electron';
 import { BRAND } from '../../../packages/shared/src/brand';
 import { appUrl, linkAction } from './links';
 import { startLocal, type Local } from './local/run';
+import { isMode, readMode, writeMode, type Mode } from './mode';
 import { startPrinting } from './printing';
 import { startUpdates, type Updates } from './updates';
 
@@ -25,6 +25,7 @@ const start = () => ORIGIN + '/';
 const OFFLINE_PAGE = path.join(__dirname, 'static', 'offline.html');
 const STARTING_PAGE = path.join(__dirname, 'static', 'starting.html');
 const TITLEBAR_PAGE = path.join(__dirname, 'static', 'titlebar.html');
+const WELCOME_PAGE = path.join(__dirname, 'static', 'welcome.html');
 /** height of the title bar, in px */
 const BAR = 36;
 /** the app's version, from package.json (build.mjs) */
@@ -35,15 +36,8 @@ declare const __APP_VERSION__: string;
 app.setName(BRAND.name);
 app.setPath('userData', process.env.BILLING_PROFILE_DIR || path.join(app.getPath('appData'), 'billing-erp-desktop'));
 
-/** "local": single-PC mode (the shop's books on this computer); otherwise the live app. */
-function mode(): 'online' | 'local' {
-  if (process.env.BILLING_MODE === 'local' || process.env.BILLING_MODE === 'online') return process.env.BILLING_MODE;
-  try {
-    return (JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'mode.json'), 'utf8')) as { mode?: string }).mode === 'local' ? 'local' : 'online';
-  } catch {
-    return 'online';
-  }
-}
+/** single-PC mode is on (the shop's books on this computer), once chosen */
+let LOCAL = false;
 
 /** Where single-PC mode's parts are: next to the installed app (resources/), or in dist/ while developing. */
 function localPaths() {
@@ -87,11 +81,7 @@ const overlay = () => (nativeTheme.shouldUseDarkColors ? { color: '#0e1120', sym
 
 interface Main { win: BaseWindow; page: WebContents; bar: WebContents }
 
-/**
- * `ready`: resolves once the app's address is known (at once online; single-PC mode after its database
- * and server started). Until then the page shows "Opening your books…"; if it fails, why.
- */
-function createWindow(updates: Updates, ready: Promise<void>, logDir: string): Main {
+function createWindow(updates: Updates): Main {
   const win = new BaseWindow({
     width: 1366,
     height: 768 + BAR,
@@ -161,13 +151,22 @@ function createWindow(updates: Updates, ready: Promise<void>, logDir: string): M
 
   if (!process.env.BILLING_TEST) win.maximize();
   win.show();
-  ready.then(
-    () => void page.loadURL(start()),
-    (e: unknown) => void page.loadFile(STARTING_PAGE, { query: { error: e instanceof Error ? e.message : String(e), log: path.join(logDir, 'server.log') } }),
-  );
-  if (mode() === 'local') void page.loadFile(STARTING_PAGE);
   page.focus();
   return { win, page, bar };
+}
+
+/** The first start: "This PC only" or "Connect to cloud" (static/welcome.html). Resolves with the choice, once kept. */
+function askMode(page: WebContents): Promise<Mode> {
+  return new Promise((done) => {
+    ipcMain.handle('welcome:choose', (e, m: unknown) => {
+      // only the first-start page, in this window, may choose
+      if (e.sender !== page || !e.sender.getURL().includes('/static/welcome.html') || !isMode(m)) throw new Error('Not allowed');
+      writeMode(app.getPath('userData'), m);
+      ipcMain.removeHandler('welcome:choose');
+      done(m);
+    });
+    void page.loadFile(WELCOME_PAGE, { query: { brand: BRAND.name } });
+  });
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -202,18 +201,28 @@ if (!app.requestSingleInstanceLock()) {
     ipcMain.handle('titlebar:install', (e) => { fromBar(e.sender); updates.install(); });
 
     // the page's address, for the printing link (preload.ts): only the app's own pages get printing
-    ipcMain.on('billing:origin', (e) => { e.returnValue = ORIGIN; });
+    ipcMain.on('billing:origin', (e) => { e.returnValue = { origin: ORIGIN, local: LOCAL }; });
 
-    let ready: Promise<void> = Promise.resolve();
-    const paths = localPaths();
-    if (mode() === 'local') {
-      ready = startLocal(paths, __APP_VERSION__).then((l) => {
+    main = createWindow(updates);
+    const { page } = main;
+    main.win.on('closed', () => (main = null));
+
+    void (async () => {
+      const chosen = readMode(app.getPath('userData')) ?? (await askMode(page));
+      if (chosen === 'online') return void page.loadURL(start());
+      // single-PC mode: "Opening your books…" until this computer's database and server are up; if they fail, why
+      LOCAL = true;
+      const paths = localPaths();
+      void page.loadFile(STARTING_PAGE);
+      try {
+        const l = await startLocal(paths, __APP_VERSION__);
         local = l;
         ORIGIN = l.origin;
-      });
-    }
-    main = createWindow(updates, ready, paths.root);
-    main.win.on('closed', () => (main = null));
+        if (!page.isDestroyed()) void page.loadURL(start());
+      } catch (e) {
+        if (!page.isDestroyed()) void page.loadFile(STARTING_PAGE, { query: { error: e instanceof Error ? e.message : String(e), log: path.join(paths.root, 'server.log') } });
+      }
+    })();
   });
 
   // single-PC mode: closing the app (or restarting for an update) stops the server and the database first

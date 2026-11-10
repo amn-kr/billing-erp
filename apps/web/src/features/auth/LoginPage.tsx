@@ -18,10 +18,13 @@ import { AUTH_STYLES } from '../../styles';
 import { APP_LETTER, APP_NAME } from '../../lib/brand';
 import { ui } from '../../styles/uiSize';
 import { OwnerSetup } from '../../owner/OwnerSetup';
+import { desktop } from '../../lib/desktop';
 
 type View = 'vLoad' | 'vAuth' | 'vPass' | 'vRec' | 'vJoin' | 'vShop' | 'vSetup';
 const APP = APP_NAME;
 const TRIAL = Number(import.meta.env.VITE_TRIAL_DAYS ?? 14);
+/** the Windows app in single-PC mode: the books are on this computer, which has no demo shop */
+const ON_THIS_PC = !!desktop()?.local;
 const msgOf = (e: unknown) => (e instanceof ApiError ? e.message : 'Something went wrong.');
 
 export function LoginPage() {
@@ -255,7 +258,7 @@ export function LoginPage() {
             <div className={aErr.ok ? 'msg ok' : 'msg bad'} id="aErr" role="alert">{aErr.text}</div>
           </form>
           <p className="mu" style={{ margin: ui.sp('12px 0 0'), textAlign: 'center' }}><button className="lnk" type="button" id="aForgot" onClick={onForgot}>Forgot password?</button></p>
-          <p className="demo mu">Just looking? <a className="lnk" href="/?demo=1" style={{ textDecoration: 'none' }} onClick={onDemo}>Open the demo shop</a></p>
+          {!ON_THIS_PC && <p className="demo mu">Just looking? <a className="lnk" href="/?demo=1" style={{ textDecoration: 'none' }} onClick={onDemo}>Open the demo shop</a></p>}
         </div>
         <div id="vPass" hidden={view !== 'vPass'}>
           <h2>Choose a new password</h2><p className="mu">You signed in with a temporary password from the shop owner. Choose your own to continue.</p>

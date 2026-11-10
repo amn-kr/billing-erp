@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>Welcome</title>
+<style>
+  :root { color-scheme: light dark; --bg: #f4f5fa; --card: #fff; --ink: #151b2e; --muted: #66708a; --line: #e8eaf2; --ac: #4f46e5; --acbg: #eef0ff; --bad: #b91c1c; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0e1120; --card: #161a2b; --ink: #e9ebf4; --muted: #9aa2bb; --line: #2a3049; --ac: #818cf8; --acbg: #1d2142; --bad: #f87171; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--ink);
+         font: 15px/1.55 "Segoe UI", system-ui, -apple-system, sans-serif; padding: 24px 16px; }
+  main { width: min(760px, 100%); }
+  h1 { font-size: 24px; margin: 0 0 6px; text-align: center; }
+  .sub { margin: 0 0 24px; color: var(--muted); text-align: center; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .two { grid-template-columns: 1fr; } }
+  button.pick { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; justify-content: flex-start; background: var(--card); border: 1.5px solid var(--line);
+                border-radius: 14px; padding: 22px; transition: border-color .15s, background .15s; }
+  button.pick:hover, button.pick:focus-visible { border-color: var(--ac); background: var(--acbg); }
+  button.pick:hover .icon, button.pick:focus-visible .icon { background: var(--card); }
+  button.pick[disabled] { cursor: default; opacity: .6; }
+  .pick h2 { font-size: 18px; margin: 0 0 4px; }
+  .pick .for { color: var(--ac); font-weight: 600; font-size: 13.5px; margin: 0 0 12px; }
+  .pick ul { margin: 0; padding-left: 18px; color: var(--muted); }
+  .pick li { margin: 3px 0; }
+  .icon { width: 40px; height: 40px; border-radius: 10px; background: var(--acbg); color: var(--ac); display: grid; place-items: center; margin-bottom: 12px; }
+  .foot { margin: 20px 0 0; color: var(--muted); font-size: 13.5px; text-align: center; }
+  #err { color: var(--bad); text-align: center; margin-top: 12px; min-height: 1.5em; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Welcome to <span id="brand">the app</span></h1>
+  <p class="sub">Where should this shop’s books be kept? Choose once; you will not be asked again on this computer.</p>
+  <div class="two">
+    <button class="pick" id="pickLocal" type="button" data-mode="local">
+      <div class="icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+      <h2>This PC only</h2>
+      <p class="for">For a shop that bills on one computer</p>
+      <ul>
+        <li>The books are kept on this computer</li>
+        <li>Works without internet</li>
+        <li>Only this computer can open them</li>
+        <li>You can move them to the cloud later</li>
+      </ul>
+    </button>
+    <button class="pick" id="pickCloud" type="button" data-mode="online">
+      <div class="icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H8a6 6 0 1 1 5.7-7.9A4.5 4.5 0 1 1 17.5 19z"/></svg></div>
+      <h2>Connect to cloud</h2>
+      <p class="for">For staff, salesmen and more than one computer</p>
+      <ul>
+        <li>The books are kept online, safely backed up</li>
+        <li>Open them from any computer or phone</li>
+        <li>Needs internet to work</li>
+        <li>Sign in with your existing account, or make one</li>
+      </ul>
+    </button>
+  </div>
+  <p class="foot">Not sure? Choose <b>This PC only</b> if one person bills on this computer.</p>
+  <p id="err" role="alert"></p>
+</main>
+<script>
+  const q = new URLSearchParams(location.search);
+  if (q.get('brand')) { document.getElementById('brand').textContent = q.get('brand'); document.title = 'Welcome to ' + q.get('brand'); }
+  for (const b of document.querySelectorAll('button.pick')) {
+    b.addEventListener('click', async () => {
+      for (const x of document.querySelectorAll('button.pick')) x.disabled = true;
+      try {
+        await window.billingWelcome.choose(b.dataset.mode);
+      } catch (e) {
+        document.getElementById('err').textContent = 'That did not work. Close the app and open it again.';
+        for (const x of document.querySelectorAll('button.pick')) x.disabled = false;
+      }
+    });
+  }
+</script>
+</body>
+</html>

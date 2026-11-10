@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { _electron as electron, type ElectronApplication, type Page } from '@playwright/test';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
+/** the first-start page: "This PC only" or "Connect to cloud" */
+export const isWelcome = (p: Page) => p.url().includes('/static/welcome.html');
 export const MAIN = path.join(HERE, '..', 'dist', 'main.cjs');
 
 const isBar = (p: Page) => p.url().includes('/static/titlebar.html');
@@ -27,7 +29,8 @@ export async function find(app: ElectronApplication, want: (p: Page) => boolean)
 export function openApp(appUrl: string, env: Record<string, string> = {}, profile = fs.mkdtempSync(path.join(os.tmpdir(), 'billing-desktop-'))): Promise<ElectronApplication> {
   return electron.launch({
     args: [MAIN],
-    env: { ...process.env, BILLING_APP_URL: appUrl, BILLING_PROFILE_DIR: profile, BILLING_TEST: '1', TZ: 'Asia/Kolkata', ...env },
+    // BILLING_MODE online: skip the first-start choice (welcome.spec.ts tests it with BILLING_MODE '')
+    env: { ...process.env, BILLING_APP_URL: appUrl, BILLING_PROFILE_DIR: profile, BILLING_TEST: '1', BILLING_MODE: 'online', TZ: 'Asia/Kolkata', ...env },
     locale: 'en-IN',
     timezoneId: 'Asia/Kolkata',
   });

@@ -95,7 +95,11 @@ Tables by area:
    - The server is the same API (`apps/api/dist`, bundled by `apps/desktop/build-server.mjs`) plus the web app's pages, at a fixed `http://127.0.0.1:<port>`, run in its own process. It applies the same migrations as the live server, each in one transaction, recorded in Prisma's `_prisma_migrations` (same checksums).
    - An app update first copies the stopped database (`local/backups/before-<version>-<date>`, newest 3 kept).
    - Not yet in single-PC mode: reading the old prototype's backup files (needs a separate browser).
-5. **First start: "This PC only" or "Connect to cloud"**; local sign-in and numbering.
+5. **First start: "This PC only" or "Connect to cloud"**; local sign-in and numbering. ✅
+   - The choice is a page of the Windows app (`apps/desktop/static/welcome.html`), shown once per computer; the answer is kept in `%APPDATA%\billing-erp-desktop\mode.json` (`BILLING_MODE` overrides it for tests and support). There is no switch back from cloud to this PC; this PC to cloud is step 7.
+   - Single-PC sign-in and bill numbers are the same API code as online, run against the PC's own database, so the same rules apply (one counter per prefix, never reused).
+   - The web app's pages load their fonts from Google; the single-PC copy (`dist/web`) is rewritten at build time to use copies kept with the app (`apps/desktop/scripts/offline-fonts.mjs`), so screens look the same without internet. The live site is unchanged.
+   - The sign-in page hides "Open the demo shop" in single-PC mode (there is no demo shop on the PC).
 6. **Backups**: automatic encrypted cloud backup when online, backup to pen drive, restore from both.
 7. **Move to cloud**: upload the whole book once, then work online.
 8. **Full testing + pilot** on real Windows 10/11 PCs.
