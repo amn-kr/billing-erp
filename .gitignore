@@ -17,3 +17,5 @@ reference/baseline/
 test-results/
 playwright-report/
 .turbo/
+# the Windows installer made by package.mjs
+apps/desktop/release/

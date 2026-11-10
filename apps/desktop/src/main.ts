@@ -8,6 +8,7 @@ import path from 'node:path';
 import { app, BrowserWindow, Menu, session, shell, type WebContents } from 'electron';
 import { BRAND } from '../../../packages/shared/src/brand';
 import { appUrl, linkAction } from './links';
+import { startUpdates } from './updates';
 
 const ORIGIN = appUrl(process.env);
 const START = ORIGIN + '/';
@@ -114,6 +115,7 @@ if (!app.requestSingleInstanceLock()) {
 
     main = createWindow();
     main.on('closed', () => (main = null));
+    startUpdates(() => main);
   });
 
   app.on('window-all-closed', () => app.quit());
