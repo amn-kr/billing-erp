@@ -15,8 +15,8 @@ permissions:
   contents: read
   actions: read # to look up the PR run that already tested the same files
 
-# The check runs on six machines at once: quick checks on one, the browser and picture tests split
-# into 4 parts on four more, and the `test` job (the required check) collects the results.
+# The check runs on seven machines at once: quick checks on one, the browser and picture tests split
+# into 4 parts on four more, the Windows app's tests on one, and the `test` job (the required check) collects the results.
 # Every job stays on Ubuntu 24.04: "ubuntu-latest" moved to 26.04 (Oct 2026), where Playwright 1.56 can't
 # install its browser, and the approved pictures were all taken on 24.04.
 jobs:
@@ -212,11 +212,74 @@ jobs:
           retention-days: 7
           overwrite: true
 
+  # The Windows app (apps/desktop): opened in Electron on a test copy of the app, its screens compared
+  # with the prototype drawn in the same Electron, plus its link and "Not connected" checks.
+  desktop:
+    name: Windows app tests
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.quick_checks != 'false' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Create database roles
+        run: psql -h localhost -U postgres -f infra/db/init-ci.sql
+      - name: Playwright version
+        id: pw
+        run: echo "version=$(pnpm --filter @billing/web exec playwright --version | tail -n 1 | tr -dc '0-9.')" >> "$GITHUB_OUTPUT"
+      - name: Cached Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      # the test shop's seed uses Playwright's Chrome (the importer), and Electron needs the same system libraries
+      - name: Install Playwright browser and system libraries
+        run: pnpm --filter @billing/web exec playwright install --with-deps chromium
+      - name: Build
+        run: pnpm build
+      # Linux only (the test machine): Electron's security sandbox helper must belong to root, as an
+      # installed Linux app's would; this keeps the sandbox on instead of switching it off
+      - name: Electron, with its sandbox helper set up
+        working-directory: apps/desktop
+        run: |
+          node scripts/ensure-electron.cjs
+          helper="$(dirname "$(node -p "require('electron')")")/chrome-sandbox"
+          sudo chown root:root "$helper"
+          sudo chmod 4755 "$helper"
+      - name: Windows app tests (Electron, on a virtual screen)
+        run: xvfb-run --auto-servernum pnpm --filter @billing/desktop e2e
+      - name: Upload screenshot differences
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-visual-diffs
+          path: apps/desktop/test-results/
+          retention-days: 7
+          overwrite: true
+
   # The required check (the `protect main` ruleset needs a check named exactly `test`). It always runs
   # and is green only when every job above passed; after a merge whose files already passed on the
   # PR, the quick checks are skipped on purpose and only the pictures must pass (see .github/scripts/gate.sh).
   test:
-    needs: [already-tested, changes, quick-checks, e2e]
+    needs: [already-tested, changes, quick-checks, e2e, desktop]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -241,6 +304,7 @@ jobs:
           CHANGES: ${{ needs.changes.result }}
           QUICK: ${{ needs.quick-checks.result }}
           E2E: ${{ needs.e2e.result }}
+          DESKTOP: ${{ needs.desktop.result }}
         run: bash .github/scripts/gate.sh
       # a fingerprint of the files this green PR run tested, so the run after the merge can skip
       # the same work (see the already-tested job)

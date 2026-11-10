@@ -10,6 +10,8 @@ onlyBuiltDependencies:
   - prisma
 ignoredBuiltDependencies:
   - "@nestjs/core"
+  # the Windows app downloads Electron only when its own scripts need it (apps/desktop/scripts/ensure-electron.cjs)
+  - electron
 
 # Security fixes for packages that a library pins to an old version (see each line). Remove a line
 # once the library itself moves on (NestJS 11 and Prisma 7 bring their own safe versions).

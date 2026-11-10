@@ -26,7 +26,12 @@ pnpm typecheck
 pnpm test                         # unit tests (shared, web) + API tests against billing_erp_test
 pnpm --filter @billing/web e2e    # Playwright: flows + pixel comparison with the prototype
 pnpm baseline                     # Phase 0 screenshots of the prototype → reference/baseline/
+pnpm --filter @billing/desktop e2e  # the Windows app (Electron) on the e2e copy of the app
 ```
+
+The Windows app: `pnpm --filter @billing/desktop start` opens it on the live app
+(`BILLING_APP_URL=http://localhost:5173` for a local copy). Electron is downloaded the
+first time one of these runs.
 
 The screenshot tests start their own API (port 3100, database `billing_erp_e2e`,
 reset on every run) and web server (port 5174). When a comparison fails, the
@@ -36,6 +41,7 @@ expected / actual / diff images are in `apps/web/test-results/visual/`.
 
 ```
 apps/api/        NestJS API (modules/, common/, prisma/ schema + migrations + demo seed)
+apps/desktop/    Windows app (Electron): src/main.ts = the window and link rules, static/ = its own pages
 apps/web/        React app: index.html = the app, login.html = the sign-in page
                  src/styles/ = the prototype's CSS, unchanged
                  e2e/ = Playwright tests

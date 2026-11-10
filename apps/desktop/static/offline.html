@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>Not connected</title>
+<style>
+  :root { color-scheme: light dark; --bg: #f4f6fa; --card: #fff; --ink: #1c2333; --muted: #5d6679; --line: #e3e7ef; --brand: #2f5bea; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #11151d; --card: #1a2030; --ink: #e8ecf4; --muted: #9aa3b5; --line: #2a3245; --brand: #6f8fff; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--ink);
+         font: 15px/1.55 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  .card { width: min(440px, calc(100vw - 32px)); background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 28px; }
+  h1 { font-size: 20px; margin: 0 0 8px; }
+  p { margin: 0 0 18px; color: var(--muted); }
+  button { font: inherit; font-weight: 600; color: #fff; background: var(--brand); border: 0; border-radius: 9px; padding: 10px 18px; cursor: pointer; }
+  #next { margin: 14px 0 0; font-size: 13px; }
+</style>
+</head>
+<body>
+<main class="card" id="offline">
+  <h1>Not connected</h1>
+  <p>The app needs the internet to reach your shop’s books. Check the Wi-Fi or cable. It will try again on its own.</p>
+  <button id="retry" type="button">Try again now</button>
+  <p id="next" aria-live="polite"></p>
+</main>
+<script>
+  // the app's address comes from the Windows app (?to=…); only http(s) addresses are followed
+  const to = new URLSearchParams(location.search).get('to') || '';
+  const go = () => { if (/^https?:\/\//.test(to)) location.href = to; };
+  document.getElementById('retry').addEventListener('click', go);
+  let left = 15;
+  const next = document.getElementById('next');
+  setInterval(() => {
+    left -= 1;
+    if (left <= 0) { left = 15; go(); }
+    next.textContent = 'Trying again in ' + left + ' s';
+  }, 1000);
+  window.addEventListener('online', go);
+</script>
+</body>
+</html>
