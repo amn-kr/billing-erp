@@ -39,8 +39,9 @@ Plan and steps: `docs/ARCHITECTURE.md` › *Desktop and mobile apps*.
 | 3. Direct printing (A4/A5) | done — card *Printer on this PC* in Settings › Print & invoice (Windows app only; the choice is saved on the PC); Print goes straight to it on the shop's paper and orientation and says "Printed on …"; no printer chosen or printer unplugged → the usual print window. Tests: 3 in Electron (stand-in printers) + a real silent print on GitHub's Windows machine (Microsoft Print to PDF, A5 landscape checked) |
 | Title bar with version + Check for updates (owner, 10 Nov 2026) | done — the window's top row shows the page's title, "Version x.y.z" and a button: Check for updates → Checking… → Up to date / Downloading vX… n% → Restart to update to vX (green). No internet: "Couldn't check — try again". Quiet checks at start and every 4 h still download on their own; the old pop-up is gone. The app's screens below are unchanged. Tests: 8 unit + 5 in Electron (stand-in for GitHub); the Windows workflow checks the installed app's title bar |
 | 3b. Thermal receipts (2-inch / 3-inch) | later — needs a receipt layout designed and approved first (the prototype has none) |
-| 4. Server + database inside the app | next |
-| 5–8 | not started |
+| 4. Server + database inside the app | done — PostgreSQL 16.14 and the server inside the app; "Opening your books…" while they start; closing the app stops both cleanly; after a crash the next start repairs the books and keeps the sign-in; an app update copies the books first; a database that cannot start shows a plain message. Chosen for now by `mode.json` {"mode":"local"} (step 5 adds the first-start choice). Not yet: reading the old prototype's backups in this mode. Tests: 8 unit (migrations, pages) + 5 in Electron with real PostgreSQL; the Windows workflow makes a shop in single-PC mode with the installed app |
+| 5. First start: "This PC only" or "Connect to cloud" | next |
+| 6–8 | not started |
 
 Owner decisions (10 Nov 2026): A4/A5 only for now (thermal later); the printer is chosen in a new Settings card shown only in the Windows app (an owner-approved addition to the prototype's Print & invoice screen); Print prints straight away.
 

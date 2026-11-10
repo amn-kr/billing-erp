@@ -89,7 +89,12 @@ Tables by area:
 1. **Windows app shell, online** (`apps/desktop`): one window showing the live app; the app's pages stay inside, WhatsApp/e-mail/other websites open outside, anything else is refused; "Not connected" page that retries. ✅
 2. **Installer + auto-update**: `Setup.exe` (electron-builder), built on GitHub's Windows machines; updates itself from GitHub Releases. ✅
 3. **Direct printing (A4/A5)**: Print buttons go straight to the printer chosen on this PC (Settings › Print & invoice › *Printer on this PC*, Windows app only), on the shop's paper and orientation; Ctrl+P still opens the print window. Thermal receipts later: the prototype has no receipt layout, so one must be designed and approved first (owner, 10 Nov 2026). ✅
-4. **Local server + bundled PostgreSQL** inside the app; safe start/stop, data upgrades on update.
+4. **Local server + bundled PostgreSQL** inside the app; safe start/stop, data upgrades on update. ✅
+   - PostgreSQL 16.14 programs (initdb, pg_ctl, postgres) from `@embedded-postgres/<platform>`, fetched by `apps/desktop/scripts/ensure-postgres.cjs` only when the Windows app is built or tested; the installer carries the Windows ones in `resources/postgres`.
+   - The books live in `%APPDATA%\billing-erp-desktop\local\pgdata`, reachable only from this PC (127.0.0.1, password). Passwords and the sign-in key are made on first start (`local/settings.json`).
+   - The server is the same API (`apps/api/dist`, bundled by `apps/desktop/build-server.mjs`) plus the web app's pages, at a fixed `http://127.0.0.1:<port>`, run in its own process. It applies the same migrations as the live server, each in one transaction, recorded in Prisma's `_prisma_migrations` (same checksums).
+   - An app update first copies the stopped database (`local/backups/before-<version>-<date>`, newest 3 kept).
+   - Not yet in single-PC mode: reading the old prototype's backup files (needs a separate browser).
 5. **First start: "This PC only" or "Connect to cloud"**; local sign-in and numbering.
 6. **Backups**: automatic encrypted cloud backup when online, backup to pen drive, restore from both.
 7. **Move to cloud**: upload the whole book once, then work online.

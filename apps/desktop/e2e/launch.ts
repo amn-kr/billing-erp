@@ -13,8 +13,9 @@ const isBar = (p: Page) => p.url().includes('/static/titlebar.html');
 const isApp = (p: Page) => /^https?:/.test(p.url()) || p.url().includes('/static/offline.html');
 
 /** wait for one of the app's pages: the title bar, or the page with the app (or "Not connected") */
-async function find(app: ElectronApplication, want: (p: Page) => boolean): Promise<Page> {
-  for (let i = 0; i < 200; i++) {
+export async function find(app: ElectronApplication, want: (p: Page) => boolean): Promise<Page> {
+  // single-PC mode's first start makes the database first: allow a minute
+  for (let i = 0; i < 1200; i++) {
     const p = app.windows().find(want);
     if (p) return p;
     await new Promise((r) => setTimeout(r, 50));
@@ -22,14 +23,18 @@ async function find(app: ElectronApplication, want: (p: Page) => boolean): Promi
   throw new Error('The app’s page did not open');
 }
 
-export async function launch(appUrl: string, env: Record<string, string> = {}): Promise<{ app: ElectronApplication; win: Page; bar: Page; profile: string }> {
-  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'billing-desktop-'));
-  const app = await electron.launch({
+/** open the app without waiting for any page */
+export function openApp(appUrl: string, env: Record<string, string> = {}, profile = fs.mkdtempSync(path.join(os.tmpdir(), 'billing-desktop-'))): Promise<ElectronApplication> {
+  return electron.launch({
     args: [MAIN],
     env: { ...process.env, BILLING_APP_URL: appUrl, BILLING_PROFILE_DIR: profile, BILLING_TEST: '1', TZ: 'Asia/Kolkata', ...env },
     locale: 'en-IN',
     timezoneId: 'Asia/Kolkata',
   });
+}
+
+export async function launch(appUrl: string, env: Record<string, string> = {}, profile = fs.mkdtempSync(path.join(os.tmpdir(), 'billing-desktop-'))): Promise<{ app: ElectronApplication; win: Page; bar: Page; profile: string }> {
+  const app = await openApp(appUrl, env, profile);
   const win = await find(app, isApp);
   const bar = await find(app, isBar);
   return { app, win, bar, profile };

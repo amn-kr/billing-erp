@@ -5,25 +5,56 @@
  *   - below it, the web app itself, so every screen is the same as in the browser (and as the prototype).
  * The app's own pages stay inside the window; WhatsApp, e-mail and other websites open outside it. If the
  * app cannot be reached, a "Not connected" page tries again on its own.
+ *
+ * Two ways to run (docs/ARCHITECTURE.md, Phase 6): online (the live app) or single-PC (mode "local": the
+ * shop's own database and server on this computer, local/run.ts). Step 5 adds the first-start choice;
+ * until then single-PC mode is chosen by <userData>/mode.json {"mode":"local"} or BILLING_MODE=local.
  */
+import fs from 'node:fs';
 import path from 'node:path';
 import { app, BaseWindow, ipcMain, Menu, nativeTheme, session, shell, WebContentsView, type WebContents } from 'electron';
 import { BRAND } from '../../../packages/shared/src/brand';
 import { appUrl, linkAction } from './links';
+import { startLocal, type Local } from './local/run';
 import { startPrinting } from './printing';
 import { startUpdates, type Updates } from './updates';
 
-const ORIGIN = appUrl(process.env);
-const START = ORIGIN + '/';
+/** The app's address: the live app, or http://127.0.0.1:<port> once single-PC mode's server is up. */
+let ORIGIN = appUrl(process.env);
+const start = () => ORIGIN + '/';
 const OFFLINE_PAGE = path.join(__dirname, 'static', 'offline.html');
+const STARTING_PAGE = path.join(__dirname, 'static', 'starting.html');
 const TITLEBAR_PAGE = path.join(__dirname, 'static', 'titlebar.html');
 /** height of the title bar, in px */
 const BAR = 36;
+/** the app's version, from package.json (build.mjs) */
+declare const __APP_VERSION__: string;
 
 // The app's own folder (sign-in, settings). Fixed, so renaming the app (brand.ts) never loses it.
 // BILLING_PROFILE_DIR: a separate folder for tests.
 app.setName(BRAND.name);
 app.setPath('userData', process.env.BILLING_PROFILE_DIR || path.join(app.getPath('appData'), 'billing-erp-desktop'));
+
+/** "local": single-PC mode (the shop's books on this computer); otherwise the live app. */
+function mode(): 'online' | 'local' {
+  if (process.env.BILLING_MODE === 'local' || process.env.BILLING_MODE === 'online') return process.env.BILLING_MODE;
+  try {
+    return (JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'mode.json'), 'utf8')) as { mode?: string }).mode === 'local' ? 'local' : 'online';
+  } catch {
+    return 'online';
+  }
+}
+
+/** Where single-PC mode's parts are: next to the installed app (resources/), or in dist/ while developing. */
+function localPaths() {
+  const base = app.isPackaged ? process.resourcesPath : __dirname;
+  return {
+    root: path.join(app.getPath('userData'), 'local'),
+    pgDir: process.env.BILLING_PG_DIR || path.join(base, 'postgres'),
+    serverDir: path.join(base, 'server'),
+    webDir: path.join(base, 'web'),
+  };
+}
 
 /** Permissions a page may have: copying to the clipboard and full screen, and only for the app's own pages. */
 const ALLOWED = new Set(['clipboard-sanitized-write', 'clipboard-read', 'fullscreen']);
@@ -56,7 +87,11 @@ const overlay = () => (nativeTheme.shouldUseDarkColors ? { color: '#0e1120', sym
 
 interface Main { win: BaseWindow; page: WebContents; bar: WebContents }
 
-function createWindow(updates: Updates): Main {
+/**
+ * `ready`: resolves once the app's address is known (at once online; single-PC mode after its database
+ * and server started). Until then the page shows "Opening your books…"; if it fails, why.
+ */
+function createWindow(updates: Updates, ready: Promise<void>, logDir: string): Main {
   const win = new BaseWindow({
     width: 1366,
     height: 768 + BAR,
@@ -75,7 +110,7 @@ function createWindow(updates: Updates): Main {
 
   const barView = new WebContentsView({ webPreferences: { ...SAFE_PAGE, preload: path.join(__dirname, 'preload-titlebar.cjs') } });
   // the app's pages get window.billingDesktop (printing), only on the app's own address (preload.ts)
-  const pageView = new WebContentsView({ webPreferences: { ...SAFE_PAGE, preload: path.join(__dirname, 'preload.cjs'), additionalArguments: [`--billing-origin=${ORIGIN}`] } });
+  const pageView = new WebContentsView({ webPreferences: { ...SAFE_PAGE, preload: path.join(__dirname, 'preload.cjs') } });
   win.contentView.addChildView(pageView);
   win.contentView.addChildView(barView);
   const bar = barView.webContents;
@@ -96,7 +131,7 @@ function createWindow(updates: Updates): Main {
   void bar.loadFile(TITLEBAR_PAGE, { query: { os: process.platform, letter: BRAND.name.charAt(0).toUpperCase() } });
 
   guard(page);
-  const showOffline = () => void page.loadFile(OFFLINE_PAGE, { query: { to: START } });
+  const showOffline = () => void page.loadFile(OFFLINE_PAGE, { query: { to: start() } });
   page.on('did-fail-load', (_e, code, _desc, url, isMainFrame) => {
     // -3: the page was replaced by another one before it finished (not an error)
     if (!isMainFrame || code === -3 || url.startsWith('file:')) return;
@@ -115,7 +150,7 @@ function createWindow(updates: Updates): Main {
     const reload = input.key === 'F5' || ((input.control || input.meta) && input.key.toLowerCase() === 'r');
     if (reload) {
       e.preventDefault();
-      if (page.getURL().startsWith('file:')) void page.loadURL(START);
+      if (page.getURL().includes('/static/offline.html')) void page.loadURL(start());
       else page.reload();
     }
     if (!app.isPackaged && input.control && input.shift && input.key.toLowerCase() === 'i') page.toggleDevTools();
@@ -126,7 +161,11 @@ function createWindow(updates: Updates): Main {
 
   if (!process.env.BILLING_TEST) win.maximize();
   win.show();
-  void page.loadURL(START);
+  ready.then(
+    () => void page.loadURL(start()),
+    (e: unknown) => void page.loadFile(STARTING_PAGE, { query: { error: e instanceof Error ? e.message : String(e), log: path.join(logDir, 'server.log') } }),
+  );
+  if (mode() === 'local') void page.loadFile(STARTING_PAGE);
   page.focus();
   return { win, page, bar };
 }
@@ -146,6 +185,10 @@ if (!app.requestSingleInstanceLock()) {
     const ses = session.defaultSession;
     ses.setPermissionRequestHandler((wc, permission, done, details) => done(ALLOWED.has(permission) && ownPage(details.requestingUrl ?? wc.getURL())));
     ses.setPermissionCheckHandler((_wc, permission, origin) => ALLOWED.has(permission) && ownPage(origin));
+    // a sign-in is written to disk at once, not up to 30 s later, so a crash or power cut right after
+    // signing in does not sign the shop out
+    let flush: ReturnType<typeof setTimeout> | undefined;
+    ses.cookies.on('changed', () => { clearTimeout(flush); flush = setTimeout(() => void ses.cookies.flushStore(), 200); });
 
     // Windows: no menu bar (copy, paste and undo still work from the keyboard). Mac needs a basic menu for them.
     Menu.setApplicationMenu(process.platform === 'darwin' ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]) : null);
@@ -158,8 +201,30 @@ if (!app.requestSingleInstanceLock()) {
     ipcMain.handle('titlebar:check', (e) => { fromBar(e.sender); updates.check(); });
     ipcMain.handle('titlebar:install', (e) => { fromBar(e.sender); updates.install(); });
 
-    main = createWindow(updates);
+    // the page's address, for the printing link (preload.ts): only the app's own pages get printing
+    ipcMain.on('billing:origin', (e) => { e.returnValue = ORIGIN; });
+
+    let ready: Promise<void> = Promise.resolve();
+    const paths = localPaths();
+    if (mode() === 'local') {
+      ready = startLocal(paths, __APP_VERSION__).then((l) => {
+        local = l;
+        ORIGIN = l.origin;
+      });
+    }
+    main = createWindow(updates, ready, paths.root);
     main.win.on('closed', () => (main = null));
+  });
+
+  // single-PC mode: closing the app (or restarting for an update) stops the server and the database first
+  let local: Local | null = null;
+  let stopped = false;
+  app.on('before-quit', (e) => {
+    if (!local || stopped) return;
+    e.preventDefault();
+    const l = local;
+    local = null;
+    void l.stop().finally(() => { stopped = true; app.quit(); });
   });
 
   app.on('window-all-closed', () => app.quit());

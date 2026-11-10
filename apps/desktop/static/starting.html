@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>Opening your books</title>
+<style>
+  :root { color-scheme: light dark; --bg: #f4f5fa; --card: #fff; --ink: #151b2e; --muted: #66708a; --line: #e8eaf2; --ac: #4f46e5; --bad: #b91c1c; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0e1120; --card: #161a2b; --ink: #e9ebf4; --muted: #9aa2bb; --line: #2a3049; --ac: #818cf8; --bad: #f87171; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--ink);
+         font: 15px/1.55 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  .card { width: min(460px, calc(100vw - 32px)); background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 28px; }
+  h1 { font-size: 20px; margin: 0 0 8px; }
+  p { margin: 0; color: var(--muted); }
+  .spin { width: 22px; height: 22px; border: 3px solid var(--line); border-top-color: var(--ac); border-radius: 50%; animation: s 0.9s linear infinite; margin-bottom: 14px; }
+  @keyframes s { to { transform: rotate(360deg); } }
+  #problem h1 { color: var(--bad); }
+  code { font-size: 12.5px; word-break: break-all; }
+</style>
+</head>
+<body>
+<main class="card" id="starting">
+  <div class="spin" aria-hidden="true"></div>
+  <h1>Opening your books…</h1>
+  <p>Starting the shop’s database on this computer. The first time takes a little longer.</p>
+</main>
+<main class="card" id="problem" hidden>
+  <h1>The books could not be opened</h1>
+  <p id="why"></p>
+  <p style="margin-top:12px">Close the app and open it again. If this keeps happening, send the file <code id="log"></code> to support.</p>
+</main>
+<script>
+  const q = new URLSearchParams(location.search);
+  if (q.get('error')) {
+    document.getElementById('starting').hidden = true;
+    document.getElementById('problem').hidden = false;
+    document.getElementById('why').textContent = q.get('error');
+    document.getElementById('log').textContent = q.get('log') || '';
+  }
+</script>
+</body>
+</html>

@@ -7,21 +7,24 @@
   "main": "dist/main.cjs",
   "scripts": {
     "build": "node build.mjs",
-    "start": "node scripts/ensure-electron.cjs && node build.mjs && electron .",
+    "start": "node scripts/ensure-electron.cjs && node build.mjs && node build-server.mjs && electron .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "e2e": "node scripts/ensure-electron.cjs && node build.mjs && playwright test",
-    "package": "node scripts/ensure-electron.cjs && node build.mjs && node package.mjs",
-    "icon": "node scripts/make-icon.mjs"
+    "e2e": "node scripts/ensure-electron.cjs && node scripts/ensure-postgres.cjs && node build.mjs && node build-server.mjs && playwright test",
+    "package": "node scripts/ensure-electron.cjs && node build.mjs && node build-server.mjs && node package.mjs",
+    "icon": "node scripts/make-icon.mjs",
+    "build:server": "node build-server.mjs"
   },
   "devDependencies": {
     "@billing/shared": "workspace:*",
     "@playwright/test": "1.56.1",
     "@types/node": "22.18.0",
+    "@types/pg": "8.23.1",
     "electron": "44.9.1",
     "electron-builder": "26.18.0",
     "electron-updater": "6.8.11",
     "esbuild": "0.25.12",
+    "pg": "8.23.1",
     "typescript": "5.7.3",
     "vitest": "4.1.11"
   }

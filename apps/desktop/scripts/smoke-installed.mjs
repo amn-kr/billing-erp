@@ -15,7 +15,8 @@ if (!exe || !fs.existsSync(exe)) throw new Error(`Installed app not found: ${exe
 const isBar = (p) => p.url().includes('/static/titlebar.html');
 const isApp = (p) => /^https?:/.test(p.url()) || p.url().includes('/static/offline.html');
 async function find(app, want) {
-  for (let i = 0; i < 600; i++) {
+  // single-PC mode's first start makes the database first: allow two minutes
+  for (let i = 0; i < 1200; i++) {
     const p = app.windows().find(want);
     if (p) return p;
     await new Promise((r) => setTimeout(r, 100));
@@ -41,7 +42,40 @@ const version = JSON.parse(fs.readFileSync(new URL('../package.json', import.met
   await app.close();
 }
 
-// 2. the live app (the free server may need up to a minute to wake)
+// 2. single-PC mode: the installed PostgreSQL and server start, the app opens on this computer, a shop can be
+//    made, and closing the app stops the database
+{
+  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'billing-smoke-local-'));
+  const app = await electron.launch({ executablePath: exe, args: [], env: { ...process.env, BILLING_PROFILE_DIR: profile, BILLING_NO_UPDATES: '1', BILLING_MODE: 'local' }, timeout: 60_000 });
+  const started = Date.now();
+  let win;
+  try {
+    win = await find(app, (p) => /^http:\/\/127\.0\.0\.1:/.test(p.url()));
+  } catch (e) {
+    const shown = app.windows().map((p) => p.url()).join(', ');
+    const log = (f) => { try { return fs.readFileSync(path.join(profile, 'local', f), 'utf8').slice(-2000); } catch { return '(none)'; } };
+    throw new Error(`Single-PC mode did not open (${shown})\npg_ctl.log:\n${log('pg_ctl.log')}\npostgres.log:\n${log('postgres.log')}\nserver.log:\n${log('server.log')}`);
+  }
+  await win.waitForSelector('#vAuth:not([hidden])', { timeout: 60_000 });
+  console.log(`OK  single-PC mode: the books opened on this computer in ${Math.round((Date.now() - started) / 1000)} s (${new URL(win.url()).origin})`);
+  const made = await win.evaluate(async () => {
+    const who = { email: 'smoke@local.example.com', password: 'smoke test password 1' };
+    const r = await fetch('/api/auth/register', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...who, name: 'Smoke Test' }) });
+    const { accessToken } = await r.json();
+    const b = await fetch('/api/businesses', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ name: 'Smoke Traders', owner: 'Smoke Test', state: '09' }) });
+    return b.ok ? (await b.json()).business.name : `failed ${b.status} ${await b.text()}`;
+  });
+  if (made !== 'Smoke Traders') throw new Error(`Could not make a shop in single-PC mode: ${made}`);
+  console.log('OK  single-PC mode: a shop was made in the books on this computer');
+  await app.close();
+  const pgCtl = path.join(path.dirname(exe), 'resources', 'postgres', 'bin', 'pg_ctl.exe');
+  const { spawnSync } = await import('node:child_process');
+  const status = spawnSync(pgCtl, ['status', '-D', path.join(profile, 'local', 'pgdata')]).status;
+  if (status === 0) throw new Error('The database was still running after the app closed');
+  console.log('OK  single-PC mode: closing the app stopped the database');
+}
+
+// 3. the live app (the free server may need up to a minute to wake)
 {
   const { app, win } = await open({});
   await win.waitForSelector('#vAuth:not([hidden]), #app', { timeout: 120_000 });
@@ -49,7 +83,7 @@ const version = JSON.parse(fs.readFileSync(new URL('../package.json', import.met
   await app.close();
 }
 
-// 3. a real Windows printer (CI: "Microsoft Print to PDF" writing to a file): silent, named printer, A5 landscape,
+// 4. a real Windows printer (CI: "Microsoft Print to PDF" writing to a file): silent, named printer, A5 landscape,
 //    exactly as Print does (printing.ts)
 const printer = process.env.PRINT_TEST_PRINTER;
 const out = process.env.PRINT_TEST_FILE;
