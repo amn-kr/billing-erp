@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
+import { makeKey } from './recovery';
 
 export interface LocalSettings {
   /** PostgreSQL's own superuser (setup and upgrades only) */
@@ -21,6 +22,13 @@ export interface LocalSettings {
   appPort: number;
   /** the app version that last started successfully (a new one backs up the database first) */
   lastVersion?: string;
+  /**
+   * Locks this PC's backups (the API's BACKUP_MASTER_KEY): the "recovery key" the owner prints, needed to
+   * open the backups on another computer. 32 characters A–Z and 2–7 (recovery.ts).
+   */
+  backupKey?: string;
+  /** when the owner last printed the recovery key (until then Settings reminds them) */
+  keyPrintedAt?: string;
 }
 
 const secret = () => crypto.randomBytes(32).toString('base64url');
@@ -47,9 +55,13 @@ export async function loadSettings(root: string): Promise<LocalSettings> {
   const file = settingsFile(root);
   try {
     const s = JSON.parse(fs.readFileSync(file, 'utf8')) as LocalSettings;
-    if (s.adminPassword && s.appPassword && s.jwtSecret && s.appPort) return s;
+    if (s.adminPassword && s.appPassword && s.jwtSecret && s.appPort) {
+      // books made before backups existed get their key now
+      if (!s.backupKey) saveSettings(root, Object.assign(s, { backupKey: makeKey() }));
+      return s;
+    }
   } catch { /* first start */ }
-  const s: LocalSettings = { adminPassword: secret(), appPassword: secret(), jwtSecret: secret(), appPort: await freePort() };
+  const s: LocalSettings = { adminPassword: secret(), appPassword: secret(), jwtSecret: secret(), appPort: await freePort(), backupKey: makeKey() };
   saveSettings(root, s);
   return s;
 }

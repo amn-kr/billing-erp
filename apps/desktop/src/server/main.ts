@@ -61,11 +61,16 @@ async function main() {
     // plain http on this computer: the sign-in cookie cannot be "secure"
     COOKIE_SECURE: 'false',
     DEMO_ENABLED: 'false',
-    // cloud backups and Google Drive come with step 6
-    BACKUP_WORKER: 'off',
+    // backups (Settings › General › Backup & restore), locked with this PC's recovery key; folders and
+    // pen drives on this computer (the live server never has them)
+    BACKUP_MASTER_KEY: env('BILLING_LOCAL_BACKUP_KEY'),
+    BACKUP_WORKER: 'on',
+    BACKUP_FOLDERS: 'on',
+    // the books are on this computer's disk, not a hosting plan with a size limit
+    DB_SPACE_LIMIT_MB: '102400',
   });
-  // the passwords stay in this process's settings only as the connection above
-  for (const k of ['BILLING_LOCAL_ADMIN_PASSWORD', 'BILLING_LOCAL_APP_PASSWORD', 'BILLING_LOCAL_JWT_SECRET']) delete process.env[k];
+  // the passwords stay in this process's settings only as the connection above (and the API's settings)
+  for (const k of ['BILLING_LOCAL_ADMIN_PASSWORD', 'BILLING_LOCAL_APP_PASSWORD', 'BILLING_LOCAL_JWT_SECRET', 'BILLING_LOCAL_BACKUP_KEY']) delete process.env[k];
 
   require('reflect-metadata');
   // loaded only now: the API reads its settings when it starts

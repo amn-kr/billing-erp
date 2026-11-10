@@ -118,6 +118,28 @@ export class BackupService {
     });
   }
 
+  /**
+   * A place's own settings (e.g. its folder). With `restart`, the place starts again from now with a
+   * full copy: a new folder has none of the earlier files.
+   */
+  async savePlace(ctx: RequestContext, kind: DestKind, settings: Record<string, unknown>, restart: boolean): Promise<void> {
+    const businessId = ctx.businessId!;
+    if (restart) await this.seal(businessId);
+    await this.db.scoped(scopeOf(ctx), async (tx) => {
+      const d = await tx.backupDestination.findFirst({ where: { kind } });
+      if (!d) throw new BadRequestException({ message: 'Choose where to keep backups first.' });
+      const at = await this.lastSeq(tx);
+      await tx.backupDestination.update({
+        where: { id: d.id },
+        data: {
+          settings: { ...(d.settings as PlaceSettings), ...settings } as Prisma.InputJsonValue,
+          ...(restart ? { cursorSeq: at, lastSnapshotAt: null, failingSince: null, lastError: '', attempts: 0, nextTryAt: null } : {}),
+        },
+      });
+      await this.audit.log(tx, { businessId, userId: ctx.userId, action: 'update', entity: 'backup_destination', entityId: d.id, before: { settings: d.settings }, after: { settings }, ip: ctx.ip });
+    });
+  }
+
   async status(ctx: RequestContext) {
     return this.db.scoped(scopeOf(ctx), async (tx) => {
       const ds = await tx.backupDestination.findMany();
@@ -299,15 +321,25 @@ export class BackupService {
       if (sha256(b) !== f.sha256) throw new BackupFileError(`The file ${f.name} has been changed or damaged.`);
       return b;
     };
+    return { snap, files: chain.files, ...(await this.rebuild(master, businessId, tables, snap.toSeq, () => fetch(snap), chain.files.map((f) => () => fetch(f)))) };
+  }
+
+  /** Opens the full copy and the change files after it (in order) and rebuilds the books in memory. */
+  async rebuild(master: string, businessId: string, tables: TableInfo[], snapSeq: bigint, snap: () => Promise<Buffer>, changes: (() => Promise<Buffer>)[]) {
     try {
-      const s = openFile<SnapshotBody>(master, businessId, await fetch(snap));
+      const s = openFile<SnapshotBody>(master, businessId, await snap());
       const bundles: ChangesBody[] = [];
-      for (const f of chain.files) bundles.push(openFile<ChangesBody>(master, businessId, await fetch(f)).body);
-      return { tables, snap, files: chain.files, ...replay(tables, s.body, snap.toSeq, bundles) };
+      for (const f of changes) bundles.push(openFile<ChangesBody>(master, businessId, await f()).body);
+      return { tables, ...replay(tables, s.body, snapSeq, bundles) };
     } catch (e) {
       if (e instanceof BackupFileError) throw new BadRequestException({ message: e.message });
       throw e;
     }
+  }
+
+  /** The shop's tables, as a restore needs them. */
+  tablesFor(ctx: RequestContext): Promise<TableInfo[]> {
+    return this.db.scoped(scopeOf(ctx), (tx) => shopTables(tx));
   }
 
   /** Test restore: rebuilds the books from the backup and compares them with the books as they are now. Nothing is written except the audit entry. */
@@ -345,9 +377,19 @@ export class BackupService {
    */
   async restore(ctx: RequestContext, kind: DestKind) {
     const b = await this.load(ctx, kind);
+    return this.restoreInto(ctx, b, kind, b.snap.createdAt);
+  }
+
+  /**
+   * The rebuilt books become new books for this owner; the current books are not touched. `from`: where
+   * the backup came from (activity log); `sourceId`: the shop the backup was made from (another
+   * computer's shop when restoring from files), by default the current one.
+   */
+  async restoreInto(ctx: RequestContext, b: { tables: TableInfo[]; books: ReturnType<typeof replay>['books']; lastAt: string | null }, from: string, fullCopyAt: Date, sourceId = ctx.businessId!) {
+    const kind = from;
     const oldId = ctx.businessId!;
     const newId = randomUUID();
-    const books = remapIds(b.books, b.tables, oldId, newId);
+    const books = remapIds(b.books, b.tables, sourceId, newId);
     upgradeSeries(books);
     const biz = [...(books.get('businesses')?.values() ?? [])][0];
     if (!biz) throw new BadRequestException({ message: 'This backup has no business details.' });
@@ -355,7 +397,7 @@ export class BackupService {
       cur: await tx.business.findUniqueOrThrow({ where: { id: oldId } }),
       me: await tx.membership.findFirst({ where: { businessId: oldId, userId: ctx.userId } }),
     }));
-    const upTo = b.lastAt ?? b.snap.createdAt.toISOString();
+    const upTo = b.lastAt ?? fullCopyAt.toISOString();
     const created = await this.db.scoped({ businessId: newId, userId: ctx.userId, email: ctx.email }, async (tx) => {
       const [row] = await tx.$queryRaw<{ code: string }[]>`SELECT 'BE-' || nextval('business_code_seq') AS code`;
       const code = row!.code;
@@ -372,11 +414,11 @@ export class BackupService {
         const rows = [...(books.get(t.name)?.values() ?? [])];
         if (rows.length) await insertRows(tx, t, rows);
       }
-      await this.audit.log(tx, { businessId: newId, userId: ctx.userId, action: 'restore', entity: 'backup', entityId: newId, after: { from: kind, fromBooks: cur.code, fullCopyAt: b.snap.createdAt, upTo }, ip: ctx.ip });
+      await this.audit.log(tx, { businessId: newId, userId: ctx.userId, action: 'restore', entity: 'backup', entityId: newId, after: { from: kind, fromBooks: cur.code, fullCopyAt, upTo }, ip: ctx.ip });
       return { businessId: newId, code, name: String(biz.name ?? '') };
     }, { timeout: 600_000 });
     await this.db.scoped(scopeOf(ctx), (tx) =>
-      this.audit.log(tx, { businessId: oldId, userId: ctx.userId, action: 'restore', entity: 'backup', entityId: newId, after: { from: kind, intoBooks: created.code, fullCopyAt: b.snap.createdAt, upTo }, ip: ctx.ip }),
+      this.audit.log(tx, { businessId: oldId, userId: ctx.userId, action: 'restore', entity: 'backup', entityId: newId, after: { from: kind, intoBooks: created.code, fullCopyAt, upTo }, ip: ctx.ip }),
     );
     return created;
   }

@@ -71,6 +71,27 @@ const version = JSON.parse(fs.readFileSync(new URL('../package.json', import.met
   });
   if (made !== 'Smoke Traders') throw new Error(`Could not make a shop in single-PC mode: ${made}`);
   console.log('OK  single-PC mode: a shop was made in the books on this computer');
+  // backups into a folder (as on a pen drive), then opened again with the recovery key
+  const pen = fs.mkdtempSync(path.join(os.tmpdir(), 'billing-pen-'));
+  const { backupKey } = JSON.parse(fs.readFileSync(path.join(profile, 'local', 'settings.json'), 'utf8'));
+  const backed = await win.evaluate(async ({ pen, key }) => {
+    const who = { email: 'smoke@local.example.com', password: 'smoke test password 1' };
+    const call = async (url, method, token, body) => {
+      const r = await fetch(url, { method, headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: body ? JSON.stringify(body) : undefined });
+      if (!r.ok) throw new Error(`${url}: ${r.status} ${await r.text()}`);
+      return r.json();
+    };
+    const { accessToken: t } = await call('/api/auth/login', 'POST', null, who);
+    await call('/api/backup/destination', 'PUT', t, { dest: 'local' });
+    await call('/api/backup/local/folder', 'PUT', t, { folder: pen });
+    const now = await call('/api/backup/now', 'POST', t);
+    const test = await call('/api/backup/files/test', 'POST', t, { folder: pen, key });
+    return { sent: now.results.local, parties: test.parties, upTo: test.upTo };
+  }, { pen, key: backupKey });
+  const dir = fs.readdirSync(pen)[0];
+  const files = dir ? fs.readdirSync(path.join(pen, dir)) : [];
+  if (backed.sent !== 'sent' || !files.some((f) => /^full-.*\.berp$/.test(f))) throw new Error(`The backup to a folder did not work: ${JSON.stringify(backed)} ${files.join(', ')}`);
+  console.log(`OK  single-PC mode: backed up into a folder (${path.join(pen, dir)}, ${files.length} files) and opened again with the recovery key`);
   await app.close();
   const pgCtl = path.join(path.dirname(exe), 'resources', 'postgres', 'bin', 'pg_ctl.exe');
   const { spawnSync } = await import('node:child_process');

@@ -15,6 +15,7 @@ import { Icon, RawIcon } from '../../components/Icon';
 import { useShell } from '../shell/store';
 import { useSetTab } from './model';
 import { ui } from '../../styles/uiSize';
+import { desktop } from '../../lib/desktop';
 
 export type Dest = 'drive' | 'local' | 'both';
 type Place = 'drive' | 'local';
@@ -44,7 +45,12 @@ const COPY = '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a
 const DB = '<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>';
 const T = (c: string) => ({ background: `color-mix(in srgb,${c} 14%,transparent)`, color: c });
 const TI = (c: string) => ({ width: 36, height: 36, display: 'grid', placeItems: 'center', borderRadius: 10, flex: 'none', ...T(c) }) as const;
-const PLACE: Record<Place, string> = { drive: 'Google Drive', local: 'this computer' };
+/** the Windows app in single-PC mode: "this computer" is a folder or pen drive the server writes to itself */
+const ON_PC = typeof window !== 'undefined' && desktop()?.local ? desktop()! : null;
+const PLACE: Record<Place, string> = { drive: 'Google Drive', local: ON_PC ? 'the pen drive or folder' : 'this computer' };
+const KEY_ICON = '<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l3 3M14 9l2 2"/>';
+const BOX = '<path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/>';
+const DAY = 24 * 60 * 60 * 1000;
 const folderOk = () => typeof window !== 'undefined' && 'showDirectoryPicker' in window;
 
 export const BACKUP_KEY = ['backup-status'] as const;
@@ -98,8 +104,18 @@ export function BackupBanner() {
   const mins = Math.max(0, ...bad.map((p) => failMin(s[p], now)));
   const err = bad.length === 1 ? s[bad[0]!]?.error : null;
   const full = s.space.usedMb / s.space.limitMb >= 0.85;
+  // the pen drive has been out for a day or more (it waits quietly until then)
+  const pen = on(s, 'local') ? s.local : null;
+  const penDays = pen?.folder && !pen.connected && !pen.failingSince ? Math.floor((now - +new Date(pen.lastOkAt ?? s.now)) / DAY) : 0;
   return (
     <>
+      {penDays >= 1 && (
+        <div className="subbar pending" id="penBar" role="status">
+          <Icon name="alert" />
+          <span><b>No backup to the pen drive for {plural(penDays, 'day')}.</b> Plug in the pen drive; the backup catches up on its own.</span>
+          <button className="lnk2" type="button" onClick={open}>Open backup settings</button>
+        </div>
+      )}
       {s.keySet && bad.length > 0 && (
         <div className="subbar ended" id="bkpBar" role="alert">
           <Icon name="alert" />
@@ -126,6 +142,10 @@ export function BackupLive({ onDownload, children }: { onDownload: () => void; c
   const can = useCanManage();
   const [busy, setBusy] = useState(false);
   const [win, setWin] = useState<'test' | 'restore' | null>(null);
+  const [files, setFiles] = useState(false);
+  const [key, setKey] = useState<{ key: string; printedAt: string | null } | null>(null);
+  const [showKey, setShowKey] = useState(false);
+  useEffect(() => { if (ON_PC?.recoveryKey) void ON_PC.recoveryKey().then(setKey, () => undefined); }, []);
   useTick();
   const s = q.data;
   const now = s ? nowOf(s, q.dataUpdatedAt) : Date.now();
@@ -146,6 +166,24 @@ export function BackupLive({ onDownload, children }: { onDownload: () => void; c
       window.location.assign(url);
     } catch (e) { fail(e, 'Could not open Google sign-in.'); }
   }
+  /** Windows app: the folder or pen drive the backups go to (a new folder starts with a full copy) */
+  async function chooseFolder() {
+    if (!ON_PC?.chooseFolder) return;
+    const folder = await ON_PC.chooseFolder('Choose the backup folder or pen drive');
+    if (!folder) return;
+    try {
+      qc.setQueryData(BACKUP_KEY, await api<BackupStatus>('/backup/local/folder', { method: 'PUT', body: { folder } }));
+      showToast('Backups go to ' + folder);
+    } catch (e) { fail(e, 'Could not use that folder.'); }
+  }
+  async function printKey() {
+    if (!ON_PC?.printRecoveryKey || !ON_PC.recoveryKey) return;
+    try {
+      const r = await ON_PC.printRecoveryKey();
+      setKey(await ON_PC.recoveryKey());
+      if (r.ok) showToast('Recovery key printed. Keep the paper safe.');
+    } catch { showToast('Could not print the recovery key.'); }
+  }
   async function backupNow(p: Place) {
     if (busy) return;
     setBusy(true);
@@ -158,6 +196,7 @@ export function BackupLive({ onDownload, children }: { onDownload: () => void; c
         : x === 'failed' ? (r.status[p]?.error ?? 'The backup didn’t go through. The app keeps trying.')
         : x === 'off' ? 'Backups are not switched on for this server yet.'
         : x === 'busy' ? 'A backup is already on its way.'
+        : p === 'local' && ON_PC ? 'The pen drive or folder isn’t there. Plug in the pen drive.'
         : `${p === 'drive' ? 'Google Drive' : 'This computer'} is not connected yet.`);
     } catch (e) { fail(e, 'Could not start the backup.'); }
     setBusy(false);
@@ -184,7 +223,9 @@ export function BackupLive({ onDownload, children }: { onDownload: () => void; c
       <p className="mu" style={{ margin: ui.sp('0 0 8px'), fontSize: ui.fs(13) }}>Every change is copied within about a minute, and a full copy is made each day. Backups are locked (encrypted) so only this app can open them.</p>
       {s && !s.keySet && <p className="msg warn" id="bkpOff" style={{ fontSize: ui.fs(13) }}>Backups are not switched on for this server yet. They start once its backup key is set.</p>}
       <div className="rad" role="radiogroup" aria-label="Where to keep backups" id="bkpDest" style={{ gridTemplateColumns: '1fr 1fr 1fr', margin: ui.sp('0 0 12px') }}>
-        {([['drive', 'Google Drive', 'In a folder in your Google Drive'], ['local', 'This computer', 'In a folder you choose on this computer'], ['both', 'Both', 'Google Drive and this computer']] as const).map(([k, n, d]) => (
+        {(ON_PC
+          ? [['drive', 'Google Drive', 'In a folder in your Google Drive'], ['local', 'Pen drive or folder', 'On a pen drive or in a folder on this computer'], ['both', 'Both', 'Google Drive and the pen drive']] as const
+          : [['drive', 'Google Drive', 'In a folder in your Google Drive'], ['local', 'This computer', 'In a folder you choose on this computer'], ['both', 'Both', 'Google Drive and this computer']] as const).map(([k, n, d]) => (
           <label key={k} className={dest === k ? 'on' : ''}><input type="radio" name="bkpDest" value={k} checked={dest === k} disabled={!can || !s} onChange={() => void pick(k)} />{n}<small>{d}</small></label>
         ))}
       </div>
@@ -201,7 +242,21 @@ export function BackupLive({ onDownload, children }: { onDownload: () => void; c
           )}
         </div>
       )}
-      {local && (folderOk() ? (
+      {local && ON_PC && (
+        <div className="synccard" id="bkpLocal"><span className="ti" style={TI(local.failingSince ? 'var(--red)' : !local.folder ? 'var(--red)' : !local.connected ? 'var(--amber,#d97706)' : '#16a34a')}><RawIcon d={BOX} /></span>
+          {!local.folder ? (
+            <><div className="sx"><b>Pen drive or folder</b><span>Choose a folder on a pen drive (or on this computer). Backups go there on their own whenever it is plugged in.</span></div>
+              {can && <button className="btn p" type="button" id="bkpLocalPick" onClick={() => void chooseFolder()}>Choose folder…</button>}</>
+          ) : local.connected ? (
+            <><div className="sx"><b>Pen drive or folder {status(local)}</b><span>{line(local)} Folder “{local.folder}”.</span></div>
+              {can && <><button className="btn" type="button" id="bkpLocalNow" disabled={busy} onClick={() => void backupNow('local')}>Backup now</button><button className="btn" type="button" id="bkpLocalPick" onClick={() => void chooseFolder()}>Change folder…</button></>}</>
+          ) : (
+            <><div className="sx"><b>Pen drive or folder <span className="st a">Waiting</span></b><span id="bkpLocalWait">Plug in the pen drive: the backup catches up on its own. Folder “{local.folder}”. Last backup {local.lastOkAt ? ago(local.lastOkAt, now) : 'never'}{local.waiting ? ` · ${plural(local.waiting, 'change')} waiting` : ''}.</span></div>
+              {can && <button className="btn" type="button" id="bkpLocalPick" onClick={() => void chooseFolder()}>Change folder…</button>}</>
+          )}
+        </div>
+      )}
+      {local && !ON_PC && (folderOk() ? (
         <div className="synccard" id="bkpLocal"><span className="ti" style={TI(local.failingSince || !local.connected ? 'var(--red)' : '#16a34a')}><RawIcon d={PC} /></span>
           {local.connected ? (
             <><div className="sx"><b>This computer {status(local)}</b><span>{line(local)}{local.folder ? ` Folder “${local.folder}”.` : ''}</span><span className="mu" style={{ display: 'block', fontSize: ui.fs(12), marginTop: ui.sp(4) }}>Works only while this app is open in this browser. After the computer or browser restarts, the browser asks you once to allow the folder again.</span></div>
@@ -221,9 +276,21 @@ export function BackupLive({ onDownload, children }: { onDownload: () => void; c
           <div className="sx"><b>Full copy every day</b><span id="bkpSnapTxt">{snap ? `Last full copy ${day(snap) === day(new Date(now).toISOString()) ? 'today' : 'on ' + day(snap)} at ${at(snap)}.` : 'The first full copy is made as soon as a place is connected.'} Restore uses the latest full copy plus every change after it. Try “Test restore” first: it checks the backup without touching your books.</span></div>
           {can && <><button className="btn" type="button" id="bkpTest" disabled={!from} onClick={() => setWin('test')}>Test restore</button><button className="btn dz" type="button" id="bkpRestoreLive" disabled={!from} onClick={() => setWin('restore')}>Restore…</button></>}</div>
       )}
+      {ON_PC && can && key && (
+        <div className="synccard" id="bkpKeyRow"><span className="ti" style={TI(key.printedAt ? '#16a34a' : 'var(--amber,#d97706)')}><RawIcon d={KEY_ICON} /></span>
+          <div className="sx"><b>Recovery key</b><span id="bkpKeyTxt">{key.printedAt ? `Printed ${when(key.printedAt)}.` : 'Not printed yet.'} Opens these backups on another computer if this one breaks or is lost. Print it and keep the paper safe, away from the computer.</span>
+            {showKey && <b className="mono" id="bkpKey" style={{ display: 'block', marginTop: ui.sp(6), fontSize: ui.fs(15), letterSpacing: 1 }}>{key.key}</b>}</div>
+          <button className="btn" type="button" id="bkpKeyShow" onClick={() => setShowKey((v) => !v)}>{showKey ? 'Hide key' : 'Show key'}</button><button className={`btn${key.printedAt ? '' : ' p'}`} type="button" id="bkpKeyPrint" onClick={() => void printKey()}>Print key</button></div>
+      )}
+      {ON_PC && can && (
+        <div className="synccard" id="bkpFiles"><span className="ti" style={TI('var(--ac)')}><RawIcon d={BOX} /></span>
+          <div className="sx"><b>Restore from files</b><span>On a new computer: choose the pen drive or backup folder and type the recovery key. The backup becomes new books; the current books stay as they are.</span></div>
+          <button className="btn" type="button" id="bkpFilesGo" onClick={() => setFiles(true)}>Restore from files…</button></div>
+      )}
       {children}
-      <div className="synccard"><span className="ti" style={TI(spaceC)}><RawIcon d={DB} /></span><div className="sx"><b>Space for your books</b><span id="bkpUseTxt">{s ? `${s.space.usedMb} MB used of ${s.space.limitMb} MB${pct >= 85 ? ' — almost full. When it is full, new entries can’t be saved. Contact support to get more space.' : pct >= 70 ? ' — getting full.' : '.'}` : 'Your books are kept on the server, not on this device.'}</span><div style={{ height: 6, borderRadius: 3, background: 'var(--bd,#e2e8f0)', overflow: 'hidden', marginTop: ui.sp(6) }}><i id="bkpUseBar" style={{ display: 'block', height: '100%', width: Math.max(2, pct) + '%', background: spaceC }}></i></div></div></div>
+      <div className="synccard"><span className="ti" style={TI(spaceC)}><RawIcon d={DB} /></span><div className="sx"><b>Space for your books</b><span id="bkpUseTxt">{s && ON_PC ? `${s.space.usedMb} MB, kept on this computer.` : s ? `${s.space.usedMb} MB used of ${s.space.limitMb} MB${pct >= 85 ? ' — almost full. When it is full, new entries can’t be saved. Contact support to get more space.' : pct >= 70 ? ' — getting full.' : '.'}` : 'Your books are kept on the server, not on this device.'}</span>{!ON_PC && <div style={{ height: 6, borderRadius: 3, background: 'var(--bd,#e2e8f0)', overflow: 'hidden', marginTop: ui.sp(6) }}><i id="bkpUseBar" style={{ display: 'block', height: '100%', width: Math.max(2, pct) + '%', background: spaceC }}></i></div>}</div></div>
       {from && <RestoreWindow mode={win} from={from} onClose={() => setWin(null)} />}
+      {ON_PC && <FilesRestoreWindow open={files} onClose={() => setFiles(false)} />}
     </>
   );
 }
@@ -310,6 +377,102 @@ function RestoreWindow({ mode, from, onClose }: { mode: 'test' | 'restore' | nul
           ) : restore ? (
             <><button className="btn" type="button" id="trmCancel" onClick={onClose}>Cancel</button><button className="btn dz" type="button" id="trmGo" disabled={!r || !ok || busy} onClick={() => void go()}>{busy ? 'Restoring…' : 'Restore into new books'}</button></>
           ) : <button className="btn p" type="button" id="trmDoneBtn" onClick={onClose}>Close</button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface FilesResult { fullCopyAt: string; changes: number; upTo: string; otherShops: number; invoices: number; parties: number; items: number; purchaseBills: number; paymentsReceived: number; salesTotalThisYear: string }
+
+/**
+ * Windows app, single-PC mode: "Restore from files…" (#frm). The pen drive or folder and the recovery
+ * key; the backup is opened and checked first without touching any books, then restored into new books.
+ */
+function FilesRestoreWindow({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const { showToast } = useShell();
+  const [folder, setFolder] = useState('');
+  const [key, setKey] = useState('');
+  const [r, setR] = useState<FilesResult | null>(null);
+  const [err, setErr] = useState('');
+  const [ok, setOk] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState<Done | null>(null);
+  useOpenFocus(open, ref);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    if (!open) return;
+    setFolder(''); setKey(''); setR(null); setErr(''); setOk(false); setBusy(false); setDone(null);
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && closeRef.current();
+    document.addEventListener('keydown', esc);
+    return () => document.removeEventListener('keydown', esc);
+  }, [open]);
+  async function pickFolder() {
+    const f = await ON_PC?.chooseFolder?.('Choose the pen drive or backup folder');
+    if (f) { setFolder(f); setR(null); setErr(''); }
+  }
+  async function check() {
+    setBusy(true); setErr(''); setR(null);
+    try { setR(await api<FilesResult>('/backup/files/test', { body: { folder, key } })); } catch (e) { setErr(e instanceof ApiError ? e.message : 'Could not open the backup.'); }
+    setBusy(false);
+  }
+  async function go() {
+    setBusy(true); setErr('');
+    try {
+      setDone(await api<Done>('/backup/files/restore', { body: { folder, key, confirm: true } }));
+      await qc.invalidateQueries({ queryKey: ['me'] });
+    } catch (e) { setErr('Restore failed: ' + (e instanceof ApiError ? e.message : 'unknown error')); }
+    setBusy(false);
+  }
+  async function openBooks() {
+    if (!done) return;
+    try {
+      await apiWithToken('/businesses/switch', { businessId: done.businessId });
+      await qc.invalidateQueries();
+      onClose();
+      navigate('/');
+      showToast(`Opened the restored books (${done.code})`);
+    } catch (e) { setErr(e instanceof ApiError ? e.message : 'Could not open the restored books.'); }
+  }
+  return (
+    <div className="ov c" id="frm" ref={ref} hidden={!open} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'frm') onClose(); }}>
+      <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="frmT" style={{ width: 'min(560px,100%)' }}>
+        <div className="dh"><div><h3 id="frmT" style={{ margin: 0, fontSize: ui.fs(18) }}>Restore from files</h3><small className="mu">From a pen drive or backup folder, with the recovery key</small></div><button className="ib" type="button" id="frmClose" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
+        <div style={{ marginTop: ui.sp(12) }}>
+          {!done && (
+            <>
+              <div style={{ display: 'flex', gap: ui.sp(10), alignItems: 'center' }}>
+                <button className="btn" type="button" id="frmFolder" disabled={busy} onClick={() => void pickFolder()}>{folder ? 'Change folder…' : 'Choose folder…'}</button>
+                <span className="mu" id="frmFolderTxt" style={{ fontSize: ui.fs(13), wordBreak: 'break-all' }}>{folder || 'The pen drive, or the folder named “… Backup - BE-…”'}</span>
+              </div>
+              <label className="fl" htmlFor="frmKey" style={{ marginTop: ui.sp(12) }}>Recovery key<input className="fi mono" id="frmKey" value={key} placeholder="ABCD-EFGH-…" autoComplete="off" spellCheck={false} onChange={(e) => { setKey(e.target.value); setR(null); }} /></label>
+              {!r && <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: ui.sp(12) }}><button className="btn p" type="button" id="frmCheck" disabled={!folder || key.replace(/[^a-z0-9]/gi, '').length < 32 || busy} onClick={() => void check()}>{busy ? 'Opening…' : 'Open and check'}</button></div>}
+            </>
+          )}
+          {r && !done && (
+            <>
+              <p className="msg good" id="frmOk" style={{ margin: ui.sp('12px 0 10px'), fontSize: ui.fs(13) }}>The backup opened and checked out. No books were touched.{r.otherShops ? ` (This folder also has backups of ${plural(r.otherShops, 'other shop')}; the newest one is shown.)` : ''}</p>
+              <div className="rcv"><div><span>Backed up up to</span><b>{when(r.upTo)}</b></div><div><span>Invoices</span><b>{r.invoices.toLocaleString('en-IN')}</b></div>
+                <div><span>Parties</span><b>{r.parties.toLocaleString('en-IN')}</b></div><div><span>Items</span><b>{r.items.toLocaleString('en-IN')}</b></div>
+                <div><span>Purchase bills</span><b>{r.purchaseBills.toLocaleString('en-IN')}</b></div><div><span>Payments received</span><b>{r.paymentsReceived.toLocaleString('en-IN')}</b></div>
+                <div><span>Sales total this year</span><b>₹{formatInr2(r.salesTotalThisYear)}</b></div><div><span>Full copy of</span><b>{when(r.fullCopyAt)}</b></div></div>
+              <p className="hint" style={{ margin: ui.sp('10px 0') }}>The backup becomes new books, as with Start fresh. The books open now are kept exactly as they are and stay in the shop menu. The restore is written in the activity log.</p>
+              <label className="cb2" style={{ alignItems: 'flex-start' }}><input type="checkbox" id="frmUnderstand" style={{ marginTop: ui.sp(3) }} checked={ok} onChange={(e) => setOk(e.target.checked)} /> <span><b>I understand</b> new books are made from this backup; nothing in the current books changes.</span></label>
+            </>
+          )}
+          {done && <p className="msg good" id="frmDone" style={{ margin: 0, fontSize: ui.fs(13) }}>Restored into new books: {done.name} ({done.code}). The other books are unchanged and stay in the shop menu.</p>}
+        </div>
+        <div className="msg bad" id="frmErr" role="alert">{err}</div>
+        <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end', marginTop: ui.sp(12) }}>
+          {done ? (
+            <><button className="btn" type="button" id="frmStay" onClick={onClose}>Stay in these books</button><button className="btn p" type="button" id="frmOpen" onClick={() => void openBooks()}>Open the restored books</button></>
+          ) : r ? (
+            <><button className="btn" type="button" id="frmCancel" onClick={onClose}>Cancel</button><button className="btn dz" type="button" id="frmGo" disabled={!ok || busy} onClick={() => void go()}>{busy ? 'Restoring…' : 'Restore into new books'}</button></>
+          ) : <button className="btn" type="button" id="frmCancel" onClick={onClose}>Cancel</button>}
         </div>
       </div>
     </div>

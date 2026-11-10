@@ -10,8 +10,9 @@
  * shop's own database and server on this computer, local/run.ts). The first start asks which
  * (static/welcome.html) and keeps the answer in <userData>/mode.json (mode.ts).
  */
+import fs from 'node:fs';
 import path from 'node:path';
-import { app, BaseWindow, ipcMain, Menu, nativeTheme, session, shell, WebContentsView, type WebContents } from 'electron';
+import { app, BaseWindow, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, session, shell, WebContentsView, type WebContents } from 'electron';
 import { BRAND } from '../../../packages/shared/src/brand';
 import { appUrl, linkAction } from './links';
 import { startLocal, type Local } from './local/run';
@@ -26,6 +27,7 @@ const OFFLINE_PAGE = path.join(__dirname, 'static', 'offline.html');
 const STARTING_PAGE = path.join(__dirname, 'static', 'starting.html');
 const TITLEBAR_PAGE = path.join(__dirname, 'static', 'titlebar.html');
 const WELCOME_PAGE = path.join(__dirname, 'static', 'welcome.html');
+const RECOVERY_PAGE = path.join(__dirname, 'static', 'recovery-key.html');
 /** height of the title bar, in px */
 const BAR = 36;
 /** the app's version, from package.json (build.mjs) */
@@ -169,6 +171,50 @@ function askMode(page: WebContents): Promise<Mode> {
   });
 }
 
+/**
+ * Single-PC mode's backup buttons (Settings › Backup & restore, Windows app only): choose the backup
+ * folder or pen drive, show and print the recovery key. Only for the app's own page in this window.
+ */
+function startBackupLinks(getMain: () => Main | null, getLocal: () => Local | null) {
+  const check = (wc: WebContents) => {
+    const m = getMain();
+    const l = getLocal();
+    if (!m || wc !== m.page || !ownPage(wc.getURL()) || !l) throw new Error('Not allowed');
+    return { m, l };
+  };
+  ipcMain.handle('backup:chooseFolder', async (e, title: unknown) => {
+    const { m } = check(e.sender);
+    const r = await dialog.showOpenDialog(m.win as unknown as BrowserWindow, {
+      title: typeof title === 'string' ? title.slice(0, 100) : 'Choose the backup folder',
+      properties: ['openDirectory', 'createDirectory'],
+    });
+    return r.canceled ? null : (r.filePaths[0] ?? null);
+  });
+  ipcMain.handle('backup:recoveryKey', (e) => check(e.sender).l.recovery());
+  ipcMain.handle('backup:printKey', async (e) => {
+    const { l } = check(e.sender);
+    const { key } = await l.recovery();
+    // a page of its own, never shown: the key printed on A4 with what to do with it
+    const w = new BrowserWindow({ show: false, webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false } });
+    try {
+      await w.loadFile(RECOVERY_PAGE, { query: { key, brand: BRAND.name } });
+      // tests: saved as a PDF instead of the print window
+      const pdf = process.env.BILLING_TEST ? process.env.BILLING_PRINT_KEY_TO : undefined;
+      let ok: boolean;
+      if (pdf) {
+        fs.writeFileSync(pdf, await w.webContents.printToPDF({ pageSize: 'A4' }));
+        ok = true;
+      } else {
+        ok = await new Promise<boolean>((done) => w.webContents.print({ silent: false, printBackground: true }, (success) => done(success)));
+      }
+      if (ok) await l.markPrinted();
+      return { ok };
+    } finally {
+      w.destroy();
+    }
+  });
+}
+
 if (!app.requestSingleInstanceLock()) {
   // the app is already open: bring that window forward instead of opening a second copy
   app.quit();
@@ -202,6 +248,7 @@ if (!app.requestSingleInstanceLock()) {
 
     // the page's address, for the printing link (preload.ts): only the app's own pages get printing
     ipcMain.on('billing:origin', (e) => { e.returnValue = { origin: ORIGIN, local: LOCAL }; });
+    startBackupLinks(() => main, () => local);
 
     main = createWindow(updates);
     const { page } = main;

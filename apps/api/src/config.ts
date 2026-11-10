@@ -30,6 +30,12 @@ const schema = z.object({
   BACKUP_MASTER_KEY: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(32, 'BACKUP_MASTER_KEY must be at least 32 characters').optional()),
   /** off: this server does not run the every-minute backup sender (tests call it directly). */
   BACKUP_WORKER: z.enum(['on', 'off']).optional(),
+  /**
+   * on: backups into a folder or pen drive on this computer, and restoring from such files. Only the
+   * Windows app's single-PC mode turns it on (its server runs on the shop's own PC); the live server
+   * never reads or writes folders.
+   */
+  BACKUP_FOLDERS: z.enum(['on', 'off']).optional(),
   /** The database plan's size limit, for the "space for your books" bar and warnings (Neon free plan: 500 MB). */
   DB_SPACE_LIMIT_MB: z.coerce.number().positive().default(500),
   /**

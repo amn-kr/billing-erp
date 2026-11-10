@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { utilityProcess, type UtilityProcess } from 'electron';
 import { LocalDatabase } from './db';
+import { formatKey } from './recovery';
 import { freePort, loadSettings, saveSettings } from './state';
 
 export interface LocalPaths {
@@ -21,7 +22,13 @@ export interface LocalPaths {
   webDir: string;
 }
 
-export interface Local { origin: string; stop(): Promise<void> }
+export interface Local {
+  origin: string;
+  stop(): Promise<void>;
+  /** this PC's recovery key (opens its backups on any computer), and when it was last printed */
+  recovery(): Promise<{ key: string; printedAt: string | null }>;
+  markPrinted(): Promise<void>;
+}
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -66,6 +73,7 @@ export async function startLocal(p: LocalPaths, version: string): Promise<Local>
         BILLING_LOCAL_ADMIN_PASSWORD: settings.adminPassword,
         BILLING_LOCAL_APP_PASSWORD: settings.appPassword,
         BILLING_LOCAL_JWT_SECRET: settings.jwtSecret,
+        BILLING_LOCAL_BACKUP_KEY: settings.backupKey!,
         BILLING_LOCAL_WEB: p.webDir,
         BILLING_LOCAL_MIGRATIONS: path.join(p.serverDir, 'migrations'),
       },
@@ -105,6 +113,13 @@ export async function startLocal(p: LocalPaths, version: string): Promise<Local>
 
   return {
     origin: `http://127.0.0.1:${port}`,
+    async recovery() {
+      const s = await loadSettings(p.root);
+      return { key: formatKey(s.backupKey!), printedAt: s.keyPrintedAt ?? null };
+    },
+    async markPrinted() {
+      saveSettings(p.root, { ...(await loadSettings(p.root)), keyPrintedAt: new Date().toISOString() });
+    },
     async stop() {
       if (stopping) return;
       stopping = true;

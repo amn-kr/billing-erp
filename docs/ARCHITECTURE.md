@@ -101,5 +101,11 @@ Tables by area:
    - The web app's pages load their fonts from Google; the single-PC copy (`dist/web`) is rewritten at build time to use copies kept with the app (`apps/desktop/scripts/offline-fonts.mjs`), so screens look the same without internet. The live site is unchanged.
    - The sign-in page hides "Open the demo shop" in single-PC mode (there is no demo shop on the PC).
 6. **Backups**: automatic encrypted cloud backup when online, backup to pen drive, restore from both.
+   Owner decisions (10 Nov 2026): cloud backups go to the shop's own Google Drive now, and also to our own server's file storage later (chosen with the hosting work in Phase 5); the backup lock is a **recovery key** the owner prints; the pen drive backs up **automatically whenever it is plugged in**.
+   - **6a. Pen drive or folder + recovery key + restore from files** ✅
+     - Same real-time backup as online (`apps/api/src/modules/backup`): each change within a minute, a full copy each day, locked files. In single-PC mode the PC's own server writes them into the chosen folder (`folder.ts`, only with `BACKUP_FOLDERS=on`, which the live server never has): `<folder>/<app> Backup - <shop code>/`, newest 7 full copies kept. A missing folder (pen drive out) waits quietly; after a day an amber line asks to plug it in.
+     - The recovery key is this PC's `BACKUP_MASTER_KEY`: 32 characters A–Z/2–7, made on first start (`local/settings.json`), shown and printed from Settings (an A4 page with what to do).
+     - Restore from files works on any computer: choose the pen drive or folder, type the key; the backup is opened and checked, then becomes new books (the books open at the time are untouched).
+   - **6b. Google Drive in single-PC mode** (next): needs a Google "Desktop app" sign-in client, a one-time free setup by the owner.
 7. **Move to cloud**: upload the whole book once, then work online.
 8. **Full testing + pilot** on real Windows 10/11 PCs.

@@ -16,6 +16,12 @@ if (origin && location.origin === origin) {
     printers: () => ipcRenderer.invoke('printing:list'),
     choosePrinter: (name: string | null) => ipcRenderer.invoke('printing:choose', name),
     print: (page?: string) => ipcRenderer.invoke('printing:print', page),
+    // single-PC mode only: backups on this computer (Settings › Backup & restore)
+    ...(local ? {
+      chooseFolder: (title?: string) => ipcRenderer.invoke('backup:chooseFolder', title),
+      recoveryKey: () => ipcRenderer.invoke('backup:recoveryKey'),
+      printRecoveryKey: () => ipcRenderer.invoke('backup:printKey'),
+    } : {}),
   });
 } else if (location.protocol === 'file:' && location.pathname.endsWith('/static/welcome.html')) {
   contextBridge.exposeInMainWorld('billingWelcome', {
