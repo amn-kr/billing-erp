@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>Recovery key</title>
+<style>
+  @page { size: A4 portrait; margin: 18mm; }
+  body { margin: 0; color: #111; font: 14px/1.55 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .mu { color: #555; margin: 0 0 18px; }
+  .key { font: 700 21px/1.4 Consolas, "Courier New", monospace; white-space: nowrap; border: 2px solid #111; border-radius: 10px; padding: 18px 8px; text-align: center; margin: 18px 0; }
+  ol { padding-left: 20px; }
+  li { margin: 6px 0; }
+  .warn { border-left: 4px solid #b91c1c; padding: 8px 12px; background: #fef2f2; margin-top: 18px; }
+  .meta { margin-top: 28px; color: #555; font-size: 12.5px; }
+</style>
+</head>
+<body>
+  <h1 id="title">Recovery key</h1>
+  <p class="mu" id="shop"></p>
+  <p>This key opens the backups this computer makes (on a pen drive or in a folder). Keep this paper safe, away from the computer.</p>
+  <div class="key" id="key"></div>
+  <b>If this computer breaks or is lost:</b>
+  <ol>
+    <li>Install the app on the new computer and choose <b>This PC only</b>.</li>
+    <li>Create an account and a shop (any name; it can be ignored afterwards).</li>
+    <li>Settings › General › Backup &amp; restore › <b>Restore from files…</b>: choose the pen drive or backup folder, type this key, then restore.</li>
+  </ol>
+  <p class="warn">Anyone with this key and the pen drive can open the books. Without this key, the backups can’t be opened by anyone.</p>
+  <p class="meta" id="meta"></p>
+<script>
+  const q = new URLSearchParams(location.search);
+  document.getElementById('key').textContent = q.get('key') || '';
+  document.getElementById('title').textContent = (q.get('brand') || 'App') + ' recovery key';
+  document.getElementById('meta').textContent = 'Printed ' + new Date().toLocaleString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+</script>
+</body>
+</html>

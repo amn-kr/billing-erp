@@ -8,6 +8,12 @@ export type DesktopPrintResult = { ok: true; printer: string } | { ok: false; re
 export interface Desktop {
   /** single-PC mode: the shop's books are on this computer (no demo shop, works without internet) */
   local?: boolean;
+  /** single-PC mode only: Windows' folder picker for the backup folder or pen drive (null: cancelled) */
+  chooseFolder?(title?: string): Promise<string | null>;
+  /** single-PC mode only: this PC's recovery key ("ABCD-EFGH-…") and when it was last printed */
+  recoveryKey?(): Promise<{ key: string; printedAt: string | null }>;
+  /** single-PC mode only: prints the recovery key on its own page (Windows' print window) */
+  printRecoveryKey?(): Promise<{ ok: boolean }>;
   /** the printers Windows knows, and the one chosen on this PC (null: open the print window) */
   printers(): Promise<{ printers: DesktopPrinter[]; chosen: string | null }>;
   choosePrinter(name: string | null): Promise<{ chosen: string | null }>;
