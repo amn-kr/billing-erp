@@ -5,6 +5,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { _electron as electron } from '@playwright/test';
 
 const exe = process.argv[2];
@@ -57,7 +58,8 @@ if (printer && out) {
   }
   if (!size) throw new Error(`Nothing was printed to ${out}`);
   // read the page size with a real PDF reader (the file is compressed)
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  // pdf.js from the web app's test tools (already installed for its PDF tests)
+  const pdfjs = await import(pathToFileURL(path.resolve('../web/node_modules/pdfjs-dist/legacy/build/pdf.mjs')).href);
   const doc = await pdfjs.getDocument({ data: new Uint8Array(fs.readFileSync(out)) }).promise;
   const [x0, y0, x1, y1] = (await doc.getPage(1)).view;
   const [w, h] = [Math.round(x1 - x0), Math.round(y1 - y0)];
