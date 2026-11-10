@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>Title bar</title>
+<style>
+  /* the app's own colours (apps/web/src/styles/app.css: --bg, --t1, --t2, --bd, --ac) */
+  :root { --bg: #f4f5fa; --t1: #151b2e; --t2: #66708a; --bd: #e8eaf2; --ac: #4f46e5; --ok: #047857; --bad: #b91c1c; --hover: rgba(21, 27, 46, .06); }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0e1120; --t1: #e9ebf4; --t2: #9aa2bb; --bd: #2a3049; --ac: #818cf8; --ok: #34d399; --bad: #f87171; --hover: rgba(233, 235, 244, .08); } }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--t1);
+               font: 12.5px/1 "Segoe UI", system-ui, -apple-system, sans-serif; user-select: none; }
+  /* the whole bar moves the window, except the button */
+  #bar { height: 100%; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-bottom: 1px solid var(--bd); -webkit-app-region: drag; }
+  body.win32 #bar { padding-right: 150px; }   /* room for Windows' minimise / maximise / close */
+  body.darwin #bar { padding-left: 82px; }    /* room for the Mac's window buttons */
+  #logo { width: 18px; height: 18px; border-radius: 5px; background: linear-gradient(135deg, #0f766e, #0b5f58); color: #fff;
+          display: grid; place-items: center; font-weight: 800; font-size: 11px; flex: none; }
+  #title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #ver { color: var(--t2); white-space: nowrap; }
+  #upd { -webkit-app-region: no-drag; font: inherit; font-weight: 600; color: var(--ac); background: transparent;
+         border: 1px solid var(--bd); border-radius: 7px; padding: 5px 10px; cursor: pointer; white-space: nowrap; }
+  #upd:hover:not(:disabled) { background: var(--hover); }
+  #upd:disabled { cursor: default; color: var(--t2); }
+  #upd.latest { color: var(--ok); }
+  #upd.error { color: var(--bad); }
+  #upd.ready { color: #fff; background: var(--ok); border-color: var(--ok); }
+  #upd.ready:hover:not(:disabled) { background: color-mix(in srgb, var(--ok) 85%, #000); }
+</style>
+</head>
+<body>
+<div id="bar">
+  <span id="logo" aria-hidden="true"></span>
+  <span id="title"></span>
+  <span id="ver"></span>
+  <button id="upd" type="button"></button>
+</div>
+<script>
+  const q = new URLSearchParams(location.search);
+  document.body.classList.add(q.get('os') || '');
+  const $ = (id) => document.getElementById(id);
+  $('logo').textContent = (q.get('letter') || '').slice(0, 1);
+  let action = 'none';
+  function show(v) {
+    if (v.title !== undefined) { $('title').textContent = v.title; document.title = v.title; }
+    if (v.version) $('ver').textContent = 'Version ' + v.version;
+    if (v.button) {
+      const b = $('upd');
+      b.textContent = v.button.text;
+      b.title = v.button.title;
+      b.className = v.state.kind;
+      b.disabled = v.button.action === 'none';
+      action = v.button.action;
+    }
+  }
+  $('upd').addEventListener('click', () => {
+    if (action === 'check') window.titlebar.check();
+    if (action === 'install') window.titlebar.install();
+  });
+  window.titlebar.onChange(show);
+  window.titlebar.get().then(show);
+</script>
+</body>
+</html>

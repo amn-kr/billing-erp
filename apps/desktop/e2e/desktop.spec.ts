@@ -3,18 +3,13 @@
  * (both drawn inside the app's own Chrome, at 1280, 1366 and 1920 px), links to WhatsApp and other
  * websites open outside it, and it shows "Not connected" when the app cannot be reached.
  */
-import fs from 'node:fs';
 import { createRequire } from 'node:module';
-import os from 'node:os';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
+import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { compare } from '../../web/e2e/compare';
 import { shot } from '../../web/e2e/shots';
 import { APP, PROTOTYPE_LOGIN, prototypeFresh, signIn, WIDTHS } from '../../web/e2e/setup';
+import { launch as open } from './launch';
 
-const HERE = path.dirname(fileURLToPath(import.meta.url));
-const MAIN = path.join(HERE, '..', 'dist', 'main.cjs');
 const common = createRequire(import.meta.url)('../../../tools/design-baseline/common.cjs') as {
   FROZEN_TIME: string;
   HEIGHTS: Record<number, number>;
@@ -22,22 +17,18 @@ const common = createRequire(import.meta.url)('../../../tools/design-baseline/co
 };
 
 async function launch(appUrl = APP): Promise<{ app: ElectronApplication; win: Page }> {
-  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'billing-desktop-'));
-  const app = await electron.launch({
-    args: [MAIN],
-    env: { ...process.env, BILLING_APP_URL: appUrl, BILLING_PROFILE_DIR: profile, BILLING_TEST: '1', TZ: 'Asia/Kolkata' },
-    locale: 'en-IN',
-    timezoneId: 'Asia/Kolkata',
-  });
+  const { app, win } = await open(appUrl);
   await common.routeFonts(app.context());
-  const win = await app.firstWindow();
   return { app, win };
 }
 
 /** Window inside size = the picture width and height used everywhere else. */
 async function size(page: Page, width: number) {
-  await page.setViewportSize({ width, height: common.HEIGHTS[width] ?? 800 });
-  expect(await page.evaluate(() => window.innerWidth)).toBe(width);
+  // the app's page sits in the window under the title bar; a page still starting can drop the first setting
+  await expect.poll(async () => {
+    await page.setViewportSize({ width, height: common.HEIGHTS[width] ?? 800 });
+    return page.evaluate(() => window.innerWidth);
+  }).toBe(width);
 }
 
 /** The prototype in a second window of the same app (same Chrome, so the same drawing of text). */
@@ -64,7 +55,7 @@ test('opens the app’s sign-in page in its own window', async () => {
   try {
     await win.waitForSelector('#vAuth:not([hidden])');
     expect(new URL(win.url()).origin).toBe(APP);
-    const shown = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().map((w) => w.isVisible()));
+    const shown = await app.evaluate(({ BaseWindow }) => BaseWindow.getAllWindows().map((w) => w.isVisible()));
     expect(shown).toEqual([true]);
   } finally {
     await app.close();
@@ -97,7 +88,7 @@ test('WhatsApp and other websites open outside the app, never inside it', async 
       'https://example.com/',
     ]);
     expect(new URL(win.url()).origin).toBe(APP);
-    expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
+    expect(await app.evaluate(({ BaseWindow }) => BaseWindow.getAllWindows().length)).toBe(1);
   } finally {
     await app.close();
   }

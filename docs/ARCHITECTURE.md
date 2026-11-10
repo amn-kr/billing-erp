@@ -88,7 +88,7 @@ Tables by area:
 ### Phase 6 steps (each one shown to the owner before the next)
 1. **Windows app shell, online** (`apps/desktop`): one window showing the live app; the app's pages stay inside, WhatsApp/e-mail/other websites open outside, anything else is refused; "Not connected" page that retries. ✅
 2. **Installer + auto-update**: `Setup.exe` (electron-builder), built on GitHub's Windows machines; updates itself from GitHub Releases. ✅
-3. **Direct printing**: thermal (2-inch/3-inch) and A4 without the print dialog; printer and paper chosen in Settings.
+3. **Direct printing (A4/A5)**: Print buttons go straight to the printer chosen on this PC (Settings › Print & invoice › *Printer on this PC*, Windows app only), on the shop's paper and orientation; Ctrl+P still opens the print window. Thermal receipts later: the prototype has no receipt layout, so one must be designed and approved first (owner, 10 Nov 2026). ✅
 4. **Local server + bundled PostgreSQL** inside the app; safe start/stop, data upgrades on update.
 5. **First start: "This PC only" or "Connect to cloud"**; local sign-in and numbering.
 6. **Backups**: automatic encrypted cloud backup when online, backup to pen drive, restore from both.

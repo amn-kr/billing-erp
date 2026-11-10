@@ -7,7 +7,7 @@
 #   pictures_only=1        after a merge that already passed on the PR: only the picture tests run
 #   skip_visual=1          only files that cannot change a picture changed: picture tests skipped
 # and one plain sentence about it to the step summary.
-# Reads: EVENT, ALREADY_TESTED_RUN, DOCS_ONLY, VISUAL_NEEDED, APPROVED_CHANGED (empty = not known).
+# Reads: EVENT, ALREADY_TESTED_RUN, DOCS_ONLY, WEB_UNCHANGED, VISUAL_NEEDED, APPROVED_CHANGED (empty = not known).
 set -u
 out="${GITHUB_OUTPUT:-/dev/stdout}"
 summary="${GITHUB_STEP_SUMMARY:-/dev/null}"
@@ -21,6 +21,10 @@ fi
 if [ "${DOCS_ONLY:-}" = true ]; then
   run_e2e=false
   note="Browser and picture tests skipped - only docs/ or .md files changed"
+elif [ "${WEB_UNCHANGED:-}" = true ]; then
+  # the Windows app has its own job (Windows app tests); the quick checks still run
+  run_e2e=false
+  note="Browser and picture tests skipped - only Windows-app or docs files changed since they last passed"
 elif [ "${VISUAL_NEEDED:-}" = false ]; then
   skip_visual=1
   note="Picture tests skipped – only API/docs files changed"
