@@ -8,7 +8,9 @@
  * The Print buttons call printNow(); Ctrl+P works too (beforeprint).
  */
 import { useEffect, useRef } from 'react';
+import { desktop } from '../../lib/desktop';
 import { useStyles } from '../../lib/useStyles';
+import { useShell } from '../shell/store';
 import css from './print.css?inline';
 
 /** the print layouts' and print-only CSS (features/print/print.css) while a document window is on screen */
@@ -17,6 +19,8 @@ export const usePrintStyles = () => useStyles([css], 'print');
 export interface PrintSource { el: () => HTMLElement | null; title: string; page?: string; cls?: string }
 const sources: PrintSource[] = [];
 let undo: (() => void) | null = null;
+/** the document now in the print area (its paper goes to the Windows app's direct printing) */
+let current: PrintSource | null = null;
 
 /** Copy the open window's document into the print area. Returns false when nothing is open. */
 export function preparePrint(): boolean {
@@ -24,6 +28,7 @@ export function preparePrint(): boolean {
   const src = sources[sources.length - 1];
   const el = src?.el();
   if (!src || !el) return false;
+  current = src;
   const copy = el.cloneNode(true) as HTMLElement;
   copy.classList.add('prclone');
   copy.removeAttribute('hidden');
@@ -47,8 +52,30 @@ export function cleanup() {
 let pending = 0;
 /** The Print button: print the open document only. If it is still loading, print it as soon as it opens (never the screen behind). */
 export function printNow() {
-  if (preparePrint()) { window.print(); return; }
+  if (preparePrint()) { void send(); return; }
   pending = Date.now();
+}
+
+/**
+ * The document is in the print area (preparePrint). In the Windows app with a printer chosen on this
+ * PC, it goes straight to that printer; otherwise (browser, no printer chosen, printer gone or
+ * failed) the usual print window opens. Ctrl+P always opens the print window.
+ */
+async function send() {
+  const d = desktop();
+  if (d) {
+    const r = await d.print(current?.page).catch(() => null);
+    if (r?.ok) {
+      cleanup();
+      useShell.getState().showToast(`Printed on ${r.printer}`, 'ok');
+      return;
+    }
+    if (r && r.reason === 'missing') useShell.getState().showToast('The printer chosen for this PC isn’t connected. Choose one in the print window.');
+    if (r && r.reason === 'failed') useShell.getState().showToast(`Couldn’t print: ${r.message ?? 'the printer did not respond'}.`, 'error');
+    // the print window: the document may have been tidied away while waiting
+    if (!undo && !preparePrint()) return;
+  }
+  window.print();
 }
 
 if (typeof window !== 'undefined') {
@@ -65,7 +92,7 @@ export function usePrintSource(open: boolean, src: PrintSource) {
     if (!open) return;
     const s: PrintSource = { el: () => ref.current.el(), get title() { return ref.current.title; }, get page() { return ref.current.page; }, get cls() { return ref.current.cls; } };
     sources.push(s);
-    if (pending && Date.now() - pending < 10_000) { pending = 0; setTimeout(() => { if (preparePrint()) window.print(); }, 50); }
+    if (pending && Date.now() - pending < 10_000) { pending = 0; setTimeout(() => { if (preparePrint()) void send(); }, 50); }
     return () => { const i = sources.indexOf(s); if (i >= 0) sources.splice(i, 1); };
   }, [open]);
 }

@@ -8,6 +8,7 @@ import path from 'node:path';
 import { app, BrowserWindow, Menu, session, shell, type WebContents } from 'electron';
 import { BRAND } from '../../../packages/shared/src/brand';
 import { appUrl, linkAction } from './links';
+import { startPrinting } from './printing';
 import { startUpdates } from './updates';
 
 const ORIGIN = appUrl(process.env);
@@ -62,7 +63,8 @@ function createWindow(): BrowserWindow {
     autoHideMenuBar: true,
     // tests set the window to 1920 × 1080 for the picture checks, also on a smaller screen (Mac only)
     enableLargerThanScreen: !!process.env.BILLING_TEST,
-    webPreferences: SAFE_PAGE,
+    // the main window's pages get window.billingDesktop (printing), only on the app's own address (preload.ts)
+    webPreferences: { ...SAFE_PAGE, preload: path.join(__dirname, 'preload.cjs'), additionalArguments: [`--billing-origin=${ORIGIN}`] },
   });
   guard(win.webContents);
 
@@ -113,6 +115,7 @@ if (!app.requestSingleInstanceLock()) {
     // Windows: no menu bar (copy, paste and undo still work from the keyboard). Mac needs a basic menu for them.
     Menu.setApplicationMenu(process.platform === 'darwin' ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]) : null);
 
+    startPrinting(ownPage);
     main = createWindow();
     main.on('closed', () => (main = null));
     startUpdates(() => main);

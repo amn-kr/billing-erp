@@ -4,6 +4,9 @@ import { build } from 'esbuild';
 import { cpSync, rmSync } from 'node:fs';
 
 rmSync('dist', { recursive: true, force: true });
+const common = { bundle: true, platform: 'node', format: 'cjs', target: 'node22', external: ['electron'], sourcemap: true, logLevel: 'warning' };
+// the window's pages get only preload.cjs (sandboxed: one file, nothing else loaded)
+await build({ ...common, entryPoints: ['src/preload.ts'], outfile: 'dist/preload.cjs' });
 await build({
   entryPoints: ['src/main.ts'],
   outfile: 'dist/main.cjs',

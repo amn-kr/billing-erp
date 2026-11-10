@@ -22,6 +22,7 @@ import { BOT, COLDEF, COLORS, COLS0, NAMES, PRINT_DEF, TOP, useHiddenCols, usePr
 import { Sw } from './model';
 import { txnOpts } from '../sales/editor/state';
 import { ui } from '../../styles/uiSize';
+import { desktop, type DesktopPrinter } from '../../lib/desktop';
 
 export const PRINT_ICON = '<path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z"/>';
 const UP = '<path d="M6 15l6-6 6 6"/>';
@@ -80,6 +81,42 @@ const Seg = <V extends string>({ lbl, v, list, ch }: { lbl: string; v: V; list: 
 );
 const Opt = ({ id, on, t, d, ch, extra }: { id: string; on: boolean; t: string; d: string; ch: (v: boolean) => void; extra?: React.ReactNode }) => <div className="opt"><div className="tx"><b>{t}</b><small>{d}</small></div>{extra}<Sw id={id} on={on} label={t} onChange={ch} /></div>;
 
+/**
+ * Windows app only (owner, 10 Nov 2026): the printer Print buttons use on THIS computer. Saved on the PC,
+ * not in the shop's settings, so the counter PC and the office PC can each have their own.
+ */
+function PcPrinter() {
+  const d = desktop();
+  const { showToast } = useShell();
+  const [list, setList] = useState<DesktopPrinter[] | null>(null);
+  const [chosen, setChosen] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    d?.printers().then((r) => { if (live) { setList(r.printers); setChosen(r.chosen); } }).catch(() => live && setList([]));
+    return () => { live = false; };
+  }, [d]);
+  if (!d) return null;
+  const gone = !!chosen && !!list && !list.some((p) => p.name === chosen);
+  const choose = (v: string) => {
+    const n = v || null;
+    d.choosePrinter(n).then((r) => { setChosen(r.chosen); showToast(r.chosen ? `Print buttons now print on ${r.chosen}` : 'Print buttons now open the print window', 'ok'); })
+      .catch(() => showToast('Could not save the printer.', 'error'));
+  };
+  return (
+    <section className="card" id="cPrDevice">
+      <H first t="Printer on this PC" d="Print buttons go straight to this printer, on the paper chosen below. Each computer keeps its own choice." />
+      <label className="fl" htmlFor="pDevice">Printer
+        <select className="fi" id="pDevice" value={chosen ?? ''} disabled={!list} onChange={(e) => choose(e.target.value)}>
+          <option value="">Ask every time (open the print window)</option>
+          {gone ? <option value={chosen!}>{chosen} (not connected)</option> : null}
+          {(list ?? []).map((p) => <option key={p.name} value={p.name}>{p.displayName}</option>)}
+        </select>
+      </label>
+      <p className="hint" style={{ margin: ui.sp('10px 0 0') }}>{list && !list.length ? 'Windows shows no printers on this PC. Add the printer in Windows Settings › Bluetooth & devices › Printers & scanners, then open this page again.' : 'Ctrl+P still opens the print window, to pick another printer once.'}</p>
+    </section>
+  );
+}
+
 /** Left column: the option cards. */
 export function PrintCards() {
   const hidden = useHiddenCols();
@@ -93,6 +130,7 @@ export function PrintCards() {
   ));
   return (
     <>
+      <PcPrinter />
       <section className="card" id="cPrLayout">
         <H first t="Layout" d="The design of your printed invoice." />
         <div className="two" role="radiogroup" aria-label="Invoice layout">

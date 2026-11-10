@@ -66,7 +66,16 @@ jobs:
           $exe = Get-ChildItem "$env:LOCALAPPDATA\Programs" -Recurse -Filter billing-erp.exe | Select-Object -First 1
           if (-not $exe) { throw 'The installed app was not found' }
           "EXE=$($exe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-      - name: Open the installed app
+      # a real Windows printer for the print check: "Microsoft Print to PDF" writing to a file, no dialog
+      - name: A test printer (Microsoft Print to PDF, to a file)
+        shell: pwsh
+        run: |
+          $out = "$env:RUNNER_TEMP\printed.pdf"
+          Add-PrinterPort -Name $out
+          Add-Printer -Name 'Test PDF' -DriverName 'Microsoft Print To PDF' -PortName $out
+          "PRINT_TEST_PRINTER=Test PDF" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "PRINT_TEST_FILE=$out" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Open the installed app (and print with it)
         working-directory: apps/desktop
         run: node scripts/smoke-installed.mjs "$EXE"
       - name: Keep the installer (Artifacts, 14 days)
