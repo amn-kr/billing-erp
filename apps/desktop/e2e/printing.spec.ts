@@ -5,21 +5,15 @@
  * webContents.getPrintersAsync and webContents.print are replaced, and every print is recorded.
  */
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
+import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { APP, freshShop, savePrint, signInAs } from '../../web/e2e/setup';
-
-const HERE = path.dirname(fileURLToPath(import.meta.url));
-const MAIN = path.join(HERE, '..', 'dist', 'main.cjs');
+import { launch as open } from './launch';
 
 interface Printed { deviceName?: string; silent?: boolean; pageSize?: unknown; landscape?: boolean; title: string; clone: string }
 
 async function launch(): Promise<{ app: ElectronApplication; win: Page; profile: string }> {
-  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'billing-print-'));
-  const app = await electron.launch({ args: [MAIN], env: { ...process.env, BILLING_APP_URL: APP, BILLING_PROFILE_DIR: profile, BILLING_TEST: '1' } });
-  const win = await app.firstWindow();
+  const { app, win, profile } = await open(APP);
   await win.setViewportSize({ width: 1366, height: 768 });
   return { app, win, profile };
 }
@@ -137,10 +131,8 @@ test('no printer chosen, or the chosen one unplugged: the print window opens as 
 });
 
 test('only the app’s own pages get printing (not the “Not connected” page)', async () => {
-  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'billing-print-'));
-  const app = await electron.launch({ args: [MAIN], env: { ...process.env, BILLING_APP_URL: 'http://localhost:5999', BILLING_PROFILE_DIR: profile, BILLING_TEST: '1' } });
+  const { app, win } = await open('http://localhost:5999');
   try {
-    const win = await app.firstWindow();
     await win.waitForSelector('#offline');
     expect(await win.evaluate(() => typeof (window as unknown as { billingDesktop?: unknown }).billingDesktop)).toBe('undefined');
   } finally {

@@ -1,19 +1,24 @@
 /**
- * The Windows app (Phase 6, step 1: online). One window that shows the web app, so every screen is the
- * same as in the browser (and as the prototype). The app's own pages stay inside the window; WhatsApp,
- * e-mail and other websites open outside it. If the app cannot be reached, a "Not connected" page tries
- * again on its own.
+ * The Windows app. One window with two parts:
+ *   - the title bar (static/titlebar.html): the page's title, the app's version and the
+ *     "Check for updates" button (owner, 10 Nov 2026), next to Windows' own minimise / maximise / close;
+ *   - below it, the web app itself, so every screen is the same as in the browser (and as the prototype).
+ * The app's own pages stay inside the window; WhatsApp, e-mail and other websites open outside it. If the
+ * app cannot be reached, a "Not connected" page tries again on its own.
  */
 import path from 'node:path';
-import { app, BrowserWindow, Menu, session, shell, type WebContents } from 'electron';
+import { app, BaseWindow, ipcMain, Menu, nativeTheme, session, shell, WebContentsView, type WebContents } from 'electron';
 import { BRAND } from '../../../packages/shared/src/brand';
 import { appUrl, linkAction } from './links';
 import { startPrinting } from './printing';
-import { startUpdates } from './updates';
+import { startUpdates, type Updates } from './updates';
 
 const ORIGIN = appUrl(process.env);
 const START = ORIGIN + '/';
 const OFFLINE_PAGE = path.join(__dirname, 'static', 'offline.html');
+const TITLEBAR_PAGE = path.join(__dirname, 'static', 'titlebar.html');
+/** height of the title bar, in px */
+const BAR = 36;
 
 // The app's own folder (sign-in, settings). Fixed, so renaming the app (brand.ts) never loses it.
 // BILLING_PROFILE_DIR: a separate folder for tests.
@@ -46,65 +51,95 @@ function guard(wc: WebContents) {
   wc.on('did-create-window', (child) => guard(child.webContents));
 }
 
-/** The app could not be reached: show the "Not connected" page, which tries again on its own. */
-function showOffline(win: BrowserWindow) {
-  void win.loadFile(OFFLINE_PAGE, { query: { to: START } });
-}
+/** Windows' minimise / maximise / close buttons, in the title bar's colours (light or dark like Windows). */
+const overlay = () => (nativeTheme.shouldUseDarkColors ? { color: '#0e1120', symbolColor: '#e9ebf4', height: BAR } : { color: '#f4f5fa', symbolColor: '#151b2e', height: BAR });
 
-function createWindow(): BrowserWindow {
-  const win = new BrowserWindow({
+interface Main { win: BaseWindow; page: WebContents; bar: WebContents }
+
+function createWindow(updates: Updates): Main {
+  const win = new BaseWindow({
     width: 1366,
-    height: 768,
+    height: 768 + BAR,
     minWidth: 1000,
-    minHeight: 600,
+    minHeight: 600 + BAR,
     show: false,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f4f5fa',
     title: BRAND.name,
     autoHideMenuBar: true,
+    // our own title bar (titlebar.html), with the system's window buttons kept
+    titleBarStyle: 'hidden',
+    ...(process.platform === 'darwin' ? { trafficLightPosition: { x: 12, y: 11 } } : { titleBarOverlay: overlay() }),
     // tests set the window to 1920 × 1080 for the picture checks, also on a smaller screen (Mac only)
     enableLargerThanScreen: !!process.env.BILLING_TEST,
-    // the main window's pages get window.billingDesktop (printing), only on the app's own address (preload.ts)
-    webPreferences: { ...SAFE_PAGE, preload: path.join(__dirname, 'preload.cjs'), additionalArguments: [`--billing-origin=${ORIGIN}`] },
   });
-  guard(win.webContents);
 
-  win.webContents.on('did-fail-load', (_e, code, _desc, url, isMainFrame) => {
+  const barView = new WebContentsView({ webPreferences: { ...SAFE_PAGE, preload: path.join(__dirname, 'preload-titlebar.cjs') } });
+  // the app's pages get window.billingDesktop (printing), only on the app's own address (preload.ts)
+  const pageView = new WebContentsView({ webPreferences: { ...SAFE_PAGE, preload: path.join(__dirname, 'preload.cjs'), additionalArguments: [`--billing-origin=${ORIGIN}`] } });
+  win.contentView.addChildView(pageView);
+  win.contentView.addChildView(barView);
+  const bar = barView.webContents;
+  const page = pageView.webContents;
+
+  const layout = () => {
+    const { width, height } = win.getContentBounds();
+    barView.setBounds({ x: 0, y: 0, width, height: BAR });
+    pageView.setBounds({ x: 0, y: BAR, width, height: Math.max(0, height - BAR) });
+  };
+  layout();
+  win.on('resize', layout);
+  nativeTheme.on('updated', () => { if (process.platform !== 'darwin' && !win.isDestroyed()) win.setTitleBarOverlay(overlay()); });
+
+  // the title bar: no links, no other pages, nothing opened from it
+  bar.setWindowOpenHandler(() => ({ action: 'deny' }));
+  bar.on('will-navigate', (e) => e.preventDefault());
+  void bar.loadFile(TITLEBAR_PAGE, { query: { os: process.platform, letter: BRAND.name.charAt(0).toUpperCase() } });
+
+  guard(page);
+  const showOffline = () => void page.loadFile(OFFLINE_PAGE, { query: { to: START } });
+  page.on('did-fail-load', (_e, code, _desc, url, isMainFrame) => {
     // -3: the page was replaced by another one before it finished (not an error)
     if (!isMainFrame || code === -3 || url.startsWith('file:')) return;
-    showOffline(win);
+    showOffline();
   });
-  win.webContents.on('render-process-gone', (_e, d) => {
-    if (d.reason !== 'clean-exit') win.reload();
+  page.on('render-process-gone', (_e, d) => {
+    if (d.reason !== 'clean-exit') page.reload();
+  });
+  page.on('page-title-updated', (_e, title) => {
+    win.setTitle(title);
+    if (!bar.isDestroyed()) bar.send('titlebar:changed', { title });
   });
   // F5 / Ctrl+R: load the page again (there is no menu bar to do it from)
-  win.webContents.on('before-input-event', (e, input) => {
+  page.on('before-input-event', (e, input) => {
     if (input.type !== 'keyDown') return;
     const reload = input.key === 'F5' || ((input.control || input.meta) && input.key.toLowerCase() === 'r');
     if (reload) {
       e.preventDefault();
-      if (win.webContents.getURL().startsWith('file:')) void win.loadURL(START);
-      else win.reload();
+      if (page.getURL().startsWith('file:')) void page.loadURL(START);
+      else page.reload();
     }
-    if (!app.isPackaged && input.control && input.shift && input.key.toLowerCase() === 'i') win.webContents.toggleDevTools();
+    if (!app.isPackaged && input.control && input.shift && input.key.toLowerCase() === 'i') page.toggleDevTools();
   });
+  win.on('focus', () => page.focus());
 
-  win.once('ready-to-show', () => {
-    if (!process.env.BILLING_TEST) win.maximize();
-    win.show();
-  });
-  void win.loadURL(START);
-  return win;
+  updates.onChange(() => { if (!bar.isDestroyed()) bar.send('titlebar:changed', updates.view()); });
+
+  if (!process.env.BILLING_TEST) win.maximize();
+  win.show();
+  void page.loadURL(START);
+  page.focus();
+  return { win, page, bar };
 }
 
 if (!app.requestSingleInstanceLock()) {
   // the app is already open: bring that window forward instead of opening a second copy
   app.quit();
 } else {
-  let main: BrowserWindow | null = null;
+  let main: Main | null = null;
   app.on('second-instance', () => {
     if (!main) return;
-    if (main.isMinimized()) main.restore();
-    main.focus();
+    if (main.win.isMinimized()) main.win.restore();
+    main.win.focus();
   });
 
   void app.whenReady().then(() => {
@@ -116,9 +151,15 @@ if (!app.requestSingleInstanceLock()) {
     Menu.setApplicationMenu(process.platform === 'darwin' ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]) : null);
 
     startPrinting(ownPage);
-    main = createWindow();
-    main.on('closed', () => (main = null));
-    startUpdates(() => main);
+    const updates = startUpdates();
+    // only the title bar's page may ask about updates
+    const fromBar = (wc: WebContents) => { if (!main || wc !== main.bar) throw new Error('Not allowed'); };
+    ipcMain.handle('titlebar:get', (e) => { fromBar(e.sender); return { ...updates.view(), title: main!.page.getTitle() || BRAND.name }; });
+    ipcMain.handle('titlebar:check', (e) => { fromBar(e.sender); updates.check(); });
+    ipcMain.handle('titlebar:install', (e) => { fromBar(e.sender); updates.install(); });
+
+    main = createWindow(updates);
+    main.win.on('closed', () => (main = null));
   });
 
   app.on('window-all-closed', () => app.quit());
