@@ -30,6 +30,8 @@ for (const width of WIDTHS) {
       const { proto, app } = await pair(browser, width);
       await proto.goto(PROTOTYPE_LOGIN);
       await proto.evaluate(() => document.querySelectorAll<HTMLElement>('#box > div').forEach((d) => (d.hidden = d.id !== 'vAuth')));
+      // owner's change (9 Nov 2026): the "or / Continue with Google" button is removed from the rebuild, so take it out of the prototype page too
+      await proto.evaluate(() => document.querySelectorAll('#vAuth .or, #aGoogle').forEach((e) => e.remove()));
       await proto.evaluate(() => document.fonts.ready);
       await app.goto(APP + '/login');
       await app.waitForSelector('#vAuth:not([hidden])');

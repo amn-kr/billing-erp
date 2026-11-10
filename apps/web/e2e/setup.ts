@@ -130,6 +130,8 @@ export async function signIn(page: Page): Promise<void> {
   await page.fill('#aPass', OWNER.password);
   await page.click('#aGo');
   await page.waitForSelector('#app');
+  // park the mouse in the corner: it stays where the Sign in button was, and would otherwise hover whatever sits there on the next screen
+  await page.mouse.move(0, 0);
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(300);
 }
@@ -194,6 +196,7 @@ export async function signInAs(page: Page, who: { email: string; password: strin
   await page.fill('#aPass', who.password);
   await page.click('#aGo');
   await page.waitForSelector('#app');
+  await page.mouse.move(0, 0); // see signIn
   await page.evaluate(() => document.fonts.ready);
 }
 
