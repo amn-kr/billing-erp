@@ -242,9 +242,17 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Create database roles
         run: psql -h localhost -U postgres -f infra/db/init-ci.sql
-      # Electron needs the same system libraries as Playwright's Chrome
-      - name: System libraries for Electron
-        run: pnpm --filter @billing/web exec playwright install-deps chromium
+      - name: Playwright version
+        id: pw
+        run: echo "version=$(pnpm --filter @billing/web exec playwright --version | tail -n 1 | tr -dc '0-9.')" >> "$GITHUB_OUTPUT"
+      - name: Cached Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      # the test shop's seed uses Playwright's Chrome (the importer), and Electron needs the same system libraries
+      - name: Install Playwright browser and system libraries
+        run: pnpm --filter @billing/web exec playwright install --with-deps chromium
       - name: Build
         run: pnpm build
       - name: Windows app tests (Electron, on a virtual screen)
