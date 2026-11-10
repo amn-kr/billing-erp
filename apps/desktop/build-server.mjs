@@ -5,6 +5,7 @@ import { build } from 'esbuild';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { offlineFonts } from './scripts/offline-fonts.mjs';
 
 const api = path.resolve('../api');
 const web = path.resolve('../web/dist');
@@ -57,4 +58,6 @@ for (const dep of Object.keys(JSON.parse(fs.readFileSync(path.join(argon, 'packa
 fs.cpSync(path.join(api, 'prisma', 'migrations'), path.join(out, 'migrations'), { recursive: true });
 fs.rmSync(path.resolve('dist/web'), { recursive: true, force: true });
 fs.cpSync(web, path.resolve('dist/web'), { recursive: true });
+// single-PC mode works without internet: the pages' fonts are kept with the app
+console.log(`fonts kept with the app: ${await offlineFonts(path.resolve('dist/web'))}`);
 console.log('dist/server and dist/web ready');

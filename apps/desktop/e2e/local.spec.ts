@@ -123,3 +123,51 @@ test('if the database cannot start, the app says so plainly', async () => {
     await app.close();
   }
 });
+
+/** bills made through this computer's own server (signed in as the owner); returns their numbers */
+async function bill(win: Page, howMany: number): Promise<string[]> {
+  return win.evaluate(async ({ who, howMany }) => {
+    const call = async (url: string, token: string | null, body?: unknown) => {
+      const r = await fetch(url, { method: body ? 'POST' : 'GET', headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: body ? JSON.stringify(body) : undefined });
+      if (!r.ok) throw new Error(`${url}: ${r.status} ${await r.text()}`);
+      return r.json();
+    };
+    const { accessToken: t } = await call('/api/auth/login', null, who);
+    const parties = await call('/api/parties', t) as { id: string; name: string }[];
+    const cust = parties.find((p) => p.name === 'Verma Traders') ?? await call('/api/parties', t, { name: 'Verma Traders' });
+    const items = await call('/api/items', t) as { id: string; name: string }[];
+    const it = items.find((i) => i.name === 'Ceiling Fan') ?? await call('/api/items', t, { name: 'Ceiling Fan', sale: '100', gstRate: 18 });
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    const numbers: string[] = [];
+    for (let i = 0; i < howMany; i++) {
+      const s = await call('/api/sales', t, { partyId: cust.id, date: today, dueDate: today, lines: [{ itemId: it.id, name: it.name, qty: '1', price: '100', discPct: '0', gstRate: '18' }], payments: [] });
+      numbers.push(s.number);
+    }
+    return numbers;
+  }, { who: OWNER, howMany });
+}
+
+test('bills are numbered on this computer, carry on after a restart, and nothing is fetched from the internet', async () => {
+  const first = await launch('http://localhost:5999', LOCAL);
+  const origin = new URL(first.win.url()).origin;
+  // every address the app's pages ask for, from the first page on
+  const asked: string[] = [];
+  first.app.context().on('request', (r) => asked.push(r.url()));
+  await newShop(first.win);
+  expect(await bill(first.win, 2)).toEqual(['INV-0001', 'INV-0002']);
+  // the screens' own fonts, kept with the app (scripts/offline-fonts.mjs), so they look the same offline
+  await first.win.evaluate(() => document.fonts.ready);
+  expect(await first.win.evaluate(() => document.fonts.check('600 14px "Plus Jakarta Sans"'))).toBe(true);
+  expect(await first.win.evaluate(() => [...document.fonts].some((f) => f.family.includes('Plus Jakarta Sans') && f.status === 'loaded'))).toBe(true);
+  await first.app.close();
+  const outside = asked.filter((u) => !u.startsWith(origin + '/') && !u.startsWith('data:') && !u.startsWith('blob:') && !u.startsWith('file:'));
+  expect(outside, 'single-PC mode must not need the internet').toEqual([]);
+
+  const again = await launch('http://localhost:5999', LOCAL, first.profile);
+  try {
+    await again.win.waitForSelector('#app', { timeout: 60_000 });
+    expect(await bill(again.win, 1)).toEqual(['INV-0003']);
+  } finally {
+    await again.app.close();
+  }
+});

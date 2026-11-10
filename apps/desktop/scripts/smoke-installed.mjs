@@ -25,7 +25,7 @@ async function find(app, want) {
 }
 async function open(env) {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'billing-smoke-'));
-  const app = await electron.launch({ executablePath: exe, args: [], env: { ...process.env, BILLING_PROFILE_DIR: profile, BILLING_NO_UPDATES: '1', ...env }, timeout: 60_000 });
+  const app = await electron.launch({ executablePath: exe, args: [], env: { ...process.env, BILLING_PROFILE_DIR: profile, BILLING_NO_UPDATES: '1', BILLING_MODE: 'online', ...env }, timeout: 60_000 });
   return { app, win: await find(app, isApp), bar: await find(app, isBar) };
 }
 const version = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
@@ -42,11 +42,15 @@ const version = JSON.parse(fs.readFileSync(new URL('../package.json', import.met
   await app.close();
 }
 
-// 2. single-PC mode: the installed PostgreSQL and server start, the app opens on this computer, a shop can be
+// 2. a new computer is asked "This PC only" or "Connect to cloud"; "This PC only": the installed PostgreSQL and server start, the app opens on this computer, a shop can be
 //    made, and closing the app stops the database
 {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'billing-smoke-local-'));
-  const app = await electron.launch({ executablePath: exe, args: [], env: { ...process.env, BILLING_PROFILE_DIR: profile, BILLING_NO_UPDATES: '1', BILLING_MODE: 'local' }, timeout: 60_000 });
+  const app = await electron.launch({ executablePath: exe, args: [], env: { ...process.env, BILLING_PROFILE_DIR: profile, BILLING_NO_UPDATES: '1', BILLING_MODE: '' }, timeout: 60_000 });
+  const welcome = await find(app, (p) => p.url().includes('/static/welcome.html'));
+  await welcome.waitForSelector('#pickLocal');
+  console.log('OK  first start asks "This PC only" or "Connect to cloud"');
+  await welcome.click('#pickLocal');
   const started = Date.now();
   let win;
   try {

@@ -6,6 +6,8 @@ export interface DesktopPrinter { name: string; displayName: string }
 export type DesktopPrintResult = { ok: true; printer: string } | { ok: false; reason: 'none' | 'missing' | 'failed'; message?: string };
 
 export interface Desktop {
+  /** single-PC mode: the shop's books are on this computer (no demo shop, works without internet) */
+  local?: boolean;
   /** the printers Windows knows, and the one chosen on this PC (null: open the print window) */
   printers(): Promise<{ printers: DesktopPrinter[]; chosen: string | null }>;
   choosePrinter(name: string | null): Promise<{ chosen: string | null }>;
