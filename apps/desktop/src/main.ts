@@ -186,7 +186,7 @@ function askMode(page: WebContents): Promise<Mode> {
  * Single-PC mode's backup buttons (Settings › Backup & restore, Windows app only): choose the backup
  * folder or pen drive, show and print the recovery key. Only for the app's own page in this window.
  */
-function startBackupLinks(getMain: () => Main | null, getLocal: () => Local | null) {
+function startBackupLinks(getMain: () => Main | null, getLocal: () => Local | null, onMovedToCloud: () => void) {
   const check = (wc: WebContents) => {
     const m = getMain();
     const l = getLocal();
@@ -202,6 +202,17 @@ function startBackupLinks(getMain: () => Main | null, getLocal: () => Local | nu
     return r.canceled ? null : (r.filePaths[0] ?? null);
   });
   ipcMain.handle('backup:recoveryKey', (e) => check(e.sender).l.recovery());
+  // Move to cloud done (the books are in the online app): this computer works online from now on.
+  // The books on this computer stay where they are (local/pgdata), no longer opened.
+  ipcMain.handle('cloud:switch', async (e, moved: unknown) => {
+    const { m, l } = check(e.sender);
+    const mv = moved as { code?: unknown; email?: unknown } | null;
+    if (typeof mv?.code !== 'string' || typeof mv.email !== 'string') throw new Error('Not allowed');
+    writeMode(app.getPath('userData'), 'online', { code: mv.code.slice(0, 40), email: mv.email.slice(0, 200) });
+    await l.stop();
+    onMovedToCloud();
+    void m.page.loadURL(start());
+  });
   ipcMain.handle('backup:printKey', async (e) => {
     const { l } = check(e.sender);
     const { key } = await l.recovery();
@@ -259,7 +270,12 @@ if (!app.requestSingleInstanceLock()) {
 
     // the page's address, for the printing link (preload.ts): only the app's own pages get printing
     ipcMain.on('billing:origin', (e) => { e.returnValue = { origin: ORIGIN, local: LOCAL }; });
-    startBackupLinks(() => main, () => local);
+    startBackupLinks(() => main, () => local, () => {
+      // from now on: the online app, as if "Connect to cloud" had been chosen
+      local = null;
+      LOCAL = false;
+      ORIGIN = appUrl(process.env);
+    });
 
     main = createWindow(updates);
     const { page } = main;
@@ -273,7 +289,7 @@ if (!app.requestSingleInstanceLock()) {
       const paths = localPaths();
       void page.loadFile(STARTING_PAGE);
       try {
-        const l = await startLocal(paths, __APP_VERSION__, googleClient());
+        const l = await startLocal(paths, __APP_VERSION__, googleClient(), appUrl(process.env));
         local = l;
         ORIGIN = l.origin;
         if (!page.isDestroyed()) void page.loadURL(start());

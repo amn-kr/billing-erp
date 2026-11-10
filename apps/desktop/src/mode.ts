@@ -23,11 +23,14 @@ export function readMode(userData: string, env: NodeJS.ProcessEnv = process.env)
   }
 }
 
-/** Written whole, then swapped in, so a power cut never leaves half a file. */
-export function writeMode(userData: string, mode: Mode): void {
+/**
+ * Written whole, then swapped in, so a power cut never leaves half a file. `movedToCloud`: the single-PC
+ * books were moved to the online app (step 7); the books stay on this computer, no longer used.
+ */
+export function writeMode(userData: string, mode: Mode, movedToCloud?: { code: string; email: string }): void {
   if (!isMode(mode)) throw new Error('Unknown mode');
   fs.mkdirSync(userData, { recursive: true });
   const file = modeFile(userData);
-  fs.writeFileSync(file + '.tmp', JSON.stringify({ mode, chosenOn: new Date().toISOString() }, null, 2));
+  fs.writeFileSync(file + '.tmp', JSON.stringify({ mode, chosenOn: new Date().toISOString(), ...(movedToCloud ? { movedToCloud: { ...movedToCloud, on: new Date().toISOString() } } : {}) }, null, 2));
   fs.renameSync(file + '.tmp', file);
 }

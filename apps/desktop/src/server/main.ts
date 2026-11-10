@@ -72,10 +72,12 @@ async function main() {
     // the web browser back to http://127.0.0.1:<port>), when the app was built with one
     GOOGLE_CLIENT_ID: process.env.BILLING_LOCAL_GOOGLE_ID ?? '',
     GOOGLE_CLIENT_SECRET: process.env.BILLING_LOCAL_GOOGLE_SECRET ?? '',
+    // Move to cloud: the online app the books go to
+    CLOUD_URL: process.env.BILLING_LOCAL_CLOUD_URL ?? '',
     ...(process.env.BILLING_LOCAL_GOOGLE_URL ? { GOOGLE_ACCOUNTS_URL: process.env.BILLING_LOCAL_GOOGLE_URL, GOOGLE_OAUTH2_URL: process.env.BILLING_LOCAL_GOOGLE_URL, GOOGLE_API_URL: process.env.BILLING_LOCAL_GOOGLE_URL } : {}),
   });
   // the passwords stay in this process's settings only as the connection above (and the API's settings)
-  for (const k of ['BILLING_LOCAL_ADMIN_PASSWORD', 'BILLING_LOCAL_APP_PASSWORD', 'BILLING_LOCAL_JWT_SECRET', 'BILLING_LOCAL_BACKUP_KEY', 'BILLING_LOCAL_GOOGLE_ID', 'BILLING_LOCAL_GOOGLE_SECRET', 'BILLING_LOCAL_GOOGLE_URL']) delete process.env[k];
+  for (const k of ['BILLING_LOCAL_ADMIN_PASSWORD', 'BILLING_LOCAL_APP_PASSWORD', 'BILLING_LOCAL_JWT_SECRET', 'BILLING_LOCAL_BACKUP_KEY', 'BILLING_LOCAL_GOOGLE_ID', 'BILLING_LOCAL_GOOGLE_SECRET', 'BILLING_LOCAL_GOOGLE_URL', 'BILLING_LOCAL_CLOUD_URL']) delete process.env[k];
 
   require('reflect-metadata');
   // loaded only now: the API reads its settings when it starts

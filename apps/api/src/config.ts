@@ -36,6 +36,11 @@ const schema = z.object({
    * never reads or writes folders.
    */
   BACKUP_FOLDERS: z.enum(['on', 'off']).optional(),
+  /**
+   * Windows app, single-PC mode: the online app's address, where "Move to cloud" sends the shop's books
+   * (the live app; tests: the test server). Unset on the live server itself.
+   */
+  CLOUD_URL: z.preprocess((v) => (v === '' ? undefined : v), z.string().url().optional()),
   /** The database plan's size limit, for the "space for your books" bar and warnings (Neon free plan: 500 MB). */
   DB_SPACE_LIMIT_MB: z.coerce.number().positive().default(500),
   /**

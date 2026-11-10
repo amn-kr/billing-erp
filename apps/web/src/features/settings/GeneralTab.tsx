@@ -26,6 +26,7 @@ import { BackupLive } from './BackupCard';
 import { TeamCard } from './TeamCard';
 import { RecoveryCard } from './RecoveryCard';
 import { ui } from '../../styles/uiSize';
+import { MoveCard, onThisPc } from './MoveToCloud';
 
 const BOLT = '<path d="M13 3L5 13h6l-1 8 8-10h-6z"/>';
 /** the Alt keys the app frame handles (AppShell), shown under Settings › General › Shortcuts */
@@ -178,7 +179,8 @@ export function GeneralTab() {
       <div id="bzFresh"><h3 style={{ margin: ui.sp('26px 0 4px'), fontSize: ui.fs(16) }}>Start fresh</h3><p className="mu" style={{ margin: ui.sp('0 0 12px'), fontSize: ui.fs(13) }}>Begin a new, empty set of books. These books are kept and stay available from the shop menu.</p>
         <div className="synccard" style={{ borderColor: 'color-mix(in srgb,var(--red,#dc2626) 35%,transparent)' }}><div className="sx"><b>Start new books from zero</b><span>Parties, items, invoices, purchases, payments, expenses and bank entries start empty in the new books. Nothing here is deleted.</span></div><button className="btn dz" type="button" id="bzFreshBtn" onClick={() => setFresh(true)}>Start fresh…</button></div></div>
       <h3 style={{ margin: ui.sp('22px 0 4px'), fontSize: ui.fs(16) }}>Cloud sync</h3><p className="mu" style={{ margin: ui.sp('0 0 12px'), fontSize: ui.fs(13) }}>One shared set of books for your shop. Open it on any laptop or phone, at any location, and you and your staff see the same invoices, parties and stock. Only people you share the app with as Contributor or Editor can see or change the data.</p>
-      <div className="synccard"><span className="ti" style={{ width: ui.w(36), height: ui.h(36), display: 'grid', placeItems: 'center', borderRadius: 10, ...T(online ? '#16a34a' : 'var(--red)') }}><RawIcon d={CLOUD} /></span><div className="sx"><b>Status</b><span id="syncSt" data-st={online ? 'ok' : 'off'}>{SYNC_LABEL[online ? 'ok' : 'off']}</span></div><button className="btn" type="button" id="syncNow" onClick={() => { if (!online) return showToast(SYNC_LABEL.off); void qc.invalidateQueries(); showToast('Synced'); }}>Sync now</button></div><div id="syncWho"></div>
+      {onThisPc() ? <MoveCard /> : (<>
+      <div className="synccard"><span className="ti" style={{ width: ui.w(36), height: ui.h(36), display: 'grid', placeItems: 'center', borderRadius: 10, ...T(online ? '#16a34a' : 'var(--red)') }}><RawIcon d={CLOUD} /></span><div className="sx"><b>Status</b><span id="syncSt" data-st={online ? 'ok' : 'off'}>{SYNC_LABEL[online ? 'ok' : 'off']}</span></div><button className="btn" type="button" id="syncNow" onClick={() => { if (!online) return showToast(SYNC_LABEL.off); void qc.invalidateQueries(); showToast('Synced'); }}>Sync now</button></div><div id="syncWho"></div></>)}
       <input type="file" id="bkpFile" accept=".json,application/json" hidden ref={fileRef} onChange={(e) => { const x = e.target.files?.[0]; e.target.value = ''; pickFile(x); }} />
       <StartFresh open={fresh} biz={biz.data} cash={S.cashOpen} onClose={() => setFresh(false)} />
       <RestoreBackup src={restore} onClose={() => setRestore(null)} download={download} />

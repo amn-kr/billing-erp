@@ -61,6 +61,7 @@ import { BackupService } from './modules/backup/backup.service';
 import { BackupWorker } from './modules/backup/backup.worker';
 import { DriveController, DriveSender } from './modules/backup/drive';
 import { FolderController, FolderSender } from './modules/backup/folder';
+import { CloudController, CloudService } from './modules/backup/cloud';
 import { OWNER_CONTROLLERS, OWNER_PROVIDERS } from './owner';
 
 @Module({
@@ -73,13 +74,14 @@ import { OWNER_CONTROLLERS, OWNER_PROVIDERS } from './owner';
     }),
   ],
   controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HistoryController, HealthController, ImportsController,
-    PartiesController, ItemsController, BrandsController, StockController, BatchesController, PricingController, SettingsController, PrefixesController, PasscodeController, FeaturesController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController, BackupController, DriveController, FolderController, ...OWNER_CONTROLLERS],
+    PartiesController, ItemsController, BrandsController, StockController, BatchesController, PricingController, SettingsController, PrefixesController, PasscodeController, FeaturesController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController, BackupController, DriveController, FolderController, CloudController, ...OWNER_CONTROLLERS],
   providers: [
     DbService,
     BackupService,
     BackupWorker,
     DriveSender,
     FolderSender,
+    CloudService,
     AuditService,
     HistoryService,
     TokensService,
