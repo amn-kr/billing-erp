@@ -128,3 +128,12 @@ it must lift it on `change_log` too, or the trigger's insert is refused. A new s
 - **GitHub storage for backups:** a private repository on the free plan has a limited amount of storage for workflow files (500 MB); one encrypted backup of a small shop is well under 1 MB, kept 30 days.
 - **No uptime promise and no support** on free plans.
 - **Files on the server are not kept** (Render wipes them when it sleeps) — the app stores everything in the database, so this does not lose data.
+
+## Windows app (Phase 6)
+- **Try a build:** every pull request that touches `apps/desktop` runs the workflow *Windows app*. Its run page › *Artifacts* › `windows-installer` is a zip with `<App name>-Setup-<version>.exe` (kept 14 days).
+- **Release a new version** (owner's go-ahead first — a release is public and every installed app updates to it):
+  1. Raise `version` in `apps/desktop/package.json` (e.g. 0.1.0 → 0.1.1) in a pull request and merge it.
+  2. Tag that commit on `main`: `git tag v0.1.1 && git push origin v0.1.1`.
+  3. The workflow *Windows app* builds, checks and publishes it on GitHub Releases. Installed apps find it within 4 hours (or at their next start) and ask to restart.
+- **Not signed yet:** Windows SmartScreen says "Windows protected your PC" → *More info* › *Run anyway* on first install. A code-signing certificate (about ₹15–30k a year, owner decision) removes this.
+- The installed app keeps its sign-in in `%APPDATA%\billing-erp-desktop` (kept when the app is uninstalled).

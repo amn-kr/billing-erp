@@ -35,8 +35,9 @@ Plan and steps: `docs/ARCHITECTURE.md` › *Desktop and mobile apps*.
 | Step | State |
 |---|---|
 | 1. Windows app shell, online (`apps/desktop`, Electron 44) | done — opens the live app; screens match the prototype at 1280/1366/1920 (0 pixels differ, drawn in the app's own Chrome); WhatsApp and other websites open outside the app; "Not connected" page retries every 15 s. Tests: 7 unit + 6 in Electron (CI job *Windows app tests*) |
-| 2. Installer + auto-update | next |
-| 3–8 | not started |
+| 2. Installer + auto-update | done — one-click `Setup.exe` (no administrator password), desktop + Start-menu shortcuts, icon from the logo letter; checks GitHub Releases at start and every 4 h, asks "Restart now / Later". Workflow *Windows app* builds it on Windows, installs it and opens the installed app. Not signed yet (Windows shows "Unknown publisher") |
+| 3. Direct printing | next |
+| 4–8 | not started |
 
 Known: on the free server, the first open after 15 idle minutes shows a white screen for up to a minute while the server wakes (the same happens in a browser).
 

@@ -87,7 +87,7 @@ Tables by area:
 
 ### Phase 6 steps (each one shown to the owner before the next)
 1. **Windows app shell, online** (`apps/desktop`): one window showing the live app; the app's pages stay inside, WhatsApp/e-mail/other websites open outside, anything else is refused; "Not connected" page that retries. ✅
-2. **Installer + auto-update**: `Setup.exe` (electron-builder), built on GitHub's Windows machines; updates itself.
+2. **Installer + auto-update**: `Setup.exe` (electron-builder), built on GitHub's Windows machines; updates itself from GitHub Releases. ✅
 3. **Direct printing**: thermal (2-inch/3-inch) and A4 without the print dialog; printer and paper chosen in Settings.
 4. **Local server + bundled PostgreSQL** inside the app; safe start/stop, data upgrades on update.
 5. **First start: "This PC only" or "Connect to cloud"**; local sign-in and numbering.
