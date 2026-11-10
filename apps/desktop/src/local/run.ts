@@ -32,7 +32,10 @@ export interface Local {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-export async function startLocal(p: LocalPaths, version: string): Promise<Local> {
+/** the app's Google sign-in client (empty: Drive not set up); url: a pretend Google in tests */
+export interface GoogleClient { id: string; secret: string; url: string }
+
+export async function startLocal(p: LocalPaths, version: string, google: GoogleClient = { id: '', secret: '', url: '' }): Promise<Local> {
   fs.mkdirSync(p.root, { recursive: true });
   const settings = await loadSettings(p.root);
   const db = new LocalDatabase({ pgDir: p.pgDir, root: p.root });
@@ -74,6 +77,9 @@ export async function startLocal(p: LocalPaths, version: string): Promise<Local>
         BILLING_LOCAL_APP_PASSWORD: settings.appPassword,
         BILLING_LOCAL_JWT_SECRET: settings.jwtSecret,
         BILLING_LOCAL_BACKUP_KEY: settings.backupKey!,
+        BILLING_LOCAL_GOOGLE_ID: google.id,
+        BILLING_LOCAL_GOOGLE_SECRET: google.secret,
+        BILLING_LOCAL_GOOGLE_URL: google.url,
         BILLING_LOCAL_WEB: p.webDir,
         BILLING_LOCAL_MIGRATIONS: path.join(p.serverDir, 'migrations'),
       },

@@ -19,6 +19,7 @@ import { Ctx, RequirePermission } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
 import type { RequestContext } from '../../common/context';
 import { BackupService, type Sender } from './backup.service';
+import { DriveSender } from './drive';
 import { keyId, readHeader, type FileHeader } from './crypto';
 import { chainAfter, summarise } from './restore';
 
@@ -104,8 +105,20 @@ export class FolderSender implements Sender, OnModuleInit {
   }
 }
 
-/** One backup file found in a folder, with its readable header. */
-interface Found extends FileHeader { file: string; afterSeqN: bigint; toSeqN: bigint }
+/** One backup file found (in a folder, or downloaded from Google Drive), with its readable header. */
+export interface Found extends FileHeader { file: string; bytes: Buffer; afterSeqN: bigint; toSeqN: bigint }
+
+/** Backup files already read: those that are ours, with their headers (others are left out). */
+export function headersOf(files: { name: string; bytes: Buffer }[]): Found[] {
+  const out: Found[] = [];
+  for (const f of files) {
+    try {
+      const { header } = readHeader(f.bytes);
+      out.push({ ...header, file: f.name, bytes: f.bytes, afterSeqN: BigInt(header.afterSeq), toSeqN: BigInt(header.toSeq) });
+    } catch { /* not one of ours, or damaged: left out */ }
+  }
+  return out;
+}
 
 /** Every backup file in `folder` and the folders right inside it (the owner may pick either). */
 export function findFiles(folder: string): Found[] {
@@ -114,33 +127,28 @@ export function findFiles(folder: string): Found[] {
   for (const dir of dirs) {
     let names: string[];
     try { names = fs.readdirSync(dir).filter((n) => n.endsWith(EXT)); } catch { continue; }
-    for (const n of names) {
-      const file = path.join(dir, n);
-      try {
-        const { header } = readHeader(fs.readFileSync(file));
-        out.push({ ...header, file, afterSeqN: BigInt(header.afterSeq), toSeqN: BigInt(header.toSeq) });
-      } catch { /* not one of ours, or damaged: left out */ }
-    }
+    out.push(...headersOf(names.map((n) => ({ name: path.join(dir, n), bytes: fs.readFileSync(path.join(dir, n)) }))));
   }
   return out;
 }
 
 /** The backup in a folder to restore: the shop whose newest file is the newest, its latest full copy and every change after it. */
-export function pickBackup(found: Found[], master: string) {
-  if (!found.length) throw new BadRequestException({ message: 'No backup files were found in this folder. Choose the folder named “… Backup - BE-…”, or the folder it is in.' });
+export function pickBackup(found: Found[], master: string, drive = false) {
+  if (!found.length) throw new BadRequestException({ message: drive ? 'No backups from this app were found in this Google Drive. Is it the Google account the backups went to?' : 'No backup files were found in this folder. Choose the folder named “… Backup - BE-…”, or the folder it is in.' });
   const mine = found.filter((f) => f.keyId === keyId(master));
   if (!mine.length) throw new BadRequestException({ message: 'This recovery key does not open these backups. Check the key: it is the one printed on the computer that made them.' });
   const newest = [...mine].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0]!;
   const shop = mine.filter((f) => f.business === newest.business);
   const snap = shop.filter((f) => f.kind === 'snapshot').sort((a, b) => (a.toSeqN < b.toSeqN ? -1 : a.toSeqN > b.toSeqN ? 1 : a.createdAt < b.createdAt ? -1 : 1)).at(-1);
-  if (!snap) throw new BadRequestException({ message: 'There is no full copy in this folder, so the books can’t be rebuilt from it.' });
+  if (!snap) throw new BadRequestException({ message: `There is no full copy in this ${drive ? 'Google Drive' : 'folder'}, so the books can’t be rebuilt from it.` });
   const chain = chainAfter(snap.toSeqN, shop.filter((f) => f.kind === 'changes').map((f) => ({ ...f, afterSeq: f.afterSeqN, toSeq: f.toSeqN })));
   if ('gap' in chain) throw new BadRequestException({ message: chain.gap });
-  return { business: newest.business, snap, changes: chain.files.map((f) => f.file), shops: new Set(mine.map((f) => f.business)).size };
+  return { business: newest.business, snap, changes: chain.files, shops: new Set(mine.map((f) => f.business)).size };
 }
 
 const folderSchema = z.object({ folder: z.string().min(1).max(1000) });
-const filesSchema = z.object({ folder: z.string().min(1).max(1000), key: z.string().min(1).max(200) });
+/** from: a folder or pen drive (folder), or the Google Drive connected in these books */
+const filesSchema = z.object({ from: z.enum(['folder', 'drive']).default('folder'), folder: z.string().max(1000).default(''), key: z.string().min(1).max(200) });
 const filesRestoreSchema = filesSchema.extend({ confirm: z.literal(true, { errorMap: () => ({ message: 'Tick “I understand” to restore.' }) }) });
 
 @Controller('backup')
@@ -148,6 +156,7 @@ export class FolderController {
   constructor(
     private readonly backup: BackupService,
     private readonly db: DbService,
+    private readonly drive: DriveSender,
   ) {}
 
   private on() {
@@ -174,13 +183,25 @@ export class FolderController {
     return this.backup.status(ctx);
   }
 
-  /** Opens the backup files in a folder with the recovery key, without touching any books. */
-  private async open(ctx: RequestContext, folder: string, key: string) {
-    const master = normaliseKey(key);
-    const picked = pickBackup(findFiles(this.usable(folder)), master);
+  /** Opens the backup files (in a folder, or in the connected Google Drive) with the recovery key, without touching any books. */
+  private async open(ctx: RequestContext, body: z.infer<typeof filesSchema>) {
+    const master = normaliseKey(body.key);
+    let found: Found[];
+    let shops: number | null = null;
+    if (body.from === 'drive') {
+      const d = await this.backup.place(ctx, 'drive');
+      if (!d || !this.drive.ready(d)) throw new BadRequestException({ message: 'Connect Google Drive first (choose Google Drive or Both above), with the Google account the backups went to.' });
+      const got = await this.drive.backupFiles(d, keyId(master));
+      if (got.otherKey) throw new BadRequestException({ message: 'This recovery key does not open the backups in this Google Drive. Check the key: it is the one printed on the computer that made them.' });
+      found = headersOf(got.files);
+      shops = got.folders;
+    } else {
+      found = findFiles(this.usable(body.folder));
+    }
+    const picked = pickBackup(found, master, body.from === 'drive');
     const tables = await this.backup.tablesFor(ctx);
-    const b = await this.backup.rebuild(master, picked.business, tables, picked.snap.toSeqN, async () => fs.readFileSync(picked.snap.file), picked.changes.map((f) => async () => fs.readFileSync(f)));
-    return { picked, b };
+    const b = await this.backup.rebuild(master, picked.business, tables, picked.snap.toSeqN, async () => picked.snap.bytes, picked.changes.map((f) => async () => f.bytes));
+    return { picked: { ...picked, shops: shops ?? picked.shops }, b };
   }
 
   /** "Restore from files…", step 1: what the backup holds (nothing is written). */
@@ -189,7 +210,7 @@ export class FolderController {
   @HttpCode(200)
   async test(@Ctx() ctx: RequestContext, @Body(new ZodPipe(filesSchema)) body: z.infer<typeof filesSchema>) {
     this.on();
-    const { picked, b } = await this.open(ctx, body.folder, body.key);
+    const { picked, b } = await this.open(ctx, body);
     return {
       fullCopyAt: picked.snap.createdAt,
       changeFiles: picked.changes.length,
@@ -206,8 +227,8 @@ export class FolderController {
   @HttpCode(200)
   async restore(@Ctx() ctx: RequestContext, @Body(new ZodPipe(filesRestoreSchema)) body: z.infer<typeof filesRestoreSchema>) {
     this.on();
-    const { picked, b } = await this.open(ctx, body.folder, body.key);
-    return this.backup.restoreInto(ctx, b, 'files', new Date(picked.snap.createdAt), picked.business);
+    const { picked, b } = await this.open(ctx, body);
+    return this.backup.restoreInto(ctx, b, body.from === 'drive' ? 'drive files' : 'files', new Date(picked.snap.createdAt), picked.business);
   }
 }
 

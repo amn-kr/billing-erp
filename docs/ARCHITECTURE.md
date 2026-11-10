@@ -106,6 +106,9 @@ Tables by area:
      - Same real-time backup as online (`apps/api/src/modules/backup`): each change within a minute, a full copy each day, locked files. In single-PC mode the PC's own server writes them into the chosen folder (`folder.ts`, only with `BACKUP_FOLDERS=on`, which the live server never has): `<folder>/<app> Backup - <shop code>/`, newest 7 full copies kept. A missing folder (pen drive out) waits quietly; after a day an amber line asks to plug it in.
      - The recovery key is this PC's `BACKUP_MASTER_KEY`: 32 characters A–Z/2–7, made on first start (`local/settings.json`), shown and printed from Settings (an A4 page with what to do).
      - Restore from files works on any computer: choose the pen drive or folder, type the key; the backup is opened and checked, then becomes new books (the books open at the time are untouched).
-   - **6b. Google Drive in single-PC mode** (next): needs a Google "Desktop app" sign-in client, a one-time free setup by the owner.
+   - **6b. Google Drive in single-PC mode** ✅ (built; works once the owner has made the Google "Desktop app" client, docs/DEPLOY.md)
+     - The same Drive backup as online, from the PC's own server. Google sign-in opens in the computer's web browser (Google doesn't allow it inside apps); Google sends that browser back to the PC's bare address `http://127.0.0.1:<port>/`, which the PC's server passes on to the Drive step; the browser then shows "Google Drive is connected — go back to the app", and the app's Settings notice it by themselves.
+     - The client's ID and secret are built into the installer from GitHub secrets `DESKTOP_GOOGLE_CLIENT_ID` / `DESKTOP_GOOGLE_CLIENT_SECRET`.
+     - Restore from files › Google Drive: on a new computer, after connecting the same Google account, the newest backup folder in that Drive that the typed recovery key opens is restored (never the books' own folder); only its latest full copy and the changes after it are downloaded.
 7. **Move to cloud**: upload the whole book once, then work online.
 8. **Full testing + pilot** on real Windows 10/11 PCs.

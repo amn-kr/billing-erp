@@ -20,11 +20,15 @@ import { DbService } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import type { RequestContext } from '../../common/context';
 import { BackupService, PlaceError, type Sender } from './backup.service';
-import { lockSecret, openSecret } from './crypto';
+import { lockSecret, openSecret, readHeader } from './crypto';
 
 export const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const FOLDER = 'application/vnd.google-apps.folder';
-const callbackUrl = () => `${appUrl()}/api/backup/drive/callback`;
+/**
+ * Where Google sends the browser back. Single-PC mode (a "Desktop app" client): this computer's bare
+ * address, the form Google documents for desktop apps; the PC's server passes it on to the callback.
+ */
+const callbackUrl = () => (config().BACKUP_FOLDERS === 'on' ? `${appUrl()}/` : `${appUrl()}/api/backup/drive/callback`);
 const google = () => {
   const c = config();
   return { id: c.GOOGLE_CLIENT_ID, secret: c.GOOGLE_CLIENT_SECRET, accounts: c.GOOGLE_ACCOUNTS_URL, oauth2: c.GOOGLE_OAUTH2_URL, api: c.GOOGLE_API_URL };
@@ -33,6 +37,23 @@ export const driveSetUp = () => !!(config().GOOGLE_CLIENT_ID && config().GOOGLE_
 /** the sign-in state Google hands back: signed with its own key, so it can never pass for a sign-in token */
 const stateKey = () => config().JWT_SECRET + ':backup-drive-state';
 type Settings = { folder?: string; account?: string; folderId?: string; reconnect?: boolean };
+
+/** the Windows app's single-PC mode (its server is on the shop's PC) */
+const onThisPc = () => config().BACKUP_FOLDERS === 'on';
+
+/** The page the computer's web browser shows after Google sign-in, in single-PC mode. */
+function backToApp(r: string): string {
+  const [title, text] = r === 'connected'
+    ? ['Google Drive is connected', `Backups now go to your Google Drive. Close this tab and go back to ${BRAND.name}.`]
+    : r === 'cancelled'
+      ? ['Google Drive was not connected', `You cancelled at Google. Close this tab and go back to ${BRAND.name} to try again.`]
+      : ['Google Drive could not be connected', `Close this tab, go back to ${BRAND.name} and press “Connect Google Drive” again.`];
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${esc(title)}</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f4f5fa;color:#151b2e;font:16px/1.55 "Segoe UI",system-ui,sans-serif}
+main{width:min(460px,calc(100vw - 32px));background:#fff;border:1px solid #e8eaf2;border-radius:14px;padding:28px}h1{font-size:20px;margin:0 0 8px}p{margin:0;color:#66708a}</style>
+</head><body><main id="driveBack" data-result="${esc(r)}"><h1>${esc(title)}</h1><p>${esc(text)}</p></main></body></html>`;
+}
 
 /** Calls to Google with errors in plain words; Google's own messages stay out of the screens. */
 async function call(url: string, init: RequestInit): Promise<Response> {
@@ -147,6 +168,51 @@ export class DriveSender implements Sender, OnModuleInit {
     const r = await this.drive(d, `${google().api}/drive/v3/files/${encodeURIComponent(f.ref)}?alt=media`);
     return Buffer.from(await r.arrayBuffer());
   }
+
+  /** Every page of a Drive file listing. */
+  private async list(d: BackupDestination, q: string): Promise<{ id: string; name: string }[]> {
+    const out: { id: string; name: string }[] = [];
+    let page = '';
+    do {
+      const p = new URLSearchParams({ q, fields: 'nextPageToken,files(id,name)', pageSize: '1000', ...(page ? { pageToken: page } : {}) });
+      const r = (await (await this.drive(d, `${google().api}/drive/v3/files?${p}`)).json()) as { files?: { id: string; name: string }[]; nextPageToken?: string };
+      out.push(...(r.files ?? []));
+      page = r.nextPageToken ?? '';
+    } while (page);
+    return out;
+  }
+
+  /**
+   * Restore from Google Drive on another computer: this app's backup folders in the connected Drive
+   * (drive.file shows only what this app made, from any computer), except these books' own folder.
+   * The newest folder that `keyId` opens wins: its latest full copy and the change files from shortly
+   * before it on are downloaded; the rest stays in Drive.
+   */
+  async backupFiles(d: BackupDestination, keyId: string): Promise<{ files: { name: string; bytes: Buffer }[]; folders: number; otherKey: boolean }> {
+    const own = (d.settings as Settings).folderId;
+    const folders = (await this.list(d, `mimeType='${FOLDER}' and trashed=false`)).filter((f) => f.id !== own);
+    const found: { files: { id: string; name: string }[]; full: { id: string; name: string } }[] = [];
+    for (const f of folders) {
+      const files = (await this.list(d, `'${f.id.replace(/'/g, '')}' in parents and trashed=false`)).filter((x) => x.name.endsWith('.berp'));
+      const full = files.filter((x) => x.name.startsWith('full-')).sort((a, b) => (a.name < b.name ? -1 : 1)).at(-1);
+      if (full) found.push({ files, full });
+    }
+    found.sort((a, b) => (a.full.name < b.full.name ? 1 : -1));
+    let best: { files: { id: string; name: string }[]; full: string; bytes: Buffer } | null = null;
+    for (const f of found) {
+      const bytes = await this.get(d, { name: f.full.name, ref: f.full.id });
+      let fits = false;
+      try { fits = readHeader(bytes).header.keyId === keyId; } catch { /* not one of ours */ }
+      if (fits) { best = { files: f.files, full: f.full.name, bytes }; break; }
+    }
+    if (!best) return { files: [], folders: found.length, otherKey: found.length > 0 };
+    // changes made from 10 minutes before the full copy on (a change file can be a little older than the copy it follows)
+    const since = new Date(Date.parse(best.full.slice(5, 15) + 'T' + best.full.slice(16, 24).replace(/-/g, ':') + 'Z') - 10 * 60_000).toISOString().slice(0, 19).replace(/:/g, '-');
+    const need = best.files.filter((x) => x.name.startsWith('changes-') && x.name.slice(8, 27) >= since);
+    const out: { name: string; bytes: Buffer }[] = [{ name: best.full, bytes: best.bytes }];
+    for (const x of need) out.push({ name: x.name, bytes: await this.get(d, { name: x.name, ref: x.id }) });
+    return { files: out, folders: found.length, otherKey: false };
+  }
 }
 
 @Controller('backup/drive')
@@ -172,11 +238,16 @@ export class DriveController {
     return { url: `${google().accounts}/o/oauth2/v2/auth?${q}` };
   }
 
-  /** Google sends the owner back here; then on to Settings with ?drive=connected / cancelled / failed. */
+  /**
+   * Google sends the owner back here; then on to Settings with ?drive=connected / cancelled / failed.
+   * In the Windows app's single-PC mode the sign-in happens in the computer's own web browser (Google
+   * does not allow it inside apps), so that browser gets a short page saying to go back to the app,
+   * which sees the new state by itself.
+   */
   @Public()
   @Get('callback')
   async callback(@Query() q: Record<string, string | undefined>, @Res() res: Reply) {
-    const back = (r: string) => res.redirect(302, `${appUrl()}/settings?drive=${r}`);
+    const back = (r: string) => (onThisPc() ? res.status(200).type('html').send(backToApp(r)) : res.redirect(302, `${appUrl()}/settings?drive=${r}`));
     let s: { b: string; u: string };
     try { s = await this.jwt.verifyAsync(q.state ?? '', { secret: stateKey() }); } catch { return back('failed'); }
     if (q.error || !q.code) return back(q.error === 'access_denied' ? 'cancelled' : 'failed');

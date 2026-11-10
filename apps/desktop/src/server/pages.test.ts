@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { pageFor } from './pages';
+import { googleReturn, pageFor } from './pages';
+
+describe('googleReturn (Google sign-in coming back to this computer)', () => {
+  it('the bare address with Google’s answer goes on to the Drive step', () => {
+    expect(googleReturn('GET', '/', { state: 's1', code: 'c1', scope: 'x' })).toBe('/api/backup/drive/callback?state=s1&code=c1&scope=x');
+    expect(googleReturn('GET', '/', { state: 's1', error: 'access_denied' })).toBe('/api/backup/drive/callback?state=s1&error=access_denied');
+  });
+  it('any other visit is left alone', () => {
+    expect(googleReturn('GET', '/', {})).toBeNull();
+    expect(googleReturn('GET', '/', { state: 's1' })).toBeNull();
+    expect(googleReturn('GET', '/sales', { state: 's1', code: 'c1' })).toBeNull();
+    expect(googleReturn('POST', '/', { state: 's1', code: 'c1' })).toBeNull();
+  });
+});
 
 describe('pageFor (the same rules as the live site)', () => {
   it('the sign-in page', () => {

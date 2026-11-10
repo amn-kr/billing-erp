@@ -146,9 +146,20 @@ export function BackupLive({ onDownload, children }: { onDownload: () => void; c
   const [key, setKey] = useState<{ key: string; printedAt: string | null } | null>(null);
   const [showKey, setShowKey] = useState(false);
   useEffect(() => { if (ON_PC?.recoveryKey) void ON_PC.recoveryKey().then(setKey, () => undefined); }, []);
+  // Windows app: Google sign-in happens in the web browser, so the state is read again when the owner
+  // comes back to the app, and every 3 seconds for 5 minutes after "Connect Google Drive"
+  const [googleSince, setGoogleSince] = useState(0);
+  useEffect(() => {
+    if (!ON_PC) return;
+    const again = () => void qc.invalidateQueries({ queryKey: BACKUP_KEY });
+    window.addEventListener('focus', again);
+    const t = googleSince ? setInterval(() => (Date.now() - googleSince > 5 * 60_000 ? setGoogleSince(0) : again()), 3000) : undefined;
+    return () => { window.removeEventListener('focus', again); clearInterval(t); };
+  }, [qc, googleSince]);
   useTick();
   const s = q.data;
   const now = s ? nowOf(s, q.dataUpdatedAt) : Date.now();
+  useEffect(() => { if (googleSince && s?.drive?.connected && !s.drive.reconnect) setGoogleSince(0); }, [googleSince, s]);
   const dest = s?.dest ?? null;
   const fail = (e: unknown, what: string) => showToast(e instanceof ApiError ? e.message : what);
 
@@ -163,7 +174,12 @@ export function BackupLive({ onDownload, children }: { onDownload: () => void; c
   async function connectDrive() {
     try {
       const { url } = await api<{ url: string }>('/backup/drive/connect', { method: 'POST' });
-      window.location.assign(url);
+      // the Windows app opens Google in the computer's web browser (Google doesn't allow signing in inside
+      // apps); the app's page stays where it is
+      if (!ON_PC) return window.location.assign(url);
+      window.open(url, '_blank', 'noopener');
+      setGoogleSince(Date.now());
+      showToast('Sign in to Google in your web browser. When it says “connected”, come back here.');
     } catch (e) { fail(e, 'Could not open Google sign-in.'); }
   }
   /** Windows app: the folder or pen drive the backups go to (a new folder starts with a full copy) */
@@ -284,13 +300,13 @@ export function BackupLive({ onDownload, children }: { onDownload: () => void; c
       )}
       {ON_PC && can && (
         <div className="synccard" id="bkpFiles"><span className="ti" style={TI('var(--ac)')}><RawIcon d={BOX} /></span>
-          <div className="sx"><b>Restore from files</b><span>On a new computer: choose the pen drive or backup folder and type the recovery key. The backup becomes new books; the current books stay as they are.</span></div>
+          <div className="sx"><b>Restore from files</b><span>On a new computer: choose the pen drive, backup folder or Google Drive and type the recovery key. The backup becomes new books; the current books stay as they are.</span></div>
           <button className="btn" type="button" id="bkpFilesGo" onClick={() => setFiles(true)}>Restore from files…</button></div>
       )}
       {children}
       <div className="synccard"><span className="ti" style={TI(spaceC)}><RawIcon d={DB} /></span><div className="sx"><b>Space for your books</b><span id="bkpUseTxt">{s && ON_PC ? `${s.space.usedMb} MB, kept on this computer.` : s ? `${s.space.usedMb} MB used of ${s.space.limitMb} MB${pct >= 85 ? ' — almost full. When it is full, new entries can’t be saved. Contact support to get more space.' : pct >= 70 ? ' — getting full.' : '.'}` : 'Your books are kept on the server, not on this device.'}</span>{!ON_PC && <div style={{ height: 6, borderRadius: 3, background: 'var(--bd,#e2e8f0)', overflow: 'hidden', marginTop: ui.sp(6) }}><i id="bkpUseBar" style={{ display: 'block', height: '100%', width: Math.max(2, pct) + '%', background: spaceC }}></i></div>}</div></div>
       {from && <RestoreWindow mode={win} from={from} onClose={() => setWin(null)} />}
-      {ON_PC && <FilesRestoreWindow open={files} onClose={() => setFiles(false)} />}
+      {ON_PC && <FilesRestoreWindow open={files} onClose={() => setFiles(false)} drive={s?.drive?.connected ? s.drive.account || 'Google Drive' : null} />}
     </>
   );
 }
@@ -389,11 +405,12 @@ interface FilesResult { fullCopyAt: string; changes: number; upTo: string; other
  * Windows app, single-PC mode: "Restore from files…" (#frm). The pen drive or folder and the recovery
  * key; the backup is opened and checked first without touching any books, then restored into new books.
  */
-function FilesRestoreWindow({ open, onClose }: { open: boolean; onClose: () => void }) {
+function FilesRestoreWindow({ open, onClose, drive }: { open: boolean; onClose: () => void; drive: string | null }) {
   const ref = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { showToast } = useShell();
+  const [src, setSrc] = useState<'folder' | 'drive'>('folder');
   const [folder, setFolder] = useState('');
   const [key, setKey] = useState('');
   const [r, setR] = useState<FilesResult | null>(null);
@@ -406,7 +423,7 @@ function FilesRestoreWindow({ open, onClose }: { open: boolean; onClose: () => v
   closeRef.current = onClose;
   useEffect(() => {
     if (!open) return;
-    setFolder(''); setKey(''); setR(null); setErr(''); setOk(false); setBusy(false); setDone(null);
+    setSrc('folder'); setFolder(''); setKey(''); setR(null); setErr(''); setOk(false); setBusy(false); setDone(null);
     const esc = (e: KeyboardEvent) => e.key === 'Escape' && closeRef.current();
     document.addEventListener('keydown', esc);
     return () => document.removeEventListener('keydown', esc);
@@ -417,13 +434,13 @@ function FilesRestoreWindow({ open, onClose }: { open: boolean; onClose: () => v
   }
   async function check() {
     setBusy(true); setErr(''); setR(null);
-    try { setR(await api<FilesResult>('/backup/files/test', { body: { folder, key } })); } catch (e) { setErr(e instanceof ApiError ? e.message : 'Could not open the backup.'); }
+    try { setR(await api<FilesResult>('/backup/files/test', { body: { from: src, folder, key } })); } catch (e) { setErr(e instanceof ApiError ? e.message : 'Could not open the backup.'); }
     setBusy(false);
   }
   async function go() {
     setBusy(true); setErr('');
     try {
-      setDone(await api<Done>('/backup/files/restore', { body: { folder, key, confirm: true } }));
+      setDone(await api<Done>('/backup/files/restore', { body: { from: src, folder, key, confirm: true } }));
       await qc.invalidateQueries({ queryKey: ['me'] });
     } catch (e) { setErr('Restore failed: ' + (e instanceof ApiError ? e.message : 'unknown error')); }
     setBusy(false);
@@ -441,16 +458,25 @@ function FilesRestoreWindow({ open, onClose }: { open: boolean; onClose: () => v
   return (
     <div className="ov c" id="frm" ref={ref} hidden={!open} onClick={(e) => { e.stopPropagation(); if ((e.target as HTMLElement).id === 'frm') onClose(); }}>
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="frmT" style={{ width: 'min(560px,100%)' }}>
-        <div className="dh"><div><h3 id="frmT" style={{ margin: 0, fontSize: ui.fs(18) }}>Restore from files</h3><small className="mu">From a pen drive or backup folder, with the recovery key</small></div><button className="ib" type="button" id="frmClose" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
+        <div className="dh"><div><h3 id="frmT" style={{ margin: 0, fontSize: ui.fs(18) }}>Restore from files</h3><small className="mu">From a pen drive, a backup folder or Google Drive, with the recovery key</small></div><button className="ib" type="button" id="frmClose" aria-label="Close" onClick={onClose}><Icon name="x" /></button></div>
         <div style={{ marginTop: ui.sp(12) }}>
           {!done && (
             <>
-              <div style={{ display: 'flex', gap: ui.sp(10), alignItems: 'center' }}>
-                <button className="btn" type="button" id="frmFolder" disabled={busy} onClick={() => void pickFolder()}>{folder ? 'Change folder…' : 'Choose folder…'}</button>
-                <span className="mu" id="frmFolderTxt" style={{ fontSize: ui.fs(13), wordBreak: 'break-all' }}>{folder || 'The pen drive, or the folder named “… Backup - BE-…”'}</span>
+              <div className="rad" role="radiogroup" aria-label="Restore from" id="frmFrom" style={{ gridTemplateColumns: '1fr 1fr', margin: ui.sp('0 0 12px') }}>
+                {([['folder', 'Pen drive or folder', 'Choose it on this computer'], ['drive', 'Google Drive', drive ? `Connected: ${drive}` : 'Connect it above first']] as const).map(([k, n, d]) => (
+                  <label key={k} className={src === k ? 'on' : ''}><input type="radio" name="frmFrom" value={k} checked={src === k} disabled={busy} onChange={() => { setSrc(k); setR(null); setErr(''); }} />{n}<small>{d}</small></label>
+                ))}
               </div>
+              {src === 'folder' ? (
+                <div style={{ display: 'flex', gap: ui.sp(10), alignItems: 'center' }}>
+                  <button className="btn" type="button" id="frmFolder" disabled={busy} onClick={() => void pickFolder()}>{folder ? 'Change folder…' : 'Choose folder…'}</button>
+                  <span className="mu" id="frmFolderTxt" style={{ fontSize: ui.fs(13), wordBreak: 'break-all' }}>{folder || 'The pen drive, or the folder named “… Backup - BE-…”'}</span>
+                </div>
+              ) : (
+                <p className="hint" id="frmDriveTxt" style={{ margin: 0 }}>{drive ? `The newest backup in ${drive} that this key opens is used (not these books’ own backups).` : 'Close this window, choose Google Drive (or Both) above and press “Connect Google Drive”, with the Google account the backups went to.'}</p>
+              )}
               <label className="fl" htmlFor="frmKey" style={{ marginTop: ui.sp(12) }}>Recovery key<input className="fi mono" id="frmKey" value={key} placeholder="ABCD-EFGH-…" autoComplete="off" spellCheck={false} onChange={(e) => { setKey(e.target.value); setR(null); }} /></label>
-              {!r && <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: ui.sp(12) }}><button className="btn p" type="button" id="frmCheck" disabled={!folder || key.replace(/[^a-z0-9]/gi, '').length < 32 || busy} onClick={() => void check()}>{busy ? 'Opening…' : 'Open and check'}</button></div>}
+              {!r && <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: ui.sp(12) }}><button className="btn p" type="button" id="frmCheck" disabled={(src === 'folder' ? !folder : !drive) || key.replace(/[^a-z0-9]/gi, '').length < 32 || busy} onClick={() => void check()}>{busy ? 'Opening…' : 'Open and check'}</button></div>}
             </>
           )}
           {r && !done && (

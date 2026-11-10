@@ -32,6 +32,8 @@ const RECOVERY_PAGE = path.join(__dirname, 'static', 'recovery-key.html');
 const BAR = 36;
 /** the app's version, from package.json (build.mjs) */
 declare const __APP_VERSION__: string;
+/** the app's Google sign-in client for Drive backups (build.mjs); tests use BILLING_GOOGLE_* */
+declare const __GOOGLE__: { id: string; secret: string };
 
 // The app's own folder (sign-in, settings). Fixed, so renaming the app (brand.ts) never loses it.
 // BILLING_PROFILE_DIR: a separate folder for tests.
@@ -50,6 +52,15 @@ function localPaths() {
     serverDir: path.join(base, 'server'),
     webDir: path.join(base, 'web'),
   };
+}
+
+/** Google Drive in single-PC mode: the client built into the app, or a pretend Google in tests */
+function googleClient() {
+  const e = process.env;
+  if (e.BILLING_TEST && e.BILLING_GOOGLE_CLIENT_ID) {
+    return { id: e.BILLING_GOOGLE_CLIENT_ID, secret: e.BILLING_GOOGLE_CLIENT_SECRET ?? '', url: e.BILLING_GOOGLE_URL ?? '' };
+  }
+  return { id: __GOOGLE__.id, secret: __GOOGLE__.secret, url: '' };
 }
 
 /** Permissions a page may have: copying to the clipboard and full screen, and only for the app's own pages. */
@@ -262,7 +273,7 @@ if (!app.requestSingleInstanceLock()) {
       const paths = localPaths();
       void page.loadFile(STARTING_PAGE);
       try {
-        const l = await startLocal(paths, __APP_VERSION__);
+        const l = await startLocal(paths, __APP_VERSION__, googleClient());
         local = l;
         ORIGIN = l.origin;
         if (!page.isDestroyed()) void page.loadURL(start());
