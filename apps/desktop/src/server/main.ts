@@ -9,7 +9,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { prepare, readMigrations } from './migrate';
-import { pageFor } from './pages';
+import { googleReturn, pageFor } from './pages';
 
 const env = (k: string) => {
   const v = process.env[k];
@@ -68,22 +68,29 @@ async function main() {
     BACKUP_FOLDERS: 'on',
     // the books are on this computer's disk, not a hosting plan with a size limit
     DB_SPACE_LIMIT_MB: '102400',
+    // Google Drive backups: the app's own Google sign-in client (a "Desktop app" client: Google sends
+    // the web browser back to http://127.0.0.1:<port>), when the app was built with one
+    GOOGLE_CLIENT_ID: process.env.BILLING_LOCAL_GOOGLE_ID ?? '',
+    GOOGLE_CLIENT_SECRET: process.env.BILLING_LOCAL_GOOGLE_SECRET ?? '',
+    ...(process.env.BILLING_LOCAL_GOOGLE_URL ? { GOOGLE_ACCOUNTS_URL: process.env.BILLING_LOCAL_GOOGLE_URL, GOOGLE_OAUTH2_URL: process.env.BILLING_LOCAL_GOOGLE_URL, GOOGLE_API_URL: process.env.BILLING_LOCAL_GOOGLE_URL } : {}),
   });
   // the passwords stay in this process's settings only as the connection above (and the API's settings)
-  for (const k of ['BILLING_LOCAL_ADMIN_PASSWORD', 'BILLING_LOCAL_APP_PASSWORD', 'BILLING_LOCAL_JWT_SECRET', 'BILLING_LOCAL_BACKUP_KEY']) delete process.env[k];
+  for (const k of ['BILLING_LOCAL_ADMIN_PASSWORD', 'BILLING_LOCAL_APP_PASSWORD', 'BILLING_LOCAL_JWT_SECRET', 'BILLING_LOCAL_BACKUP_KEY', 'BILLING_LOCAL_GOOGLE_ID', 'BILLING_LOCAL_GOOGLE_SECRET', 'BILLING_LOCAL_GOOGLE_URL']) delete process.env[k];
 
   require('reflect-metadata');
   // loaded only now: the API reads its settings when it starts
   const { createApp } = require('../../../api/dist/app.factory') as { createApp(): Promise<unknown> };
   const app = (await createApp()) as {
     useStaticAssets(dir: string, o: { index: boolean; maxAge: string }): void;
-    use(fn: (req: { method: string; path: string }, res: { sendFile(p: string): void; setHeader(k: string, v: string): void }, next: () => void) => void): void;
+    use(fn: (req: { method: string; path: string; query: Record<string, unknown> }, res: { sendFile(p: string): void; setHeader(k: string, v: string): void; redirect(code: number, to: string): void }, next: () => void) => void): void;
     listen(port: number, host: string): Promise<unknown>;
   };
 
   // the web app's pages: files as they are, every screen's address → index.html, /login → login.html
   app.useStaticAssets(web, { index: false, maxAge: '1h' });
-  app.use((req: { method: string; path: string }, res: { sendFile(p: string): void; setHeader(k: string, v: string): void }, next: () => void) => {
+  app.use((req: { method: string; path: string; query: Record<string, unknown> }, res: { sendFile(p: string): void; setHeader(k: string, v: string): void; redirect(code: number, to: string): void }, next: () => void) => {
+    const google = googleReturn(req.method, req.path, req.query);
+    if (google) return res.redirect(302, google);
     const page = pageFor(req.method, req.path);
     if (!page) return next();
     res.setHeader('Cache-Control', 'no-cache');

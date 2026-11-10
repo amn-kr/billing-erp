@@ -116,6 +116,18 @@ trial in Google Cloud: nothing here needs billing.**
 7. Render › `billing-erp-api` › **Environment** › add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` from the
    JSON file › **Save Changes**. Until both are set, "Connect Google Drive" says Drive isn't set up on this server.
 
+#### Google Drive for the Windows app ("This PC only" shops; one-time, owner; free)
+The Windows app signs in to Google from the computer's own web browser, and Google sends that browser back to
+the app's own address on that PC (`http://127.0.0.1:<port>`). That needs a second client of the kind Google
+calls **Desktop app** (no web address to enter). Google treats a desktop client's details as not secret, so
+they are built into the app. Same project as above (do steps 1–4 and 6 first if not done yet).
+1. console.cloud.google.com › project `Billing ERP` › **Google Auth Platform** › **Clients** › **+ Create client**.
+2. Application type **Desktop app**, name `Billing ERP Windows app` › **Create** › **Download JSON** (keep it safe).
+3. GitHub › `amn-kr/billing-erp` › **Settings** › **Secrets and variables** › **Actions** › **New repository secret**:
+   `DESKTOP_GOOGLE_CLIENT_ID` = the JSON's `client_id`; again for `DESKTOP_GOOGLE_CLIENT_SECRET` = `client_secret`.
+4. The next Windows installer built by GitHub carries them. Until then the Windows app's "Connect Google Drive"
+   says Drive isn't set up; pen drive backups work without it.
+
 ### For developers
 A migration that writes shop rows without a shop chosen lifts `FORCE ROW LEVEL SECURITY` on the tables it fills;
 it must lift it on `change_log` too, or the trigger's insert is refused. A new shop table gets the trigger like this

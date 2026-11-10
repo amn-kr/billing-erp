@@ -140,6 +140,11 @@ export class BackupService {
     });
   }
 
+  /** This shop's place of that kind, if it has one. */
+  place(ctx: RequestContext, kind: DestKind): Promise<BackupDestination | null> {
+    return this.db.scoped(scopeOf(ctx), (tx) => tx.backupDestination.findFirst({ where: { kind } }));
+  }
+
   async status(ctx: RequestContext) {
     return this.db.scoped(scopeOf(ctx), async (tx) => {
       const ds = await tx.backupDestination.findMany();

@@ -50,13 +50,20 @@ jobs:
       # the Windows app carries the server (apps/api) and the app's pages (apps/web) for single-PC mode
       - name: Build the server, the pages and the shared package
         run: pnpm exec turbo run build --filter=@billing/api --filter=@billing/web
+      # Google Drive backups in single-PC mode: the app's "Desktop app" Google client (docs/DEPLOY.md).
+      # Until the owner adds these repository secrets, the app says Google Drive isn't set up.
       - name: Make the installer
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        env:
+          DESKTOP_GOOGLE_CLIENT_ID: ${{ secrets.DESKTOP_GOOGLE_CLIENT_ID }}
+          DESKTOP_GOOGLE_CLIENT_SECRET: ${{ secrets.DESKTOP_GOOGLE_CLIENT_SECRET }}
         run: pnpm --filter @billing/desktop package
       - name: Make the installer and publish it on GitHub Releases
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DESKTOP_GOOGLE_CLIENT_ID: ${{ secrets.DESKTOP_GOOGLE_CLIENT_ID }}
+          DESKTOP_GOOGLE_CLIENT_SECRET: ${{ secrets.DESKTOP_GOOGLE_CLIENT_SECRET }}
         run: pnpm --filter @billing/desktop package -- --publish
       - name: Install it (silently, for this Windows user)
         shell: pwsh

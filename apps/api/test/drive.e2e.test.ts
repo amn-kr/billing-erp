@@ -1,7 +1,5 @@
 import type { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { createServer, type IncomingMessage, type Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { TEST_DB } from './env';
@@ -10,6 +8,7 @@ import { BRAND } from '@billing/shared';
 import { resetConfig } from '../src/config';
 import { BackupService } from '../src/modules/backup/backup.service';
 import { DRIVE_SCOPE } from '../src/modules/backup/drive';
+import { REFRESH, startFakeGoogle, type FakeGoogle } from './fake-google';
 
 /**
  * Google Drive as a backup place, against a pretend Google (sign-in, tokens and Drive) running in
@@ -17,87 +16,20 @@ import { DRIVE_SCOPE } from '../src/modules/backup/drive';
  * into the shop's own folder and are checked, and every Drive problem is reported in plain words.
  */
 const KEY = 'api-test-drive-master-key-0123456789abcdefgh';
-const REFRESH = 'rt-SECRET-refresh-token-123';
 let app: INestApplication;
 let db: PrismaClient;
 let svc: BackupService;
-let google: Server;
 let base = '';
 const http = () => request(app.getHttpServer());
 
-/** what the pretend Google holds and how it behaves */
-const g = {
-  folders: new Map<string, { name: string; trashed: boolean }>(),
-  files: new Map<string, { name: string; parent: string; bytes: Buffer }>(),
-  sessions: new Map<string, { name: string; parent: string }>(),
-  calls: [] as { method: string; path: string; auth: string; body: string }[],
-  account: 'owner@gmail.com',
-  revoked: false,
-  full: false,
-  shortUpload: false,
-  scope: DRIVE_SCOPE,
-  n: 0,
-};
-const reset = () => Object.assign(g, { revoked: false, full: false, shortUpload: false, scope: DRIVE_SCOPE, account: 'owner@gmail.com' });
-
-const readBody = (req: IncomingMessage) => new Promise<Buffer>((ok) => { const parts: Buffer[] = []; req.on('data', (c: Buffer) => parts.push(c)); req.on('end', () => ok(Buffer.concat(parts))); });
+let fake: FakeGoogle;
+let g: FakeGoogle['g'];
+const reset = () => fake.reset();
 
 beforeAll(async () => {
-  google = createServer(async (req, res) => {
-    const url = new URL(req.url!, 'http://x');
-    const body = await readBody(req);
-    const authz = String(req.headers.authorization ?? '');
-    g.calls.push({ method: req.method!, path: url.pathname + url.search, auth: authz, body: body.length < 2000 ? body.toString() : `(${body.length} bytes)` });
-    const json = (code: number, v: unknown, headers: Record<string, string> = {}) => { res.writeHead(code, { 'content-type': 'application/json', ...headers }); res.end(JSON.stringify(v)); };
-    if (url.pathname === '/token') {
-      const f = new URLSearchParams(body.toString());
-      if (f.get('client_id') !== 'test-client' || f.get('client_secret') !== 'test-secret') return json(401, { error: 'invalid_client' });
-      if (f.get('grant_type') === 'authorization_code') {
-        if (f.get('code') !== 'good-code') return json(400, { error: 'invalid_grant' });
-        return json(200, { access_token: 'at-first', refresh_token: REFRESH, scope: g.scope, expires_in: 3600 });
-      }
-      if (f.get('refresh_token') !== REFRESH || g.revoked) return json(400, { error: 'invalid_grant' });
-      return json(200, { access_token: `at-${++g.n}`, expires_in: 3600 });
-    }
-    if (!authz.startsWith('Bearer at-') || (g.revoked && authz !== 'Bearer at-first')) return json(401, { error: { code: 401 } });
-    if (url.pathname === '/drive/v3/about') return json(200, { user: { emailAddress: g.account } });
-    if (url.pathname === '/drive/v3/files' && req.method === 'POST') {
-      const meta = JSON.parse(body.toString()) as { name: string; mimeType: string };
-      const id = `folder-${++g.n}`;
-      g.folders.set(id, { name: meta.name, trashed: false });
-      return json(200, { id });
-    }
-    const one = url.pathname.match(/^\/drive\/v3\/files\/([^/]+)$/);
-    if (one && req.method === 'GET') {
-      const id = decodeURIComponent(one[1]!);
-      if (url.searchParams.get('alt') === 'media') {
-        const f = g.files.get(id);
-        if (!f) return json(404, { error: { code: 404 } });
-        res.writeHead(200, { 'content-type': 'application/octet-stream' });
-        return res.end(f.bytes);
-      }
-      const folder = g.folders.get(id);
-      return folder ? json(200, { id, trashed: folder.trashed }) : json(404, { error: { code: 404 } });
-    }
-    if (url.pathname === '/upload/drive/v3/files' && req.method === 'POST') {
-      if (g.full) return json(403, { error: { code: 403, errors: [{ reason: 'storageQuotaExceeded' }] } });
-      const meta = JSON.parse(body.toString()) as { name: string; parents: string[] };
-      if (!g.folders.has(meta.parents[0]!)) return json(404, { error: { code: 404 } });
-      const s = `s${++g.n}`;
-      g.sessions.set(s, { name: meta.name, parent: meta.parents[0]! });
-      return json(200, {}, { location: `${base}/upload/session/${s}` });
-    }
-    const up = url.pathname.match(/^\/upload\/session\/(.+)$/);
-    if (up && req.method === 'PUT') {
-      const s = g.sessions.get(up[1]!)!;
-      const id = `file-${++g.n}`;
-      g.files.set(id, { name: s.name, parent: s.parent, bytes: body });
-      return json(200, { id, size: String(g.shortUpload ? body.length - 1 : body.length) });
-    }
-    json(404, { error: { code: 404 } });
-  });
-  await new Promise<void>((ok) => google.listen(0, '127.0.0.1', ok));
-  base = `http://127.0.0.1:${(google.address() as AddressInfo).port}`;
+  fake = await startFakeGoogle();
+  g = fake.g;
+  base = fake.base;
   Object.assign(process.env, {
     BACKUP_MASTER_KEY: KEY, GOOGLE_CLIENT_ID: 'test-client', GOOGLE_CLIENT_SECRET: 'test-secret',
     GOOGLE_ACCOUNTS_URL: base, GOOGLE_OAUTH2_URL: base, GOOGLE_API_URL: base, APP_URL: 'http://localhost:5173',
@@ -109,7 +41,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await db.$disconnect();
   await app.close();
-  await new Promise((ok) => google.close(ok));
+  await fake.close();
 });
 beforeEach(reset);
 
