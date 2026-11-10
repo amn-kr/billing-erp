@@ -125,6 +125,9 @@ importers:
       esbuild:
         specifier: 0.25.12
         version: 0.25.12
+      pdfjs-dist:
+        specifier: 5.4.149
+        version: 5.4.149
       typescript:
         specifier: 5.7.3
         version: 5.7.3

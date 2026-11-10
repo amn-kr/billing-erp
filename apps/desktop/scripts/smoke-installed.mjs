@@ -49,15 +49,18 @@ if (printer && out) {
   }), printer);
   if (!result.ok) throw new Error(`Printing failed: ${result.why}`);
   // the printer writes the file a moment after taking the job
-  let pdf = '';
-  for (let i = 0; i < 60 && !pdf; i++) {
-    if (fs.existsSync(out) && fs.statSync(out).size > 0) pdf = fs.readFileSync(out, 'latin1');
-    else await new Promise((r) => setTimeout(r, 500));
+  let size = 0;
+  for (let i = 0; i < 60; i++) {
+    size = fs.existsSync(out) ? fs.statSync(out).size : 0;
+    if (size > 0) { await new Promise((r) => setTimeout(r, 1000)); if (fs.statSync(out).size === size) break; }
+    await new Promise((r) => setTimeout(r, 500));
   }
-  if (!pdf) throw new Error(`Nothing was printed to ${out}`);
-  const box = pdf.match(/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)/);
-  if (!box) throw new Error('The printed file has no page size');
-  const [w, h] = [Number(box[1]), Number(box[2])];
+  if (!size) throw new Error(`Nothing was printed to ${out}`);
+  // read the page size with a real PDF reader (the file is compressed)
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(fs.readFileSync(out)) }).promise;
+  const [x0, y0, x1, y1] = (await doc.getPage(1)).view;
+  const [w, h] = [Math.round(x1 - x0), Math.round(y1 - y0)];
   // A5 landscape = 595 × 420 points
   if (Math.abs(w - 595) > 3 || Math.abs(h - 420) > 3) throw new Error(`Printed on ${w} × ${h} points, expected A5 landscape (595 × 420)`);
   console.log(`OK  printed silently on "${printer}", A5 landscape (${w} × ${h} points)`);
