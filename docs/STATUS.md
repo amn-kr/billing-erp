@@ -29,6 +29,17 @@
 - **Google sign-in:** not now, later. The button says it isn't set up.
 - **Free trial:** 14 days (`TRIAL_DAYS=14`, the default).
 
+## Phase 6 — Windows app (started 10 Nov 2026, before Phase 5 by the owner's decision)
+Plan and steps: `docs/ARCHITECTURE.md` › *Desktop and mobile apps*.
+
+| Step | State |
+|---|---|
+| 1. Windows app shell, online (`apps/desktop`, Electron 44) | done — opens the live app; screens match the prototype at 1280/1366/1920 (0 pixels differ, drawn in the app's own Chrome); WhatsApp and other websites open outside the app; "Not connected" page retries every 15 s. Tests: 7 unit + 6 in Electron (CI job *Windows app tests*) |
+| 2. Installer + auto-update | next |
+| 3–8 | not started |
+
+Known: on the free server, the first open after 15 idle minutes shows a white screen for up to a minute while the server wakes (the same happens in a browser).
+
 ## On hold (waiting for a later phase or an owner decision)
 | Item | Waiting for |
 |---|---|

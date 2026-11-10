@@ -54,7 +54,7 @@ Tables by area:
 | 5 | SaaS + launch: Razorpay, admin console, onboarding, security review, load test, beta | 16–19 | Beta sign-off, restore drill passes |
 
 ## Desktop and mobile apps (owner's decisions, 10 Nov 2026)
-These phases start only after Phase 5's gate passes.
+**Order (owner, 10 Nov 2026):** Phase 6 (Windows app) is built now, before Phase 5, which stays on hold until the owner asks. The offline subscription check (15 days without internet, then renew) moves into Phase 5, because there is no subscription to check before Razorpay. Phases 7–9 follow Phase 6 in order.
 
 **Two ways a shop runs the software**
 - **Single PC (offline):** the shop's data lives on one Windows PC. Billing works without internet. That PC assigns document numbers itself, using the same prefix and counter rules as the server.
@@ -72,7 +72,7 @@ These phases start only after Phase 5's gate passes.
 
 | # | Phase | Gate to move on |
 |---|---|---|
-| 6 | Windows app + single-PC offline mode: Electron shell, local API + bundled PostgreSQL, local numbering, direct thermal/A4 printing, automatic cloud backup when online + backup to pen drive, subscription grace of 15 days offline, Move to cloud, installer with auto-update | All flow tests pass in the Windows app with the internet off. Move to cloud test passes. A restore drill from both backup types passes. Screens match the prototype at 1280, 1366 and 1920 px |
+| 6 | Windows app + single-PC offline mode: Electron shell, local API + bundled PostgreSQL, local numbering, direct thermal/A4 printing, automatic cloud backup when online + backup to pen drive, Move to cloud, installer with auto-update | All flow tests pass in the Windows app with the internet off. Move to cloud test passes. A restore drill from both backup types passes. Screens match the prototype at 1280, 1366 and 1920 px |
 | 7 | Mobile design: phone screens for the jobs staff, field salesmen and owner do on a phone (`reference/design/mobile.html`) | Owner approves the mobile design |
 | 8 | Android app (APK): Capacitor, online only, WhatsApp PDF sharing, in-app "update available" check. The APK is shared directly at first; Play Store comes later | Flow tests pass on an Android emulator. Screens match the approved mobile design |
 | 9 | iPhone + Mac builds from the same code | Same tests pass on iPhone simulator and Mac. Apple developer account (about ₹8,500 a year) approved by owner |
@@ -84,3 +84,13 @@ These phases start only after Phase 5's gate passes.
 4. All GST and rounding maths lives in `packages/shared`, with unit tests.
 5. Permissions are checked server-side on every endpoint: owner, manager, billing staff, accountant.
 6. Sample data exists only in the demo seed, never in app code.
+
+### Phase 6 steps (each one shown to the owner before the next)
+1. **Windows app shell, online** (`apps/desktop`): one window showing the live app; the app's pages stay inside, WhatsApp/e-mail/other websites open outside, anything else is refused; "Not connected" page that retries. ✅
+2. **Installer + auto-update**: `Setup.exe` (electron-builder), built on GitHub's Windows machines; updates itself.
+3. **Direct printing**: thermal (2-inch/3-inch) and A4 without the print dialog; printer and paper chosen in Settings.
+4. **Local server + bundled PostgreSQL** inside the app; safe start/stop, data upgrades on update.
+5. **First start: "This PC only" or "Connect to cloud"**; local sign-in and numbering.
+6. **Backups**: automatic encrypted cloud backup when online, backup to pen drive, restore from both.
+7. **Move to cloud**: upload the whole book once, then work online.
+8. **Full testing + pilot** on real Windows 10/11 PCs.
