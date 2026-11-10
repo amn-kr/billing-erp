@@ -7,6 +7,10 @@
 #                        the two API command-line tools the picture tests never run. All other API files
 #                        stay out: the pictures show real data from the API and its seed scripts.
 #   approved_changed=true|false  whether an approved picture (apps/web/e2e/approved/) changed
+#   web_unchanged=true   nothing the browser and picture tests use changed: only the Windows app
+#                        (apps/desktop/, its workflow desktop.yml), docs/ or .md — compared with the
+#                        target branch, or, on a pull request pushed again, with its last green CI run
+#                        (when the target branch has not moved since). Those tests already passed.
 # On any doubt (no base commit, empty or unreadable list) none of the last three is written and every
 # test runs, at every picture width.
 # Base: on a pull request the checkout is GitHub's merge commit, whose first parent is the target
@@ -43,6 +47,44 @@ while IFS= read -r f; do
   esac
 done <<<"$files"
 echo "approved_changed=$approved_changed" >> "$out"
+
+# Files only the Windows app uses: the web app, the API and the prototype never read them.
+web_free() {
+  local f
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    case "$f" in
+      apps/desktop/*|.github/workflows/desktop.yml|docs/*|*.md) ;;
+      reference/*) return 1 ;;
+      *) return 1 ;;
+    esac
+  done <<<"$1"
+}
+web_unchanged=false
+if web_free "$files"; then
+  web_unchanged=true
+  echo "Only Windows-app or docs files differ from the target branch."
+elif [ "${EVENT:-}" = pull_request ] && [ -n "${HEAD_REF:-}" ] && [ -n "${REPO:-}" ] && command -v gh >/dev/null; then
+  # this pull request pushed again: what changed since its last green CI run?
+  head=$(git rev-parse -q --verify 'HEAD^2') || head=""
+  green=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?branch=$HEAD_REF&event=pull_request&status=success&per_page=1" \
+    --jq '.workflow_runs[0] | "\(.head_sha) \(.created_at) \(.html_url)"' 2>/dev/null) || green=""
+  read -r green_sha green_at green_url <<<"$green"
+  if [ -n "$head" ] && [ -n "${green_sha:-}" ] && [ "$green_sha" != null ]; then
+    git cat-file -e "$green_sha^{commit}" 2>/dev/null || git fetch -q --depth=1 origin "$green_sha" 2>/dev/null || true
+    main_at=$(date -d "$(git show -s --format=%cI 'HEAD^1')" +%s 2>/dev/null || echo 0)
+    run_at=$(date -d "$green_at" +%s 2>/dev/null || echo 0)
+    since=$(git diff --no-renames --name-only "$green_sha" "$head" 2>/dev/null) || since="?"
+    if [ "$since" != "?" ] && [ "$main_at" -gt 0 ] && [ "$main_at" -lt "$run_at" ] && web_free "$since"; then
+      web_unchanged=true
+      echo "Since this pull request's last green run ($green_url) only Windows-app or docs files changed:"
+      echo "${since:-(none)}"
+    else
+      echo "Since the last green run ($green_url) other files changed, or the target branch moved: every test runs."
+    fi
+  fi
+fi
+echo "web_unchanged=$web_unchanged" >> "$out"
 if [ "$docs_only" = true ]; then
   echo "docs_only=true" >> "$out"
   echo "Only docs/ or .md files changed."

@@ -78,6 +78,10 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           BEFORE: ${{ github.event.before }}
+          # a pull request pushed again: compared with its last green CI run too (see changes.sh)
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_REF: ${{ github.head_ref }}
         run: bash .github/scripts/changes.sh
       - id: plan
         name: Which tests run
@@ -85,6 +89,7 @@ jobs:
           EVENT: ${{ github.event_name }}
           ALREADY_TESTED_RUN: ${{ needs.already-tested.outputs.run }}
           DOCS_ONLY: ${{ steps.changes.outputs.docs_only }}
+          WEB_UNCHANGED: ${{ steps.changes.outputs.web_unchanged }}
           VISUAL_NEEDED: ${{ steps.changes.outputs.visual_needed }}
           APPROVED_CHANGED: ${{ steps.changes.outputs.approved_changed }}
         run: bash .github/scripts/picture-plan.sh
