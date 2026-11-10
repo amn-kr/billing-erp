@@ -1,0 +1,24 @@
+{
+  "name": "@billing/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The Windows (later Mac) app: the same screens as the web app, in its own window.",
+  "main": "dist/main.cjs",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node scripts/ensure-electron.cjs && node build.mjs && electron .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "e2e": "node scripts/ensure-electron.cjs && node build.mjs && playwright test"
+  },
+  "devDependencies": {
+    "@billing/shared": "workspace:*",
+    "@playwright/test": "1.56.1",
+    "@types/node": "22.18.0",
+    "electron": "44.9.1",
+    "esbuild": "0.25.12",
+    "typescript": "5.7.3",
+    "vitest": "4.1.11"
+  }
+}
