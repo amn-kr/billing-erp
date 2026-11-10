@@ -116,3 +116,10 @@ Tables by area:
    - The counts (invoices, parties, items, purchase bills, payments, this year's sales) are compared on both sides and shown. Then the PC switches to online (`mode.json` records where the books went), stops its own server and database, and opens the online app; the books stay on the disk, no longer opened.
    - Staff accounts made on the PC are invited again online. The move is written in the PC books' activity log.
 8. **Full testing + pilot** on real Windows 10/11 PCs.
+   Owner decisions (11 Nov 2026): installers and updates are published on a separate public page, [amn-kr/billing-erp-releases](https://github.com/amn-kr/billing-erp-releases) (the code stays private); no code signing for the trial (decided before other shops get it); the trial is the owner's own shop in **This PC only** mode; thermal receipts come after the trial.
+   - **8a. Ready to release** (owner): the releases access key (`RELEASES_TOKEN`) and the Google "Desktop app" client (`DESKTOP_GOOGLE_CLIENT_*`), docs/DEPLOY.md.
+   - **8b. First release v0.1.0** (owner's go-ahead): tag `v0.1.0`; GitHub builds, checks and publishes the installer on the releases page.
+   - **8c. Checks on real PCs** (owner, with the checklist in `docs/WINDOWS-TRIAL.md`): Windows 10 and 11; install past the SmartScreen warning; This PC only and Connect to cloud; bills, a real printer on A4/A5; Wi-Fi off; pen drive backup, unplugged and back; recovery key printed; restore on a second PC or Windows user; Google Drive connect and restore; Move to cloud with a test account; uninstall keeps the books.
+   - **8d. Update check:** release v0.1.1 (a small fix or the first trial findings); the installed app finds it, downloads it and restarts into it, with the books intact (the before-update copy is made).
+   - **8e. Trial in the owner's shop** (This PC only, about two weeks): daily use; backups checked weekly with *Test restore*; problems noted in the checklist and fixed in v0.1.x releases.
+   - **Gate:** the checklist passes on Windows 10 and 11, the update check passes, a restore drill from both backup kinds passes on a real PC, and the owner is happy to give it to another shop.
