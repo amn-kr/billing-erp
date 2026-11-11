@@ -109,9 +109,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
   const tbody = useRef<HTMLTableSectionElement>(null);
   // last prices this customer got, under the price when its quantity or price is clicked into
   const ph = usePriceHistory(si, (i, h) => {
-    let ok = true;
-    up((s) => { ok = frSet(s.lines[i]!, r2(Number(h.price) * (1 - Number(h.discPct) / 100))); s.warnOk = false; s.dirty = true; });
-    if (!ok) toast(`Final rate can’t be more than the price-list rate ${inr2f(si?.lines[i]?.price ?? 0)}. Change the price in Price manager.`);
+    up((s) => { frSet(s.lines[i]!, r2(Number(h.price) * (1 - Number(h.discPct) / 100))); s.warnOk = false; s.dirty = true; });
     full(); focusRow(i, 'fr');
   });
   const G = ctx.mode === 'gst';
@@ -158,7 +156,6 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
     if (!qe.item) { document.getElementById('qeItem')?.focus(); return toast('Choose an item first'); }
     const L = qeLine()!;
     if (!(Number(L.qty) > 0)) { document.getElementById('qeQty')?.focus(); return toast('Enter the quantity'); }
-    if (qe.fr !== '' && Number(qe.fr) > (L.price || 0) && L.price > 0) toast(`Rate can’t be more than the price-list rate ${inr2f(L.price)} — used the price-list rate`);
     up2((s) => { s.lines.unshift(L); if (!s.lines.length || s.lines[s.lines.length - 1]!.item) s.lines.push(blankLine()); });
     setQe({ item: null, qty: '1', fr: '', disc: '', q: '' }); setQk((k) => k + 1); full();
     setHi(0); setTimeout(() => setHi(null), 1200);
@@ -191,10 +188,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
     }
     if (f === 'fr') {
       const raw = tEl.value.replace(/[^\d.]/g, '');
-      let ok = true;
-      up2((s) => { const l = s.lines[i]!; ok = frSet(l, raw === '' ? l.price || 0 : Number(raw)); });
-      tEl.closest('td')!.classList.toggle('bad', !ok);
-      tEl.title = ok ? '' : `More than the price-list rate ${inr2f(si.lines[i]!.price)}`;
+      up2((s) => { const l = s.lines[i]!; frSet(l, raw === '' ? l.lp ?? (l.price || 0) : Number(raw)); });
       const dp = tr.querySelector<HTMLInputElement>('[data-f="disc"]'); if (dp) dp.value = si.lines[i]!.disc ? String(r2(si.lines[i]!.disc)) : '';
       return;
     }
@@ -236,7 +230,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
             {qe.item && !qe.item.svc ? <small className={(qe.item.stock ?? 0) - lineStock({ item: qe.item, unit: qL?.unit ?? '', qty: qe.qty }) < 0 ? 'neg' : 'mu'}>{(qe.item.stock ?? 0) - lineStock({ item: qe.item, unit: qL?.unit ?? '', qty: qe.qty }) < 0 ? `Only ${qe.item.pack && d.packOn ? stockText(qe.item, qe.item.stock ?? 0) : qfmt(qe.item.stock ?? 0)}` : qe.item.pack && d.packOn ? stockText(qe.item, qe.item.stock ?? 0) : `${qfmt(qe.item.stock ?? 0)} ${qe.item.unit}`}</small> : null}</div></td>
           <td className="ro l mono">{qe.item?.code ?? ''}</td>{show.brand ? <td className="ro l">{qe.item?.brand ?? ''}</td> : null}{show.series ? <td className="ro l">{qe.item?.series ?? ''}</td> : null}{gstCol ? <td className="ro l">{qe.item?.hsn ?? ''}</td> : null}{co.batch ? <td className="ro l"></td> : null}{co.exp ? <td className="ro l"></td> : null}{co.mrp ? <td className="ro">{qL && lineMrp(d, si, qL, null) ? inr2f(lineMrp(d, si, qL, null)!) : ''}</td> : null}
           <QeIn id="qeQty" val={qe.qty} label="Quick add quantity" set={(v) => setQe({ ...qe, qty: v })} onKey={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); if (e.ctrlKey || e.metaKey) return qeCommit(); const f = document.getElementById('qeFr') as HTMLInputElement; f.focus(); f.select(); } else if (e.key === 'Escape') { e.stopPropagation(); setQe({ item: null, qty: '1', fr: '', disc: '', q: '' }); setQk((k) => k + 1); setTimeout(() => document.getElementById('qeItem')?.focus(), 0); } }} />
-          <td className="ro l">{qL?.unit ?? qe.item?.unit ?? ''}</td>{co.pack ? <td className="ro l">{packTxt(qe.item)}</td> : null}<td className="ro" id="qePrice">{qL ? inr2f(qL.price || 0) : ''}</td>
+          <td className="ro l">{qL?.unit ?? qe.item?.unit ?? ''}</td>{co.pack ? <td className="ro l">{packTxt(qe.item)}</td> : null}<td className="ro" id="qePrice">{qL ? inr2f(qL.lp ?? (qL.price || 0)) : ''}</td>
           <QeIn id="qeDisc" val={qe.disc} label="Quick add discount percent" placeholder="0" set={(v) => setQe({ ...qe, disc: v, fr: '' })} onKey={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); qeCommit(); } }} shown={qe.disc === '' && qe.fr !== '' && qL?.disc ? String(r2(qL.disc)) : undefined} />
           <td className="ro" id="qeDamt">{qr?.disc ? inr2f(qr.disc) : ''}</td>
           <QeIn id="qeFr" cls="fr" val={qe.fr} label="Quick add rate" placeholder="Rate" set={(v) => setQe({ ...qe, fr: v, disc: '' })} onKey={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); qeCommit(); } }} shown={qe.fr === '' && qL ? finalRate(qL).toFixed(2) : undefined} />
@@ -249,7 +243,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
         onChange={(e) => { const tEl = e.target as unknown as HTMLSelectElement; const tr = tEl.closest<HTMLElement>('tr[data-ln]'); if (tr && tEl.dataset.f === 'gst') up2((s) => { s.lines[Number(tr.dataset.ln)]!.gst = Number(tEl.value); }); }}
         onBlur={(e) => {
           const tEl = e.target as unknown as HTMLInputElement;
-          if (tEl.dataset.f === 'fr') { const tr = tEl.closest<HTMLElement>('tr[data-ln]')!; const l = si.lines[Number(tr.dataset.ln)]; const td = tEl.closest('td')!; if (td.classList.contains('bad')) { td.classList.remove('bad'); toast(`Final rate can’t be more than the price-list rate ${inr2f(l?.price ?? 0)}. Change the price in Price manager.`); } if (l) tEl.value = l.item || l.price ? finalRate(l).toFixed(2) : ''; }
+          if (tEl.dataset.f === 'fr') { const tr = tEl.closest<HTMLElement>('tr[data-ln]')!; const l = si.lines[Number(tr.dataset.ln)]; if (l) tEl.value = l.item || l.price ? finalRate(l).toFixed(2) : ''; }
           setTimeout(() => { const a = document.activeElement; if (!(a as HTMLElement | null)?.closest?.('.cbl') && !(a as HTMLElement | null)?.closest?.('#qeItem,.si-item')) c.hide(); }, 150);
         }}>
         {si.lines.map((l, i) => {
@@ -280,7 +274,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
               <td><input className="gi n" data-f="qty" defaultValue={String(l.qty)} inputMode="decimal" aria-label="Quantity" /></td>
               {l.item?.pack && d.packOn ? <td><select className="gi" data-f="unit" aria-label={`Unit for row ${i + 1}`} style={{ color: 'var(--ac)', fontWeight: 600 }} value={l.unit} onChange={(e) => { const v = e.target.value; up2((s) => { setLineUnit(ctx, s, s.lines[i]!, v); }); full(); }}><option value={l.item.pack.unit}>{l.item.pack.unit}</option><option value={l.item.unit}>{l.item.unit}</option></select></td> : <td className="ro l">{l.unit || '—'}</td>}
               {co.pack ? <td className="ro l" data-pk={i}>{packTxt(l.item)}</td> : null}
-              <td className="prlk"><input className="gi n" data-f="price" value={String(l.price)} readOnly aria-readonly="true" title={l.item && l.price > 0 ? 'From the price list. Change it in Price manager.' : 'Set the rate in Final rate'} aria-label="Sale price (from price list)" /></td>
+              <td className="prlk"><input className="gi n" data-f="price" value={String(l.lp ?? l.price)} readOnly aria-readonly="true" title={l.item && l.price > 0 ? 'From the price list. Change it in Price manager.' : 'Set the rate in Final rate'} aria-label="Sale price (from price list)" /></td>
               <td><input className="gi n" data-f="disc" defaultValue={l.disc ? String(r2(l.disc)) : ''} placeholder="0" inputMode="decimal" aria-label="Discount percent" /></td>
               <td><input className="gi n" data-f="damt" defaultValue={r.disc ? String(r2(r.disc)) : ''} placeholder="0" inputMode="decimal" aria-label="Discount amount" /></td>
               <td className="frc" data-mrpbad={lineOverMrp(d, si, l, allocs[i], r.amt) ? '1' : undefined} style={lineOverMrp(d, si, l, allocs[i], r.amt) ? { outline: '1px solid var(--red)', outlineOffset: -1 } : undefined}><input className="gi n" data-f="fr" defaultValue={l.item || l.price ? finalRate(l).toFixed(2) : ''} placeholder="0.00" inputMode="decimal" aria-label="Final rate" title="Type the selling rate. The discount is worked out from the price-list rate." /></td>
