@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { APP } from '../../web/e2e/setup';
-import { launch } from './launch';
+import { closeApp, launch } from './launch';
 import { bill, dbRunning, LOCAL, newShop } from './shop';
 
 test('Move to cloud: the books go online, are checked, and this PC works online from then on', async () => {
@@ -61,6 +61,6 @@ test('Move to cloud: the books go online, are checked, and this PC works online 
     expect(new URL(again.win.url()).origin).toBe(new URL(APP).origin);
     expect(dbRunning(a.profile)).toBe(false);
   } finally {
-    await again.app.close();
+    await closeApp(again.app);
   }
 });

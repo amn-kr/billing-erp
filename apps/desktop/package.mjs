@@ -1,6 +1,6 @@
 // Makes the Windows installer: release/<App name>-Setup-<version>.exe (electron-builder, NSIS).
 //   node package.mjs              build only (pull requests: the installer to try)
-//   node package.mjs --publish    build and put it on GitHub Releases as tag v<version> (auto-update reads it)
+//   node package.mjs --publish    build and put it on github.com/amn-kr/billing-erp-releases as v<version> (auto-update reads it)
 // The app's name comes from packages/shared/src/brand.ts; the program's file name and id never change with it.
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
@@ -51,6 +51,8 @@ await build({
       // the shop's sign-in stays on the PC when the app is uninstalled (no surprise sign-out on reinstall)
       deleteAppDataOnUninstall: false,
     },
-    publish: [{ provider: 'github', owner: 'amn-kr', repo: 'billing-erp', releaseType: 'release' }],
+    // installers and updates go to a separate public page (the code stays private; owner, 11 Nov 2026):
+    // installed apps read updates from there without any password
+    publish: [{ provider: 'github', owner: 'amn-kr', repo: 'billing-erp-releases', releaseType: 'release' }],
   },
 });

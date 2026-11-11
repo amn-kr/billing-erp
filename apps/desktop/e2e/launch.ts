@@ -25,6 +25,18 @@ export async function find(app: ElectronApplication, want: (p: Page) => boolean)
   throw new Error('The app’s page did not open');
 }
 
+/**
+ * Close the app; if Electron has not finished closing within 15 s, end it (on GitHub's Linux machine a
+ * close has once hung for 2 minutes after every step had passed; the books are already stopped by then).
+ */
+export async function closeApp(app: ElectronApplication): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<'late'>((r) => { timer = setTimeout(() => r('late'), 15_000); });
+  const done = await Promise.race([app.close().then(() => 'closed' as const), late]);
+  clearTimeout(timer);
+  if (done === 'late') app.process().kill('SIGKILL');
+}
+
 /** open the app without waiting for any page */
 export function openApp(appUrl: string, env: Record<string, string> = {}, profile = fs.mkdtempSync(path.join(os.tmpdir(), 'billing-desktop-'))): Promise<ElectronApplication> {
   return electron.launch({
