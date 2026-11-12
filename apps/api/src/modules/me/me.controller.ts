@@ -45,6 +45,7 @@ export class MeController {
         business = {
           id: b.id, code: b.code, name: b.name, short: b.shortName, city: b.city, gstin: b.gstin, state: b.stateCode,
           gstEnabled: !!b.settings?.gstEnabled, plan, planEndsOn: ends, features: enabledFeatures(b.settings?.features), itemOptions: readItemOptions(b.settings?.itemOptions),
+          movedToPcOn: b.movedToPcAt ? b.movedToPcAt.toISOString() : null,
         };
       }
       return {

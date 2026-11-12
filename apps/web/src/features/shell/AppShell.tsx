@@ -34,6 +34,7 @@ import type { Item } from '../items/ItemsPage';
 import { statusOf, type SaleRow } from '../sales/model';
 import { statusOfBill, type PurchaseRow } from '../purchases/model';
 import { BackupBanner } from '../settings/BackupCard';
+import { Icon } from '../../components/Icon';
 import { soon, useOnline, useShell } from './store';
 import { APP_NAME } from '../../lib/brand';
 
@@ -220,6 +221,12 @@ function AppFrame() {
           <main className="page">
             <div className="subbar" id="subBar" hidden role="status"></div>
             <BackupBanner />
+            {business?.movedToPcOn && (
+              <div className="subbar pending" id="movedBar" role="status">
+                <Icon name="alert" />
+                <span><b>These books were moved to a PC on {new Date(business.movedToPcOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}.</b> You can look and print here; billing happens on that PC.</span>
+              </div>
+            )}
             <Outlet context={me.data} />
           </main>
         </div>

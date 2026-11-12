@@ -11,6 +11,11 @@ import { OWNER_ROUTE } from '../owner/owner.guard';
 /** A shop suspended in the owner panel. */
 export const SHOP_PAUSED = 'This shop’s account is paused. Please contact support.';
 
+/** A shop whose books were taken down to a PC (step 7b): online it can be looked at and printed, not changed. */
+export const movedToPcMessage = (at: Date) =>
+  `These books were moved to a PC on ${at.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}. You can look and print here; billing happens on that PC.`;
+const READS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
 export interface AccessClaims {
   sub: string;
   email: string;
@@ -50,16 +55,18 @@ export class AuthGuard implements CanActivate {
     let role: RoleKey | null = null;
     let permissions: Permission[] = [];
     let mustChangePassword: boolean;
+    let movedToPcAt: Date | null = null;
     if (claims.bid) {
       const m = await this.db.scoped({ businessId: claims.bid, userId: claims.sub, email: claims.email }, (tx) =>
         tx.membership.findFirst({
           where: { businessId: claims.bid!, userId: claims.sub, status: 'active' },
-          include: { role: { include: { permissions: true } }, user: { select: { mustChangePassword: true } }, business: { select: { status: true } } },
+          include: { role: { include: { permissions: true } }, user: { select: { mustChangePassword: true } }, business: { select: { status: true, movedToPcAt: true } } },
         }),
       );
       if (!m) throw new ForbiddenException({ message: 'You no longer have access to that shop.', code: 'removed' });
       // suspended in the owner panel: checked on every request, so it takes effect at once (nothing is deleted)
       if (m.business.status === 'suspended') throw new ForbiddenException({ message: SHOP_PAUSED, code: 'suspended' });
+      movedToPcAt = m.business.movedToPcAt;
       role = m.role.key as RoleKey;
       permissions = m.role.permissions.map((p) => p.permission as Permission);
       mustChangePassword = m.user.mustChangePassword;
@@ -85,6 +92,8 @@ export class AuthGuard implements CanActivate {
     if (need) {
       if (!claims.bid) throw new ForbiddenException({ message: 'Set up or choose a shop first.' });
       if (!permissions.includes(need)) throw new ForbiddenException({ message: 'Your role does not allow this. Ask the shop owner.' });
+      // moved to a PC: every change to the shop is refused; looking (and the few reads sent as POST) still work
+      if (movedToPcAt && !READS.has(req.method) && !need.endsWith('.view')) throw new ForbiddenException({ message: movedToPcMessage(movedToPcAt), code: 'moved_to_pc' });
     }
     return true;
   }
