@@ -146,7 +146,7 @@ it must lift it on `change_log` too, or the trigger's insert is refused. A new s
 - **Release a new version** (owner's go-ahead first — a release is public and every installed app updates to it):
   1. Raise `version` in `apps/desktop/package.json` (e.g. 0.1.0 → 0.1.1) in a pull request and merge it.
   2. Tag that commit on `main`: `git tag v0.1.1 && git push origin v0.1.1`.
-  3. The workflow *Windows app* builds, checks and publishes it on the public releases page
+  3. The workflow *Windows app* builds the installer into a hidden draft release, installs and checks it, and only then makes it public on the releases page
      [amn-kr/billing-erp-releases](https://github.com/amn-kr/billing-erp-releases) (installers only; the code stays private). Installed apps find it within 4 hours, at their next start, or when someone clicks **Check for updates** in the title bar; it downloads in the background and the button turns green: **Restart to update to v…**.
 - **Access key for the releases page (one-time, owner; free).** GitHub › your picture › **Settings** › **Developer settings** ›
   **Personal access tokens** › **Fine-grained tokens** › **Generate new token**: name `Windows releases`, expiration 1 year,

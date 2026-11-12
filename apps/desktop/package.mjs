@@ -53,6 +53,9 @@ await build({
     },
     // installers and updates go to a separate public page (the code stays private; owner, 11 Nov 2026):
     // installed apps read updates from there without any password
-    publish: [{ provider: 'github', owner: 'amn-kr', repo: 'billing-erp-releases', releaseType: 'release' }],
+    // uploaded into a hidden draft the workflow makes first (electron-builder uploads files at the same
+    // time and each tried to make the release: v0.1.0's first try failed so); the workflow makes it
+    // public only after the installed app passed its checks
+    publish: [{ provider: 'github', owner: 'amn-kr', repo: 'billing-erp-releases', releaseType: 'draft' }],
   },
 });
