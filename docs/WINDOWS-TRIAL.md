@@ -16,7 +16,7 @@ v0.1.0 is on [the releases page](https://github.com/amn-kr/billing-erp-releases/
 ## B. First start: This PC only
 - [ ] The first screen asks "This PC only" or "Connect to cloud". Choose **This PC only**.
 - [ ] "Opening your books…" for a few seconds, then the sign-in page (without "Open the demo shop").
-- [ ] Create an account and your shop. The screens look the same as the website.
+- [ ] Click **Create account** and make an account and your shop. (Your online email and password don't work here: the PC's books are separate. From v0.1.1 the sign-in page can bring your online books to the PC instead.) The screens look the same as the website.
 - [ ] Make 3 invoices, a payment received, a purchase bill. Numbers go INV-0001, 0002, 0003.
 - [ ] Close the app and open it again: still signed in, everything there.
 - [ ] **Turn Wi-Fi off** (and unplug the network cable). Make another invoice, open reports. Everything works; the fonts look the same. Turn Wi-Fi back on.
