@@ -58,7 +58,19 @@ jobs:
           DESKTOP_GOOGLE_CLIENT_ID: ${{ secrets.DESKTOP_GOOGLE_CLIENT_ID }}
           DESKTOP_GOOGLE_CLIENT_SECRET: ${{ secrets.DESKTOP_GOOGLE_CLIENT_SECRET }}
         run: pnpm --filter @billing/desktop package
-      - name: Make the installer and publish it on GitHub Releases
+      # the release is made first as a hidden draft (one release, never two at once), filled by the next
+      # step, and made public only after the installed app passed its checks (last step)
+      - name: A hidden draft release on the releases page
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" -R amn-kr/billing-erp-releases >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" -R amn-kr/billing-erp-releases --draft --title "$GITHUB_REF_NAME" \
+                 --notes "Windows installer for BillinGo $GITHUB_REF_NAME. Download BillinGo-Setup-${GITHUB_REF_NAME#v}.exe below. Not code-signed yet: if Windows says \"Windows protected your PC\", choose More info › Run anyway."
+          gh release edit "$GITHUB_REF_NAME" -R amn-kr/billing-erp-releases --draft=true
+      - name: Make the installer and put it into the draft release
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           # an access key for the public releases page (amn-kr/billing-erp-releases), made by the owner
@@ -87,6 +99,18 @@ jobs:
       - name: Open the installed app (and print with it)
         working-directory: apps/desktop
         run: node scripts/smoke-installed.mjs "$EXE"
+      - name: Make the release public (the installed app passed its checks)
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          files=$(gh release view "$GITHUB_REF_NAME" -R amn-kr/billing-erp-releases --json assets --jq '.assets[].name')
+          echo "$files"
+          # the installer, and latest.yml (installed apps read it to find updates)
+          echo "$files" | grep -q '^latest.yml$' || { echo 'latest.yml is missing'; exit 1; }
+          echo "$files" | grep -q -- '-Setup-.*\.exe$' || { echo 'the installer is missing'; exit 1; }
+          gh release edit "$GITHUB_REF_NAME" -R amn-kr/billing-erp-releases --draft=false --latest
       - name: Keep the installer (Artifacts, 14 days)
         uses: actions/upload-artifact@v4
         with:
