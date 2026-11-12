@@ -4,6 +4,8 @@
  * "Choose a new password" (vPass) uses the same card after a temporary password from the shop owner.
  * "Forgot password?" opens "Use a recovery code" (vRec): the email, one recovery code and a new password.
  * The software owner signs in here too and goes to the owner panel (/owner); /login?setup is the panel's one-time setup.
+ * Windows app, single-PC mode: an email with no account on this PC says so, and offers "Bring my online books to
+ * this PC" (vBring, Phase 6 step 7b) or Create account.
  */
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { flushSync } from 'react-dom';
@@ -20,7 +22,13 @@ import { ui } from '../../styles/uiSize';
 import { OwnerSetup } from '../../owner/OwnerSetup';
 import { desktop } from '../../lib/desktop';
 
-type View = 'vLoad' | 'vAuth' | 'vPass' | 'vRec' | 'vJoin' | 'vShop' | 'vSetup';
+type View = 'vLoad' | 'vAuth' | 'vPass' | 'vRec' | 'vJoin' | 'vShop' | 'vSetup' | 'vBring';
+/** Bring my online books to this PC: the online account's shops, and what came down */
+type OwnedShop = { id: string; code: string; name: string; city: string; movedToPcOn: string | null };
+type Counts = { invoices: number; parties: number; items: number; purchaseBills: number; paymentsReceived: number; salesTotalThisYear: string };
+type Brought = AuthTokens & { code: string; name: string; matches: boolean; here: Counts; online: Counts };
+const countsText = (c: Counts) => `${c.invoices} invoices, ${c.parties} parties, ${c.items} items, ${c.purchaseBills} purchase bills, ${c.paymentsReceived} payments`;
+const dayOf = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
 const APP = APP_NAME;
 const TRIAL = Number(import.meta.env.VITE_TRIAL_DAYS ?? 14);
 /** the Windows app in single-PC mode: the books are on this computer, which has no demo shop */
@@ -41,6 +49,14 @@ export function LoginPage() {
   const [sErr, setSErr] = useState('');
   const [pErr, setPErr] = useState('');
   const [rErr, setRErr] = useState('');
+  /** single-PC mode: the email typed has no account on this PC */
+  const [notHere, setNotHere] = useState('');
+  const [bErr, setBErr] = useState('');
+  const [bShops, setBShops] = useState<OwnedShop[] | null>(null);
+  const [bPick, setBPick] = useState<string | null>(null);
+  const [bDone, setBDone] = useState<Brought | null>(null);
+  const bEmailRef = useRef<HTMLInputElement>(null);
+  const bPassRef = useRef<HTMLInputElement>(null);
   const rEmailRef = useRef<HTMLInputElement>(null);
   const rCodeRef = useRef<HTMLInputElement>(null);
   const rNewRef = useRef<HTMLInputElement>(null);
@@ -103,6 +119,7 @@ export function LoginPage() {
   function pickMode(m: 'in' | 'up') {
     setMode(m);
     setAErr({ text: '' });
+    setNotHere('');
   }
 
   async function onAuth(e: FormEvent) {
@@ -110,6 +127,7 @@ export function LoginPage() {
     const email = emailRef.current!.value.trim();
     const password = passRef.current!.value;
     setAErr({ text: '' });
+    setNotHere('');
     setBusy(true);
     try {
       if (mode === 'up') await apiWithToken('/auth/register', { email, password, name: nameRef.current!.value.trim() });
@@ -124,7 +142,8 @@ export function LoginPage() {
       signedWith.current = password;
       await route();
     } catch (x) {
-      setAErr({ text: msgOf(x) });
+      if (ON_THIS_PC && x instanceof ApiError && x.code === 'not_on_pc') setNotHere(x.message);
+      else setAErr({ text: msgOf(x) });
     } finally {
       setBusy(false);
     }
@@ -138,6 +157,53 @@ export function LoginPage() {
     if (rEmailRef.current) rEmailRef.current.value = emailRef.current!.value.trim();
     flushSync(() => setView('vRec'));
     (rEmailRef.current?.value ? rCodeRef : rEmailRef).current?.focus();
+  }
+
+  /** Bring my online books to this PC: the email and password typed so far come along. */
+  function onBring() {
+    setBErr('');
+    setBShops(null);
+    setBPick(null);
+    setBDone(null);
+    if (bEmailRef.current) bEmailRef.current.value = emailRef.current!.value.trim();
+    if (bPassRef.current) bPassRef.current.value = passRef.current!.value;
+    flushSync(() => setView('vBring'));
+    (bEmailRef.current?.value ? bPassRef : bEmailRef).current?.focus();
+  }
+
+  const bWho = () => ({ email: bEmailRef.current!.value.trim(), password: bPassRef.current!.value });
+
+  async function onBringFind(e: FormEvent) {
+    e.preventDefault();
+    const who = bWho();
+    setBErr('');
+    if (!who.email) return setBErr('Enter the email of your online account.');
+    if (!who.password) return setBErr('Enter the password of your online account.');
+    setBusy(true);
+    try {
+      const { shops } = await api<{ shops: OwnedShop[] }>('/cloud/bring/shops', { body: who });
+      setBShops(shops);
+      const free = shops.filter((x) => !x.movedToPcOn);
+      setBPick(free.length === 1 ? free[0]!.id : null);
+    } catch (x) {
+      setBErr(msgOf(x));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onBringGo() {
+    if (!bPick) return setBErr('Choose the shop to bring to this PC.');
+    setBErr('');
+    setBusy(true);
+    try {
+      const r = await apiWithToken<Brought>('/cloud/bring', { ...bWho(), businessId: bPick, confirm: true });
+      setBDone(r);
+    } catch (x) {
+      setBErr(msgOf(x));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function onRecover(e: FormEvent) {
@@ -257,6 +323,12 @@ export function LoginPage() {
             <button className="btn p" id="aGo" type="submit" disabled={busy}>{up ? 'Create account' : 'Sign in'}</button>
             <div className={aErr.ok ? 'msg ok' : 'msg bad'} id="aErr" role="alert">{aErr.text}</div>
           </form>
+          {notHere && (
+            <div className="note" id="aNotHere" role="alert" style={{ marginTop: ui.sp(12) }}>
+              {notHere}<br />
+              <button className="lnk" type="button" id="aBring" onClick={onBring}>Bring my online books to this PC</button> · <button className="lnk" type="button" id="aUp" onClick={() => pickMode('up')}>Create account</button>
+            </div>
+          )}
           <p className="mu" style={{ margin: ui.sp('12px 0 0'), textAlign: 'center' }}><button className="lnk" type="button" id="aForgot" onClick={onForgot}>Forgot password?</button></p>
           {!ON_THIS_PC && <p className="demo mu">Just looking? <a className="lnk" href="/?demo=1" style={{ textDecoration: 'none' }} onClick={onDemo}>Open the demo shop</a></p>}
         </div>
@@ -283,6 +355,45 @@ export function LoginPage() {
           </form>
           <div className="note" style={{ marginTop: ui.sp(14) }} id="rNote">No recovery codes? Please contact support to reset your password.</div>
           <p className="mu" style={{ margin: ui.sp('14px 0 0'), textAlign: 'center' }}><button className="lnk" type="button" id="rBack" onClick={() => setView('vAuth')}>Back to sign in</button></p>
+        </div>
+        <div id="vBring" hidden={view !== 'vBring'}>
+          {!bDone ? (
+            <>
+              <h2>Bring your online books to this PC</h2><p className="mu">Sign in with your online account. This needs internet once; after that this PC works without it.</p>
+              <form id="fBring" noValidate onSubmit={onBringFind} style={{ marginTop: ui.sp(16) }}>
+                <label>Email<input id="bEmail" type="email" autoComplete="email" ref={bEmailRef} disabled={!!bShops} /></label>
+                <label>Password<input id="bPass" type="password" autoComplete="current-password" ref={bPassRef} disabled={!!bShops} /></label>
+                {!bShops && <button className="btn p" id="bFind" type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Find my shops'}</button>}
+              </form>
+              {bShops && (
+                <div id="bShops">
+                  {bShops.length === 0 ? (
+                    <div className="note" id="bNone">This account doesn’t own a shop online. Only a shop’s owner can bring its books to a PC.</div>
+                  ) : (
+                    <>
+                      <p className="mu" style={{ margin: ui.sp('0 0 8px') }}>Choose the shop to bring to this PC:</p>
+                      {bShops.map((x) => (
+                        <button key={x.id} type="button" className="btn" data-shop={x.code} disabled={busy || !!x.movedToPcOn} aria-pressed={bPick === x.id} style={{ marginBottom: ui.sp(8), ...(bPick === x.id ? { borderColor: 'var(--ac)', background: 'var(--acs)', color: 'var(--ac)' } : {}) }} onClick={() => setBPick(x.id)}>
+                          {x.movedToPcOn ? `${x.name} (${x.code}) · on a PC since ${dayOf(x.movedToPcOn)}` : `${x.name}${x.city ? `, ${x.city}` : ''} (${x.code})`}
+                        </button>
+                      ))}
+                      <div className="note" id="bNote" style={{ marginTop: ui.sp(6) }}>The whole books are copied to this PC, and the same email and password work here. <b>Online, this shop then becomes view-only:</b> you and your staff can look and print there, but billing happens on this PC.</div>
+                      <button className="btn p" id="bGo" type="button" disabled={busy || !bPick} onClick={onBringGo}>{busy ? 'Bringing the books… (this can take a minute)' : 'I understand, bring the books to this PC'}</button>
+                    </>
+                  )}
+                </div>
+              )}
+              <div className="msg bad" id="bErr" role="alert">{bErr}</div>
+              <p className="mu" style={{ margin: ui.sp('14px 0 0'), textAlign: 'center' }}><button className="lnk" type="button" id="bBack" disabled={busy} onClick={() => setView('vAuth')}>Back to sign in</button></p>
+            </>
+          ) : (
+            <div id="bDone">
+              <h2>Your books are on this PC</h2>
+              <p className="mu">{bDone.name} ({bDone.code}) is now on this computer, with the same counts as online: {countsText(bDone.here)}. Online, the shop is view-only from now on.</p>
+              <div className="note" style={{ marginTop: ui.sp(14) }}>Next: in Settings › General › Backup &amp; restore, choose a pen drive or Google Drive for backups, and print the recovery key. Staff can be added again in Settings › Team.</div>
+              <button className="btn p" id="bOpen" type="button" onClick={() => goToApp()}>Open my books</button>
+            </div>
+          )}
         </div>
         {view === 'vSetup' && <div id="vSetup"><OwnerSetup /></div>}
         <div id="vJoin" hidden={view !== 'vJoin'}>

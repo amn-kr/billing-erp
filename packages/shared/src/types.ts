@@ -45,6 +45,8 @@ export interface MeBusiness {
   /** What the shop's owner turned on in Settings › Items. */
   features: FeatureKey[];
   itemOptions: ItemOptions;
+  /** The books were moved to a PC on this ISO date (Bring my online books to this PC): online they are view-only. */
+  movedToPcOn: string | null;
 }
 
 export interface MeResponse {

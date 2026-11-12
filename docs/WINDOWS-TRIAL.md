@@ -47,6 +47,12 @@ v0.1.0 is on [the releases page](https://github.com/amn-kr/billing-erp-releases/
 - [ ] *Open the online app* › sign in with the test email: the test shop is there, online. Closing and opening the app goes straight to the online app.
 - [ ] On the website (any browser), sign in with the test email: the same shop.
 
+## F2. Bring online books to this PC (v0.1.1; use a test shop online, not your real books)
+- [ ] Online (website), make a test account with a test shop and 2 invoices.
+- [ ] On a PC (another Windows user is fine) in **This PC only**, type that online email and password on the sign-in page: it says there's no account on this computer yet, with *Bring my online books to this PC* and *Create account*.
+- [ ] *Bring my online books to this PC* › *Find my shops* › the test shop › *I understand, bring the books to this PC*: "Your books are on this PC" with the same counts › *Open my books*. The next invoice is INV-0003.
+- [ ] On the website, the test shop shows "These books were moved to a PC on …" on every screen; making an invoice there is refused with that reason.
+
 ## G. Connect to cloud, and uninstall
 - [ ] On another Windows user or PC, choose **Connect to cloud**: your live online app opens inside the window; sign in; print works as in C.
 - [ ] Windows Settings › Apps › BillinGo › Uninstall. Install again: the books and the choice are still there (they are kept in `%APPDATA%\billing-erp-desktop`).

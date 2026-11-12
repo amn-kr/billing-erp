@@ -73,6 +73,8 @@ model Business {
   /// active | suspended (set only in the owner panel; a suspended shop can't sign in, nothing is deleted)
   status      String    @default("active")
   suspendedAt DateTime? @map("suspended_at") @db.Timestamptz(6)
+  /// The books were taken down to a "This PC only" PC (Bring my online books to this PC): online they are view-only from then on.
+  movedToPcAt DateTime? @map("moved_to_pc_at") @db.Timestamptz(6)
   createdBy   String    @map("created_by") @db.Uuid
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)

@@ -63,6 +63,9 @@ export class AuthService {
     if (!user) {
       DUMMY_HASH ??= this.hashPassword('not-a-real-password');
       await verify(await DUMMY_HASH, input.password).catch(() => false);
+      // the Windows app in single-PC mode: the books (and accounts) are this computer's own, so it says plainly
+      // that an online account isn't here (the sign-in page then offers to bring the online books down)
+      if (config().BACKUP_FOLDERS === 'on') throw new UnauthorizedException({ message: 'There’s no account with this email on this computer yet. Your online account is separate.', code: 'not_on_pc' });
       throw new UnauthorizedException({ message: 'Email or password is wrong.' });
     }
     const ok = await verify(user.passwordHash, input.password).catch(() => false);
