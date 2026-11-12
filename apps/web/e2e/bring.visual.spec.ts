@@ -1,6 +1,6 @@
 /**
  * Bring my online books to this PC (Phase 6, step 7b): new, so compared with owner-approved pictures
- * (e2e/approved/) at 1280, 1366 and 1920 px — the PC's "no account here" message, the shop choice, the
+ * (e2e/approved/, approved by the owner 12 Nov 2026) at 1280, 1366 and 1920 px — the PC's "no account here" message, the shop choice, the
  * done card, and the view-only line on a moved shop's screens online.
  */
 import { test } from '@playwright/test';
