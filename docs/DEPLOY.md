@@ -142,10 +142,11 @@ it must lift it on `change_log` too, or the trigger's insert is refused. A new s
 - **Files on the server are not kept** (Render wipes them when it sleeps) — the app stores everything in the database, so this does not lose data.
 
 ## Windows app (Phase 6)
-- **Try a build:** every pull request that touches `apps/desktop` runs the workflow *Windows app*. Its run page › *Artifacts* › `windows-installer` is a zip with `<App name>-Setup-<version>.exe` (kept 14 days).
+- **No automatic runs (owner, 13 Nov 2026):** the workflow *Windows app* uses GitHub's paid minutes, so it never starts by itself. The Windows app's tests run on the Mac with `pnpm check`.
+- **Try a build** (only when needed): `gh workflow run desktop.yml --ref <branch>`; the run page › *Artifacts* › `windows-installer` is a zip with `<App name>-Setup-<version>.exe` (kept 14 days). About 50 GitHub minutes.
 - **Release a new version** (owner's go-ahead first — a release is public and every installed app updates to it):
   1. Raise `version` in `apps/desktop/package.json` (e.g. 0.1.0 → 0.1.1) in a pull request and merge it.
-  2. Tag that commit on `main`: `git tag v0.1.1 && git push origin v0.1.1`.
+  2. Tag that commit on `main` and start the release by hand: `git tag v0.1.1 && git push origin v0.1.1 && gh workflow run desktop.yml --ref v0.1.1` (about 50 GitHub minutes, the only GitHub minutes a release uses).
   3. The workflow *Windows app* builds the installer into a hidden draft release, installs and checks it, and only then makes it public on the releases page
      [amn-kr/billing-erp-releases](https://github.com/amn-kr/billing-erp-releases) (installers only; the code stays private). Installed apps find it within 4 hours, at their next start, or when someone clicks **Check for updates** in the title bar; it downloads in the background and the button turns green: **Restart to update to v…**.
 - **Access key for the releases page (one-time, owner; free).** GitHub › your picture › **Settings** › **Developer settings** ›
