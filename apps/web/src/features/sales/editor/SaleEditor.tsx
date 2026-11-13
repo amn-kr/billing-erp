@@ -40,6 +40,8 @@ import {
   type EItem, type EParty, type Line, type SI,
 } from './state';
 import { ui } from '../../../styles/uiSize';
+import { usePhone } from '../../../lib/usePhone';
+import { BillSaved, MobileSale } from './MobileSale';
 
 const BACK = '<path d="M15 6l-6 6 6 6"/>';
 const CHG = '<path d="M19 5L5 19M7.5 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM16.5 18a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/>';
@@ -72,6 +74,8 @@ export function SaleEditor() {
   // a saved bill shown over the editor while other bills are still open
   const [shown, setShown] = useState<string | null>(null);
   const shownDoc = useSale(shown);
+  // turning the phone (phone screen ↔ desktop editor) draws the editor afresh, so its layout helpers start again
+  const phoneNow = usePhone();
 
   /** A new, empty bill in a tab of its own. Its number is only a preview until it is saved. */
   const fresh = useCallback(async (doc: SI['doc']) => {
@@ -147,7 +151,7 @@ export function SaleEditor() {
   };
   return (
     <>
-      <TabCtx.Provider value={tab.id}><Editor key={tab.id} d={d} ops={ops} /></TabCtx.Provider>
+      <TabCtx.Provider value={tab.id}><Editor key={tab.id + (phoneNow ? ':phone' : '')} d={d} ops={ops} /></TabCtx.Provider>
       <InvoicePreview doc={shown && shownDoc.data?.id === shown ? shownDoc.data : null} onClose={() => setShown(null)} onNew={() => { setShown(null); ops.newTab(); }} onLink={() => useShell.getState().showToast('Payment link is coming next')} />
     </>
   );
@@ -249,6 +253,10 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
   const setRef = (id: string) => { up2((x) => { x.ref = id; x.lines.forEach((l) => cmApply(ctx, x, l)); }); full(); };
   const elec = useElecModal({ onSaved: (id) => { void qc.invalidateQueries({ queryKey: ['referrers'] }); void qc.invalidateQueries({ queryKey: ['parties'] }); setRef(id); toast('Referral set · rates updated'); } });
   useEditorLayout(ref);
+  // a phone gets its own one-column screen (MobileSale); the bill and its saving are the same
+  const phone = usePhone();
+  // phone: the "Bill saved" screen after saving (instead of going back to the list)
+  const [done, setDone] = useState<{ id: string; number: string; total: string; party: string } | null>(null);
   const s = si!;
   const G = ctx.mode === 'gst';
   const cash = s.mode === 'cash';
@@ -294,15 +302,16 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
 
   /* first focus: the party, or the rapid entry when a party is already chosen */
   // (not while a window is open over the editor, e.g. the bill just saved in another tab)
-  useEffect(() => { setTimeout(() => { if ([...document.querySelectorAll<HTMLElement>('.ov')].some((o) => !o.hidden)) return; (document.getElementById(s.party || cash ? 'qeItem' : 'siParty') as HTMLElement | null)?.focus(); }, 60); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { if (phone) return; setTimeout(() => { if ([...document.querySelectorAll<HTMLElement>('.ov')].some((o) => !o.hidden)) return; (document.getElementById(s.party || cash ? 'qeItem' : 'siParty') as HTMLElement | null)?.focus(); }, 60); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   const expOk = useRef(false);
   const [expAsk, setExpAsk] = useState<{ list: ExpiredPick[]; again: boolean; print: boolean } | null>(null);
   const mrpOk = useRef(false);
   const [mrpAsk, setMrpAsk] = useState<{ list: AboveMrp[]; again: boolean; print: boolean } | null>(null);
   /* ---------- save (prototype saveSI) ---------- */
-  const save = async (again: boolean, print = false) => {
-    if (!s.chgOk && !quote) { pending.current = { again, print }; setChgMsg('Please check the discount and charges once before saving.'); setPop('chg'); return; }
+  const save = async (again: boolean, print = false, share = false) => {
+    // on a phone, discount and charges are written in the totals card itself, so there is nothing to check in a pop-up
+    if (!s.chgOk && !quote && !phone) { pending.current = { again, print }; setChgMsg('Please check the discount and charges once before saving.'); setPop('chg'); return; }
     const err = (m: string, focus?: () => void) => { up((x) => { x.err = m; }); toastSaveFailed(m); focus?.(); };
     up((x) => { x.err = ''; });
     const lines = s.lines.filter((l) => l.item || l.name.trim());
@@ -346,6 +355,8 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
       const r = res.value;
       await Promise.all(['sales', 'parties', 'items', 'receipts', 'sale', 'next-number', 'dues'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
       toastSaved(quote ? 'quotation' : 'invoice');
+      if (share) shareBill(r, s.party?.phone || s.cashPhone, quote);
+      if (phone && !again) { setDone({ id: r.id, number: r.number, total: r.total, party: s.party?.name || s.cashName.trim() }); return; }
       await ops.saved(tabId, r, again ? 'again' : print ? 'print' : 'save');
     } catch (e) {
       if (e instanceof ApiError && e.code === 'over_credit_limit') { up((x) => { x.warnOk = true; x.err = e.message; }); toastSaveFailed(e.message); return; }
@@ -418,6 +429,43 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
   const modes = [...new Set(s.pays.filter((x) => Number(x.amt) > 0).map((x) => x.mode))];
   const xp = !quote && rec > t.total ? r2(rec - t.total) : 0;
 
+  const dlg = (
+    <>
+      <AddPartyDialog open={addParty !== null} onClose={() => setAddParty(null)} onSaved={async (id) => {
+        setAddParty(null);
+        const L = await qc.fetchQuery({ queryKey: ['parties'], queryFn: () => api<Party[]>('/parties'), staleTime: 0 });
+        const np = L.find((x) => x.id === id);
+        if (np) { pickParty({ id: np.id, name: np.name, phone: np.phone, gstin: np.gstin, city: np.billing?.city ?? '', state: np.state, group: np.group, days: np.creditDays ?? 0, limit: Number(np.creditLimit ?? 0), supplier: np.kind === 'supplier', balance: Number(np.balance) }); full(); }
+      }} />
+      <AddItemDialog open={!!addItem} onClose={() => setAddItem(null)} onSaved={async (id) => {
+        const then = addItem?.then; setAddItem(null);
+        await qc.refetchQueries({ queryKey: ['items'] }); await qc.refetchQueries({ queryKey: ['prices'] });
+        setTimeout(() => { const it = useEditorDataSnapshot.IT?.find((x) => x.id === id); if (it && then) then(it); }, 50);
+      }} />
+      <SnapshotKeeper d={d} prefill={addParty ?? addItem?.q ?? null} kind={addParty !== null ? 'party' : addItem ? 'item' : null} />
+    </>
+  );
+  const asks = (
+    <>
+      <MrpAsk list={mrpAsk?.list ?? null} onNo={() => { expOk.current = false; setMrpAsk(null); }} onYes={() => { const a = mrpAsk!; mrpOk.current = true; setMrpAsk(null); void saveRef.current(a.again, a.print); }} />
+      <ExpiredAsk list={expAsk?.list ?? null} onNo={() => setExpAsk(null)} onYes={() => { const a = expAsk!; expOk.current = true; setExpAsk(null); void saveRef.current(a.again, a.print); }} />
+      <SlModal m={elec.modal ?? slm ?? (cmView ? cmBillModal({ ctx, name: d.refs.find((r) => r.id === s.ref)?.name ?? '', up: up2, close: () => setCmView(false) }) : null)} onClose={() => { elec.close(); setCmView(false); setSlm(null); }} />
+      <ImportQuote open={iq} onClose={() => setIq(false)} d={d} s={s} up={(fn) => { up2(fn); full(); }} toast={toast} />
+    </>
+  );
+  if (phone && done) return (
+    <BillSaved doc={quote ? 'Quotation' : 'Invoice'} number={done.number} total={done.total} party={done.party}
+      onNew={() => void ops.saved(tabId, done, 'again')} onShare={() => shareBill(done, s.party?.phone || s.cashPhone, quote)} onClose={() => void ops.saved(tabId, done, 'save')} />
+  );
+  if (phone) return (
+    <>
+      <MobileSale d={d} s={s} title={quote || s.editOf ? title : 'New Sale'} busy={busy} pre={pre} up={up2} pickParty={pickParty} back={back} toast={toast}
+        setMode={(toCash) => up2((x) => { x.mode = toCash ? 'cash' : 'credit'; x.recvTouched = quote; if (toCash) { x.party = null; x.pos = ctx.state; } x.pays = []; })}
+        save={(o) => void save(!!o.again, false, !!o.share)} addParty={(q) => setAddParty(q)} addItem={(q, then) => setAddItem({ q, then })} />
+      {dlg}
+      {asks}
+    </>
+  );
   return (
     <>
     <section id="vNewInv" ref={ref} onClick={(e) => { if (!quote && (e.target as HTMLElement).closest('#siImpQ')) setIq(true); }}>
@@ -532,26 +580,19 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
           {s.ref ? <button type="button" className="cmchip" id="siCmChip" title="Added to the rates · not printed on the invoice" onClick={() => setCmView(true)}><Icon name="pct" /><span>Commission</span><b id="siCmAmt">{inr2f(comm)}</b><em className="cmed">Edit ›</em></button> : null}</div></div>
         <div className="dgpf"><button type="button" className="btn p sm" id="siCmDone" onClick={() => { setPop(null); document.getElementById('siCmBtn')?.focus(); }}>Done</button></div></div>
 
-      <AddPartyDialog open={addParty !== null} onClose={() => setAddParty(null)} onSaved={async (id) => {
-        setAddParty(null);
-        const L = await qc.fetchQuery({ queryKey: ['parties'], queryFn: () => api<Party[]>('/parties'), staleTime: 0 });
-        const np = L.find((x) => x.id === id);
-        if (np) { pickParty({ id: np.id, name: np.name, phone: np.phone, gstin: np.gstin, city: np.billing?.city ?? '', state: np.state, group: np.group, days: np.creditDays ?? 0, limit: Number(np.creditLimit ?? 0), supplier: np.kind === 'supplier', balance: Number(np.balance) }); full(); }
-      }} />
-      <AddItemDialog open={!!addItem} onClose={() => setAddItem(null)} onSaved={async (id) => {
-        const then = addItem?.then; setAddItem(null);
-        await qc.refetchQueries({ queryKey: ['items'] }); await qc.refetchQueries({ queryKey: ['prices'] });
-        setTimeout(() => { const it = useEditorDataSnapshot.IT?.find((x) => x.id === id); if (it && then) then(it); }, 50);
-      }} />
-      <SnapshotKeeper d={d} prefill={addParty ?? addItem?.q ?? null} kind={addParty !== null ? 'party' : addItem ? 'item' : null} />
+      {dlg}
     </section>
       {/* outside the editor, like the prototype's #slm (the editor turns off sticky table headings) */}
-      <MrpAsk list={mrpAsk?.list ?? null} onNo={() => { expOk.current = false; setMrpAsk(null); }} onYes={() => { const a = mrpAsk!; mrpOk.current = true; setMrpAsk(null); void saveRef.current(a.again, a.print); }} />
-      <ExpiredAsk list={expAsk?.list ?? null} onNo={() => setExpAsk(null)} onYes={() => { const a = expAsk!; expOk.current = true; setExpAsk(null); void saveRef.current(a.again, a.print); }} />
-      <SlModal m={elec.modal ?? slm ?? (cmView ? cmBillModal({ ctx, name: d.refs.find((r) => r.id === s.ref)?.name ?? '', up: up2, close: () => setCmView(false) }) : null)} onClose={() => { elec.close(); setCmView(false); setSlm(null); }} />
-      <ImportQuote open={iq} onClose={() => setIq(false)} d={d} s={s} up={(fn) => { up2(fn); full(); }} toast={toast} />
+      {asks}
     </>
   );
+}
+
+/** Save & Share (phone): the phone's own share sheet, or WhatsApp to the party's number when there is none. */
+function shareBill(r: { number: string; total: string }, phone: string, quote: boolean) {
+  const text = `${quote ? 'Quotation' : 'Invoice'} ${r.number}: total ₹${Number(r.total).toFixed(2)}. Thank you for your business.`;
+  if (navigator.share) { navigator.share({ text }).catch(() => undefined); return; }
+  window.open(`https://wa.me/${phone ? '91' + phone.replace(/\D/g, '').slice(-10) : ''}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
 }
 
 /** The editing invoice's own balance (so "previous dues" leaves it out). */

@@ -19,6 +19,7 @@ import { goToLogin } from '../../lib/nav';
 import { setGo } from '../../lib/go';
 import { APP_STYLES } from '../../styles';
 import toastCss from './toast.css?inline';
+import classicCss from './classic.css?inline';
 import rowMenuCss from './row-menu.css?inline';
 import rowHeightCss from './row-height.css?inline';
 import gridFitCss from '../sales/editor/grid-fit.css?inline';
@@ -58,7 +59,7 @@ export function AppShell() {
 
 function AppFrame() {
   // the owner-approved toast change comes after the prototype's CSS, so it wins
-  useStyles([...APP_STYLES, toastCss, rowMenuCss, rowHeightCss, gridFitCss], 'app');
+  useStyles([...APP_STYLES, classicCss, toastCss, rowMenuCss, rowHeightCss], 'app');
   const token = useSession((s) => s.accessToken);
   const me = useMe();
   // this person's density and text size (Settings › General › Display); the default changes nothing
@@ -77,6 +78,8 @@ function AppFrame() {
   useLayoutEffect(() => {
     const html = document.documentElement;
     html.dataset.pal = pal;
+    // no automatic dark mode (owner's choice, 6 Nov 2026): the computer's dark setting no longer changes the app
+    html.dataset.theme = 'light';
     if (business) {
       html.dataset.gst = business.gstEnabled ? 'on' : 'off';
       html.dataset.sub = business.plan === 'expired' ? 'ended' : business.plan === 'paid' ? 'active' : 'trial';
@@ -98,6 +101,7 @@ function AppFrame() {
     () => () => {
       const html = document.documentElement;
       delete html.dataset.pal;
+      delete html.dataset.theme;
       delete html.dataset.gst;
       delete html.dataset.sub;
       document.body.className = '';

@@ -21,7 +21,7 @@ export const write = (k: string, v: string) => {
 
 const savedPal = (): PalId => {
   const s = read('erp-pal');
-  return (PAL.some((p) => p.id === s) ? s : 'ledger') as PalId;
+  return (PAL.some((p) => p.id === s) ? s : 'classic') as PalId;
 };
 
 /** Black (most messages), green (a document saved) or red (a save that failed). */

@@ -221,9 +221,9 @@ export function PaymentsMadePage() {
   const P = usePeriodPop();
   const [pay, setPay] = useState<PayOpen | null>(null);
   const [menu, setMenu] = useState<RowMenuAt<PaymentMade> | null>(null);
-  // "Payment made" from the + menu
+  // "Payment made" from the + menu (and Pay supplier on the phone party screen, with ?party=)
   const [params, setParams] = useSearchParams();
-  useEffect(() => { if (params.get('new')) { setPay({}); setParams({}, { replace: true }); } }, [params, setParams]);
+  useEffect(() => { if (params.get('new')) { setPay({ party: params.get('party') || undefined }); setParams({}, { replace: true }); } }, [params, setParams]);
   if (!list.data || !bills.data) return <section id="vPmade"></section>;
   const A = list.data.filter((x) => !x.cancelled && inPeriod(x.date, P.per, P.range));
   const tot = A.reduce((a, x) => a.plus(x.amount), money(0));

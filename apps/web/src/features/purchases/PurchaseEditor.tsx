@@ -37,6 +37,8 @@ import { useBatchView, useFeature, useItemFields, useItemWord } from '../../lib/
 import { BatchCells, type LineBatch } from './BatchRow';
 import { SlModal, type SlModalProps } from '../sales/SlModal';
 import { ui } from '../../styles/uiSize';
+import { usePhone } from '../../lib/usePhone';
+import { MobilePurchase } from './MobilePurchase';
 
 const BACK = '<path d="M15 6l-6 6 6 6"/>';
 const WALLET = '<path d="M4 7a2 2 0 0 1 2-2h12v4M4 7v11a2 2 0 0 0 2 2h14V9H6a2 2 0 0 1-2-2zM16 14.5h1"/>';
@@ -47,10 +49,10 @@ const fmtPhone = (p: string) => `+91 ${p.slice(0, 5)} ${p.slice(5)}`;
 const LIST: Record<PKind, string> = { bill: '/purchase-bills', order: '/purchase-orders', debit_note: '/debit-notes' };
 const NO_LBL: Record<PKind, string> = { bill: 'Bill no.', order: 'Order no.', debit_note: 'Debit note no.' };
 
-interface PLine extends Partial<LineBatch> { id: string; name: string; hsn: string; qty: string | number; unit: string; rate: string | number; disc: string | number; gst: number }
+export interface PLine extends Partial<LineBatch> { id: string; name: string; hsn: string; qty: string | number; unit: string; rate: string | number; disc: string | number; gst: number }
 /** acct: the bank account picked for UPI / bank transfer ('' = the default bank) */
 interface PPay { mode: string; amt: string | number; ref: string; acct?: string }
-interface PE {
+export interface PE {
   kind: PKind; no: string; autoNo: boolean; ref: string; date: string; due: string; exp: string; party: EParty | null;
   against: string; reason: string; incl: boolean; roundOff: boolean; pays: PPay[]; updPrice: boolean; fromOrderId: string | null; notes: string;
   lines: PLine[]; bdisc: string | number; bdiscP: string; chTr: string | number; chLab: string | number;
@@ -141,8 +143,10 @@ export function PurchaseEditor() {
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!d, key]);
+  // turning the phone (phone screen ↔ desktop editor) draws the editor afresh, so its layout helpers start again
+  const phoneNow = usePhone();
   if (!d || !pe) return <section id="vPEd"></section>;
-  return <Editor key={key} d={d} init={pe} />;
+  return <Editor key={key + (phoneNow ? ':phone' : '')} d={d} init={pe} />;
 }
 
 function Editor({ d, init }: { d: EditorData; init: PE }) {
@@ -161,6 +165,7 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
   const [ph, setPh] = useState<{ i: number; H: PH[]; who: string; anchor: HTMLElement } | null>(null);
   const [modal, setModal] = useState<SlModalProps | null>(null);
   useEditorLayout(ref);
+  const phone = usePhone();
   const k = s.kind;
   const G = d.ctx.mode === 'gst';
   const gstOn = d.gstOn;
@@ -177,7 +182,7 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
   useEffect(() => { const v = nn.data?.number; if (s.autoNo && v && v !== s.no) up((x) => { x.no = v; }); }, [nn.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* first focus: the supplier, or the first item when the supplier is set */
-  useEffect(() => { setTimeout(() => (document.querySelector<HTMLElement>(init.party ? '#peRows .pe-item' : '#peParty'))?.focus(), 30); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { if (phone) return; setTimeout(() => (document.querySelector<HTMLElement>(init.party ? '#peRows .pe-item' : '#peParty'))?.focus(), 30); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   const [ptxt, setPtxt] = useState(init.party?.name ?? '');
   const pickParty = (q: EParty) => { setPtxt(q.name); up((x) => { x.party = q; x.due = addDaysIso(x.date, q.days || 0); }); };
@@ -267,7 +272,7 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
   const tracked = (l: PLine) => batchOn && k !== 'order' && !!l.id && !!d.IT.find((x) => x.id === l.id)?.track;
 
   /* ---------- save (prototype savePE) ---------- */
-  const save = async (sure = false) => {
+  const save = async (sure = false, again = false) => {
     const err = (m: string, focus?: () => void) => { up((x) => { x.err = m; }); toastSaveFailed(m); focus?.(); };
     const lines = s.lines.filter((l) => l.id || l.name.trim());
     if (!p) return err('Choose the supplier.', () => document.getElementById('peParty')?.focus());
@@ -299,7 +304,7 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
       setModal({
         title: 'Stock will go below zero', sub: 'Some of these goods were already sold.', ok: 'Save anyway', cancel: 'Go back',
         body: <ul className="slcl">{short.map((x) => <li key={x.it.id}><b>{x.it.name}</b>: stock becomes {qfmt(x.after)} {x.it.unit}.</li>)}<li>Cancelling the bill would do the same. Check the quantities, or save and correct the stock later.</li></ul>,
-        onOk: () => { setModal(null); void saveRef.current(true); },
+        onOk: () => { setModal(null); void saveRef.current(true, again); },
       });
       return;
     }
@@ -318,7 +323,9 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
       else await api('/purchases', { method: 'POST', body });
       await Promise.all(PU_KEYS.map((x) => qc.invalidateQueries({ queryKey: [x] })));
       toastSaved(k);
-      navigate(LIST[k]);
+      // phone: Save & New starts the next one
+      if (again) navigate(`/purchases/new?kind=${k}&n=${Date.now()}`, { replace: true });
+      else navigate(LIST[k]);
     } catch (e) { err(e instanceof ApiError ? e.message : 'Could not save.'); }
     finally { setBusy(false); }
   };
@@ -382,6 +389,34 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
   const setLine = (i: number, f: keyof PLine, v: string) => up((x) => { (x.lines[i] as unknown as Record<string, unknown>)[f] = v; x.err = ''; });
   const num = (v: string) => v.replace(/[^\d.]/g, '');
 
+  // the new supplier / item windows and the "stock below zero" question, on the phone screen and the desktop one alike
+  const dialogs = (
+    <>
+        <AddPartyDialog open={addParty !== null} onClose={() => setAddParty(null)} onSaved={async (id) => {
+          setAddParty(null);
+          const L = await qc.fetchQuery({ queryKey: ['parties'], queryFn: () => api<Party[]>('/parties'), staleTime: 0 });
+          const np = L.find((x) => x.id === id);
+          if (np) pickParty({ id: np.id, name: np.name, phone: np.phone, gstin: np.gstin, city: np.billing?.city ?? '', state: np.state, group: np.group, days: np.creditDays ?? 0, limit: Number(np.creditLimit ?? 0), supplier: np.kind === 'supplier', balance: Number(np.balance) });
+        }} />
+        <AddItemDialog open={!!addItem} onClose={() => setAddItem(null)} onSaved={async (id) => {
+          const at = addItem?.i ?? 0; setAddItem(null);
+          await qc.refetchQueries({ queryKey: ['items'] });
+          setTimeout(() => { const it = latestItems.IT?.find((x) => x.id === id); if (it) pickItem(at, it); }, 50);
+        }} />
+        <Prefill d={d} text={addParty ?? addItem?.q ?? null} kind={addParty !== null ? 'party' : addItem ? 'item' : null} />
+        <SlModal m={modal} onClose={() => setModal(null)} />
+    </>
+  );
+  // a phone gets its own one-column screen (MobilePurchase) for bills, orders and debit notes; the document and its saving are the same
+  if (phone) {
+    return (
+      <>
+        <MobilePurchase d={d} s={s} t={t} busy={busy} pre={pre} bp={bp} up={up} pickParty={pickParty} pickItem={(i, it) => pickItem(i, it)} tracked={tracked} stockTxt={stockTxt} mrpOn={mrpOn} partyBills={partyBills} batchOn={batchOn}
+          back={back} save={(again) => void save(false, again)} addParty={(q) => setAddParty(q)} addItem={(q, i) => setAddItem({ q, i })} toast={showToast} />
+        {dialogs}
+      </>
+    );
+  }
   return (
     <section id="vPEd" ref={ref}>
       <div className="sitop"><button className="ib" type="button" id="peBack" aria-label="Back" title="Back" onClick={back}><RawIcon d={BACK} /></button><h1 id="peTitle">{PE_T[k]}</h1><span className={`st ${k === 'bill' ? 'g' : k === 'debit_note' ? 'r' : ''}`} id="peKindTag">{k === 'bill' ? 'Stock in' : k === 'debit_note' ? 'Stock out' : 'No stock change'}</span><div className="sp"></div>
@@ -502,19 +537,7 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
         <button className="btn" type="button" onClick={back}>Cancel</button><button className="btn p" type="button" id="peSave" disabled={busy} onClick={() => void save()}>Save <kbd className="kh" style={KBD}>Ctrl+S</kbd></button></div>
 
       {ph ? <PhDrop st={ph} label="Purchase rates" onPick={(h) => { const i = ph.i; setPh(null); up((x) => { x.lines[i]!.rate = Number(h.price); x.lines[i]!.disc = Number(h.discPct) || 0; }); setTimeout(() => { const q = document.querySelector<HTMLInputElement>(`#peRows tr[data-ln="${i}"] [data-pf="rate"]`); q?.focus(); q?.select(); }, 0); }} /> : null}
-      <AddPartyDialog open={addParty !== null} onClose={() => setAddParty(null)} onSaved={async (id) => {
-        setAddParty(null);
-        const L = await qc.fetchQuery({ queryKey: ['parties'], queryFn: () => api<Party[]>('/parties'), staleTime: 0 });
-        const np = L.find((x) => x.id === id);
-        if (np) pickParty({ id: np.id, name: np.name, phone: np.phone, gstin: np.gstin, city: np.billing?.city ?? '', state: np.state, group: np.group, days: np.creditDays ?? 0, limit: Number(np.creditLimit ?? 0), supplier: np.kind === 'supplier', balance: Number(np.balance) });
-      }} />
-      <AddItemDialog open={!!addItem} onClose={() => setAddItem(null)} onSaved={async (id) => {
-        const at = addItem?.i ?? 0; setAddItem(null);
-        await qc.refetchQueries({ queryKey: ['items'] });
-        setTimeout(() => { const it = latestItems.IT?.find((x) => x.id === id); if (it) pickItem(at, it); }, 50);
-      }} />
-      <Prefill d={d} text={addParty ?? addItem?.q ?? null} kind={addParty !== null ? 'party' : addItem ? 'item' : null} />
-      <SlModal m={modal} onClose={() => setModal(null)} />
+      {dialogs}
     </section>
   );
 }

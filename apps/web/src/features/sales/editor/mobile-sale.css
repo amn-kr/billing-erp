@@ -1,0 +1,116 @@
+/* The sale on a phone (owner's request, 6 Nov 2026; MobileSale.tsx): sizes, spacing and corners from the owner's
+   approved Classic mock (new-sale). Only drawn below 600px, so the desktop editor is untouched. Named colours only,
+   so the other themes change it: --sf3 grey pill and lines, --t3 labels, --t4 small icons, --sale red, --get green. */
+.page:has(>.msale){padding:0}
+.msale{background:var(--bg);color:var(--t1);font-family:var(--font);min-height:100vh;padding-bottom:calc(98px + env(safe-area-inset-bottom,0px))}
+.msale *{min-width:0}
+.msale button{font-family:inherit}
+.msale svg.i{width:18px;height:18px;stroke-width:2}
+.msale .get{color:var(--get,var(--green))}.msale .give{color:var(--sale,var(--red))}.msale .mu{color:var(--t2)}
+.ms-top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:8px;padding:14px 12px 12px 8px;background:var(--sf)}
+.ms-ib{width:44px;height:44px;flex:none;display:flex;align-items:center;justify-content:center;border:0;border-radius:12px;background:transparent;color:var(--t1);cursor:pointer}
+.ms-ib svg.i{width:22px;height:22px;stroke-width:2.2}
+.ms-tt{flex:1;display:flex;flex-direction:column;align-items:flex-start;padding:0;border:0;background:transparent;color:var(--t1);text-align:left;cursor:pointer}
+.ms-tt b{font-size:18px;font-weight:800}
+.ms-tt small{font-size:12px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.ms-seg{display:flex;flex:none;background:var(--sf3,#eef1f6);border-radius:12px;padding:3px}
+.ms-seg button{height:38px;border:0;border-radius:10px;background:transparent;font-size:13px;font-weight:600;padding:0 12px;color:var(--t3,#4b5466);cursor:pointer}
+.ms-seg button[aria-pressed="true"]{background:var(--sf);font-weight:700;color:var(--t1);box-shadow:0 1px 3px rgba(15,23,42,.12)}
+.ms-body{padding:14px 16px 0;display:flex;flex-direction:column;gap:12px}
+.ms-card{background:var(--sf);border-radius:18px}
+.ms-nd{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ms-nd label,.ms-cash label{display:flex;flex-direction:column;gap:2px;padding:8px 14px;background:var(--sf);border-radius:16px}
+.ms-cash{display:grid;grid-template-columns:1.3fr 1fr;padding:4px}
+.ms-cash label{padding:8px 10px}
+.ms-nd span,.ms-cash span{font-size:12px;font-weight:600;color:var(--t2)}
+.ms-nd input,.ms-cash input{height:24px;padding:0;border:0;outline:0;background:transparent;color:var(--t1);font:700 15px var(--font)}
+.ms-cust{display:flex;align-items:center;gap:12px;padding:12px 14px;border:0;border-radius:18px;background:var(--sf);color:var(--t1);text-align:left;cursor:pointer}
+.ms-cust>svg.i{color:var(--t4,#6b7385)}
+.ms-av{width:42px;height:42px;flex:none;border-radius:13px;background:var(--acs);color:var(--ac);display:flex;align-items:center;justify-content:center;font-weight:800}
+.ms-av.sm{width:36px;height:36px;border-radius:11px;font-size:13px}
+.ms-cn{flex:1;display:flex;flex-direction:column;gap:2px}
+.ms-cn small{font-size:12px;color:var(--t2);font-weight:600}
+.ms-cn b{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ms-cn em{font-style:normal;font-size:12px;font-weight:600;color:var(--t2)}
+.ms-find{overflow:hidden}
+.ms-find>input{width:100%;height:50px;padding:0 14px;border:0;outline:0;background:transparent;color:var(--t1);font:600 15px var(--font)}
+.ms-list{display:flex;flex-direction:column;max-height:320px;overflow:auto;border-top:1px solid var(--sf3,#eef1f6)}
+.ms-list button{display:flex;align-items:center;gap:12px;min-height:52px;padding:6px 14px;border:0;border-top:1px solid var(--sf3,#eef1f6);background:var(--sf);color:var(--t1);text-align:left;cursor:pointer}
+.ms-list button:first-child{border-top:0}
+.ms-list button>span:not(.ms-av){flex:1;display:flex;flex-direction:column}
+.ms-list b{font-size:14px;font-weight:700}.ms-list small{font-size:12px;color:var(--t2)}
+.ms-list em{font-style:normal;font-size:14px;font-weight:700;white-space:nowrap}
+.ms-list .add{color:var(--ac);background:var(--acs)}
+.ms-ih{display:flex;align-items:center;justify-content:space-between}
+.ms-ih>span{font-size:13px;font-weight:700;color:var(--t3,#4b5466);text-transform:uppercase;letter-spacing:.6px}
+.ms-ih>div{display:flex;gap:8px}
+.ms-sm{height:40px;border:0;border-radius:12px;background:var(--sf);color:var(--t1);font-size:13px;font-weight:700;padding:0 12px;display:flex;align-items:center;gap:6px;cursor:pointer}
+.ms-sm.p{background:var(--acs);color:var(--ac)}.ms-sm.p svg.i{stroke-width:2.4}
+.ms-items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.ms-items>li{background:var(--sf);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.ms-l1{display:flex;justify-content:space-between;gap:10px}
+.ms-l1 span{font-size:15px;font-weight:700}.ms-l1 b{font-size:15px;font-weight:800;white-space:nowrap}
+.ms-l2{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ms-l2>span{font-size:12px;color:var(--t2)}
+.ms-qty{display:flex;align-items:center;gap:4px;background:var(--bg);border-radius:12px;padding:2px;flex:none}
+.ms-qty button{width:36px;height:36px;border:0;border-radius:10px;background:var(--sf);font-size:18px;font-weight:700;color:var(--t1);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.ms-qty button svg.i{width:16px;height:16px;color:var(--sale,var(--red))}
+.ms-qty input{width:34px;min-width:26px;height:36px;padding:0;border:0;outline:0;background:transparent;text-align:center;font:700 14px var(--font);color:var(--t1)}
+.ms-empty{background:var(--sf);border-radius:16px;padding:18px 14px;text-align:center;color:var(--t2);font-size:14px}
+.ms-tot{padding:14px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.ms-tl{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.ms-tl>span{color:var(--t3,#4b5466)}.ms-tl>b{font-weight:600}
+.ms-chg{width:100%;min-height:24px;padding:0;border:0;background:transparent;color:var(--t1);font-size:14px;text-align:left;cursor:pointer}
+.ms-chg>span{display:flex;align-items:center;gap:4px}.ms-chg>span svg.i{width:16px;height:16px;color:var(--t4,#6b7385)}
+.ms-chg[aria-expanded="true"]>span svg.i{transform:rotate(180deg)}
+.ms-chg>b{display:flex;gap:8px}.ms-chg em{font-style:normal}
+.ms-chgb{display:flex;flex-direction:column;gap:8px;padding:10px;margin:0 -4px;border-radius:14px;background:var(--bg)}
+.ms-tr{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ms-tr>span:first-child{color:var(--t3,#4b5466);font-weight:600;display:flex;align-items:center}
+.ms-ro{min-height:40px;cursor:pointer}.ms-ro b{font-weight:600}
+.ms-two{display:flex;gap:6px}
+.ms-in{display:flex;align-items:center;gap:4px;height:40px;width:110px;padding:0 10px;border-radius:12px;background:var(--sf);border:1px solid var(--sf3,#eef1f6)}
+.ms-two .ms-in{width:88px}
+.ms-in:focus-within{border-color:var(--ac)}
+.ms-in i{font-style:normal;color:var(--t2);font-weight:600}
+.ms-in input{flex:1;width:100%;padding:0;border:0;outline:0;background:transparent;text-align:right;font:600 14px var(--font);color:var(--t1)}
+.msale input[type=checkbox]{width:20px;height:20px;margin:0 8px 0 0;accent-color:var(--ac)}
+.ms-hr{height:1px;background:var(--sf3,#eef1f6)}
+.ms-total{display:flex;justify-content:space-between;align-items:baseline}
+.ms-total span{font-weight:700}.ms-total b{font-size:22px;font-weight:800}
+.ms-recv{display:flex;align-items:center;gap:8px;min-height:40px;padding-top:6px;border-top:1px solid var(--sf3,#eef1f6)}
+.ms-tick{flex:1;display:flex;align-items:center;min-height:40px;font-weight:700;cursor:pointer}
+.ms-recv select{height:40px;flex:none;width:auto;max-width:none;padding:0 6px;border:1px solid var(--sf3,#eef1f6);border-radius:12px;background:var(--sf);color:var(--t1);font:600 13px var(--font)}
+.ms-due{color:var(--t3,#4b5466)}.ms-due b{margin-left:4px;font-weight:700}
+.ms-bar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--sf);padding:14px 16px calc(22px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 20px rgba(15,23,42,.08);border-radius:22px 22px 0 0}
+.ms-bb{display:flex;gap:10px}
+.ms-save,.ms-share{height:54px;border:0;border-radius:16px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.ms-save{flex:1;background:var(--sf3,#eef1f6);color:var(--t1)}
+.ms-share{flex:2;background:var(--sale,var(--red));color:#fff}
+.ms-save:disabled,.ms-share:disabled{opacity:.6}
+.ms-err{color:var(--sale,var(--red));font-weight:600;font-size:13px;margin-bottom:8px}
+/* "Bill saved" (after saving on a phone) */
+.ms-ok{display:flex;flex-direction:column;align-items:center;text-align:center;padding:56px 24px 0;gap:6px}
+.ms-tick-big{width:84px;height:84px;border-radius:28px;background:var(--gets,#e7f7ef);color:var(--get,var(--green));display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.ms-tick-big svg.i{width:44px;height:44px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.ms-ok h1{margin:0;font-size:22px;font-weight:800}
+.ms-ok p{margin:0;font-size:14px;color:var(--t2)}.ms-ok p b{color:var(--t1)}
+.ms-ok-amt{margin-top:14px;font-size:34px;font-weight:800;letter-spacing:-.5px}
+/* the purchase bill / order on a phone (MobilePurchase.tsx) uses this screen too; its own bits: */
+.ms-tag{flex:none;height:30px;padding:0 10px;border-radius:10px;background:var(--sf3,#eef1f6);color:var(--t3,#4b5466);font-size:12px;font-weight:700;display:flex;align-items:center}
+.ms-tag.in{background:var(--buys,#fff1e6);color:var(--buy,#b45309)}
+.ms-rate{display:flex;align-items:center;gap:6px}.ms-rate .ms-in{width:104px}.ms-rate small{font-size:12px;color:var(--t2);white-space:nowrap}
+.ms-bt{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.ms-bt label{display:flex;flex-direction:column;gap:2px;padding:6px 10px;border-radius:12px;background:var(--bg)}
+.ms-bt span{font-size:11px;font-weight:600;color:var(--t2)}
+.ms-bt input{height:22px;padding:0;border:0;outline:0;background:transparent;color:var(--t1);font:700 14px var(--font)}
+.ms-stk{font-size:12px;color:var(--t2)}.ms-stk:empty{display:none}
+.ms-sel{height:40px;max-width:60%;padding:0 6px;border:1px solid var(--sf3,#eef1f6);border-radius:12px;background:var(--sf);color:var(--t1);font:600 13px var(--font)}
+.ms-note{font-size:12px}
+.ms-tag.out{background:var(--sales,#fdecee);color:var(--sale,var(--red))}
+.ms-dn{grid-template-columns:1fr}
+.ms-nd select,.ms-dnb select{width:100%;height:24px;padding:0;border:0;outline:0;background:transparent;color:var(--t1);font:700 15px var(--font)}
+.ms-dnb{display:flex;flex-direction:column;gap:2px;padding:6px 10px;border-radius:12px;background:var(--bg)}
+.ms-dnb span{font-size:11px;font-weight:600;color:var(--t2)}
+.ms-dnb select{font-size:14px}
+.ms-hint{margin:0;font-size:12px;color:var(--t2)}
