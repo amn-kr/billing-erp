@@ -209,28 +209,31 @@ Scope set by the owner: only the 9 reports that already work in the prototype, p
 
 - **Profit uses the purchase-rate lots, not one purchase price (owner's rule, Oct 2026).** A sale's cost is what the lots it used up cost, oldest first — the same lot calculation as the stock value (`costOfGoods` in `packages/shared/src/stock.ts`, read through `goodsCosts` / `draftSaleCosts` in `apps/api/src/modules/stock/stock-value.ts`). A sale return gives back the cost of the lots its invoice used; an edit or cancel works the cost out again; a late bill can change older sales' profit. Stock that came in without a purchase rate costs 0 for profit (no fallback), and stock sold beyond what was in costs 0 until the purchase that fills it is entered. Today this is the sale editor's "Profit & loss · this bill" pop-up (one row per lot rate each line used) and Party wise Profit & Loss. **Any profit report built later must take its cost from this same calculation** — `apps/api/test/one-stock-value.test.ts` fails if a file multiplies a quantity by the purchase price on its own.
 
-## How the GitHub check (CI) works
-**Live since 21 Oct 2026 (PR #48):** a full check now takes about 17–19 minutes (it was about 54); a PR that changes only docs takes about 5.
+## How the checks work (on the Mac, not on GitHub)
+**Owner, 13 Nov 2026:** the code repository is private, and GitHub's check minutes for a private repository cost
+money. So **no check runs on GitHub** — not on pull requests, not after a merge. Every check runs on the Mac:
 
-`.github/workflows/ci.yml` runs on every pull request and on every push to main. Since Oct 2026 it runs on
-six free GitHub machines at the same time instead of one (same tests, same pictures, about 20 minutes instead of about 54):
+```bash
+pnpm check
+```
 
-| Job (as GitHub lists it) | What it does |
-|---|---|
-| What changed | Lists the changed files. If only `docs/` or `.md` files changed, the browser and picture tests are skipped (everything else still runs). |
-| Quick checks (brand, typecheck, unit and API tests, build) | The fast checks, about 4 minutes, so a mistake there shows early. |
-| Browser and picture tests (part 1 of 4) … (part 4 of 4) | All Playwright tests (flows and pictures at 1280, 1366 and 1920 px), split into 4 parts by test file (`--shard`). Each part has its own machine and its own fresh database. A failing part does not stop the others. |
-| **test** | The required check of the `protect main` ruleset. It always runs, waits for all the jobs above and is green only when every one of them passed. Anything failed, cancelled or skipped by mistake makes it red (`.github/scripts/gate.sh`). |
-| Same files already tested on the PR? / Full check skipped … | After a merge to main only: if a green PR run already tested exactly these files, the other jobs are skipped and `test` is green at once. |
+| Part | Where | What it does |
+|---|---|---|
+| Brand check, typecheck, unit and API tests, build | the Mac (its own PostgreSQL 16) | the fast checks |
+| Windows app tests | the Mac (Electron) | the Windows app's screens and flows |
+| Browser and picture tests | Linux inside Docker on the Mac (Colima), the same Ubuntu 24.04 and Playwright Chrome as the approved pictures | all flow tests and the pictures at 1280, 1366 and 1920 px; failed pictures land in `apps/web/test-results/` |
 
-**Pictures from a failed run:** on the run's page, under *Artifacts*, download **visual-diffs**. It holds the pictures of
-every failed part, one folder each (`visual-diffs-part-1/visual/…`). Each part's own download
-(`visual-diffs-part-1` … `-4`) is there too.
-
-**Re-running only the part that failed:** open the run on GitHub and click **Re-run jobs › Re-run failed jobs**. GitHub
-re-runs only the red part(s) and then `test`; the parts that passed are not run again. After a re-run the run page
-lists **visual-diffs** more than once: the newest one belongs to the re-run. A part that passed on the re-run makes no new
-pictures, so its folder there still holds the pictures from the first try.
-
-**Approved pictures** are still made only on GitHub's Linux machine, with a temporary `quick-check.yml` on a `tmp/`
-branch; `ci.yml` does not run on `tmp/` branches.
+- **Time:** about 10 minutes for the Mac part and about 1 hour for the Linux part (first check on 13 Nov 2026: all 608 API,
+  257 shared, 62 web, 45 Windows-app unit, 25 importer, 27 Windows-app and 383 browser and picture tests passed). A unit or
+  API test that fails once is run once more (on the Mac one in about 600 sometimes hits a network hiccup).
+- The Linux part has the DejaVu font, as GitHub's Ubuntu had: without it Chrome draws the ← sign 2 pixels taller and the pictures move.
+- `pnpm check mac` or `pnpm check linux` runs one part; `pnpm check linux e2e/bring.visual.spec.ts` runs one test file;
+  `PICTURE_WIDTHS=1366 pnpm check linux` one width.
+- **The way of working:** change → `pnpm check` on the Mac → fix anything that fails → push → pull request → merge
+  (GitHub doesn't wait for a check; nothing blocks the merge button).
+- **New or changed pictures** are made the same way, in the Linux part (`apps/web/test-results/`), and need the owner's OK
+  before they go into `apps/web/e2e/approved`.
+- **Still on GitHub, by hand only:** a Windows release (`desktop.yml`, about 50 minutes per release, owner's go-ahead
+  first). The old full check (`ci.yml`) can still be started by hand (Actions › CI › Run workflow) but isn't used.
+- **The nightly database backups** run in the separate private repository `amn-kr/billing-erp-backups` (about 3 minutes
+  a night): they are backups, not checks, and must run even when the Mac is off.
