@@ -26,7 +26,9 @@ concurrency:
 
 jobs:
   backup:
-    runs-on: ubuntu-latest
+    # Ubuntu 24.04, not "latest": since late Oct 2026 "latest" is 26.04, whose PostgreSQL 18 tools write
+    # "SET transaction_timeout", which Neon's PostgreSQL 16 (and the throwaway 16 below) refuse.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     services:
       postgres:
@@ -71,14 +73,17 @@ jobs:
           for s in NEON_BACKUP_URL NEON_APP_URL BACKUP_PASSPHRASE; do [ -n "${!s}" ] || missing="$missing $s"; done
           if [ -n "$missing" ]; then echo "::error::Add these repository secrets first (see README.md):$missing"; exit 1; fi
 
+      # exactly 16: newer tools make backups that PostgreSQL 16 cannot restore (restore test failed 29 Oct – 9 Nov 2026)
       - name: Postgres 16 tools (same version as Neon)
         run: |
-          if ! pg_dump --version | grep -q ' 1[6-9]\.'; then
+          if ! pg_dump --version | grep -q ' 16\.'; then
             sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
             sudo apt-get install -y postgresql-client-16
             echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
+            export PATH="/usr/lib/postgresql/16/bin:$PATH"
           fi
           pg_dump --version
+          pg_dump --version | grep -q ' 16\.' || { echo "::error::pg_dump is not version 16"; exit 1; }
 
       - name: Row-level security on the live database (read-only, as erp_app)
         run: psql "$NEON_APP_URL" -qtAX -v ON_ERROR_STOP=1 -f app/infra/db/backup/rls-live-check.sql
