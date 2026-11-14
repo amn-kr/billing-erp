@@ -30,6 +30,8 @@ export interface Line {
   item: EItem | null; name: string; hsn: string; qty: string | number; unit: string; price: number; disc: number; gst: number;
   /** referral: base rate, rule kind/value, a rule for this line only */
   bp?: number; cmT?: 'p' | 'f'; cmV?: number; cmO?: CommRule;
+  /** the price-list rate while a typed final rate has raised `price` above it (frSet); not saved */
+  lp?: number;
   /** came from this quotation */
   fromQ?: string;
   /** Settings › Items › Batch No.: batches chosen by hand or saved on the bill; none = earliest expiry first */
@@ -114,7 +116,7 @@ export function priceFor(c: Ctx, it: EItem, p: EParty | null, unit: string): num
 export function setLineUnit(c: Ctx, si: SI, l: Line, unit: string) {
   if (!l.item) return;
   l.unit = unit; l.price = priceFor(c, l.item, si.party, unit);
-  delete l.bp; delete l.cmT; delete l.cmV; delete l.batches;
+  delete l.lp; delete l.bp; delete l.cmT; delete l.cmV; delete l.batches;
   cmApply(c, si, l);
 }
 
@@ -147,14 +149,19 @@ export function lineFor(c: Ctx, si: SI, it: EItem): Line {
   return L;
 }
 
-/** Typed final rate → discount % from the price-list rate (prototype frSet). False when above the list rate. */
-export function frSet(l: Line, v: number): boolean {
-  const p = l.price || 0;
+/**
+ * Typed final rate (owner, 11 Nov 2026: any rate is allowed).
+ * At or below the price-list rate it becomes a discount % on that rate (prototype frSet).
+ * Above it, or on an item with no price-list rate, it becomes the rate the line is billed at, no discount.
+ * `lp` keeps the price-list rate while the line's price is raised: the Sale Price column keeps
+ * showing it (owner), and every keystroke is measured from it, not from the digits typed a moment ago.
+ */
+export function frSet(l: Line, v: number): void {
   if (!(v >= 0)) v = 0;
-  if (p <= 0) { l.price = v; l.disc = 0; return true; }
-  if (v > p) { l.disc = 0; return false; }
+  const p = l.lp ?? (l.price || 0);
+  if (p <= 0 || v > p) { l.lp = p; l.price = v; l.disc = 0; return; }
+  l.price = p; delete l.lp;
   l.disc = Math.round(((p - v) / p) * 100 * 1e6 * 100) / 100 / 1e6;
-  return true;
 }
 export const finalRate = (l: Line) => r2((l.price || 0) * (1 - (l.disc || 0) / 100));
 

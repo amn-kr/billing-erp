@@ -195,7 +195,10 @@ function fillFrom(d: EditorData, s: SI, v: SaleDoc, how: 'edit' | 'copy' | 'chal
     // Settings › Items › MRP and Pack: a saved line stays in its own unit
     if (L.unit !== l.unit && (l.unit === it.unit || l.unit === it.pack?.unit)) { L.unit = l.unit; L.price = priceFor(d.ctx, it, s.party, l.unit); }
     if (how !== 'challan') {
+      // a rate typed above the price-list rate: Sale Price still shows the list rate (frSet)
+      const list = L.price || 0;
       L.price = Number(l.price); L.disc = Number(l.discPct) || 0; L.gst = Number(l.gstRate);
+      if (!L.disc && L.price > list) L.lp = list;
       if (l.basePrice !== null && s.ref) { L.bp = Number(l.basePrice); L.cmT = l.commType === 'f' ? 'f' : 'p'; L.cmV = Number(l.commValue); } else { delete L.bp; delete L.cmT; delete L.cmV; }
       if (l.commOverride) L.cmO = { t: l.commOverride.t as 'n' | 'p' | 'f', v: l.commOverride.v };
     }
@@ -283,7 +286,7 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
     if (ctx.txn?.billName && (!x.billName || x.billName === x.party?.billingName)) x.billName = p.billingName ?? '';
     x.party = p; x.pos = partyState(ctx, p);
     if (!x.dueTouched) x.due = addDaysIso(x.date, p.days || 0);
-    x.lines.forEach((l) => { if (l.item) { const b = priceFor(ctx, l.item, p, l.unit); if (l.bp !== undefined) l.bp = b; else l.price = b; cmApply(ctx, x, l); } });
+    x.lines.forEach((l) => { if (l.item) { const b = priceFor(ctx, l.item, p, l.unit); delete l.lp; if (l.bp !== undefined) l.bp = b; else l.price = b; cmApply(ctx, x, l); } });
   });
   const partyPick = (v: unknown) => {
     if (v === '__add') { c.hide(); setAddParty((document.getElementById('siParty') as HTMLInputElement | null)?.value ?? ''); return; }
