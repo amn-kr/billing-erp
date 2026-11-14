@@ -4,7 +4,7 @@
 **The rebuild must look exactly like `reference/design/app.html`.**
 - Copy its CSS unchanged and keep its class names and DOM structure.
 - Do not redesign, restyle or "modernise" anything unless the owner asks.
-- Every rebuilt screen is checked with a Playwright screenshot against the prototype at 1280, 1366 and 1920 px (on the Mac, in Linux: `pnpm check`).
+- Every rebuilt screen is checked with a Playwright screenshot against the prototype at 1280, 1366 and 1920 px.
 - The web app and the Windows/Mac app follow this rule. **Exception (owner, 10 Nov 2026):** the Android/iPhone app has its own mobile screens. They are checked against the approved mobile design (`reference/design/mobile.html`) instead. See "Desktop and mobile apps" in `docs/ARCHITECTURE.md`.
 
 ## Who you are working for
@@ -28,7 +28,6 @@ The rebuild needs npm packages. If `npm view react version` fails with 403, this
 - **Tenancy:** every shop-owned table has `business_id`. Set the RLS context per request in the API.
 - **Documents:** never deleted, only cancelled. Write audit-log entries for create, update and cancel.
 - **Tests:** unit tests for maths, API tests per endpoint, Playwright for flows. Port `reference/tests/flows.js` checks to the new app.
-- **Checks run on the Mac, never on GitHub (owner, 13 Nov 2026).** The repository is private and GitHub's minutes cost money. Run `pnpm check` (`tools/check/check-all.sh`): the Mac part, plus the browser and picture tests in Linux (Docker/Colima). Fix anything that fails, then push, raise the PR and merge it without waiting for GitHub. Never add automatic triggers (`pull_request`, `push`, tags) to `.github/workflows`. A Windows release is the only GitHub run, started by hand with the owner's go-ahead (`docs/DEPLOY.md`).
 - **Commits:** small, with descriptive messages. Never commit secrets; use `.env.example`.
 
 ## Useful facts about the prototype
