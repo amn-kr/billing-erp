@@ -2,12 +2,18 @@ name: Windows app
 
 # Makes the Windows installer (Setup.exe) on GitHub's Windows machine, installs it there and opens the
 # installed app to check it starts.
-# Owner, 13 Nov 2026: it never starts by itself (no checks on GitHub; they cost money on a private
-# repository). It is started by hand, only for a release the owner said yes to:
-#   gh workflow run desktop.yml --ref v<version>   (tag = apps/desktop/package.json version): builds,
-#   installs and checks the installer, then puts it on GitHub Releases, where installed apps update themselves.
-#   Started on a branch instead of a tag: the installer is kept for 14 days under the run's Artifacts, to try it.
+#   pull request touching the app: the installer is kept for 14 days under the run's Artifacts, to try it
+#   tag v<version> (= apps/desktop/package.json version): also put on GitHub Releases, where the
+#   installed apps find it and update themselves
 on:
+  pull_request:
+    paths:
+      - 'apps/desktop/**'
+      - 'packages/shared/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/desktop.yml'
+  push:
+    tags: ['v*']
   workflow_dispatch:
 
 permissions:

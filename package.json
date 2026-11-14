@@ -10,8 +10,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "baseline": "node tools/design-baseline/capture.cjs",
-    "brand:check": "node tools/brand-check.mjs",
-    "check": "bash tools/check/check-all.sh"
+    "brand:check": "node tools/brand-check.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",

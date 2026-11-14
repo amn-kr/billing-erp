@@ -1,10 +1,9 @@
 name: CI
 
-# Owner, 13 Nov 2026: no checks on GitHub (the repository is private and GitHub's minutes cost money).
-# Every check runs on the Mac instead: `pnpm check` (tools/check/check-all.sh). This workflow runs only
-# when someone starts it by hand (Actions › CI › Run workflow).
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
 
 # A newer push to the same PR stops its older run, which would be out of date anyway.
 # Runs on main are never cancelled (each commit has its own group).
