@@ -101,6 +101,12 @@ Every screen of the web app (audited on `main`, 15 Nov 2026) is listed below.
 - The server keeps every business rule: numbering, GST and rounding (`packages/shared`), permissions, audit log. The phone repeats none of it.
 - No internet: a clear "No internet" message. A half-made bill stays on the phone. Sending it again when the internet is back makes **one** bill, never two (idempotency keys).
 - English and Hindi for all phone text. Numbers and ₹ use the Indian format in both.
+- **Wording (owner, 15 Nov 2026):**
+  - Every word of a button, field, tab, badge or heading starts with a capital letter in English (Purchase Bill, Take Payment, Payment In). Full sentences stay normal. This applies to the phone app only; the web app follows the prototype.
+  - Dates are always written in full: September 25, 2026 (Hindi: सितंबर 25, 2026).
+  - Names (party, supplier, item) always stay on **one line**. What doesn't fit ends with "…". A name never takes 2 lines.
+  - A bill row shows the party name first, then the bill number and full date under it (INV-0107 · September 25, 2026).
+  - An item row shows the purchase and sale price (Purchase Price ₹70 · Sale Price ₹85 Per Pc), not MRP.
 - The work is done in its own branch. Each step comes as a PR, which is merged only with the owner's go-ahead.
 - Each step is shown to the owner before the next one starts.
 
@@ -109,8 +115,8 @@ Each part is a page the owner can open on their own phone.
 
 | Step | What | Gate |
 |---|---|---|
-| 7.1 | The 20 colours at the top of the design page | Already approved (15 Nov 2026) |
-| 7.2 | Building blocks: buttons, cards, list rows, badges, form fields, bottom sheet, tabs, empty states, "No internet", "Server is waking up…", loading; English and Hindi | Owner approves |
+| 7.1 | The 20 colours at the top of the design page | ✅ Approved (15 Nov 2026) |
+| 7.2 | Building blocks: buttons, cards, list rows, badges, form fields, bottom sheet, tabs, empty states, "No internet", "Server is waking up…", loading; English and Hindi | ✅ Approved (15 Nov 2026), after the wording changes in section 5 |
 | 7.3 | App map: what opens from where, side menu, bottom buttons | Owner approves |
 | 7.4a | Sign in, switch company, Home, side menu, search, language switch | Owner approves each part |
 | 7.4b | Parties: list, party page, add/edit with contacts, statement, reminder | " |
