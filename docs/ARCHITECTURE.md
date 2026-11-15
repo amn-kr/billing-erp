@@ -74,9 +74,16 @@ Tables by area:
 | # | Phase | Gate to move on |
 |---|---|---|
 | 6 | Windows app + single-PC offline mode: Electron shell, local API + bundled PostgreSQL, local numbering, direct thermal/A4 printing, automatic cloud backup when online + backup to pen drive, Move to cloud, installer with auto-update | All flow tests pass in the Windows app with the internet off. Move to cloud test passes. A restore drill from both backup types passes. Screens match the prototype at 1280, 1366 and 1920 px |
-| 7 | Mobile design: phone screens for the jobs staff, field salesmen and owner do on a phone (`reference/design/mobile.html`) | Owner approves the mobile design |
-| 8 | Android app (APK): Capacitor, online only, WhatsApp PDF sharing, in-app "update available" check. The APK is shared directly at first; Play Store comes later | Flow tests pass on an Android emulator. Screens match the approved mobile design |
+| 7 | Mobile design (`reference/design/mobile.html`): colours, building blocks, app map, then every phone screen in 10 parts. **May run during the Windows trial** (owner, 13 Nov 2026) | Every phone item in `docs/MOBILE-PLAN.md` section 3 has a screen, and the owner approves every part |
+| 8 | Android app (APK): Capacitor, online only, English and Hindi, Android 7.0 and newer, portrait only, invoice PDF shared on WhatsApp, camera barcode scan, phone contacts, fingerprint, in-app "update available" check. The APK is shared directly at first; Play Store comes later. Starts after the Windows trial passes | Flow tests pass on an Android emulator; fit checks pass from 320 to 480 px; one picture per screen matches the approved design; trial checklist passes |
 | 9 | iPhone + Mac builds from the same code | Same tests pass on iPhone simulator and Mac. Apple developer account (about ₹8,500 a year) approved by owner |
+
+**Mobile plan (owner's decisions, 13–15 Nov 2026):** the full plan is in `docs/MOBILE-PLAN.md`. In short:
+- The phone app has everything the web app has, except Excel import (computer only), bulk entry of parties, and bank reconciliation.
+- It uses one colour specification of 20 colours. The web and Windows apps switch to it after the Windows trial.
+- One design fits every phone, checked by one picture at 390 px plus automatic fit checks from 320 to 480 px. The web app moves to the same method after the Windows trial.
+- Field salesman screens and staff access come after the owner's app is built.
+- The server stays on the free plan for now.
 
 ## Production rules that differ from the prototype
 1. The server assigns document numbers from the type's active prefix (Settings › Transactions). Each prefix has its own counter, which keeps going across financial years (owner's choice, 14 Oct 2026); a number already used is never given again.
