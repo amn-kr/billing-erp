@@ -1,0 +1,346 @@
+<title>BillinGo Mobile Design</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap">
+<style>
+/* Mobile design, Phase 7 — steps 7.1 (colours) and 7.2 (building blocks).
+   Layout: a guide column beside one phone column whose width you can drag from 320 to 480 px.
+   The 20 colours below are the ONLY colours the phone app may use (docs/MOBILE-PLAN.md §2).
+   Light only, by the owner's choice: every colour is set explicitly. */
+:root{
+  --page:#F8FAFC; --card:#FFFFFF; --border:#E2E8F0;
+  --text:#111827; --text2:#4B5563; --text3:#6B7280;
+  --blue:#1D4ED8; --blue-l:#EFF6FF; --sel:#DBEAFE; --navy:#1E3A8A; --on:#FFFFFF;
+  --green:#15803D; --green-l:#F0FDF4;
+  --red:#C81E1E; --red-l:#FEF2F2;
+  --orange:#B45309; --orange-l:#FFFBEB;
+  --slate-l:#F3F4F6;
+  --green-nv:#4ADE80; --red-nv:#FCA5A5;
+  --font:'Plus Jakarta Sans','Noto Sans Devanagari',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --r-sm:8px; --r:12px; --r-lg:16px;
+  --tap:44px;
+  color-scheme:light;
+}
+html,body{background:var(--page);color:var(--text)}
+body{font-family:var(--font);font-size:15px;line-height:1.5;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+*{box-sizing:border-box}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:32px;align-items:start}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr)}.guide{order:2}}
+.top{max-width:1180px;margin:0 auto 20px;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center}
+.top h1{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em}
+.top p{margin:0;color:var(--text2);font-size:14px;flex-basis:100%}
+.ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--card);border:1px solid var(--border);border-radius:999px;padding:3px}
+.seg button{font:inherit;font-size:13px;font-weight:600;border:0;background:transparent;color:var(--text2);padding:6px 14px;border-radius:999px;min-height:34px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--sel);color:var(--blue)}
+.wctl{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2)}
+.wctl input{width:160px;accent-color:var(--blue)}
+.wctl b{color:var(--text);font-variant-numeric:tabular-nums;min-width:52px}
+@media (max-width:900px){.wctl{display:none}}
+.guide{display:flex;flex-direction:column;gap:20px;min-width:0}
+.gsec h2{font-size:16px;margin:0 0 6px}
+.gsec p{margin:0 0 8px;color:var(--text2);font-size:14px;max-width:62ch}
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.sw div{background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px;display:flex;gap:8px;align-items:center;min-width:0}
+.sw i{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);flex:none}
+.sw span{font-size:12px;line-height:1.3;min-width:0}
+.sw code{display:block;color:var(--text3);font-size:11px}
+.rules{margin:0;padding-left:18px;color:var(--text2);font-size:14px;display:grid;gap:4px}
+/* ---------- the phone ---------- */
+.phone{width:var(--w,390px);max-width:100%;border:8px solid var(--text);border-radius:32px;background:var(--page);overflow:hidden;container-type:inline-size;position:sticky;top:12px}
+@media (max-width:900px){.phone{width:100%;border-width:0;border-radius:0;position:static;overflow:visible}}
+.scr{display:flex;flex-direction:column;gap:14px;padding:12px;max-height:calc(100vh - 60px);overflow-y:auto}
+@media (max-width:900px){.scr{max-height:none;overflow:visible;padding:0}}
+.lbl{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin:6px 2px -6px}
+.box{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.row{display:flex;gap:8px;align-items:center;min-width:0}
+.wrapr{display:flex;flex-wrap:wrap;gap:8px}
+svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* type */
+.t-h{font-size:20px;font-weight:700;line-height:1.25}
+.t-b{font-size:15px}
+.t-s{font-size:13px;color:var(--text2)}
+.t-x{font-size:12px;color:var(--text3)}
+.amt{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:clamp(20px,8cqi,30px);line-height:1.15}
+.amt small{font-size:.55em;font-weight:600;opacity:.75}
+/* buttons */
+.btn{font:inherit;font-size:15px;font-weight:600;min-height:var(--tap);padding:10px 16px;border-radius:var(--r);border:0;display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;min-width:0;text-align:center;line-height:1.2}
+.btn.blue{background:var(--blue);color:var(--on)}
+.btn.green{background:var(--green);color:var(--on)}
+.btn.soft{background:var(--blue-l);color:var(--blue)}
+.btn.line{background:var(--card);color:var(--text);border:1px solid var(--border)}
+.btn.del{background:var(--red-l);color:var(--red)}
+.btn.ico{width:var(--tap);padding:0;flex:none}
+.btn.grow{flex:1 1 0}
+.btn.busy{opacity:1}
+.spin{width:18px;height:18px;border:2px solid rgba(255,255,255,.45);border-top-color:var(--on);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin,.skel{animation:none}}
+/* fields */
+.fld{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fld label{font-size:13px;font-weight:600;color:var(--text2)}
+.inp{display:flex;align-items:center;gap:8px;min-height:var(--tap);border:1px solid var(--border);border-radius:var(--r-sm);background:var(--card);padding:0 10px;min-width:0;color:var(--text3)}
+.inp input,.inp select{font:inherit;font-size:15px;border:0;outline:0;background:transparent;color:var(--text);flex:1;min-width:0;height:42px}
+.inp:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px var(--sel)}
+.inp.err{border-color:var(--red)}
+.ferr{font-size:12px;color:var(--red)}
+.pre{color:var(--text2);font-weight:600}
+.tg{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:var(--tap)}
+.sw2{width:var(--tap);height:var(--tap);padding:0;background:transparent;position:relative;flex:none;border:0;cursor:pointer}
+.sw2::before{content:"";position:absolute;top:8px;left:-1px;width:46px;height:28px;border-radius:999px;background:var(--border);transition:background .15s}
+.sw2::after{content:"";position:absolute;top:11px;left:2px;width:22px;height:22px;border-radius:50%;background:var(--card);transition:left .15s}
+.sw2[aria-checked="true"]::before{background:var(--blue)}
+.sw2[aria-checked="true"]::after{left:20px}
+.chk{display:flex;align-items:center;gap:10px;min-height:var(--tap)}
+.chk input{width:22px;height:22px;accent-color:var(--blue)}
+/* badges */
+.bd{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.bd.paid{background:var(--green-l);color:var(--green)}
+.bd.due{background:var(--red-l);color:var(--red)}
+.bd.cr{background:var(--orange-l);color:var(--orange)}
+.bd.gray{background:var(--slate-l);color:var(--text2)}
+.bd.x{text-decoration:line-through}
+.bd.info{background:var(--blue-l);color:var(--blue)}
+/* cards and rows */
+.sum{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.nv{background:var(--navy);color:var(--on);border-radius:var(--r-lg);padding:12px;min-width:0}
+.nv .k{font-size:12px;color:var(--sel);display:flex;align-items:center;gap:4px}
+.nv .g{color:var(--green-nv)} .nv .rd{color:var(--red-nv)}
+.nv .amt{font-size:clamp(18px,6.2cqi,26px)}
+.li{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;display:flex;gap:10px;align-items:center;min-width:0;min-height:60px}
+.av{width:40px;height:40px;border-radius:50%;background:var(--blue-l);color:var(--blue);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;flex:none}
+.mid{flex:1;min-width:0}
+.nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.end{text-align:right;flex:none;max-width:48%}
+.end .v{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.end .w{font-size:11px;font-weight:600}
+.cg{color:var(--green)} .cr{color:var(--red)} .co{color:var(--orange)} .c3{color:var(--text3)}
+/* tabs */
+.tabs{display:flex;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:3px;gap:3px}
+.tabs button{flex:1;font:inherit;font-size:14px;font-weight:600;border:0;background:transparent;color:var(--text2);border-radius:9px;min-height:40px;cursor:pointer;min-width:0}
+.tabs button[aria-selected="true"]{background:var(--sel);color:var(--blue)}
+/* bars */
+.hdr{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:8px;display:flex;align-items:center;gap:6px;min-width:0}
+.hdr .mid .t{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:8px;display:flex;gap:8px}
+/* sheet & dialog */
+.dim{background:rgba(17,24,39,.45);border-radius:var(--r);padding:40px 0 0;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden}
+.sheet{background:var(--card);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:8px 12px 12px;display:flex;flex-direction:column;gap:6px}
+.grab{width:36px;height:4px;border-radius:2px;background:var(--border);align-self:center;margin-bottom:4px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.tile{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px;border-radius:var(--r-sm);background:var(--page);font-size:12px;font-weight:600;text-align:center;min-height:72px;justify-content:center;color:var(--text);border:0;font-family:inherit;cursor:pointer;min-width:0}
+.tile svg{color:var(--blue)}
+.dlg{background:var(--card);border-radius:var(--r-lg);margin:0 16px 16px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.dlg.ctr{margin:auto 16px}
+/* states */
+.empty{text-align:center;padding:20px 12px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.empty .ring{width:56px;height:56px;border-radius:50%;background:var(--blue-l);color:var(--blue);display:flex;align-items:center;justify-content:center}
+.ban{border-radius:var(--r);padding:10px 12px;display:flex;gap:10px;align-items:center;font-size:14px;min-width:0}
+.ban.off{background:var(--red-l);color:var(--red)}
+.ban.wake{background:var(--orange-l);color:var(--orange)}
+.ban .mid b{display:block}
+.skel{height:14px;border-radius:6px;background:var(--slate-l);animation:pl 1.2s ease-in-out infinite alternate}
+@keyframes pl{to{background:var(--border)}}
+.toast{background:var(--text);color:var(--on);border-radius:var(--r);padding:10px 12px;display:flex;align-items:center;gap:10px;font-size:14px}
+.toast .cg2{color:var(--green-nv)}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="share" viewBox="0 0 24 24"><path d="M12 3v12M8 7l4-4 4 4M5 13v6h14v-6"/></symbol>
+  <symbol id="book" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><circle cx="12" cy="10" r="2.5"/><path d="M8.5 16a3.5 3.5 0 0 1 7 0"/></symbol>
+  <symbol id="scan" viewBox="0 0 24 24"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6"/></symbol>
+  <symbol id="menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"/></symbol>
+  <symbol id="back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="next" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="nowifi" viewBox="0 0 24 24"><path d="M3 3l18 18M8.5 16.5a5 5 0 0 1 7 0M5 12.5a10 10 0 0 1 4-2.3M19 12.5a10 10 0 0 0-3-2M2 8.8a15 15 0 0 1 4.5-2.6M22 8.8A15 15 0 0 0 12 5M12 20h.01"/></symbol>
+  <symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol>
+  <symbol id="down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+  <symbol id="up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+  <symbol id="bill" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/></symbol>
+  <symbol id="rupee" viewBox="0 0 24 24"><path d="M7 5h10M7 9h10M7 5h3a4 4 0 0 1 0 8H7l7 7"/></symbol>
+  <symbol id="box" viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10"/></symbol>
+  <symbol id="user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="wallet" viewBox="0 0 24 24"><path d="M3 7h16v12H3zM3 7l12-3v3M15 13h2"/></symbol>
+  <symbol id="cart" viewBox="0 0 24 24"><path d="M3 4h2l2 11h11l2-8H6M9 20h.01M17 20h.01"/></symbol>
+  <symbol id="cal" viewBox="0 0 24 24"><path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"/></symbol>
+  <symbol id="filter" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></symbol>
+</svg>
+
+<header class="top">
+  <h1 data-hi="BillinGo मोबाइल डिज़ाइन">BillinGo Mobile Design</h1>
+  <div class="ctl">
+    <div class="seg" role="group" aria-label="Language">
+      <button id="lang-en" type="button" aria-pressed="true">English</button>
+      <button id="lang-hi" type="button" aria-pressed="false">हिंदी</button>
+    </div>
+    <label class="wctl" for="width"><span data-hi="फ़ोन की चौड़ाई">Phone Width</span> <input id="width" type="range" min="320" max="480" step="1" value="390"> <b id="wout">390 px</b></label>
+  </div>
+  <p data-hi="चरण 7.1 और 7.2: 20 रंग और ऐप के बुनियादी टुकड़े। चौड़ाई खिसकाकर देखें कि हर चीज़ हर फ़ोन पर फ़िट होती है।">Steps 7.1 and 7.2: the 20 colours and the app's building blocks. Drag the width to see every piece fit every phone.</p>
+</header>
+
+<div class="wrap">
+  <section class="guide" aria-label="Guide">
+    <div class="gsec">
+      <h2 data-hi="1. रंग (20, इनके अलावा कोई नहीं)">1. Colours (20, And No Others)</h2>
+      <div class="sw" id="sw"></div>
+    </div>
+    <div class="gsec">
+      <h2 data-hi="2. नियम">2. Rules</h2>
+      <ol class="rules">
+        <li data-hi="हर रंग का एक मतलब: नीला = नया काम, हरा = पूरा करो / पैसा आएगा, लाल = हटाओ / पैसा देना, नारंगी = उधार, स्लेटी = Draft / रद्द।">One meaning per colour: blue = start something, green = finish / money in, red = delete / money out, orange = credit, slate = draft / cancelled.</li>
+        <li data-hi="हर रक़म के साथ तीर या शब्द भी: ↓ मिलेगा, ↑ देना है।">Every amount also has an arrow or a word: ↓ to get, ↑ to give.</li>
+        <li data-hi="हर बटन कम से कम 44 px ऊँचा, उँगली से दबाने लायक़।">Every button is at least 44 px tall, easy for a finger.</li>
+        <li data-hi="नाम (पार्टी, सप्लायर, आइटम) हमेशा एक ही लाइन में; जो न समाए वह &quot;…&quot; से ख़त्म। रक़म कभी नहीं कटती, जगह कम हो तो थोड़ी छोटी होती है।">Names (party, supplier, item) always stay on one line; what does not fit ends with "…". Amounts are never cut; they get a little smaller when space is short.</li>
+        <li data-hi="तारीख़ हमेशा पूरी: सितंबर 25, 2026।">Dates are always written in full: September 25, 2026.</li>
+        <li data-hi="बटन, खाने, टैब, badge और शीर्षक के हर शब्द का पहला अक्षर बड़ा (English में): Purchase Bill, Take Payment। पूरे वाक्य सामान्य रहते हैं।">Every word of a button, field, tab, badge or heading starts with a capital letter: Purchase Bill, Take Payment. Full sentences stay normal.</li>
+        <li data-hi="Delete हमेशा हल्का लाल, कभी भरा हुआ लाल नहीं, और हमेशा पूछकर।">Delete is always light red, never solid red, and always asks first.</li>
+        <li data-hi="ऐप सिर्फ़ खड़ा (portrait)। सिर्फ़ हल्का रूप।">Portrait only. Light look only.</li>
+      </ol>
+    </div>
+    <div class="gsec">
+      <h2 data-hi="3. अक्षर">3. Lettering</h2>
+      <p data-hi="English के लिए Plus Jakarta Sans (कंप्यूटर ऐप वाला), हिंदी के लिए Noto Sans Devanagari। अंक हमेशा 0–9, रक़म भारतीय ढंग से: ₹1,25,000.00।">Plus Jakarta Sans for English (the same as the computer app), Noto Sans Devanagari for Hindi. Digits are always 0–9, and amounts use the Indian format: ₹1,25,000.00.</p>
+    </div>
+    <div class="gsec">
+      <h2 data-hi="4. आपसे क्या चाहिए">4. What We Need From You</h2>
+      <p data-hi="दाईं ओर के फ़ोन में हर टुकड़ा देखिए, हिंदी में भी। जो बदलना हो बताइए। मंज़ूरी के बाद अगला कदम 7.3: ऐप का नक़्शा।">Look at every piece in the phone, in Hindi too, and tell us what to change. After your approval, the next step is 7.3: the app map.</p>
+    </div>
+  </section>
+
+  <div class="phone" id="phone">
+    <div class="scr">
+      <div class="lbl" data-hi="ऊपर की पट्टी">Top Bar</div>
+      <div class="hdr">
+        <button class="btn ico line" style="border:0" aria-label="Menu"><svg class="ic"><use href="#menu"/></svg></button>
+        <div class="mid"><div class="t">Sharma Electricals &amp; Hardware Pvt Ltd</div><div class="t-x" data-hi="आज · नवंबर 15, 2026">Today · November 15, 2026</div></div>
+        <button class="btn ico line" style="border:0" aria-label="Notifications"><svg class="ic"><use href="#bell"/></svg></button>
+      </div>
+
+      <div class="lbl" data-hi="सारांश कार्ड">Summary Cards</div>
+      <div class="sum">
+        <div class="nv"><div class="k"><svg class="ic" style="width:14px;height:14px"><use href="#down"/></svg><span data-hi="आपको मिलेगा">You'll Get</span></div><div class="amt g">₹25,872<small>.40</small></div><div class="t-x" style="color:var(--sel)" data-hi="3 पार्टी">3 Parties</div></div>
+        <div class="nv"><div class="k"><svg class="ic" style="width:14px;height:14px"><use href="#up"/></svg><span data-hi="आपको देना है">You'll Give</span></div><div class="amt rd">₹1,60,119</div><div class="t-x" style="color:var(--sel)" data-hi="1 पार्टी">1 Party</div></div>
+      </div>
+
+      <div class="lbl" data-hi="टैब">Tabs</div>
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-hi="पार्टी">Parties</button>
+        <button role="tab" aria-selected="false" data-hi="बिल">Bills</button>
+        <button role="tab" aria-selected="false" data-hi="आइटम">Items</button>
+      </div>
+
+      <div class="lbl" data-hi="सूची की पंक्तियाँ">List Rows</div>
+      <div class="li"><div class="av">ME</div><div class="mid"><div class="nm">Mehta Electricals</div><div class="t-x" data-hi="आख़िरी: अक्टूबर 1, 2026">Last: October 1, 2026</div></div><div class="end"><div class="v cg">21,749.40</div><div class="w cg" data-hi="↓ मिलेगा">↓ To Get</div></div></div>
+      <div class="li"><div class="av">SE</div><div class="mid"><div class="nm">Shree Ganesh Electrical &amp; Sanitary Traders, Kidwai Nagar Kanpur</div><div class="t-x" data-hi="लंबा नाम: एक ही लाइन, फिर …">Long Name: One Line, Then …</div></div><div class="end"><div class="v cr">1,60,119</div><div class="w cr" data-hi="↑ देना है">↑ To Give</div></div></div>
+      <div class="li"><div class="av" style="background:var(--slate-l);color:var(--text2)">WR</div><div class="mid"><div class="nm">Walk-in Ramesh</div><div class="t-x" data-hi="ग्राहक">Customer</div></div><div class="end"><div class="v c3">0</div><div class="w c3" data-hi="बराबर">Settled</div></div></div>
+      <div class="li"><div class="mid"><div class="nm">Mehta Electricals</div><div class="t-x" data-hi="INV-0107 · सितंबर 25, 2026">INV-0107 · September 25, 2026</div></div><div class="end"><div class="v">2,123.00</div><span class="bd cr" data-hi="उधार">Credit</span></div></div>
+      <div class="li"><div class="mid"><div class="nm">LED Bulb 9W Cool Day Light (Philips)</div><div class="t-x" data-hi="ख़रीद दाम ₹70 · बिक्री दाम ₹85 प्रति पीस">Purchase Price ₹70 · Sale Price ₹85 Per Pc</div></div><div class="end"><div class="v">12 Pcs</div><span class="bd cr" data-hi="स्टॉक कम">Low Stock</span></div></div>
+
+      <div class="lbl" data-hi="Badge">Badges</div>
+      <div class="box"><div class="wrapr">
+        <span class="bd paid"><svg class="ic" style="width:12px;height:12px"><use href="#check"/></svg><span data-hi="भुगतान हुआ">Paid</span></span>
+        <span class="bd due" data-hi="बकाया 12 दिन">Overdue 12 Days</span>
+        <span class="bd cr" data-hi="उधार ₹4,000">Credit ₹4,000</span>
+        <span class="bd cr" data-hi="आंशिक भुगतान">Part Paid</span>
+        <span class="bd cr" data-hi="स्टॉक कम: 3">Low Stock: 3</span>
+        <span class="bd info" data-hi="Quotation">Quotation</span>
+        <span class="bd gray" data-hi="ड्राफ़्ट">Draft</span>
+        <span class="bd gray x" data-hi="रद्द">Cancelled</span>
+      </div></div>
+
+      <div class="lbl" data-hi="बटन">Buttons</div>
+      <div class="box">
+        <div class="row"><button class="btn blue grow"><svg class="ic"><use href="#plus"/></svg><span data-hi="नया बिल">New Bill</span></button><button class="btn green grow"><svg class="ic"><use href="#check"/></svg><span data-hi="सेव करें">Save</span></button></div>
+        <div class="row"><button class="btn soft grow"><svg class="ic"><use href="#plus"/></svg><span data-hi="आइटम जोड़ें">Add Item</span></button><button class="btn soft grow"><svg class="ic"><use href="#scan"/></svg><span data-hi="स्कैन">Scan</span></button></div>
+        <div class="row"><button class="btn line grow"><svg class="ic"><use href="#filter"/></svg><span data-hi="छाँटें">Filter</span></button><button class="btn del grow"><svg class="ic"><use href="#trash"/></svg><span data-hi="हटाएँ">Delete</span></button></div>
+        <div class="row"><button class="btn green grow busy" aria-busy="true"><span class="spin" aria-hidden="true"></span><span data-hi="सेव हो रहा है…">Saving…</span></button><button class="btn ico soft" aria-label="Share"><svg class="ic"><use href="#share"/></svg></button><button class="btn ico del" aria-label="Delete"><svg class="ic"><use href="#trash"/></svg></button></div>
+        <div class="t-x" data-hi="नीला = नया काम शुरू · हरा = पूरा करो · हल्का नीला = दूसरे काम · सफ़ेद = छोटे काम · हल्का लाल = हटाना">Blue = Start · Green = Finish · Light Blue = Second Actions · White = Small Actions · Light Red = Delete</div>
+      </div>
+
+      <div class="lbl" data-hi="भरने वाले खाने">Form Fields</div>
+      <div class="box">
+        <div class="fld"><label for="f-name" data-hi="पार्टी का नाम">Party Name</label><div class="inp"><input id="f-name" value="Raju Electrician"><button class="btn ico" style="background:transparent;color:var(--blue);width:36px;min-height:36px" aria-label="Pick From Contacts"><svg class="ic"><use href="#book"/></svg></button></div></div>
+        <div class="fld"><label for="f-ph" data-hi="मोबाइल">Mobile</label><div class="inp"><span class="pre">+91</span><input id="f-ph" inputmode="numeric" value="98765 43210"></div></div>
+        <div class="fld"><label for="f-amt" data-hi="रक़म">Amount</label><div class="inp"><span class="pre">₹</span><input id="f-amt" inputmode="decimal" value="4,000.00" style="font-variant-numeric:tabular-nums;font-weight:600"></div></div>
+        <div class="fld"><label for="f-gst">GSTIN</label><div class="inp err"><input id="f-gst" value="09AAJPM7745Q1Z"></div><span class="ferr" data-hi="GSTIN 15 अक्षर का होता है। एक अक्षर कम है।">A GSTIN has 15 characters. One is missing.</span></div>
+        <div class="row" style="gap:10px;flex-direction:column;align-items:stretch">
+          <div class="fld" style="flex:1"><label for="f-dt" data-hi="तारीख़">Date</label><div class="inp"><svg class="ic"><use href="#cal"/></svg><input id="f-dt" value="November 15, 2026"></div></div>
+          <div class="fld" style="flex:1"><label for="f-pay" data-hi="भुगतान">Payment</label><div class="inp"><select id="f-pay"><option>UPI</option><option>Cash</option><option>Bank Transfer</option><option>Cheque</option></select></div></div>
+        </div>
+        <div class="inp"><svg class="ic"><use href="#search"/></svg><input id="f-q" placeholder="Search Party, Bill, Item" data-hi-ph="पार्टी, बिल, आइटम खोजें"></div>
+        <div class="tg"><span data-hi="GST के साथ दाम">Prices Include GST</span><button class="sw2" id="f-tg" role="switch" aria-checked="true" aria-label="Prices Include GST"></button></div>
+        <label class="chk" for="f-rcv"><input id="f-rcv" type="checkbox" checked><span data-hi="पूरी रक़म मिल गई">Full Amount Received</span></label>
+      </div>
+
+      <div class="lbl" data-hi="नीचे की बटन-पट्टी">Bottom Action Bar</div>
+      <div class="bar"><button class="btn soft grow"><svg class="ic"><use href="#rupee"/></svg><span data-hi="भुगतान लें">Take Payment</span></button><button class="btn blue grow"><svg class="ic"><use href="#plus"/></svg><span data-hi="नया बिल">New Bill</span></button></div>
+      <div class="bar"><button class="btn ico del" aria-label="Delete"><svg class="ic"><use href="#trash"/></svg></button><button class="btn soft grow"><svg class="ic"><use href="#share"/></svg><span data-hi="भेजें">Share</span></button><button class="btn green grow"><span data-hi="सेव करें">Save</span></button></div>
+
+      <div class="lbl" data-hi="नीचे से खुलने वाली शीट">Bottom Sheet</div>
+      <div class="dim">
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="t-b" style="font-weight:700" data-hi="नया बनाएँ">Create New</div>
+          <div class="grid3">
+            <button class="tile"><svg class="ic"><use href="#bill"/></svg><span data-hi="बिक्री बिल">Sale Bill</span></button>
+            <button class="tile"><svg class="ic"><use href="#rupee"/></svg><span data-hi="भुगतान लें">Payment In</span></button>
+            <button class="tile"><svg class="ic"><use href="#bill"/></svg><span>Quotation</span></button>
+            <button class="tile"><svg class="ic"><use href="#cart"/></svg><span data-hi="ख़रीद बिल">Purchase Bill</span></button>
+            <button class="tile"><svg class="ic"><use href="#wallet"/></svg><span data-hi="ख़र्चा">Expense</span></button>
+            <button class="tile"><svg class="ic"><use href="#user"/></svg><span data-hi="नई पार्टी">New Party</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="lbl" data-hi="पूछने वाला डिब्बा">Confirm Box</div>
+      <div class="dim">
+        <div class="dlg">
+          <div class="t-h" style="font-size:17px" data-hi="बिल INV-0107 रद्द करें?">Cancel Bill INV-0107?</div>
+          <div class="t-s" data-hi="बिल रद्द दिखेगा और गिनती से हट जाएगा। स्टॉक और पार्टी का बैलेंस वापस हो जाएगा।">The bill shows as cancelled and leaves the totals. Stock and the party's balance go back.</div>
+          <div class="row"><button class="btn line grow" data-hi="रहने दें">Keep</button><button class="btn del grow" data-hi="रद्द करें">Cancel Bill</button></div>
+        </div>
+      </div>
+
+      <div class="lbl" data-hi="ख़ास हालात">Special States</div>
+      <div class="ban off"><svg class="ic"><use href="#nowifi"/></svg><div class="mid"><b data-hi="इंटरनेट नहीं है">No Internet</b><span data-hi="आपका बिल फ़ोन में सुरक्षित है। इंटरनेट आते ही भेज देंगे।">Your bill is safe on this phone. It goes as soon as the internet is back.</span></div></div>
+      <div class="ban wake"><svg class="ic"><use href="#clock"/></svg><div class="mid"><b data-hi="सर्वर चालू हो रहा है…">Server Is Waking Up…</b><span data-hi="इसमें एक मिनट तक लग सकता है।">This can take up to a minute.</span></div></div>
+      <div class="toast"><svg class="ic cg2"><use href="#check"/></svg><span data-hi="बिल INV-0110 सेव हो गया">Bill INV-0110 Saved</span></div>
+      <div class="box" aria-label="Loading"><div class="skel" style="width:60%"></div><div class="skel" style="width:90%"></div><div class="skel" style="width:40%"></div></div>
+      <div class="box empty">
+        <div class="ring"><svg class="ic" style="width:26px;height:26px"><use href="#box"/></svg></div>
+        <div class="t-b" style="font-weight:700" data-hi="अभी कोई आइटम नहीं">No Items Yet</div>
+        <div class="t-s" data-hi="पहला आइटम जोड़ें, या barcode स्कैन करें।">Add your first item, or scan its barcode.</div>
+        <button class="btn blue"><svg class="ic"><use href="#plus"/></svg><span data-hi="आइटम जोड़ें">Add Item</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var C=[['#F8FAFC','Page','पेज'],['#FFFFFF','Card','कार्ड'],['#E2E8F0','Border','बॉर्डर'],['#111827','Text','लिखावट'],['#4B5563','Text 2','लिखावट 2'],['#6B7280','Text 3','लिखावट 3'],['#1D4ED8','Main Blue','मुख्य नीला'],['#EFF6FF','Light Blue','हल्का नीला'],['#DBEAFE','Selected','चुना हुआ'],['#1E3A8A','Navy','नेवी'],['#FFFFFF','On Colour','बटन के अक्षर'],['#15803D','Green','हरा'],['#F0FDF4','Light Green','हल्का हरा'],['#C81E1E','Red','लाल'],['#FEF2F2','Light Red','हल्का लाल'],['#B45309','Orange','नारंगी'],['#FFFBEB','Light Orange','हल्का नारंगी'],['#F3F4F6','Light Slate','हल्का स्लेटी'],['#4ADE80','Bright Green (Navy Only)','चमकीला हरा (सिर्फ़ नेवी पर)'],['#FCA5A5','Bright Red (Navy Only)','चमकीला लाल (सिर्फ़ नेवी पर)']];
+  var sw=document.getElementById('sw');
+  C.forEach(function(c,i){var d=document.createElement('div');d.innerHTML='<i style="background:'+c[0]+'"></i><span><b data-hi="'+(i+1)+'. '+c[2]+'">'+(i+1)+'. '+c[1]+'</b><code>'+c[0]+'</code></span>';sw.appendChild(d)});
+  var phone=document.getElementById('phone'),w=document.getElementById('width'),wo=document.getElementById('wout');
+  function setW(v){phone.style.setProperty('--w',v+'px');wo.textContent=v+' px'}
+  w.addEventListener('input',function(){setW(w.value)});
+  var en=document.getElementById('lang-en'),hi=document.getElementById('lang-hi');
+  function lang(h){
+    document.documentElement.lang=h?'hi':'en';
+    en.setAttribute('aria-pressed',!h);hi.setAttribute('aria-pressed',h);
+    document.querySelectorAll('[data-hi]').forEach(function(el){if(el.dataset.en===undefined)el.dataset.en=el.textContent;el.textContent=h?el.dataset.hi:el.dataset.en});
+    document.querySelectorAll('[data-hi-ph]').forEach(function(el){if(el.dataset.enPh===undefined)el.dataset.enPh=el.placeholder;el.placeholder=h?el.dataset.hiPh:el.dataset.enPh});
+    try{localStorage.setItem('lang',h?'hi':'en')}catch(e){}
+  }
+  en.addEventListener('click',function(){lang(false)});hi.addEventListener('click',function(){lang(true)});
+  try{if(localStorage.getItem('lang')==='hi')lang(true)}catch(e){}
+  document.querySelectorAll('.tabs [role=tab]').forEach(function(t){t.addEventListener('click',function(){t.parentNode.querySelectorAll('[role=tab]').forEach(function(x){x.setAttribute('aria-selected',x===t)})})});
+  var tg=document.getElementById('f-tg');tg.addEventListener('click',function(){tg.setAttribute('aria-checked',tg.getAttribute('aria-checked')!=='true')});
+})();
+</script>
