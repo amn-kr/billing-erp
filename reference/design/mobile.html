@@ -144,6 +144,41 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 @keyframes pl{to{background:var(--border)}}
 .toast{background:var(--text);color:var(--on);border-radius:var(--r);padding:10px 12px;display:flex;align-items:center;gap:10px;font-size:14px}
 .toast .cg2{color:var(--green-nv)}
+
+/* ---------- 7.3 app map ---------- */
+.views{display:inline-flex}
+.map{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.mrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:20px;align-items:start}
+.pan{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.pan h2{font-size:16px;margin:0}
+.pan p{margin:0;color:var(--text2);font-size:14px}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{background:var(--blue-l);color:var(--blue);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.chip.g{background:var(--green-l);color:var(--green)}
+.chip.n{background:var(--slate-l);color:var(--text2)}
+.arr{color:var(--text3);font-weight:700}
+.jn{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;align-items:start}
+.jn .no{width:28px;height:28px;border-radius:50%;background:var(--navy);color:var(--on);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.jn b{display:block;font-size:14px;margin-bottom:4px}
+.mph{width:100%;max-width:340px;border:8px solid var(--text);border-radius:30px;background:var(--page);overflow:hidden;container-type:inline-size;display:flex;flex-direction:column;gap:10px;padding:10px;justify-self:center}
+.cw{position:relative}
+[hidden]{display:none!important}
+.bar>.cw{min-width:0}
+.pin{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--orange);color:var(--on);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:1}
+.keys{margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:14px;color:var(--text2)}
+.keys li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px}
+.keys li span:first-child{width:20px;height:20px;border-radius:50%;background:var(--orange);color:var(--on);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.sm{background:var(--card);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.smh{background:var(--navy);color:var(--on);padding:12px;display:flex;flex-direction:column;gap:8px}
+.smh .cc{display:flex;align-items:center;justify-content:space-between;border:1px solid rgba(255,255,255,.25);border-radius:10px;padding:8px 10px;font-size:13px;font-weight:600;min-height:var(--tap)}
+.mi{display:flex;align-items:center;gap:10px;padding:0 12px;min-height:var(--tap);font-size:14px;font-weight:600;color:var(--text);min-width:0}
+.mi svg{color:var(--text2)}
+.mi .ex{margin-left:auto;color:var(--text3)}
+.mi.on{background:var(--sel);color:var(--blue)}
+.mi.on svg{color:var(--blue)}
+.mi.sub{padding-left:44px;font-weight:500;color:var(--text2);min-height:40px}
+.mi .bd{margin-left:auto}
+.tiles4{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -169,6 +204,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   <symbol id="wallet" viewBox="0 0 24 24"><path d="M3 7h16v12H3zM3 7l12-3v3M15 13h2"/></symbol>
   <symbol id="cart" viewBox="0 0 24 24"><path d="M3 4h2l2 11h11l2-8H6M9 20h.01M17 20h.01"/></symbol>
   <symbol id="cal" viewBox="0 0 24 24"><path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"/></symbol>
+  <symbol id="gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
   <symbol id="filter" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></symbol>
 </svg>
 
@@ -179,12 +215,17 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
       <button id="lang-en" type="button" aria-pressed="true">English</button>
       <button id="lang-hi" type="button" aria-pressed="false">हिंदी</button>
     </div>
+    <div class="seg views" role="group" aria-label="View">
+      <button id="view-blocks" type="button" aria-pressed="true" data-hi="7.1–7.2 टुकड़े">7.1–7.2 Building Blocks</button>
+      <button id="view-map" type="button" aria-pressed="false" data-hi="7.3 ऐप का नक़्शा">7.3 App Map</button>
+    </div>
     <label class="wctl" for="width"><span data-hi="फ़ोन की चौड़ाई">Phone Width</span> <input id="width" type="range" min="320" max="480" step="1" value="390"> <b id="wout">390 px</b></label>
   </div>
-  <p data-hi="चरण 7.1 और 7.2: 20 रंग और ऐप के बुनियादी टुकड़े। चौड़ाई खिसकाकर देखें कि हर चीज़ हर फ़ोन पर फ़िट होती है।">Steps 7.1 and 7.2: the 20 colours and the app's building blocks. Drag the width to see every piece fit every phone.</p>
+  <p id="sub-blocks" data-hi="चरण 7.1 और 7.2: 20 रंग और ऐप के बुनियादी टुकड़े। चौड़ाई खिसकाकर देखें कि हर चीज़ हर फ़ोन पर फ़िट होती है।">Steps 7.1 and 7.2: the 20 colours and the app's building blocks. Drag the width to see every piece fit every phone.</p>
+  <p id="sub-map" hidden data-hi="चरण 7.3 (मंज़ूर, 15 नवंबर 2026): ऐप में कौन-सी स्क्रीन कहाँ से खुलती है। नारंगी नंबर नीचे समझाए गए हैं।">Step 7.3 (approved, November 15, 2026): which screen opens from where. The orange numbers are explained underneath.</p>
 </header>
 
-<div class="wrap">
+<div class="wrap" id="v-blocks">
   <section class="guide" aria-label="Guide">
     <div class="gsec">
       <h2 data-hi="1. रंग (20, इनके अलावा कोई नहीं)">1. Colours (20, And No Others)</h2>
@@ -322,6 +363,128 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   </div>
 </div>
 
+<div class="map" id="v-map" hidden>
+  <div class="pan">
+    <h2 data-hi="1. ऐप खोलने पर">1. Opening The App</h2>
+    <div class="flow"><span class="chip " data-hi="साइन इन">Sign In</span><span class="arr" aria-hidden="true">→</span><span class="chip " data-hi="कंपनी चुनें">Choose Company</span><span class="arr" aria-hidden="true">→</span><span class="chip " data-hi="फ़िंगरप्रिंट">Fingerprint</span><span class="arr" aria-hidden="true">→</span><span class="chip g" data-hi="होम">Home</span></div>
+    <p data-hi="कंपनी चुनना सिर्फ़ तब, जब आपकी एक से ज़्यादा दुकानें हों। फ़िंगरप्रिंट सिर्फ़ तब, जब सेटिंग में चालू हो। अगली बार ऐप सीधे फ़िंगरप्रिंट से खुलेगा, दोबारा साइन इन नहीं।">Choose Company appears only if you have more than one shop. Fingerprint appears only if it is turned on in Settings. Next time the app opens straight to the fingerprint, with no new sign in.</p>
+  </div>
+
+  <div class="mrow">
+    <div class="pan">
+      <h2 data-hi="2. होम">2. Home</h2>
+      <div class="mph">
+        <div class="hdr cw"><span class="pin">1</span><button class="btn ico line" style="border:0" aria-label="Menu"><svg class="ic"><use href="#menu"/></svg></button><div class="mid"><div class="t">Sharma Electricals &amp; Hardware</div><div class="t-x" data-hi="आज · नवंबर 15, 2026">Today · November 15, 2026</div></div><span class="cw"><span class="pin">2</span><button class="btn ico line" style="border:0" aria-label="Search"><svg class="ic"><use href="#search"/></svg></button></span><span class="cw"><span class="pin">3</span><button class="btn ico line" style="border:0" aria-label="Alerts"><svg class="ic"><use href="#bell"/></svg></button></span></div>
+        <div class="sum cw"><span class="pin">4</span>
+          <div class="nv"><div class="k"><span data-hi="↓ आपको मिलेगा">↓ You'll Get</span></div><div class="amt g">₹25,872</div></div>
+          <div class="nv"><div class="k"><span data-hi="↑ आपको देना है">↑ You'll Give</span></div><div class="amt rd">₹60,119</div></div>
+        </div>
+        <div class="tabs cw" role="tablist"><span class="pin">5</span><button role="tab" aria-selected="true" data-hi="पार्टी">Parties</button><button role="tab" aria-selected="false" data-hi="बिल">Bills</button><button role="tab" aria-selected="false" data-hi="आइटम">Items</button></div>
+        <div class="li"><div class="av">ME</div><div class="mid"><div class="nm">Mehta Electricals</div><div class="t-x" data-hi="अक्टूबर 1, 2026">October 1, 2026</div></div><div class="end"><div class="v cg">21,749.40</div><div class="w cg" data-hi="↓ मिलेगा">↓ To Get</div></div></div>
+        <div class="li"><div class="av">KC</div><div class="mid"><div class="nm">Kanpur Cables Pvt Ltd</div><div class="t-x" data-hi="सितंबर 28, 2026">September 28, 2026</div></div><div class="end"><div class="v cr">60,119</div><div class="w cr" data-hi="↑ देना है">↑ To Give</div></div></div>
+        <div class="bar"><span class="cw" style="flex:1;display:flex"><span class="pin">6</span><button class="btn soft grow"><svg class="ic"><use href="#rupee"/></svg><span data-hi="भुगतान लें">Take Payment</span></button></span><span class="cw"><span class="pin">7</span><button class="btn ico blue" aria-label="Create New"><svg class="ic"><use href="#plus"/></svg></button></span><span class="cw" style="flex:1;display:flex"><span class="pin">8</span><button class="btn blue grow"><span data-hi="नया बिल">New Bill</span></button></span></div>
+      </div>
+      <ol class="keys">
+        <li><span>1</span><span data-hi="साइड मेन्यू खोलता है (बगल वाला चित्र)।">Opens the side menu (next picture).</span></li>
+        <li><span>2</span><span data-hi="सब कुछ खोजें: पार्टी, बिल नंबर, आइटम, barcode।">Search everything: parties, bill numbers, items, barcodes.</span></li>
+        <li><span>3</span><span data-hi="सूचनाएँ: बकाया पैसा, कम स्टॉक, backup की चेतावनी।">Alerts: overdue money, low stock, backup warnings.</span></li>
+        <li><span>4</span><span data-hi="दबाने पर वही पार्टियाँ खुलती हैं जिनसे पैसा लेना या देना है।">Tap to open the parties you get money from, or owe money to.</span></li>
+        <li><span>5</span><span data-hi="होम पर ही पार्टी, बिल और आइटम की सूची।">Parties, bills and items, right on Home.</span></li>
+        <li><span>6</span><span data-hi="पैसा लें: पार्टी चुनें, रक़म डालें, रसीद भेजें।">Take a payment: pick the party, enter the amount, share the receipt.</span></li>
+        <li><span>7</span><span data-hi="'नया बनाएँ' शीट खोलता है (नीचे 4)।">Opens the Create New sheet (4 below).</span></li>
+        <li><span>8</span><span data-hi="सीधे नया बिक्री बिल।">Starts a new sale bill straight away.</span></li>
+      </ol>
+    </div>
+
+    <div class="pan">
+      <h2 data-hi="3. साइड मेन्यू">3. Side Menu</h2>
+      <div class="mph">
+        <div class="sm">
+          <div class="smh"><div style="font-weight:700">Sharma Electricals &amp; Hardware</div><div class="cc"><span data-hi="कंपनी बदलें">Change Company</span><svg class="ic"><use href="#next"/></svg></div></div>
+          <div class="mi on"><svg class="ic"><use href="#bill"/></svg><span data-hi="होम">Home</span></div>
+          <div class="mi"><svg class="ic"><use href="#user"/></svg><span data-hi="पार्टी">Parties</span></div>
+          <div class="mi"><svg class="ic"><use href="#box"/></svg><span data-hi="आइटम और स्टॉक">Items &amp; Stock</span><span class="ex"><svg class="ic"><use href="#next"/></svg></span></div>
+          <div class="mi"><svg class="ic"><use href="#bill"/></svg><span data-hi="बिक्री">Sales</span><span class="ex" style="transform:rotate(90deg)"><svg class="ic"><use href="#next"/></svg></span></div>
+          <div class="mi sub" data-hi="Quotation">Quotations</div>
+          <div class="mi sub" data-hi="बिक्री बिल">Sale Bills</div>
+          <div class="mi sub" data-hi="डिलीवरी चालान">Delivery Challans</div>
+          <div class="mi sub" data-hi="मिले भुगतान">Payments Received</div>
+          <div class="mi sub" data-hi="क्रेडिट नोट">Credit Notes</div>
+          <div class="mi sub" data-hi="कमीशन">Commission</div>
+          <div class="mi"><svg class="ic"><use href="#cart"/></svg><span data-hi="ख़रीद">Purchases</span><span class="ex"><svg class="ic"><use href="#next"/></svg></span></div>
+          <div class="mi"><svg class="ic"><use href="#wallet"/></svg><span data-hi="ख़र्चे">Expenses</span></div>
+          <div class="mi"><svg class="ic"><use href="#rupee"/></svg><span data-hi="बैंक और कैश">Banking &amp; Cash</span><span class="ex"><svg class="ic"><use href="#next"/></svg></span></div>
+          <div class="mi"><svg class="ic"><use href="#filter"/></svg><span data-hi="रिपोर्ट">Reports</span></div>
+          <div class="mi" style="color:var(--text3)"><svg class="ic"><use href="#bill"/></svg><span>GST</span><span class="bd gray" data-hi="जल्द">Soon</span></div>
+          <div class="mi"><svg class="ic"><use href="#gear"/></svg><span data-hi="सेटिंग">Settings</span></div>
+          <div class="mi"><svg class="ic"><use href="#back"/></svg><span data-hi="साइन आउट">Sign Out</span></div>
+        </div>
+      </div>
+      <ol class="keys">
+        <li><span>•</span><span data-hi="वेब ऐप जैसी ही सूची। &quot;Sales&quot; खुला दिखाया है; बाक़ी समूह भी ऐसे ही खुलते हैं।">The same list as the web app. Sales is shown open; the other groups open the same way.</span></li>
+        <li><span>•</span><span data-hi="आइटम और स्टॉक: Items, Price Manager, Stock Adjustments, Godowns। ख़रीद: Purchase Orders, Purchase Bills, Payments Made, Debit Notes। बैंक और कैश: Bank Accounts, Cash In Hand, Cheques (Reconciliation फ़ोन पर नहीं)।">Items &amp; Stock: Items, Price Manager, Stock Adjustments, Godowns. Purchases: Purchase Orders, Purchase Bills, Payments Made, Debit Notes. Banking &amp; Cash: Bank Accounts, Cash In Hand, Cheques (no Reconciliation on the phone).</span></li>
+        <li><span>•</span><span data-hi="भाषा बदलना सेटिंग में है।">The language switch is in Settings.</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="mrow">
+    <div class="pan">
+      <h2 data-hi="4. नया बनाएँ (+)">4. Create New (+)</h2>
+      <div class="tiles4">
+        <button class="tile"><svg class="ic"><use href="#bill"/></svg><span data-hi="बिक्री बिल">Sale Bill</span></button>
+        <button class="tile"><svg class="ic"><use href="#bill"/></svg><span>Quotation</span></button>
+        <button class="tile"><svg class="ic"><use href="#box"/></svg><span data-hi="डिलीवरी चालान">Delivery Challan</span></button>
+        <button class="tile"><svg class="ic"><use href="#rupee"/></svg><span data-hi="भुगतान लें">Payment In</span></button>
+        <button class="tile"><svg class="ic"><use href="#back"/></svg><span data-hi="क्रेडिट नोट">Credit Note</span></button>
+        <button class="tile"><svg class="ic"><use href="#cart"/></svg><span data-hi="ख़रीद बिल">Purchase Bill</span></button>
+        <button class="tile"><svg class="ic"><use href="#cart"/></svg><span data-hi="ख़रीद ऑर्डर">Purchase Order</span></button>
+        <button class="tile"><svg class="ic"><use href="#rupee"/></svg><span data-hi="भुगतान दें">Payment Out</span></button>
+        <button class="tile"><svg class="ic"><use href="#wallet"/></svg><span data-hi="ख़र्चा">Expense</span></button>
+        <button class="tile"><svg class="ic"><use href="#user"/></svg><span data-hi="नई पार्टी">New Party</span></button>
+        <button class="tile"><svg class="ic"><use href="#box"/></svg><span data-hi="नया आइटम">New Item</span></button>
+        <button class="tile"><svg class="ic"><use href="#next"/></svg><span data-hi="डेबिट नोट">Debit Note</span></button>
+      </div>
+    </div>
+
+    <div class="pan">
+      <h2 data-hi="5. हर सूची एक ही तरह चलती है">5. Every List Works The Same Way</h2>
+      <div class="flow"><span class="chip " data-hi="सूची">List</span><span class="arr" aria-hidden="true">→</span><span class="chip n" data-hi="पंक्ति दबाएँ">Tap A Row</span><span class="arr" aria-hidden="true">→</span><span class="chip " data-hi="देखें">View</span><span class="arr" aria-hidden="true">→</span><span class="chip " data-hi="बदलें">Edit</span><span class="arr" aria-hidden="true">→</span><span class="chip g" data-hi="सेव करें">Save</span></div>
+      <p data-hi="सूची में ऊपर: खोज, छाँटना, समय (आज, यह महीना, यह साल)। नीचे: उस सूची का मुख्य बटन, जैसे '+ New Quotation'। 'देखें' स्क्रीन पर: PDF भेजें, बदलें, रद्द करें, और जहाँ हो वहाँ 'बिल में बदलें' (Quotation, Challan, Purchase Order)।">At the top of a list: search, filter, and period (today, this month, this year). At the bottom: that list's main button, such as + New Quotation. On a View screen: Share PDF, Edit, Cancel, and Convert To Bill where it applies (quotations, challans, purchase orders).</p>
+    </div>
+  </div>
+
+  <div class="pan">
+    <h2 data-hi="6. मुख्य काम, कदम-दर-कदम">6. Main Journeys</h2>
+    <div class="jn"><span class="no">1</span><div><b data-hi="बिल बनाना">Make A Bill</b><div class="flow"><span class="chip n" data-hi="होम">Home</span><span class="arr" aria-hidden="true">→</span><span class="chip " data-hi="नया बिल">New Bill</span><span class="arr" aria-hidden="true">→</span><span class="chip " data-hi="पार्टी चुनें">Choose Party</span><span class="arr" aria-hidden="true">→</span><span class="chip " data-hi="आइटम जोड़ें या स्कैन">Add Or Scan Items</span><span class="arr" aria-hidden="true">→</span><span class="chip g" data-hi="सेव">Save</span><span class="arr" aria-hidden="true">→</span><span class="chip g" data-hi="बिल सेव हुआ">Bill Saved</span><span class="arr" aria-hidden="true">→</span><span class="chip " data-hi="WhatsApp पर भेजें">Share On WhatsApp</span></div></div></div>
+    <div class="jn"><span class="no">2</span><div><b data-hi="पैसा लेना">Collect Money</b><div class="flow"><span class="chip n" data-hi="पार्टी">Party</span><span class="arr" aria-hidden="true">→</span><span class="chip " data-hi="भुगतान लें">Take Payment</span><span class="arr" aria-hidden="true">→</span><span class="chip " data-hi="रक़म और तरीक़ा">Amount And Mode</span><span class="arr" aria-hidden="true">→</span><span class="chip g" data-hi="सेव">Save</span><span class="arr" aria-hidden="true">→</span><span class="chip " data-hi="रसीद भेजें">Share Receipt</span></div></div></div>
+    <div class="jn"><span class="no">3</span><div><b data-hi="याद दिलाना">Remind A Party</b><div class="flow"><span class="chip n" data-hi="पार्टी">Party</span><span class="arr" aria-hidden="true">→</span><span class="chip " data-hi="रिमाइंडर">Reminder</span><span class="arr" aria-hidden="true">→</span><span class="chip g" data-hi="संदेश के साथ WhatsApp">WhatsApp With Message</span></div></div></div>
+    <div class="jn"><span class="no">4</span><div><b data-hi="Quotation से बिल">Quotation To Bill</b><div class="flow"><span class="chip n" data-hi="Quotation">Quotations</span><span class="arr" aria-hidden="true">→</span><span class="chip " data-hi="देखें">View</span><span class="arr" aria-hidden="true">→</span><span class="chip " data-hi="बिल में बदलें">Convert To Bill</span><span class="arr" aria-hidden="true">→</span><span class="chip g" data-hi="सेव">Save</span></div></div></div>
+    <div class="jn"><span class="no">5</span><div><b data-hi="ख़रीद दर्ज करना">Record A Purchase</b><div class="flow"><span class="chip n" data-hi="+">+</span><span class="arr" aria-hidden="true">→</span><span class="chip " data-hi="ख़रीद बिल">Purchase Bill</span><span class="arr" aria-hidden="true">→</span><span class="chip " data-hi="सप्लायर">Supplier</span><span class="arr" aria-hidden="true">→</span><span class="chip " data-hi="आइटम और बैच">Items And Batches</span><span class="arr" aria-hidden="true">→</span><span class="chip g" data-hi="सेव">Save</span></div></div></div>
+    <div class="jn"><span class="no">6</span><div><b data-hi="रिपोर्ट भेजना">Share A Report</b><div class="flow"><span class="chip n" data-hi="मेन्यू">Menu</span><span class="arr" aria-hidden="true">→</span><span class="chip " data-hi="रिपोर्ट">Reports</span><span class="arr" aria-hidden="true">→</span><span class="chip " data-hi="रिपोर्ट चुनें">Choose Report</span><span class="arr" aria-hidden="true">→</span><span class="chip " data-hi="समय">Period</span><span class="arr" aria-hidden="true">→</span><span class="chip g" data-hi="PDF या Excel भेजें">Share PDF Or Excel</span></div></div></div>
+  </div>
+
+  <div class="mrow">
+    <div class="pan">
+      <h2 data-hi="7. फ़ोन का 'पीछे' बटन">7. The Phone's Back Button</h2>
+      <ol class="rules">
+        <li data-hi="हमेशा एक स्क्रीन पीछे।">Always goes back one screen.</li>
+        <li data-hi="खुली शीट या मेन्यू हो तो पहले वह बंद होता है।">If a sheet or the menu is open, it closes that first.</li>
+        <li data-hi="अधूरा बिल हो तो पूछता है: 'बिल ड्राफ़्ट में रखें?' — बिल कभी चुपचाप नहीं खोता।">With an unfinished bill it asks: Keep This Bill As A Draft? A bill is never lost silently.</li>
+        <li data-hi="होम पर दो बार दबाने से ऐप बंद होता है ('बंद करने के लिए फिर दबाएँ')।">On Home, pressing it twice closes the app ("Press again to close").</li>
+      </ol>
+    </div>
+    <div class="pan">
+      <h2 data-hi="8. आपके फ़ैसले (15 नवंबर 2026)">8. Your Decisions (November 15, 2026)</h2>
+      <ol class="rules">
+        <li data-hi="घूमने का तरीक़ा: साइड मेन्यू + होम के नीचे 3 बटन, जैसा ऊपर दिखाया। नीचे टैब-पट्टी नहीं।">Getting around: the side menu plus the 3 buttons at the bottom of Home, as shown above. No tab bar at the bottom.</li>
+        <li data-hi="'जल्द आ रहा' चीज़ें (GST, Payment Links वग़ैरह) मेन्यू में 'Soon' के साथ दिखती हैं, जैसे वेब में।">"Coming soon" items (GST, Payment Links and so on) show in the menu with a Soon badge, as on the web.</li>
+        <li data-hi="होम पर तीन टैब: पार्टी, बिल, आइटम — ठीक हैं।">Home has three tabs: Parties, Bills, Items. Approved.</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   var C=[['#F8FAFC','Page','पेज'],['#FFFFFF','Card','कार्ड'],['#E2E8F0','Border','बॉर्डर'],['#111827','Text','लिखावट'],['#4B5563','Text 2','लिखावट 2'],['#6B7280','Text 3','लिखावट 3'],['#1D4ED8','Main Blue','मुख्य नीला'],['#EFF6FF','Light Blue','हल्का नीला'],['#DBEAFE','Selected','चुना हुआ'],['#1E3A8A','Navy','नेवी'],['#FFFFFF','On Colour','बटन के अक्षर'],['#15803D','Green','हरा'],['#F0FDF4','Light Green','हल्का हरा'],['#C81E1E','Red','लाल'],['#FEF2F2','Light Red','हल्का लाल'],['#B45309','Orange','नारंगी'],['#FFFBEB','Light Orange','हल्का नारंगी'],['#F3F4F6','Light Slate','हल्का स्लेटी'],['#4ADE80','Bright Green (Navy Only)','चमकीला हरा (सिर्फ़ नेवी पर)'],['#FCA5A5','Bright Red (Navy Only)','चमकीला लाल (सिर्फ़ नेवी पर)']];
@@ -341,6 +504,12 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   en.addEventListener('click',function(){lang(false)});hi.addEventListener('click',function(){lang(true)});
   try{if(localStorage.getItem('lang')==='hi')lang(true)}catch(e){}
   document.querySelectorAll('.tabs [role=tab]').forEach(function(t){t.addEventListener('click',function(){t.parentNode.querySelectorAll('[role=tab]').forEach(function(x){x.setAttribute('aria-selected',x===t)})})});
+
+  var vb=document.getElementById('view-blocks'),vm=document.getElementById('view-map'),B=document.getElementById('v-blocks'),M=document.getElementById('v-map'),WC=document.querySelector('.wctl');
+  function view(m){B.hidden=m;M.hidden=!m;WC.hidden=m;document.getElementById('sub-blocks').hidden=m;document.getElementById('sub-map').hidden=!m;vb.setAttribute('aria-pressed',!m);vm.setAttribute('aria-pressed',m)}
+  vb.addEventListener('click',function(){location.hash='blocks'});vm.addEventListener('click',function(){location.hash='map'});
+  function route(){view(location.hash==='#map')}
+  window.addEventListener('hashchange',route);route();
   var tg=document.getElementById('f-tg');tg.addEventListener('click',function(){tg.setAttribute('aria-checked',tg.getAttribute('aria-checked')!=='true')});
 })();
 </script>

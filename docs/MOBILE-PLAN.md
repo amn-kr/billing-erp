@@ -117,7 +117,7 @@ Each part is a page the owner can open on their own phone.
 |---|---|---|
 | 7.1 | The 20 colours at the top of the design page | ✅ Approved (15 Nov 2026) |
 | 7.2 | Building blocks: buttons, cards, list rows, badges, form fields, bottom sheet, tabs, empty states, "No internet", "Server is waking up…", loading; English and Hindi | ✅ Approved (15 Nov 2026), after the wording changes in section 5 |
-| 7.3 | App map: what opens from where, side menu, bottom buttons | Owner approves |
+| 7.3 | App map: what opens from where, side menu, bottom buttons | ✅ Approved (15 Nov 2026): side menu plus 3 Home bottom buttons (no bottom tab bar); "coming soon" items show with a Soon badge; Home tabs Parties, Bills, Items |
 | 7.4a | Sign in, switch company, Home, side menu, search, language switch | Owner approves each part |
 | 7.4b | Parties: list, party page, add/edit with contacts, statement, reminder | " |
 | 7.4c | Items and stock: list, item page, batch/MRP/packs, brands, adjustments, godowns and transfers, bulk price update and active/inactive, prices of one item, camera scan | " |
