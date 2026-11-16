@@ -286,7 +286,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .lock .lnk{color:var(--on);align-self:center}
 .sec{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin:4px 2px -4px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chips button{font:inherit;font-size:13px;font-weight:600;min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chips button{font:inherit;font-size:13px;font-weight:600;min-height:var(--tap);padding:0 12px;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .srow{display:flex;align-items:center;gap:10px;min-height:var(--tap);padding:0 12px;background:var(--card);border-bottom:1px solid var(--border);font:inherit;font-size:15px;color:var(--text);width:100%;text-align:left;border-left:0;border-right:0;border-top:0;cursor:pointer;min-width:0}
 .srow:first-child{border-radius:var(--r) var(--r) 0 0}
 .srow:last-child{border-bottom:0;border-radius:0 0 var(--r) var(--r)}
@@ -299,6 +299,51 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .opt .dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--text3);flex:none}
 .opt[aria-checked="true"] .dot{border:6px solid var(--blue)}
 @media (prefers-reduced-motion:reduce){.scn.in,.ov,.drw,.ov .sheet,.ptoast{animation:none}}
+/* ---------- 7.4b parties ---------- */
+.scrlist h3{font-size:13px;margin:8px 2px 0;color:var(--text2)}
+.ptot{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ptot button{font:inherit;text-align:left;border:1px solid var(--border);background:var(--card);border-radius:var(--r);padding:8px 10px;cursor:pointer;min-width:0;min-height:var(--tap)}
+.fx .ptot button{box-shadow:var(--sh1)}
+.ptot .k{font-size:12px;color:var(--text2);font-weight:600}
+.ptot .v{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:clamp(14px,4.4cqi,17px)}
+.ptot button[aria-pressed="true"]{border-color:var(--blue);background:var(--blue-l)}
+.chips button[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:var(--on)}
+.pbal{align-items:flex-start}
+.pbal .amt{font-size:clamp(24px,9cqi,34px)}
+.meta{display:flex;flex-wrap:wrap;gap:6px}
+.meta span{font-size:12px;font-weight:600;color:var(--text2);background:var(--slate-l);border-radius:999px;padding:4px 10px;max-width:100%;overflow-wrap:anywhere}
+.qa3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.qa3 .btn{flex-direction:column;gap:4px;min-height:64px;font-size:13px;padding:8px 4px}
+.lnk.sm{min-height:var(--tap);font-size:13px}
+.acc{font:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:0 12px;border:1px solid var(--border);border-radius:var(--r);background:var(--card);color:var(--text);cursor:pointer;text-align:left}
+.fx .acc{box-shadow:var(--sh1)}
+.acc>span:not(.ex){flex:1;min-width:0}
+.acc .ex{color:var(--text3);transition:transform .15s;display:flex;margin-left:auto;flex:none}
+.acc[aria-expanded="true"]{border-radius:var(--r) var(--r) 0 0;border-bottom-color:transparent}
+.acc[aria-expanded="true"] .ex{transform:rotate(90deg)}
+.accb{border:1px solid var(--border);border-top:0;border-radius:0 0 var(--r) var(--r);background:var(--card);padding:4px clamp(8px,3cqi,12px) 14px;display:flex;flex-direction:column;gap:12px;margin-top:-10px}
+.seg2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.seg2 button{font:inherit;font-size:14px;font-weight:600;min-height:52px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--card);color:var(--text2);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;padding:4px;min-width:0}
+.seg2 button small{font-size:11px;font-weight:500;color:var(--text3)}
+.seg2 button[aria-pressed="true"]{border-color:var(--blue);background:var(--blue-l);color:var(--blue)}
+.inp .pk{border:0;background:transparent;color:var(--blue);width:var(--tap);height:var(--tap);margin:-1px -10px -1px 0;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
+.hint{font-size:12px;color:var(--text3)}
+.msgb{background:var(--green-l);border-radius:var(--r) var(--r) var(--r) 4px;padding:12px;font-size:14px;line-height:1.45;color:var(--text)}
+.st-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:10px 12px;background:var(--card);border-bottom:1px solid var(--border);align-items:center}
+.st-row:last-child{border-bottom:0}
+.st-row .v{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.st-row .rb{font-size:12px;color:var(--text3);white-space:nowrap;text-align:right}
+.st-sum{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.st-sum div{background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 10px;min-width:0}
+.st-sum b{display:block;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:clamp(13px,4.2cqi,16px)}
+.st-sum span{font-size:12px;color:var(--text2)}
+.inact .nm{color:var(--text3)}
+.dev .tabs button{font-size:clamp(12.5px,4cqi,14px);padding:0 4px}
+.dev .inp select{font-size:clamp(13.5px,4.3cqi,15px)}
+.ckl{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 12px;background:var(--card);border-bottom:1px solid var(--border);cursor:pointer;min-width:0}
+.ckl:last-child{border-bottom:0}
+.ckl input{width:22px;height:22px;accent-color:var(--blue);flex:none}
+.ckl .mid{flex:1;min-width:0}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -330,6 +375,9 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   <symbol id="xic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
   <symbol id="eyei" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
   <symbol id="lockic" viewBox="0 0 24 24"><path d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="chat" viewBox="0 0 24 24"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19.3z"/><path d="M9 10h.01M12 10h.01M15 10h.01"/></symbol>
+  <symbol id="phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></symbol>
+  <symbol id="edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"/></symbol>
   <symbol id="filter" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></symbol>
 </svg>
 
@@ -343,13 +391,13 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     <div class="seg views" role="group" aria-label="View">
       <button id="view-blocks" type="button" aria-pressed="true" data-hi="7.1–7.2 टुकड़े">7.1–7.2 Building Blocks</button>
       <button id="view-map" type="button" aria-pressed="false" data-hi="7.3 ऐप का नक़्शा">7.3 App Map</button>
-      <button id="view-a" type="button" aria-pressed="false" data-hi="7.4a स्क्रीनें">7.4a Screens</button>
+      <button id="view-a" type="button" aria-pressed="false" data-hi="7.4 स्क्रीनें">7.4 Screens</button>
     </div>
     <label class="wctl" for="width"><span data-hi="फ़ोन की चौड़ाई">Phone Width</span> <input id="width" type="range" min="320" max="480" step="1" value="390"> <b id="wout">390 px</b></label>
   </div>
   <p id="sub-blocks" data-hi="चरण 7.1 और 7.2: 20 रंग और ऐप के बुनियादी टुकड़े। चौड़ाई खिसकाकर देखें कि हर चीज़ हर फ़ोन पर फ़िट होती है।">Steps 7.1 and 7.2: the 20 colours and the app's building blocks. Drag the width to see every piece fit every phone.</p>
   <p id="sub-map" hidden data-hi="चरण 7.3 (मंज़ूर, 15 नवंबर 2026): ऐप में कौन-सी स्क्रीन कहाँ से खुलती है। नारंगी नंबर नीचे समझाए गए हैं।">Step 7.3 (approved, November 15, 2026): which screen opens from where. The orange numbers are explained underneath.</p>
-  <p id="sub-a" hidden data-hi="चरण 7.4a: साइन इन, कंपनी, होम, मेन्यू, खोज, सूचनाएँ, सेटिंग। फ़ोन में दबाकर चलाइए।">Step 7.4a: sign in, company, Home, menu, search, alerts, settings. Tap through it in the phone.</p>
+  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a मंज़ूर; अब 7.4b: पार्टी।">Step 7.4: the app's screens, to tap through. 7.4a is approved; now 7.4b: Parties.</p>
 </header>
 
 <div class="wrap" id="v-blocks">
@@ -617,7 +665,35 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 <div class="proto" id="v-a" hidden>
   <div class="guide">
     <div class="gsec">
-      <h2 data-hi="7.4a: ऐप खोलना, होम और मेन्यू">7.4a: Opening, Home And Menu</h2>
+      <h2 data-hi="7.4b: पार्टी (नया)">7.4b: Parties (New)</h2>
+      <p data-hi="पार्टी की सूची, पार्टी का पेज, हिसाब, याद दिलाना, नई पार्टी और बदलना। सब कुछ वेब ऐप जैसा, पर फ़ोन के हिसाब से।">The party list, party page, statement, reminder, and adding or editing a party. Everything the web app has, laid out for the phone.</p>
+      <div class="scrlist">
+        <button type="button" data-jump2="parties"><span class="no">1</span><span data-hi="पार्टी की सूची">Parties List</span></button>
+        <button type="button" data-jump2="party"><span class="no">2</span><span data-hi="पार्टी का पेज (Mehta Electricals)">Party Page (Mehta Electricals)</span></button>
+        <button type="button" data-jump2="remind"><span class="no">3</span><span data-hi="WhatsApp पर याद दिलाना">Payment Reminder</span></button>
+        <button type="button" data-jump2="stmt"><span class="no">4</span><span data-hi="हिसाब (Statement)">Statement</span></button>
+        <button type="button" data-jump2="pform"><span class="no">5</span><span data-hi="नई पार्टी">New Party</span></button>
+        <button type="button" data-jump2="contacts"><span class="no">6</span><span data-hi="contacts से चुनें">Pick From Contacts</span></button>
+        <button type="button" data-jump2="pedit"><span class="no">7</span><span data-hi="पार्टी बदलें / हटाएँ">Edit Or Delete Party</span></button>
+      </div>
+    </div>
+    <div class="gsec">
+      <h2 data-hi="क्या आज़माएँ (7.4b)">Things To Try (7.4b)</h2>
+      <ol class="rules">
+        <li data-hi="होम पर 'आपको मिलेगा' कार्ड दबाएँ: सिर्फ़ वे पार्टियाँ जिनसे पैसा लेना है।">On Home, tap the You'll Get card: only the parties you get money from.</li>
+        <li data-hi="सूची में ग्राहक / सप्लायर टैब, बैलेंस फ़िल्टर और खोज आज़माएँ। नीचे 'बंद पार्टियाँ दिखाएँ'।">In the list, try the Customers / Suppliers tabs, the balance filter and search. At the bottom: Show Inactive.</li>
+        <li data-hi="Mehta Electricals खोलें: Overdue, Unpaid, Paid फ़िल्टर; याद दिलाएँ; हिसाब में महीना बदलें।">Open Mehta Electricals: the Overdue, Unpaid and Paid filters; Reminder; change the period in Statement.</li>
+        <li data-hi="नई पार्टी: नाम ख़ाली छोड़कर Save दबाएँ; फिर 📒 से contact चुनें; नीचे के तीन हिस्से खोलें।">New Party: tap Save with no name; then pick a contact with 📒; open the three sections below.</li>
+        <li data-hi="Mehta को हटाने की कोशिश करें: बिल हैं, इसलिए 'बंद करें' का विकल्प आता है। Raju Electrician के कोई बिल नहीं, वह हट सकता है।">Try to delete Mehta: it has bills, so you get Make Inactive. Raju Electrician has no bills and can be deleted.</li>
+        <li data-hi="पार्टी सूची में नीचे 'contacts से जोड़ें': कई contacts एक साथ पार्टी बनें।">Import Contacts at the bottom of the list: several contacts become parties at once.</li>
+      </ol>
+    </div>
+    <div class="gsec">
+      <h2 data-hi="7.4b में आपसे क्या चाहिए">What We Need From You (7.4b)</h2>
+      <p data-hi="हर पार्टी स्क्रीन दबाकर देखिए और बताइए क्या बदलना है। मंज़ूरी के बाद अगला कदम 7.4c: आइटम और स्टॉक।">Tap through every party screen and tell us what to change. After your approval, the next step is 7.4c: Items and Stock.</p>
+    </div>
+    <div class="gsec">
+      <h2 data-hi="7.4a: ऐप खोलना, होम और मेन्यू (मंज़ूर)">7.4a: Opening, Home And Menu (Approved)</h2>
       <p data-hi="यह दबाने लायक नमूना है: फ़ोन में बटन दबाइए, अगली स्क्रीन खुलेगी। डेटा नमूने का है, कुछ सेव नहीं होता। जो स्क्रीन बाद के कदम में बनेगी, उसे दबाने पर नीचे एक सूचना आती है।">This is a tap-through sample: tap buttons in the phone and the next screen opens. The data is sample data and nothing is saved. A screen that belongs to a later step shows a short message instead.</p>
     </div>
     <div class="gsec">
@@ -646,7 +722,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     </div>
     <div class="gsec">
       <h2 data-hi="आपसे क्या चाहिए">What We Need From You</h2>
-      <p data-hi="हर स्क्रीन दबाकर देखिए और बताइए क्या बदलना है। मंज़ूरी के बाद अगला कदम 7.4b: पार्टी।">Tap through every screen and tell us what to change. After your approval, the next step is 7.4b: Parties.</p>
+      <p data-hi="7.4a आपसे मंज़ूर (16 नवंबर 2026)।">7.4a was approved on November 16, 2026.</p>
     </div>
   </div>
 
@@ -699,15 +775,15 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
         <div class="sh"><button class="btn ico" data-ov="menu" aria-label="Menu"><svg class="ic"><use href="#menu"/></svg></button><div class="mid"><div class="t" id="home-co">Sharma Electricals &amp; Hardware</div><div class="t-x" data-hi="आज · नवंबर 16, 2026">Today · November 16, 2026</div></div><button class="btn ico" data-go="search" aria-label="Search"><svg class="ic"><use href="#search"/></svg></button><button class="btn ico" data-go="alerts" aria-label="Alerts"><svg class="ic"><use href="#bell"/></svg></button></div>
         <div class="sb">
           <div class="sum">
-            <div class="nv" role="button" tabindex="0" data-toast="Opens the parties you get money from (step 7.4b)." data-toast-hi="जिनसे पैसा लेना है वे पार्टियाँ खुलेंगी (कदम 7.4b)।"><div class="k"><svg class="ic" style="width:14px;height:14px"><use href="#down"/></svg><span data-hi="आपको मिलेगा">You'll Get</span></div><div class="amt g">₹25,872<small>.40</small></div><div class="t-x" style="color:var(--sel)" data-hi="2 पार्टी">2 Parties</div></div>
-            <div class="nv" role="button" tabindex="0" data-toast="Opens the parties you owe money to (step 7.4b)." data-toast-hi="जिन्हें पैसा देना है वे पार्टियाँ खुलेंगी (कदम 7.4b)।"><div class="k"><svg class="ic" style="width:14px;height:14px"><use href="#up"/></svg><span data-hi="आपको देना है">You'll Give</span></div><div class="amt rd">₹60,119</div><div class="t-x" style="color:var(--sel)" data-hi="1 पार्टी">1 Party</div></div>
+            <div class="nv" role="button" tabindex="0" data-plist="rec"><div class="k"><svg class="ic" style="width:14px;height:14px"><use href="#down"/></svg><span data-hi="आपको मिलेगा">You'll Get</span></div><div class="amt g">₹25,872<small>.40</small></div><div class="t-x" style="color:var(--sel)" data-hi="2 पार्टी">2 Parties</div></div>
+            <div class="nv" role="button" tabindex="0" data-plist="pay"><div class="k"><svg class="ic" style="width:14px;height:14px"><use href="#up"/></svg><span data-hi="आपको देना है">You'll Give</span></div><div class="amt rd">₹60,119</div><div class="t-x" style="color:var(--sel)" data-hi="1 पार्टी">1 Party</div></div>
           </div>
           <div class="tabs" role="tablist" id="htabs"><button role="tab" aria-selected="true" data-pane="hp" data-hi="पार्टी">Parties</button><button role="tab" aria-selected="false" data-pane="hb" data-hi="बिल">Bills</button><button role="tab" aria-selected="false" data-pane="hi" data-hi="आइटम">Items</button></div>
           <div id="hp" class="scrl" style="display:flex;flex-direction:column;gap:8px">
-            <div class="li" role="button" tabindex="0" data-t7="b"><div class="mid"><div class="nm">Mehta Electricals</div><div class="t-x" data-hi="आख़िरी: अक्टूबर 1, 2026">Last: October 1, 2026</div></div><div class="end"><div class="v cg">21,749.40</div><div class="w cg" data-hi="↓ मिलेगा">↓ To Get</div></div></div>
-            <div class="li" role="button" tabindex="0" data-t7="b"><div class="mid"><div class="nm">Gupta Lighting House</div><div class="t-x" data-hi="आख़िरी: नवंबर 12, 2026">Last: November 12, 2026</div></div><div class="end"><div class="v cg">4,123.00</div><div class="w cg" data-hi="↓ मिलेगा">↓ To Get</div></div></div>
-            <div class="li" role="button" tabindex="0" data-t7="b"><div class="mid"><div class="nm">Kanpur Cables Pvt Ltd</div><div class="t-x" data-hi="सप्लायर">Supplier</div></div><div class="end"><div class="v cr">60,119.00</div><div class="w cr" data-hi="↑ देना है">↑ To Give</div></div></div>
-            <div class="li" role="button" tabindex="0" data-t7="b"><div class="mid"><div class="nm">Shree Ganesh Electrical &amp; Sanitary Store</div><div class="t-x" data-hi="ग्राहक">Customer</div></div><div class="end"><div class="v c3">0</div><div class="w c3" data-hi="बराबर">Settled</div></div></div>
+            <div class="li" role="button" tabindex="0" data-party="mehta"><div class="mid"><div class="nm">Mehta Electricals</div><div class="t-x" data-hi="आख़िरी: नवंबर 14, 2026">Last: November 14, 2026</div></div><div class="end"><div class="v cg">21,749.40</div><div class="w cg" data-hi="↓ मिलेगा">↓ To Get</div></div></div>
+            <div class="li" role="button" tabindex="0" data-party="gupta"><div class="mid"><div class="nm">Gupta Lighting House</div><div class="t-x" data-hi="आख़िरी: नवंबर 12, 2026">Last: November 12, 2026</div></div><div class="end"><div class="v cg">4,123.00</div><div class="w cg" data-hi="↓ मिलेगा">↓ To Get</div></div></div>
+            <div class="li" role="button" tabindex="0" data-party="kanpur"><div class="mid"><div class="nm">Kanpur Cables Pvt Ltd</div><div class="t-x" data-hi="सप्लायर">Supplier</div></div><div class="end"><div class="v cr">60,119.00</div><div class="w cr" data-hi="↑ देना है">↑ To Give</div></div></div>
+            <div class="li" role="button" tabindex="0" data-party="shree"><div class="mid"><div class="nm">Shree Ganesh Electrical &amp; Sanitary Store</div><div class="t-x" data-hi="ग्राहक">Customer</div></div><div class="end"><div class="v c3">0</div><div class="w c3" data-hi="बराबर">Settled</div></div></div>
           </div>
           <div id="hb" hidden style="display:flex;flex-direction:column;gap:8px">
             <div class="li" role="button" tabindex="0" data-t7="e"><div class="mid"><div class="nm">Mehta Electricals</div><div class="t-x" data-hi="INV-0107 · नवंबर 14, 2026">INV-0107 · November 14, 2026</div></div><div class="end"><div class="v">2,123.00</div><span class="bd cr" data-hi="उधार">Credit</span></div></div>
@@ -735,9 +811,9 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
           <div id="q-res" hidden style="display:flex;flex-direction:column;gap:8px">
             <div class="sec" data-g="p" data-hi="पार्टी">Parties</div>
             <div class="grp" data-g="p">
-              <button class="srow" data-k="mehta electricals" data-t7="b"><div class="mid"><div class="nm">Mehta Electricals</div></div><span class="v cg" style="font-weight:700">↓ 21,749.40</span></button>
-              <button class="srow" data-k="gupta lighting house" data-t7="b"><div class="mid"><div class="nm">Gupta Lighting House</div></div><span class="v cg" style="font-weight:700">↓ 4,123.00</span></button>
-              <button class="srow" data-k="kanpur cables pvt ltd" data-t7="b"><div class="mid"><div class="nm">Kanpur Cables Pvt Ltd</div></div><span class="v cr" style="font-weight:700">↑ 60,119.00</span></button>
+              <button class="srow" data-k="mehta electricals" data-party="mehta"><div class="mid"><div class="nm">Mehta Electricals</div></div><span class="v cg" style="font-weight:700">↓ 21,749.40</span></button>
+              <button class="srow" data-k="gupta lighting house" data-party="gupta"><div class="mid"><div class="nm">Gupta Lighting House</div></div><span class="v cg" style="font-weight:700">↓ 4,123.00</span></button>
+              <button class="srow" data-k="kanpur cables pvt ltd" data-party="kanpur"><div class="mid"><div class="nm">Kanpur Cables Pvt Ltd</div></div><span class="v cr" style="font-weight:700">↑ 60,119.00</span></button>
             </div>
             <div class="sec" data-g="b" data-hi="बिल">Bills</div>
             <div class="grp" data-g="b">
@@ -758,7 +834,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
       <section class="scn" data-s="alerts" hidden>
         <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="mid"><div class="t" data-hi="सूचनाएँ">Alerts</div></div></div>
         <div class="sb">
-          <div class="li" role="button" tabindex="0" data-t7="b"><div class="av" style="background:var(--red-l);color:var(--red);box-shadow:none"><svg class="ic"><use href="#clock"/></svg></div><div class="mid"><div class="nm" data-hi="Mehta Electricals का पैसा बकाया">Mehta Electricals Is Overdue</div><div class="t-x" data-hi="₹21,749.40 · 12 दिन से">₹21,749.40 · 12 Days</div></div><span class="bd due" data-hi="बकाया">Overdue</span></div>
+          <div class="li" role="button" tabindex="0" data-party="mehta"><div class="av" style="background:var(--red-l);color:var(--red);box-shadow:none"><svg class="ic"><use href="#clock"/></svg></div><div class="mid"><div class="nm" data-hi="Mehta Electricals का पैसा बकाया">Mehta Electricals Is Overdue</div><div class="t-x" data-hi="₹21,749.40 · 12 दिन से">₹21,749.40 · 12 Days</div></div><span class="bd due" data-hi="बकाया">Overdue</span></div>
           <div class="li" role="button" tabindex="0" data-t7="c"><div class="av" style="background:var(--orange-l);color:var(--orange);box-shadow:none"><svg class="ic"><use href="#box"/></svg></div><div class="mid"><div class="nm" data-hi="Havells 1.5 Sq mm Wire का स्टॉक कम">Havells 1.5 Sq mm Wire Is Low</div><div class="t-x" data-hi="4 Rolls बचे">4 Rolls Left</div></div><span class="bd cr" data-hi="कम स्टॉक">Low Stock</span></div>
         </div>
       </section>
@@ -781,12 +857,96 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
         </div>
       </section>
 
+      <!-- 7.4b parties list -->
+      <section class="scn" data-s="parties" hidden>
+        <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="mid"><div class="t" data-hi="पार्टी">Parties</div></div></div>
+        <div class="sb">
+          <div class="tabs" role="tablist"><button role="tab" aria-selected="true" data-kind="all" data-hi="सभी">All</button><button role="tab" aria-selected="false" data-kind="c" data-hi="ग्राहक">Customers</button><button role="tab" aria-selected="false" data-kind="s" data-hi="सप्लायर">Suppliers</button></div>
+          <div class="ptot"><button type="button" data-bal="rec" aria-pressed="false"><div class="k" data-hi="↓ मिलेगा">↓ To Receive</div><div class="v cg" id="pt-rec">₹0</div></button><button type="button" data-bal="pay" aria-pressed="false"><div class="k" data-hi="↑ देना है">↑ To Pay</div><div class="v cr" id="pt-pay">₹0</div></button></div>
+          <div class="inp"><svg class="ic"><use href="#search"/></svg><input id="pq" type="search" placeholder="Search Party Name Or Mobile" data-hi-ph="पार्टी का नाम या मोबाइल खोजें" autocomplete="off"></div>
+          <div class="chips" id="pbal"><button type="button" data-bal="all" aria-pressed="true" data-hi="सभी बैलेंस">All Balances</button><button type="button" data-bal="rec" aria-pressed="false" data-hi="मिलेगा">To Receive</button><button type="button" data-bal="pay" aria-pressed="false" data-hi="देना है">To Pay</button><button type="button" data-bal="zero" aria-pressed="false" data-hi="बराबर">Settled</button></div>
+          <div id="plist" style="display:flex;flex-direction:column;gap:8px"></div>
+          <div class="empty" id="pnone" hidden><div class="ring"><svg class="ic"><use href="#user"/></svg></div><b data-hi="कोई पार्टी नहीं मिली">No Parties Match</b><div class="t-s" data-hi="खोज या फ़िल्टर बदलकर देखें।">Try another search or filter.</div></div>
+          <button type="button" class="lnk c" id="pinact-btn" data-inact></button>
+          <div id="pinact" hidden style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+        <div class="sf"><button class="btn soft grow" data-ov="contacts" data-cmode="import"><svg class="ic"><use href="#book"/></svg><span data-hi="contacts से जोड़ें">Import Contacts</span></button><button class="btn blue grow" data-pform="new"><svg class="ic"><use href="#plus"/></svg><span data-hi="नई पार्टी">Add Party</span></button></div>
+      </section>
+
+      <!-- 7.4b party page -->
+      <section class="scn" data-s="party" hidden>
+        <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="mid"><div class="t" id="pp-name">Party</div><div class="t-x" id="pp-kind"></div></div><button class="btn ico" data-pform="edit" aria-label="Edit Party"><svg class="ic"><use href="#edit"/></svg></button></div>
+        <div class="sb">
+          <div class="box pbal"><div class="t-s" id="pp-bl"></div><div class="amt" id="pp-amt"></div><div class="meta" id="pp-meta"></div></div>
+          <div class="qa3" id="pp-qa"></div>
+          <div class="sec" data-hi="लेन-देन">Transactions</div>
+          <div class="chips" id="pp-fil"><button type="button" data-tf="all" aria-pressed="true" data-hi="सभी">All</button><button type="button" data-tf="open" aria-pressed="false" data-hi="बाकी">Unpaid</button><button type="button" data-tf="over" aria-pressed="false" data-hi="बकाया">Overdue</button><button type="button" data-tf="paid" aria-pressed="false" data-hi="चुकता">Paid</button></div>
+          <div id="pp-tx" style="display:flex;flex-direction:column;gap:8px"></div>
+          <div class="empty" id="pp-none" hidden><div class="ring"><svg class="ic"><use href="#bill"/></svg></div><b data-hi="कोई लेन-देन नहीं">No Transactions</b><div class="t-s" data-hi="इस पार्टी का पहला बिल यहाँ दिखेगा।">This party's first bill will show here.</div></div>
+        </div>
+        <div class="sf" id="pp-bar"></div>
+      </section>
+
+      <!-- 7.4b statement -->
+      <section class="scn" data-s="stmt" hidden>
+        <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="mid"><div class="t" data-hi="हिसाब (Statement)">Statement</div><div class="t-x" id="st-name"></div></div></div>
+        <div class="sb">
+          <div class="chips" id="st-per"><button type="button" data-per="m" aria-pressed="false" data-hi="इस महीने">This Month</button><button type="button" data-per="lm" aria-pressed="false" data-hi="पिछले महीने">Last Month</button><button type="button" data-per="fy" aria-pressed="true" data-hi="इस साल (FY)">This Year (FY)</button><button type="button" data-per="c" aria-pressed="false" data-hi="तारीख़ चुनें">Custom</button></div>
+          <div class="t-x" id="st-range"></div>
+          <div class="st-sum" id="st-sum"></div>
+          <div class="grp" id="st-rows"></div>
+        </div>
+        <div class="sf"><button class="btn soft grow" data-toast="Shares the statement as an Excel file (on the real phone)." data-toast-hi="हिसाब Excel फ़ाइल में भेजेगा (असली फ़ोन पर)।"><span>Excel</span></button><button class="btn blue grow" data-toast="Makes a PDF and opens Share: WhatsApp, Gmail and others (on the real phone)." data-toast-hi="PDF बनाकर भेजने के विकल्प खोलेगा: WhatsApp, Gmail वग़ैरह (असली फ़ोन पर)।"><svg class="ic"><use href="#share"/></svg><span data-hi="PDF भेजें">Share PDF</span></button></div>
+      </section>
+
+      <!-- 7.4b add / edit party -->
+      <section class="scn" data-s="pform" hidden>
+        <div class="sh"><button class="btn ico" data-back aria-label="Close"><svg class="ic"><use href="#xic"/></svg></button><div class="mid"><div class="t" id="pf-title" data-hi="नई पार्टी">New Party</div></div></div>
+        <div class="sb">
+          <div class="fld"><label for="pf-name" data-hi="पार्टी का नाम *">Party Name *</label><div class="inp" id="pf-name-w"><input id="pf-name" placeholder="e.g. Mehta Electricals" data-hi-ph="जैसे Mehta Electricals" autocomplete="off"><button type="button" class="pk" data-ov="contacts" data-cmode="pick" aria-label="Pick From Contacts"><svg class="ic"><use href="#book"/></svg></button></div><div class="ferr" id="pf-err" hidden data-hi="पार्टी का नाम लिखें।">Enter the party name.</div></div>
+          <div class="fld"><label for="pf-phone" data-hi="फ़ोन नंबर">Phone Number</label><div class="inp"><span class="pre">+91</span><input id="pf-phone" inputmode="tel" placeholder="98765 43210" autocomplete="off"><button type="button" class="pk" data-ov="contacts" data-cmode="pick" aria-label="Pick From Contacts"><svg class="ic"><use href="#book"/></svg></button></div></div>
+          <div class="fld"><label for="pf-grp" data-hi="पार्टी ग्रुप">Party Group</label><div class="inp"><select id="pf-grp"><option>General</option><option>Electricians</option><option>Suppliers</option></select></div><button type="button" class="lnk sm" data-toast="Adds a new group, e.g. Plumbers." data-toast-hi="नया ग्रुप जोड़ेगा, जैसे Plumbers।" data-hi="+ नया ग्रुप">+ Add New Group</button></div>
+
+          <button type="button" class="acc" data-grp aria-expanded="false"><svg class="ic" style="color:var(--blue)"><use href="#bill"/></svg><span data-hi="GST और पता">GST And Address</span><span class="ex"><svg class="ic"><use href="#next"/></svg></span></button>
+          <div class="accb" hidden>
+            <div class="fld"><label for="pf-gst">GSTIN</label><div class="inp"><input id="pf-gst" placeholder="09AAJPM7745Q1Z2" style="text-transform:uppercase" maxlength="15" autocomplete="off"></div></div>
+            <div class="fld"><label for="pf-gt" data-hi="GST का प्रकार">GST Type</label><div class="inp"><select id="pf-gt"><option>Unregistered / Consumer</option><option>Registered Business – Regular</option><option>Registered Business – Composition</option><option>Overseas</option><option>SEZ</option></select></div></div>
+            <div class="fld"><label for="pf-st" data-hi="राज्य">State</label><div class="inp"><select id="pf-st"><option>09 · Uttar Pradesh</option><option>05 · Uttarakhand</option><option>07 · Delhi</option><option>10 · Bihar</option></select></div><div class="hint" data-hi="आपका राज्य → CGST + SGST। दूसरा राज्य → IGST।">Same state as you → CGST + SGST. Other state → IGST.</div></div>
+            <div class="fld"><label for="pf-ad" data-hi="बिल का पता">Billing Address</label><div class="inp"><input id="pf-ad" placeholder="Shop No., Building, Street" data-hi-ph="दुकान नं., बिल्डिंग, गली" autocomplete="off"></div></div>
+            <div class="fld"><label for="pf-city" data-hi="शहर">City</label><div class="inp"><input id="pf-city" placeholder="City" data-hi-ph="शहर" autocomplete="off"></div></div>
+            <div class="fld"><label for="pf-pin" data-hi="PIN कोड">PIN Code</label><div class="inp"><input id="pf-pin" inputmode="numeric" maxlength="6" placeholder="208001" autocomplete="off"></div></div>
+            <div class="tg"><span data-hi="माल इसी पते पर जाएगा">Same As Billing Address</span><button type="button" class="sw2" role="switch" aria-checked="true" aria-label="Same As Billing Address" data-shows="pf-ship" data-inv></button></div>
+            <div class="fld" id="pf-ship" hidden><label for="pf-sh" data-hi="डिलीवरी का पता">Shipping Address</label><div class="inp"><input id="pf-sh" placeholder="Delivery Address" data-hi-ph="डिलीवरी का पता" autocomplete="off"></div></div>
+          </div>
+
+          <button type="button" class="acc" data-grp aria-expanded="false"><svg class="ic" style="color:var(--blue)"><use href="#rupee"/></svg><span data-hi="उधार और पुराना बैलेंस">Credit And Balance</span><span class="ex"><svg class="ic"><use href="#next"/></svg></span></button>
+          <div class="accb" hidden>
+            <div class="fld"><label for="pf-ob" data-hi="पुराना बैलेंस">Opening Balance</label><div class="inp"><span class="pre">₹</span><input id="pf-ob" inputmode="decimal" placeholder="0" autocomplete="off"></div></div>
+            <div class="seg2" role="radiogroup"><button type="button" role="radio" data-seg aria-pressed="true"><span data-hi="मिलेगा">To Receive</span><small data-hi="वे आपके देनदार">They Owe You</small></button><button type="button" role="radio" data-seg aria-pressed="false"><span data-hi="देना है">To Pay</span><small data-hi="आप उनके देनदार">You Owe Them</small></button></div>
+            <div class="fld"><label for="pf-asof" data-hi="किस तारीख़ तक">As Of Date</label><div class="inp"><svg class="ic"><use href="#cal"/></svg><input id="pf-asof" value="November 16, 2026" readonly></div></div>
+            <div class="fld"><label data-hi="उधार की सीमा">Credit Limit</label><div class="seg2" role="radiogroup"><button type="button" role="radio" data-seg data-hides="pf-lim" aria-pressed="true"><span data-hi="कोई सीमा नहीं">No Limit</span></button><button type="button" role="radio" data-seg data-shows2="pf-lim" aria-pressed="false"><span data-hi="सीमा तय करें">Custom Limit</span></button></div></div>
+            <div class="fld" id="pf-lim" hidden><label for="pf-la" data-hi="सीमा की रक़म">Limit Amount</label><div class="inp"><span class="pre">₹</span><input id="pf-la" inputmode="decimal" placeholder="50,000" autocomplete="off"></div></div>
+            <div class="fld"><label for="pf-days" data-hi="उधार के दिन">Credit Period</label><div class="inp"><input id="pf-days" inputmode="numeric" maxlength="3" value="30" autocomplete="off"><span class="pre" data-hi="दिन">Days</span></div><div class="hint" data-hi="बिल की आख़िरी तारीख़ और याद दिलाने के लिए।">Used to set invoice due dates and payment reminders.</div></div>
+          </div>
+
+          <button type="button" class="acc" data-grp aria-expanded="false"><svg class="ic" style="color:var(--blue)"><use href="#user"/></svg><span data-hi="और जानकारी">More Details</span><span class="ex"><svg class="ic"><use href="#next"/></svg></span></button>
+          <div class="accb" hidden>
+            <div class="fld"><label for="pf-cp" data-hi="संपर्क व्यक्ति">Contact Person</label><div class="inp"><input id="pf-cp" autocomplete="off"></div></div>
+            <div class="fld"><label for="pf-em" data-hi="ईमेल">Email ID</label><div class="inp"><input id="pf-em" type="email" placeholder="name@business.com" autocomplete="off"></div></div>
+            <div class="fld"><label for="pf-dob" data-hi="जन्मदिन">Date Of Birth</label><div class="inp"><svg class="ic"><use href="#cal"/></svg><input id="pf-dob" placeholder="Choose Date" data-hi-ph="तारीख़ चुनें" readonly></div></div>
+            <div class="fld"><label for="pf-ann" data-hi="सालगिरह">Anniversary</label><div class="inp"><svg class="ic"><use href="#cal"/></svg><input id="pf-ann" placeholder="Choose Date" data-hi-ph="तारीख़ चुनें" readonly></div></div>
+            <div class="fld"><label for="pf-tr" data-hi="ट्रांसपोर्ट / गाड़ी नं.">Transport / Vehicle No.</label><div class="inp"><input id="pf-tr" autocomplete="off"></div></div>
+          </div>
+        </div>
+        <div class="sf" id="pf-bar"></div>
+      </section>
+
       <!-- overlays -->
       <div class="ov" data-o="menu" hidden>
         <nav class="drw" aria-label="Menu">
           <div class="smh"><div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="menu-co">Sharma Electricals &amp; Hardware</div><button class="cc" data-go="company"><span data-hi="कंपनी बदलें">Change Company</span><svg class="ic"><use href="#next"/></svg></button></div>
           <button class="mi on" data-close><svg class="ic"><use href="#bill"/></svg><span data-hi="होम">Home</span></button>
-          <button class="mi" data-t7="b"><svg class="ic"><use href="#user"/></svg><span data-hi="पार्टी">Parties</span></button>
+          <button class="mi" data-plist="all"><svg class="ic"><use href="#user"/></svg><span data-hi="पार्टी">Parties</span></button>
           <button class="mi" data-grp aria-expanded="false"><svg class="ic"><use href="#box"/></svg><span data-hi="आइटम और स्टॉक">Items &amp; Stock</span><span class="ex"><svg class="ic"><use href="#next"/></svg></span></button>
           <div hidden><button class="mi sub" data-t7="c"><span data-hi="आइटम">Items</span></button><button class="mi sub" data-t7="c"><span data-hi="दाम मैनेजर">Price Manager</span></button><button class="mi sub" data-t7="c"><span data-hi="स्टॉक सुधार">Stock Adjustments</span></button><button class="mi sub" data-t7="c"><span data-hi="गोदाम">Godowns</span></button></div>
           <button class="mi" data-grp aria-expanded="false"><svg class="ic"><use href="#bill"/></svg><span data-hi="बिक्री">Sales</span><span class="ex"><svg class="ic"><use href="#next"/></svg></span></button>
@@ -817,7 +977,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
             <button class="tile" data-t7="f"><svg class="ic"><use href="#cart"/></svg><span data-hi="ख़रीद ऑर्डर">Purchase Order</span></button>
             <button class="tile" data-t7="f"><svg class="ic"><use href="#rupee"/></svg><span data-hi="भुगतान दें">Payment Out</span></button>
             <button class="tile" data-t7="g"><svg class="ic"><use href="#wallet"/></svg><span data-hi="ख़र्चा">Expense</span></button>
-            <button class="tile" data-t7="b"><svg class="ic"><use href="#user"/></svg><span data-hi="नई पार्टी">New Party</span></button>
+            <button class="tile" data-pform="new"><svg class="ic"><use href="#user"/></svg><span data-hi="नई पार्टी">New Party</span></button>
             <button class="tile" data-t7="c"><svg class="ic"><use href="#box"/></svg><span data-hi="नया आइटम">New Item</span></button>
             <button class="tile" data-t7="f"><svg class="ic"><use href="#next"/></svg><span data-hi="डेबिट नोट">Debit Note</span></button>
           </div>
@@ -836,6 +996,32 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
           <b class="t-h" style="font-size:18px" data-hi="साइन आउट करें?">Sign Out?</b>
           <div class="t-s" data-hi="दोबारा खोलने के लिए ईमेल और पासवर्ड लगेगा। आपका डेटा सर्वर पर सुरक्षित रहता है।">You will need your email and password to open the app again. Your data stays safe on the server.</div>
           <div class="row"><button class="btn line grow" data-close><span data-hi="रहने दें">Keep</span></button><button class="btn blue grow" data-root="signin"><span data-hi="साइन आउट">Sign Out</span></button></div>
+        </div>
+      </div>
+      <div class="ov bot" data-o="contacts" hidden>
+        <div class="sheet" style="gap:8px">
+          <div class="grab"></div>
+          <div class="row" style="justify-content:space-between"><b id="ct-title" data-hi="contacts से चुनें">Pick From Contacts</b><button class="btn ico line" style="border:0;box-shadow:none" data-close aria-label="Close"><svg class="ic"><use href="#xic"/></svg></button></div>
+          <div class="t-x" data-hi="पहली बार फ़ोन पूछेगा कि BillinGo आपके contacts देख सकता है या नहीं।">The first time, the phone asks if BillinGo may see your contacts.</div>
+          <div class="inp"><svg class="ic"><use href="#search"/></svg><input id="ctq" type="search" placeholder="Search Contacts" data-hi-ph="contacts खोजें" autocomplete="off"></div>
+          <div class="grp" id="ct-list"></div>
+          <button class="btn blue" id="ct-add" hidden data-ctadd><span id="ct-add-t"></span></button>
+        </div>
+      </div>
+      <div class="ov bot" data-o="remind" hidden>
+        <div class="sheet" style="gap:10px">
+          <div class="grab"></div>
+          <b data-hi="पैसे की याद दिलाएँ">Payment Reminder</b>
+          <div class="msgb" id="rm-msg"></div>
+          <div class="t-x" data-hi="यह संदेश वेब ऐप जैसा ही है। WhatsApp खुलेगा और संदेश पहले से लिखा होगा।">Same message as the web app. WhatsApp opens with the message already typed.</div>
+          <div class="row"><button class="btn soft grow" data-toast="Reminder message copied." data-toast-hi="याद दिलाने वाला संदेश कॉपी हुआ।"><span data-hi="कॉपी करें">Copy Message</span></button><button class="btn green grow" data-toast="Opens WhatsApp with the message (on the real phone)." data-toast-hi="WhatsApp संदेश के साथ खुलेगा (असली फ़ोन पर)।"><svg class="ic"><use href="#chat"/></svg><span data-hi="WhatsApp पर भेजें">Send On WhatsApp</span></button></div>
+        </div>
+      </div>
+      <div class="ov mid" data-o="pdel" hidden>
+        <div class="dlg">
+          <b class="t-h" style="font-size:18px" id="pd-t"></b>
+          <div class="t-s" id="pd-b"></div>
+          <div class="row" id="pd-btns"></div>
         </div>
       </div>
       <div class="toast ptoast" id="ptoast" hidden><svg class="ic cg2"><use href="#check"/></svg><span id="ptoast-t"></span></div>
@@ -939,5 +1125,174 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   q.addEventListener('input',filter);
   function syncLang(){var h=hiOn();document.getElementById('lang-val').textContent=h?'हिंदी':'English';document.getElementById('si-lang').textContent=h?'हिंदी':'English';document.querySelectorAll('.opt[data-lang]').forEach(function(o){o.setAttribute('aria-checked',(o.dataset.lang==='hi')===h)})}
   en.addEventListener('click',syncLang);hi.addEventListener('click',syncLang);syncLang();
+
+  /* ---------- 7.4b parties ---------- */
+  var ME=['January','February','March','April','May','June','July','August','September','October','November','December'],MHI=['जनवरी','फ़रवरी','मार्च','अप्रैल','मई','जून','जुलाई','अगस्त','सितंबर','अक्टूबर','नवंबर','दिसंबर'];
+  var TODAY='2026-11-16';
+  function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;')}
+  function fd(iso,h){var p=iso.split('-');return (h?MHI:ME)[+p[1]-1]+' '+(+p[2])+', '+p[0]}
+  function L(en,h){return '<span data-en="'+esc(en)+'" data-hi="'+esc(h)+'">'+esc(hiOn()?h:en)+'</span>'}
+  function LD(iso){return L(fd(iso,0),fd(iso,1))}
+  function inr(p){p=Math.abs(Math.round(p));var r=String(Math.floor(p/100)),d=String(p%100);if(d.length<2)d='0'+d;var last=r.slice(-3),rest=r.slice(0,-3);if(rest)last=','+last;rest=rest.replace(/\B(?=(\d{2})+(?!\d))/g,',');return rest+last+'.'+d}
+  function addDays(iso,n){var d=new Date(iso+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
+  function daysBetween(a,b){return Math.round((Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/864e5)}
+  var P={
+    mehta:{n:'Mehta Electricals',k:'c',ph:'98390 12345',gst:'09ABCPM1234K1Z5',g:'Electricians',city:'Kanpur',lim:5000000,days:30,tx:[['inv','INV-0090','2026-09-20',840000,0],['pay','PR-0035','2026-09-28',840000,0],['inv','INV-0098','2026-10-05',1962640,1962640],['inv','INV-0107','2026-11-14',212300,212300]]},
+    gupta:{n:'Gupta Lighting House',k:'c',ph:'94150 22110',g:'General',city:'Lucknow',days:15,tx:[['inv','INV-0106','2026-11-12',824600,412300],['pay','PR-0044','2026-11-12',412300,0]]},
+    kanpur:{n:'Kanpur Cables Pvt Ltd',k:'s',ph:'99350 44556',gst:'09AABCK5678L1Z2',g:'Suppliers',city:'Kanpur',days:45,tx:[['pb','PB-0031','2026-11-10',6011900,6011900]]},
+    shree:{n:'Shree Ganesh Electrical & Sanitary Store',k:'c',ph:'98765 11223',g:'General',city:'Unnao',days:0,tx:[['inv','INV-0101','2026-11-03',356000,0],['pay','PR-0040','2026-11-03',356000,0]]},
+    raju:{n:'Raju Electrician',k:'c',ph:'98765 43210',g:'Electricians',city:'Kanpur',days:0,tx:[]},
+    verma:{n:'Verma Traders',k:'c',ph:'',g:'General',city:'Kanpur',days:0,tx:[],inactive:true}
+  };
+  var TN={inv:['Sale Bill','बिक्री बिल'],pay:['Payment In','मिला भुगतान'],pb:['Purchase Bill','ख़रीद बिल'],ob:['Opening Balance','पुराना बैलेंस']};
+  function eff(t){return t[0]==='inv'?t[3]:t[0]==='pay'?-t[3]:t[0]==='pb'?-t[3]:t[3]}
+  function bal(p){return p.tx.reduce(function(s,t){return s+eff(t)},0)}
+  var pk={kind:'all',bal:'all',cur:'mehta',tf:'all',per:'fy',inact:false,form:'new'};
+  function balCell(b){return b>0?'<div class="v cg">'+inr(b)+'</div><div class="w cg">'+L('↓ To Get','↓ मिलेगा')+'</div>':b<0?'<div class="v cr">'+inr(b)+'</div><div class="w cr">'+L('↑ To Give','↑ देना है')+'</div>':'<div class="v c3">0</div><div class="w c3">'+L('Settled','बराबर')+'</div>'}
+  function sub(p){return p.ph?'+91 '+esc(p.ph)+(p.city?' · '+esc(p.city):''):esc(p.city||'')}
+  function renderList(){
+    var q=(document.getElementById('pq').value||'').trim().toLowerCase(),h='',rec=0,pay=0,ina=[];
+    Object.keys(P).forEach(function(id){var p=P[id],b=bal(p);if(p.inactive){ina.push(id);return}if(b>0)rec+=b;else pay-=b;
+      if(pk.kind!=='all'&&p.k!==pk.kind)return;
+      if(pk.bal==='rec'&&!(b>0)||pk.bal==='pay'&&!(b<0)||pk.bal==='zero'&&b!==0)return;
+      if(q&&p.n.toLowerCase().indexOf(q)<0&&p.ph.replace(/\s/g,'').indexOf(q.replace(/\s/g,''))<0)return;
+      h+='<div class="li" role="button" tabindex="0" data-party="'+id+'"><div class="mid"><div class="nm">'+esc(p.n)+'</div><div class="t-x">'+sub(p)+'</div></div><div class="end">'+balCell(b)+'</div></div>'});
+    document.getElementById('plist').innerHTML=h;document.getElementById('pnone').hidden=!!h;
+    document.getElementById('pt-rec').textContent='₹'+inr(rec);document.getElementById('pt-pay').textContent='₹'+inr(pay);
+    var ib=document.getElementById('pinact-btn');ib.hidden=!ina.length;ib.innerHTML=pk.inact?L('Hide Inactive','बंद पार्टियाँ छिपाएँ'):L('Show Inactive ('+ina.length+')','बंद पार्टियाँ दिखाएँ ('+ina.length+')');
+    var ia=document.getElementById('pinact');ia.hidden=!pk.inact||!ina.length;
+    ia.innerHTML=ina.map(function(id){var p=P[id];return '<div class="li inact"><div class="mid"><div class="nm">'+esc(p.n)+'</div><span class="bd gray">'+L('Inactive','बंद')+'</span></div><button class="btn soft" data-mkact="'+id+'">'+L('Make Active','चालू करें')+'</button></div>'}).join('');
+    document.querySelectorAll('[data-s=parties] [data-kind]').forEach(function(b){b.setAttribute('aria-selected',b.dataset.kind===pk.kind)});
+    document.querySelectorAll('#pbal [data-bal]').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.bal===pk.bal)});
+    document.querySelectorAll('.ptot [data-bal]').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.bal===pk.bal)});
+  }
+  function txState(p,t){
+    if(t[0]==='pay')return ['info','Received','मिला'];
+    if(t[4]===0)return ['paid','Paid','चुकता'];
+    if(t[4]<t[3])return ['cr','Part Paid','आंशिक भुगतान'];
+    var late=p.days?daysBetween(addDays(t[2],p.days),TODAY):0;
+    if(late>0)return ['due','Overdue '+late+' Days','बकाया '+late+' दिन'];
+    return ['cr','Unpaid','बाकी'];
+  }
+  function renderParty(){
+    var p=P[pk.cur];if(!p)return;var b=bal(p);
+    document.getElementById('pp-name').textContent=p.n;
+    document.getElementById('pp-kind').innerHTML=(p.k==='c'?L('Customer','ग्राहक'):L('Supplier','सप्लायर'))+' · '+esc(p.g);
+    document.getElementById('pp-bl').innerHTML=b>0?L("You'll Get",'आपको मिलेगा'):b<0?L("You'll Give",'आपको देना है'):L('Settled','हिसाब बराबर');
+    var a=document.getElementById('pp-amt');a.className='amt '+(b>0?'cg':b<0?'cr':'c3');a.textContent=(b>0?'↓ ':b<0?'↑ ':'')+'₹'+inr(b);
+    var m=[];if(p.ph)m.push('+91 '+esc(p.ph));if(p.gst)m.push('GSTIN '+esc(p.gst));if(p.city)m.push(esc(p.city));
+    if(p.lim)m.push(L('Credit Limit ₹'+inr(p.lim).replace('.00',''),'उधार सीमा ₹'+inr(p.lim).replace('.00','')));if(p.days)m.push(L(p.days+'-Day Credit',p.days+' दिन का उधार'));
+    document.getElementById('pp-meta').innerHTML=m.map(function(x){return '<span>'+x+'</span>'}).join('');
+    var qa='';
+    if(b>0&&p.ph)qa+='<button class="btn soft" data-ov="remind"><svg class="ic"><use href="#chat"/></svg>'+L('Reminder','याद दिलाएँ')+'</button>';
+    if(p.ph)qa+='<button class="btn line" data-call><svg class="ic"><use href="#phone"/></svg>'+L('Call','कॉल')+'</button>';
+    qa+='<button class="btn line" data-go="stmt"><svg class="ic"><use href="#bill"/></svg>'+L('Statement','हिसाब')+'</button>';
+    document.getElementById('pp-qa').innerHTML=qa;
+    var rows=p.tx.slice().reverse().filter(function(t){if(pk.tf==='all')return true;if(t[0]==='pay'||t[0]==='ob')return false;var s=txState(p,t)[0];return pk.tf==='open'?t[4]>0:pk.tf==='over'?s==='due':t[4]===0});
+    document.getElementById('pp-tx').innerHTML=rows.map(function(t){var s=txState(p,t),tn=TN[t[0]];
+      return '<div class="li" role="button" tabindex="0" data-t7="'+(t[0]==='pb'?'f':'e')+'"><div class="mid"><div class="nm">'+esc(t[1])+' · '+L(tn[0],tn[1])+'</div><div class="t-x">'+LD(t[2])+'</div></div><div class="end"><div class="v">'+inr(t[3])+'</div><span class="bd '+s[0]+'">'+L(s[1],s[2])+'</span></div></div>'}).join('');
+    document.getElementById('pp-none').hidden=!!rows.length;
+    document.querySelectorAll('#pp-fil [data-tf]').forEach(function(x){x.setAttribute('aria-pressed',x.dataset.tf===pk.tf)});
+    document.getElementById('pp-bar').innerHTML=p.k==='c'
+      ?'<button class="btn soft grow" data-t7="e"><svg class="ic"><use href="#rupee"/></svg>'+L('Take Payment','भुगतान लें')+'</button><button class="btn blue grow" data-t7="d"><svg class="ic"><use href="#plus"/></svg>'+L('New Bill','नया बिल')+'</button>'
+      :'<button class="btn soft grow" data-t7="f"><svg class="ic"><use href="#rupee"/></svg>'+L('Pay Supplier','भुगतान करें')+'</button><button class="btn blue grow" data-t7="f"><svg class="ic"><use href="#plus"/></svg>'+L('Purchase Bill','ख़रीद बिल')+'</button>';
+    var shop=document.getElementById('home-co').textContent;
+    document.getElementById('rm-msg').textContent='Dear '+p.n+', your balance with '+shop+' is ₹'+inr(b)+'. Please pay at the earliest. Thank you.';
+  }
+  var PER={m:['2026-11-01',TODAY],lm:['2026-10-01','2026-10-31'],fy:['2026-04-01',TODAY]};
+  function renderStmt(){
+    var p=P[pk.cur];if(!p)return;var r=PER[pk.per],sup=p.k==='s';
+    document.getElementById('st-name').textContent=p.n;
+    document.getElementById('st-range').innerHTML=LD(r[0])+' – '+LD(r[1]);
+    var open=0,bills=0,pays=0,run,h='';
+    p.tx.forEach(function(t){if(t[2]<r[0])open+=eff(t)});run=open;
+    function word(v){return v>0?L('To Get','मिलेगा'):v<0?L('To Give','देना है'):L('Settled','बराबर')}
+    h+='<div class="st-row"><div><b>'+L('Opening Balance','शुरू का बैलेंस')+'</b><div class="t-x">'+LD(r[0])+'</div></div><div class="v">'+inr(open)+'</div></div>';
+    p.tx.forEach(function(t){if(t[2]<r[0]||t[2]>r[1])return;var e=eff(t);run+=e;if(t[0]==='pay')pays+=t[3];else bills+=t[3];var tn=TN[t[0]];
+      h+='<div class="st-row"><div style="min-width:0"><div class="nm">'+esc(t[1])+' · '+L(tn[0],tn[1])+'</div><div class="t-x">'+LD(t[2])+'</div></div><div><div class="v '+(t[0]==='pay'?'cg':'')+'">'+(t[0]==='pay'?'− ':'+ ')+inr(t[3])+'</div><div class="rb">'+L('Balance ','बैलेंस ')+inr(run)+'</div></div></div>'});
+    document.getElementById('st-rows').innerHTML=h;
+    document.getElementById('st-sum').innerHTML='<div><span>'+L('Opening','शुरू')+'</span><b>₹'+inr(open)+'</b></div><div><span>'+(sup?L('Purchase Bills','ख़रीद बिल'):L('Bills','बिल'))+'</span><b>₹'+inr(bills)+'</b></div><div><span>'+(sup?L('Paid','दिया'):L('Received','मिला'))+'</span><b class="cg">₹'+inr(pays)+'</b></div><div><span>'+L('Closing','आख़िर में')+' · '+word(run)+'</span><b class="'+(run>0?'cg':run<0?'cr':'')+'">₹'+inr(run)+'</b></div>';
+    document.querySelectorAll('#st-per [data-per]').forEach(function(x){x.setAttribute('aria-pressed',x.dataset.per===pk.per)});
+  }
+  var F=['pf-name','pf-phone','pf-gst','pf-ad','pf-city','pf-pin','pf-ob','pf-la','pf-cp','pf-em','pf-tr'];
+  function openForm(mode){
+    pk.form=mode;F.forEach(function(i){document.getElementById(i).value=''});document.getElementById('pf-days').value='30';document.getElementById('pf-grp').value='General';
+    document.getElementById('pf-err').hidden=true;document.getElementById('pf-name-w').classList.remove('err');
+    document.querySelectorAll('[data-s=pform] .acc').forEach(function(a){a.setAttribute('aria-expanded','false');a.nextElementSibling.hidden=true});
+    var t=document.getElementById('pf-title');
+    if(mode==='edit'){var p=P[pk.cur];document.getElementById('pf-name').value=p.n;document.getElementById('pf-phone').value=p.ph;document.getElementById('pf-grp').value=p.g;document.getElementById('pf-gst').value=p.gst||'';document.getElementById('pf-city').value=p.city||'';if(p.days)document.getElementById('pf-days').value=p.days;
+      t.dataset.en='Edit Party';t.dataset.hi='पार्टी बदलें';
+      document.getElementById('pf-bar').innerHTML='<button class="btn ico del" data-pdel aria-label="Delete Party"><svg class="ic"><use href="#trash"/></svg></button><button class="btn green grow" data-psave>'+L('Save Changes','बदलाव सेव करें')+'</button>'}
+    else{t.dataset.en='New Party';t.dataset.hi='नई पार्टी';
+      document.getElementById('pf-bar').innerHTML='<button class="btn soft grow" data-psave="new">'+L('Save & New','सेव और नई')+'</button><button class="btn green grow" data-psave>'+L('Save','सेव करें')+'</button>'}
+    t.textContent=hiOn()?t.dataset.hi:t.dataset.en;
+    go('pform');document.querySelector('[data-s=pform] .sb').scrollTop=0;
+  }
+  function backTo(id){var i=stack.lastIndexOf(id);if(i<0){stack=['home',id]}else stack=stack.slice(0,i+1);show(id)}
+  function saveForm(again){
+    var n=document.getElementById('pf-name').value.trim();
+    if(!n){document.getElementById('pf-err').hidden=false;document.getElementById('pf-name-w').classList.add('err');document.querySelector('[data-s=pform] .sb').scrollTop=0;return}
+    var ph=document.getElementById('pf-phone').value.trim(),city=document.getElementById('pf-city').value.trim(),g=document.getElementById('pf-grp').value,days=+document.getElementById('pf-days').value||0;
+    if(pk.form==='edit'){var p=P[pk.cur];p.n=n;p.ph=ph;p.g=g;p.city=city;p.days=days;p.gst=document.getElementById('pf-gst').value.trim().toUpperCase();toast('Changes saved.','बदलाव सेव हुए।');back();return}
+    var pay=document.querySelectorAll('[data-s=pform] .seg2')[0].children[1].getAttribute('aria-pressed')==='true';
+    var ob=Math.round(parseFloat((document.getElementById('pf-ob').value||'0').replace(/,/g,''))*100)||0,id='n'+Date.now();
+    P[id]={n:n,k:pay?'s':'c',ph:ph,g:g,city:city,days:days,gst:document.getElementById('pf-gst').value.trim().toUpperCase(),tx:ob?[['ob','OB',TODAY,pay?-ob:ob,0]]:[]};
+    toast(n+' saved.',n+' सेव हुई।');
+    if(again){openFormKeep()}else{pk.cur=id;stack.pop();stack.push('party');show('party')}
+  }
+  function openFormKeep(){F.forEach(function(i){document.getElementById(i).value=''});document.querySelector('[data-s=pform] .sb').scrollTop=0}
+  function delAsk(){var p=P[pk.cur],t=document.getElementById('pd-t'),b=document.getElementById('pd-b'),bt=document.getElementById('pd-btns');
+    if(p.tx.length){t.innerHTML=L('Can’t Delete '+p.n,p.n+' हटा नहीं सकते');b.innerHTML=L('This party has bills or payments, so it can’t be deleted. Make it inactive instead: it leaves the lists, and its bills stay as they are.','इस पार्टी के बिल या भुगतान हैं, इसलिए हटा नहीं सकते। इसे बंद कर दें: यह सूची से हट जाएगी, पर इसके बिल वैसे ही रहेंगे।');
+      bt.innerHTML='<button class="btn line grow" data-close>'+L('Close','बंद करें')+'</button><button class="btn blue grow" data-mkinact>'+L('Make Inactive','बंद करें')+'</button>'}
+    else{t.innerHTML=L('Delete '+p.n+'?',p.n+' हटाएँ?');b.innerHTML=L('This can’t be undone.','यह वापस नहीं होगा।');
+      bt.innerHTML='<button class="btn line grow" data-close>'+L('Keep','रहने दें')+'</button><button class="btn del grow" data-pdelok>'+L('Delete Party','पार्टी हटाएँ')+'</button>'}
+    ov('pdel')}
+  var CT=[['Raju Electrician','98765 43210'],['Sanjay Plumber','99190 55443'],['Vikas Hardware Store','97941 22334'],['Pintu Wiring Contractor','88400 11223'],['Anil Bhaiya','90055 66778']],cmode='pick';
+  function renderCt(){var q=(document.getElementById('ctq').value||'').toLowerCase(),h='';
+    CT.forEach(function(c,i){if(q&&c[0].toLowerCase().indexOf(q)<0&&c[1].replace(/\s/g,'').indexOf(q.replace(/\s/g,''))<0)return;
+      h+=cmode==='pick'?'<button class="srow" data-pick="'+i+'"><div class="mid"><div class="nm">'+esc(c[0])+'</div><div class="t-x">+91 '+c[1]+'</div></div></button>'
+        :'<label class="ckl"><input type="checkbox" data-ck="'+i+'"><div class="mid"><div class="nm">'+esc(c[0])+'</div><div class="t-x">+91 '+c[1]+'</div></div></label>'});
+    document.getElementById('ct-list').innerHTML=h||'<div class="empty"><b>'+L('No Contacts Match','कोई contact नहीं मिला')+'</b></div>';
+    var tt=document.getElementById('ct-title');tt.dataset.en=cmode==='pick'?'Pick From Contacts':'Import From Contacts';tt.dataset.hi=cmode==='pick'?'contacts से चुनें':'contacts से पार्टी जोड़ें';tt.textContent=hiOn()?tt.dataset.hi:tt.dataset.en;
+    document.getElementById('ct-add').hidden=cmode==='pick';ctCount()}
+  function ctCount(){var n=document.querySelectorAll('#ct-list [data-ck]:checked').length,b=document.getElementById('ct-add');b.disabled=!n;document.getElementById('ct-add-t').innerHTML=L(n===1?'Add 1 Party':'Add '+n+' Parties',n+' पार्टी जोड़ें')}
+  var _show=show;show=function(id){_show(id);
+    if(id==='parties')renderList();if(id==='party')renderParty();if(id==='stmt')renderStmt();
+    document.querySelectorAll('[data-jump2]').forEach(function(b){b.setAttribute('aria-current',b.dataset.jump2===id)})};
+  stage.addEventListener('click',function(e){
+    var t=e.target.closest('[data-party],[data-kind],[data-bal],[data-tf],[data-per],[data-pform],[data-psave],[data-pdel],[data-pdelok],[data-mkinact],[data-mkact],[data-inact],[data-plist],[data-cmode],[data-pick],[data-ctadd],[data-seg],[data-call],.sw2[data-shows]');
+    if(!t||!stage.contains(t))return;
+    if(t.hasAttribute('data-party')){pk.cur=t.dataset.party;pk.tf='all';go('party');return}
+    if(t.hasAttribute('data-kind')){pk.kind=t.dataset.kind;renderList();return}
+    if(t.hasAttribute('data-bal')){pk.bal=pk.bal===t.dataset.bal&&t.closest('.ptot')?'all':t.dataset.bal;renderList();return}
+    if(t.hasAttribute('data-plist')){pk.bal=t.dataset.plist;pk.kind='all';stack=['home'];go('parties');return}
+    if(t.hasAttribute('data-tf')){pk.tf=t.dataset.tf;renderParty();return}
+    if(t.hasAttribute('data-per')){if(t.dataset.per==='c'){toast('Pick any two dates (on the real phone a calendar opens).','कोई भी दो तारीख़ें चुनें (असली फ़ोन पर कैलेंडर खुलेगा)।');return}pk.per=t.dataset.per;renderStmt();return}
+    if(t.hasAttribute('data-pform')){openForm(t.dataset.pform);return}
+    if(t.hasAttribute('data-psave')){saveForm(t.dataset.psave==='new');return}
+    if(t.hasAttribute('data-pdel')){delAsk();return}
+    if(t.hasAttribute('data-mkinact')){var n=P[pk.cur].n;P[pk.cur].inactive=true;toast(n+' is now inactive.',n+' अब बंद है।');backTo('parties');return}
+    if(t.hasAttribute('data-pdelok')){var n2=P[pk.cur].n;delete P[pk.cur];toast(n2+' deleted.',n2+' हटाई गई।');backTo('parties');return}
+    if(t.hasAttribute('data-mkact')){P[t.dataset.mkact].inactive=false;toast(P[t.dataset.mkact].n+' is active again.',P[t.dataset.mkact].n+' फिर से चालू है।');renderList();return}
+    if(t.hasAttribute('data-inact')){pk.inact=!pk.inact;renderList();return}
+    if(t.hasAttribute('data-cmode')){cmode=t.dataset.cmode;document.getElementById('ctq').value='';renderCt();return}
+    if(t.hasAttribute('data-pick')){var c=CT[+t.dataset.pick];document.getElementById('pf-name').value=c[0];document.getElementById('pf-phone').value=c[1];document.getElementById('pf-err').hidden=true;document.getElementById('pf-name-w').classList.remove('err');closeOv();show(cur);return}
+    if(t.hasAttribute('data-ctadd')){var k=0;document.querySelectorAll('#ct-list [data-ck]:checked').forEach(function(x){var c=CT[+x.dataset.ck];P['c'+x.dataset.ck]={n:c[0],k:'c',ph:c[1],g:'General',city:'',days:0,tx:[]};k++});toast(k===1?'1 party added.':k+' parties added.',k+' पार्टी जुड़ीं।');closeOv();show(cur);return}
+    if(t.hasAttribute('data-seg')){t.parentNode.querySelectorAll('[data-seg]').forEach(function(x){x.setAttribute('aria-pressed',x===t)});if(t.dataset.hides)document.getElementById(t.dataset.hides).hidden=true;if(t.dataset.shows2)document.getElementById(t.dataset.shows2).hidden=false;return}
+    if(t.hasAttribute('data-call')){toast('Opens the phone dialer: +91 '+P[pk.cur].ph,'फ़ोन का डायलर खुलेगा: +91 '+P[pk.cur].ph);return}
+    if(t.matches('.sw2[data-shows]')){var on=t.getAttribute('aria-checked')==='true';document.getElementById(t.dataset.shows).hidden=t.hasAttribute('data-inv')?on:!on;return}
+  });
+  stage.addEventListener('change',function(e){if(e.target.matches('[data-ck]'))ctCount()});
+  document.getElementById('pq').addEventListener('input',renderList);
+  document.getElementById('ctq').addEventListener('input',renderCt);
+  document.addEventListener('click',function(e){var b=e.target.closest('[data-jump2]');if(!b)return;var j=b.dataset.jump2;pk.cur='mehta';pk.tf='all';
+    if(j==='parties'){pk.bal='all';pk.kind='all';root('home');go('parties')}
+    else if(j==='party'){stack=['home','parties'];go('party')}
+    else if(j==='remind'){stack=['home','parties'];go('party');ov('remind')}
+    else if(j==='stmt'){stack=['home','parties','party'];go('stmt')}
+    else if(j==='pform'){stack=['home','parties'];openForm('new')}
+    else if(j==='pedit'){stack=['home','parties','party'];openForm('edit')}
+    else if(j==='contacts'){stack=['home','parties'];openForm('new');cmode='pick';renderCt();ov('contacts')}
+  });
 })();
 </script>
