@@ -16,12 +16,6 @@ The owner runs a business in India and is not a programmer.
 ## Plan
 Follow `docs/ARCHITECTURE.md`, phase by phase. Do not start a phase until the previous phase's gate passes.
 
-## Keep README.md current (owner, 16 Nov 2026)
-Update `README.md` after every merge to `main`, every deployment, and every build or release (Windows installer, version tag). Do it in the same pull request when you can.
-- Refresh the **Latest** table (where we are, latest Windows release, live app, needs attention, next), the **Progress** table and the "Last updated" date.
-- Keep it consistent with `docs/STATUS.md`. Write only facts that are true; never guess a status.
-- Keep it easy on the eye: headings, tables, short sentences. Do not turn it into a wall of text.
-
 ## Before you start (environment check)
 The rebuild needs npm packages. If `npm view react version` fails with 403, this environment blocks package installs:
 - Stop and tell the owner.
