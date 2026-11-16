@@ -1,12 +1,15 @@
 name: CI
 
+# Pull requests into any branch (develop or main) get the full check. After a merge, develop and main
+# are checked again (owner, 16 Nov 2026: work goes into develop first, and to main only when the owner
+# says so; main is the live app).
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
 
 # A newer push to the same PR stops its older run, which would be out of date anyway.
-# Runs on main are never cancelled (each commit has its own group).
+# Runs on main and develop are never cancelled (each commit has its own group).
 concurrency:
   group: ci-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -280,7 +283,7 @@ jobs:
           retention-days: 7
           overwrite: true
 
-  # The required check (the `protect main` ruleset needs a check named exactly `test`). It always runs
+  # The required check (the ruleset protecting main and develop needs a check named exactly `test`). It always runs
   # and is green only when every job above passed; after a merge whose files already passed on the
   # PR, the quick checks are skipped on purpose and only the pictures must pass (see .github/scripts/gate.sh).
   test:
