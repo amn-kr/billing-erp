@@ -120,7 +120,7 @@ Each part is a page the owner can open on their own phone.
 | 7.1 | The 20 colours at the top of the design page | ✅ Approved (15 Nov 2026) |
 | 7.2 | Building blocks: buttons, cards, list rows, badges, form fields, bottom sheet, tabs, empty states, "No internet", "Server is waking up…", loading; English and Hindi | ✅ Approved (15 Nov 2026), after the wording changes in section 5; new look with shadows and shine approved 16 Nov 2026 (section 2) |
 | 7.3 | App map: what opens from where, side menu, bottom buttons | ✅ Approved (15 Nov 2026): side menu plus 3 Home bottom buttons (no bottom tab bar); "coming soon" items show with a Soon badge; Home tabs Parties, Bills, Items |
-| 7.4a | Sign in, switch company, Home, side menu, search, language switch. From 7.4a on, every screen is a tap-through sample: tapping a button opens the next screen (sample data) | Owner approves each part |
+| 7.4a | Sign in, switch company, Home, side menu, search, language switch. From 7.4a on, every screen is a tap-through sample: tapping a button opens the next screen (sample data) | ✅ Approved (16 Nov 2026): Sign In layout 2 (centred logo, card, pill button, Create An Account, language button); party rows have no letter circle |
 | 7.4b | Parties: list, party page, add/edit with contacts, statement, reminder | " |
 | 7.4c | Items and stock: list, item page, batch/MRP/packs, brands, adjustments, godowns and transfers, bulk price update and active/inactive, prices of one item, camera scan | " |
 | 7.4d | **New sale** (the hardest): customer, items, scan, discount and charges, GST, referral, quotation import, batch pick, price history, received, Save and Share, "Bill saved" | " |
