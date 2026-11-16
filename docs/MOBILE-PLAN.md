@@ -105,9 +105,10 @@ Every screen of the web app (audited on `main`, 15 Nov 2026) is listed below.
 - English and Hindi for all phone text. Numbers and ₹ use the Indian format in both.
 - **Wording (owner, 15 Nov 2026):**
   - Every word of a button, field, tab, badge or heading starts with a capital letter in English (Purchase Bill, Take Payment, Payment In). Full sentences stay normal. This applies to the phone app only; the web app follows the prototype.
-  - Dates are always written in full: September 25, 2026 (Hindi: सितंबर 25, 2026).
+  - Dates look the same everywhere: day, short month, year, as in 16 Nov 2026 (Hindi: 16 नव॰ 2026) (owner, 16 Nov 2026; this replaces the earlier full-date rule).
   - Names (party, supplier, item) always stay on **one line**. What doesn't fit ends with "…". A name never takes 2 lines.
-  - A bill row shows the party name first, then the bill number and full date under it (INV-0107 · September 25, 2026).
+  - A bill row in a list of many parties shows the party name first, then the number | date under it (INV-0107 | 25 Sep 2026).
+  - A transaction row inside one party (party page, statement) shows the transaction name first (Sale Bill, Payment In), then the number | date under it (INV-0107 | 14 Nov 2026) (owner, 16 Nov 2026).
   - An item row shows the purchase and sale price (Purchase Price ₹70 · Sale Price ₹85 Per Pc), not MRP.
 - The work is done in its own branch. Each step comes as a PR, which is merged only with the owner's go-ahead.
 - Each step is shown to the owner before the next one starts.
@@ -121,7 +122,7 @@ Each part is a page the owner can open on their own phone.
 | 7.2 | Building blocks: buttons, cards, list rows, badges, form fields, bottom sheet, tabs, empty states, "No internet", "Server is waking up…", loading; English and Hindi | ✅ Approved (15 Nov 2026), after the wording changes in section 5; new look with shadows and shine approved 16 Nov 2026 (section 2) |
 | 7.3 | App map: what opens from where, side menu, bottom buttons | ✅ Approved (15 Nov 2026): side menu plus 3 Home bottom buttons (no bottom tab bar); "coming soon" items show with a Soon badge; Home tabs Parties, Bills, Items |
 | 7.4a | Sign in, switch company, Home, side menu, search, language switch. From 7.4a on, every screen is a tap-through sample: tapping a button opens the next screen (sample data) | ✅ Approved (16 Nov 2026): Sign In layout 2 (centred logo, card, pill button, Create An Account, language button); party rows have no letter circle |
-| 7.4b | Parties: list, party page, add/edit with contacts, statement, reminder | " |
+| 7.4b | Parties: list, party page, add/edit with contacts, statement, reminder | ✅ Approved (16 Nov 2026): slim balance card with Reminder, Call and Statement and only the credit limit; small ₹ with a gap; equal-width filter chips; dates as 16 Nov 2026; transaction rows show the name, then number | date |
 | 7.4c | Items and stock: list, item page, batch/MRP/packs, brands, adjustments, godowns and transfers, bulk price update and active/inactive, prices of one item, camera scan | " |
 | 7.4d | **New sale** (the hardest): customer, items, scan, discount and charges, GST, referral, quotation import, batch pick, price history, received, Save and Share, "Bill saved" | " |
 | 7.4e | Quotations, challans, payments received, credit notes, commission: list, view, cancel | " |

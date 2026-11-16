@@ -11,7 +11,7 @@
 - **Colours:** only the 20 colours in `docs/MOBILE-PLAN.md` section 2, kept in one shared file. A test fails on any other colour. Every money amount also shows an arrow or a word, never colour alone. Shadows and shine use only these colours made see-through (owner, 16 Nov 2026: the phone app is not flat).
 - **One design for every phone:** no fixed widths. Each screen has one approved picture at 390 px, and automatic fit checks run at every width from 320 to 480 px (nothing outside the screen, no overlaps, no cut text or amounts, buttons at least 44 px). Portrait only.
 - **English and Hindi** for all phone text. Lowest Android version: 7.0.
-- **Wording:** every word of a button, field, tab, badge or heading starts with a capital letter (Purchase Bill). Dates are written in full (September 25, 2026). Names stay on one line and end with "…" when they don't fit.
+- **Wording:** every word of a button, field, tab, badge or heading starts with a capital letter (Purchase Bill). Dates look the same everywhere: 16 Nov 2026 (day, short month, year). A transaction row shows its name, then "INV-0107 | 14 Nov 2026" under it. Names stay on one line and end with "…" when they don't fit.
 - **Order:** Phase 7 (mobile design) may run during the Windows trial. Phase 8 (the app) starts after the trial passes.
 - **Later, after the Windows trial (owner's decision):** the web and Windows apps move to the same 20 colours and the same test method (one picture plus fit checks instead of 1280, 1366 and 1920). Until then, the rule above stays as it is.
 
