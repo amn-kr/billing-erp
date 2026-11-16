@@ -438,8 +438,6 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .okb{background:var(--green-l);color:var(--green);border-radius:var(--r-sm);padding:10px 12px;font-size:13px}
 .payr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 36px;gap:6px;align-items:center}
 .payr .btn.ico{width:36px;min-height:var(--tap)}
-.shs{display:flex;align-items:center;gap:10px}
-.shs .t{flex:0 1 auto;min-width:0}
 .cap{position:relative;display:inline-grid;grid-template-columns:auto auto;flex:none;z-index:0}
 .cap::before{content:"";position:absolute;inset:5px 0;border-radius:999px;background:var(--slate-l);border:1px solid var(--border);z-index:-1}
 .cap button{position:relative;font:inherit;font-size:13px;font-weight:600;min-height:var(--tap);padding:0 13px;border:0;background:transparent;color:var(--text2);cursor:pointer;z-index:0}
@@ -454,6 +452,12 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .invs input{font:inherit;font-size:14px;font-weight:700;border:0;background:transparent;color:var(--text);min-width:0;width:100%;height:24px;padding:0;outline:0;border-bottom:1px dashed var(--sel)}
 .invs .dv{display:flex;align-items:center;gap:4px;font-size:14px;font-weight:700;white-space:nowrap;height:24px}
 .invs .dv .ic{width:16px;height:16px;color:var(--blue)}
+.pfield{display:flex;align-items:center;gap:8px;min-height:var(--tap);padding:0 10px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--card);font:inherit;font-size:15px;color:var(--text);width:100%;text-align:left;cursor:pointer;min-width:0}
+.fx .pfield{box-shadow:inset 0 1px 2px rgba(17,24,39,.04)}
+.pfield>.ic{width:18px;height:18px;color:var(--text3);flex:none}
+.pfield .ph{flex:1;min-width:0;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pfield .nm{flex:1;min-width:0}
+.pfield .cdue{font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap}
 .cust .req{font-size:12px;font-weight:600;color:var(--red);white-space:nowrap}
 .cust .opt2{font-size:12px;font-weight:600;color:var(--text3);white-space:nowrap}
 .cphd{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
@@ -470,8 +474,9 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .slc .sn{font-size:11px;font-weight:700;color:var(--text2);background:var(--slate-l);border:1px solid var(--border);border-radius:5px;padding:0 5px;line-height:18px}
 .slc .nm{font-size:15px}
 .slc .am{justify-self:end;text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:15px}
-.slc .k2{grid-column:2;font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.slc .v2{grid-column:3;font-size:12px;color:var(--text2);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.slc .r2{grid-column:2/4;display:flex;justify-content:space-between;align-items:baseline;gap:8px;min-width:0}
+.slc .k2{flex:1 1 auto;min-width:0;font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slc .v2{flex:none;font-size:12px;color:var(--text2);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
 .slc .k2.dc,.slc .v2.dc{color:var(--orange)}
 .slc .w2{grid-column:2/4;font-size:12px;color:var(--text2);font-variant-numeric:tabular-nums;text-align:right}
 .slsum{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;font-size:12px;color:var(--text2);padding:0 4px;font-variant-numeric:tabular-nums}
@@ -1348,7 +1353,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 
       <!-- 7.4d new sale -->
       <section class="scn" data-s="sale" hidden>
-        <div class="sh"><button class="btn ico" data-back aria-label="Close"><svg class="ic"><use href="#xic"/></svg></button><div class="mid shs"><div class="t" data-hi="बिक्री">Sale</div><div class="cap" role="radiogroup" aria-label="Sale Type"><button type="button" role="radio" data-stype="credit" aria-pressed="true"><span data-hi="उधार">Credit</span></button><button type="button" role="radio" data-stype="cash" aria-pressed="false"><span data-hi="नक़द">Cash</span></button></div></div><button class="btn ico" data-ov="smenu" aria-label="More Options"><svg class="ic"><use href="#dots"/></svg></button></div>
+        <div class="sh"><button class="btn ico" data-back aria-label="Close"><svg class="ic"><use href="#xic"/></svg></button><div class="mid"><div class="t" data-hi="बिक्री">Sale</div></div><div class="cap" role="radiogroup" aria-label="Sale Type"><button type="button" role="radio" data-stype="credit" aria-pressed="true"><span data-hi="उधार">Credit</span></button><button type="button" role="radio" data-stype="cash" aria-pressed="false"><span data-hi="नक़द">Cash</span></button></div><button class="btn ico" data-ov="smenu" aria-label="More Options"><svg class="ic"><use href="#dots"/></svg></button></div>
         <div class="invs"><label class="iv"><span class="k" data-hi="इनवॉइस नं.">Invoice No.</span><input id="sl-no" value="INV-0108" autocomplete="off" aria-label="Invoice Number"></label><i></i><button type="button" class="iv" data-ov="dpick"><span class="k" data-hi="तारीख़">Date</span><span class="dv"><span id="sl-date"></span><svg class="ic" style="transform:rotate(90deg)"><use href="#next"/></svg></span></button></div>
         <div class="sb">
           <div id="sl-cust"></div>
@@ -2157,8 +2162,9 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     document.getElementById('sl-date').innerHTML=LD(SL.date);
     document.querySelectorAll('[data-stype]').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.stype===SL.type)});
     var cu=document.getElementById('sl-cust');
-    if(pr){var b=bal(pr);cu.innerHTML='<button type="button" class="cust" data-cpick><div class="mid"><div class="nm">'+esc(pr.n)+'</div><div class="t-x">'+(b>0?L('Previous Dues ₹'+inr(b),'पुराना बाकी ₹'+inr(b)):b<0?L('Advance ₹'+inr(b),'एडवांस ₹'+inr(b)):L('No Dues','कोई बाकी नहीं'))+(pr.lim?' · '+L('Limit '+r0(pr.lim),'सीमा '+r0(pr.lim)):'')+'</div></div><span class="lnk" style="min-height:0">'+L('Change','बदलें')+'</span></button>'}
-    else cu.innerHTML='<button type="button" class="cust empty" data-cpick><svg class="ic"><use href="#user"/></svg><span class="mid">'+(cash?L('Add Customer','ग्राहक जोड़ें'):L('Choose Customer','ग्राहक चुनें'))+'</span>'+(cash?'<span class="opt2">'+L('Optional','ज़रूरी नहीं')+'</span>':'<span class="req">'+L('Required','ज़रूरी')+'</span>')+'</button>'+(cash?'<div class="t-x" style="margin-top:6px">'+L('Counter sale: the full amount is received now.','काउंटर बिक्री: पूरा पैसा अभी मिल गया।')+'</div>':'');
+    var chev='<svg class="ic" style="transform:rotate(90deg)"><use href="#next"/></svg>';
+    if(pr){var b=bal(pr);cu.innerHTML='<button type="button" class="pfield" data-cpick aria-label="Customer"><svg class="ic"><use href="#user"/></svg><span class="nm">'+esc(pr.n)+'</span><span class="cdue">'+(b>0?L('Dues ₹'+m2(b),'बाकी ₹'+m2(b)):b<0?L('Advance ₹'+m2(b),'एडवांस ₹'+m2(b)):L('No Dues','कोई बाकी नहीं'))+'</span>'+chev+'</button>'}
+    else cu.innerHTML='<button type="button" class="pfield" data-cpick aria-label="Customer"><svg class="ic"><use href="#user"/></svg><span class="ph">'+L('Choose Customer','ग्राहक चुनें')+'</span>'+chev+'</button>';
     var tg='';if(SL.ref)tg+='<button type="button" class="tagb on" data-ov="ref"><svg class="ic" style="width:16px;height:16px"><use href="#user"/></svg><span>'+L('Referral: '+SL.ref,'रेफ़रल: '+SL.ref)+'</span></button>';
     if(SL.quote)tg+='<button type="button" class="tagb on" data-qrm aria-label="Remove Quotation Link"><span>'+L('From '+SL.quote,SL.quote+' से')+'</span><svg class="ic" style="width:16px;height:16px"><use href="#xic"/></svg></button>';
     var tge=document.getElementById('sl-tags');tge.innerHTML=tg;tge.hidden=!tg;
@@ -2166,8 +2172,8 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     var ih=document.getElementById('sl-ih');ih.hidden=!n;ih.innerHTML=L('Billed Items ('+n+')','बिल के आइटम ('+n+')');
     document.getElementById('sl-lines').innerHTML=SL.lines.map(function(l,k){var i=I[l.id],g=grossOf(l),a=amtOf(l),dp=+(+l.disc).toFixed(2);
       return '<button type="button" class="slc" data-ledit="'+k+'"><span class="sn">#'+(k+1)+'</span><span class="nm">'+esc(fullName(i))+'</span><span class="am">'+m2(a)+'</span>'
-        +'<span class="k2">'+L('Item Subtotal','आइटम का जोड़')+'</span><span class="v2">'+esc(qtxt(l))+' × '+m2(rateOf(l)*fct(l))+' = '+m2(g)+'</span>'
-        +(dp?'<span class="k2 dc">'+L('Discount '+dp+'%','छूट '+dp+'%')+'</span><span class="v2 dc">−'+m2(g-a)+'</span>':'')+'</button>'}).join('')
+        +'<span class="r2"><span class="k2">'+L('Item Subtotal','आइटम का जोड़')+'</span><span class="v2">'+esc(qtxt(l))+' × '+m2(rateOf(l)*fct(l))+' = '+m2(g)+'</span></span>'
+        +(dp?'<span class="r2"><span class="k2 dc">'+L('Discount '+dp+'%','छूट '+dp+'%')+'</span><span class="v2 dc">−'+m2(g-a)+'</span></span>':'')+'</button>'}).join('')
       ||'<div class="empty"><div class="ring"><svg class="ic"><use href="#cart"/></svg></div><b>'+L('No Items Yet','अभी कोई आइटम नहीं')+'</b><div class="t-s">'+L('Tap Add Item, or scan a barcode.','"आइटम जोड़ें" दबाएँ, या barcode स्कैन करें।')+'</div></div>';
     var is=document.getElementById('sl-isum');is.hidden=!n;
     is.innerHTML=n?'<span>'+L('Total Disc: ','कुल छूट: ')+m2(c.ldisc)+'</span><span>'+L('Total Tax: ','कुल टैक्स: ')+m2(c.tax)+'</span><span>'+L('Total Qty: ','कुल मात्रा: ')+(+c.count.toFixed(3)).toLocaleString('en-IN')+'</span><span>'+L('Subtotal: ','जोड़: ')+m2(c.items)+'</span>':'';
@@ -2193,7 +2199,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   function renderLine(){var i=ED.id&&I[ED.id];
     document.getElementById('ln-t').innerHTML=curL<0?L('Add Item','आइटम जोड़ें'):L('Edit Item','आइटम बदलें');
     var h='<div class="fld"><label>'+L('Item Name','आइटम का नाम')+'</label>'+(i?'<button type="button" class="cust" data-ov="ipick"><div class="mid"><div class="nm">'+esc(fullName(i))+'</div><div class="t-x">'+(i.k==='p'?L('In Stock '+uq(i.st,i.u),'स्टॉक '+uq(i.st,i.u)):L('Service','सेवा'))+' · GST '+i.gst+'%</div></div><span class="lnk" style="min-height:0">'+L('Change','बदलें')+'</span></button>'
-      :'<button type="button" class="cust empty" data-ov="ipick"><svg class="ic"><use href="#search"/></svg><span class="mid">'+L('Choose Item','आइटम चुनें')+'</span><span class="req">'+L('Required','ज़रूरी')+'</span></button>')+'</div>';
+      :'<button type="button" class="pfield" data-ov="ipick" aria-label="Item Name"><svg class="ic"><use href="#search"/></svg><span class="ph">'+L('Choose Item','आइटम चुनें')+'</span><svg class="ic" style="transform:rotate(90deg)"><use href="#next"/></svg></button>')+'</div>';
     if(i){
       var us='<option value="1">'+esc(un(i.u,2))+'</option>'+(i.au?'<option value="'+i.au[2]+'"'+(fct(ED)>1?' selected':'')+'>'+esc(i.au[0]+' ('+i.au[2]+')')+'</option>':'');
       h+='<div class="srow2"><div class="fld"><label for="ln-q">'+L('Quantity','मात्रा')+'</label><div class="stp w"><button type="button" data-lnq="-" aria-label="Less">−</button><input id="ln-q" inputmode="decimal" autocomplete="off" aria-label="Quantity"><button type="button" data-lnq="+" aria-label="More">+</button></div></div><div class="fld"><label for="ln-u">'+L('Unit','इकाई')+'</label><div class="inp"><select id="ln-u">'+us+'</select></div></div></div>';
