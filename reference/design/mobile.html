@@ -419,21 +419,9 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .tagb span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .addrow{display:grid;grid-template-columns:minmax(0,1fr) var(--tap);gap:6px}
 .addbtn{font:inherit;font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;min-height:52px;padding:0 12px;border:1.5px dashed var(--blue);border-radius:var(--r);background:var(--blue-l);color:var(--blue);cursor:pointer;text-align:left;min-width:0}
-.sl{gap:8px;padding:10px}
-.sl .sltop{display:flex;align-items:flex-start;gap:8px;min-width:0}
-.sl .sltop .mid{flex:1;min-width:0}
-.sl .sltop .btn.ico{width:var(--tap);min-height:var(--tap);margin:-8px -8px -6px 0}
-.sl-q{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px;align-items:center}
-.sl-q .inp{padding:0 8px;gap:4px}
-.sl-q .inp input{font-weight:700}
 .stp{display:flex;align-items:center;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--card);overflow:hidden}
 .stp button{font:inherit;font-size:20px;font-weight:600;width:38px;min-height:var(--tap);border:0;background:var(--page);color:var(--blue);cursor:pointer}
 .stp input{font:inherit;font-size:16px;font-weight:700;width:42px;text-align:center;border:0;outline:0;background:transparent;color:var(--text);min-width:0}
-.sl-x{display:flex;flex-wrap:wrap;align-items:center;gap:0 6px;justify-content:space-between}
-.sl-x .lk{display:flex;flex-wrap:wrap;gap:0 4px;min-width:0}
-.sl-x .lnk{min-height:var(--tap);font-size:12.5px;padding:0 6px;display:inline-flex;align-items:center;gap:4px}
-.sl-x .lnk.warn{color:var(--red)}
-.sl-amt{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:16px;margin-left:auto}
 .sumbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .sumb{font:inherit;text-align:left;border:1px solid var(--border);border-radius:var(--r);background:var(--card);padding:8px 10px;cursor:pointer;min-height:var(--tap);position:relative;color:var(--text);min-width:0}
 .fx .sumb{box-shadow:var(--sh1)}
@@ -450,11 +438,51 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .okb{background:var(--green-l);color:var(--green);border-radius:var(--r-sm);padding:10px 12px;font-size:13px}
 .payr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 36px;gap:6px;align-items:center}
 .payr .btn.ico{width:36px;min-height:var(--tap)}
-.sbar{flex:none;background:var(--card);border-top:1px solid var(--border);padding:8px 10px;display:flex;flex-direction:column;gap:8px}
-.fx .sbar{box-shadow:0 -6px 16px -10px rgba(17,24,39,.18)}
-.sbar .tot{display:flex;justify-content:space-between;align-items:baseline;gap:10px;min-width:0}
-.sbar .tot b{font-size:clamp(18px,6cqi,22px);font-variant-numeric:tabular-nums;white-space:nowrap}
-.sbar .row>*{min-width:0}
+.shs{display:flex;align-items:center;gap:10px}
+.shs .t{flex:0 1 auto;min-width:0}
+.cap{position:relative;display:inline-grid;grid-template-columns:auto auto;flex:none;z-index:0}
+.cap::before{content:"";position:absolute;inset:5px 0;border-radius:999px;background:var(--slate-l);border:1px solid var(--border);z-index:-1}
+.cap button{position:relative;font:inherit;font-size:13px;font-weight:600;min-height:var(--tap);padding:0 13px;border:0;background:transparent;color:var(--text2);cursor:pointer;z-index:0}
+.cap button::before{content:"";position:absolute;inset:8px 3px;border-radius:999px;z-index:-1}
+.cap button[aria-pressed="true"]{color:var(--on)}
+.cap button[aria-pressed="true"]::before{background:var(--blue)}
+.fx .cap button[aria-pressed="true"]::before{box-shadow:0 2px 6px -2px rgba(29,78,216,.55),inset 0 1px 0 rgba(255,255,255,.25)}
+.invs{flex:none;display:grid;grid-template-columns:minmax(0,1fr) 1px minmax(0,1fr);align-items:center;gap:8px;padding:2px 10px;background:var(--card);border-bottom:1px solid var(--border)}
+.invs>i{align-self:stretch;margin:8px 0;background:var(--border)}
+.invs .iv{display:flex;flex-direction:column;justify-content:center;min-height:var(--tap);min-width:0;font:inherit;background:transparent;border:0;padding:2px 2px;text-align:left;color:var(--text);cursor:pointer}
+.invs .k{font-size:11.5px;font-weight:600;color:var(--text3);white-space:nowrap;line-height:1.2}
+.invs input{font:inherit;font-size:14px;font-weight:700;border:0;background:transparent;color:var(--text);min-width:0;width:100%;height:24px;padding:0;outline:0;border-bottom:1px dashed var(--sel)}
+.invs .dv{display:flex;align-items:center;gap:4px;font-size:14px;font-weight:700;white-space:nowrap;height:24px}
+.invs .dv .ic{width:16px;height:16px;color:var(--blue)}
+.cust .req{font-size:12px;font-weight:600;color:var(--red);white-space:nowrap}
+.cust .opt2{font-size:12px;font-weight:600;color:var(--text3);white-space:nowrap}
+.cphd{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.cphd .t-s{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cphd .lnk{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;flex:none}
+.cpr{padding-top:6px;padding-bottom:6px;min-height:56px}
+.pbal{text-align:right;flex:none}
+.pbal b{display:block;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:14px}
+.pbal small{display:block;font-size:11.5px;font-weight:600;white-space:nowrap}
+.sll{display:flex;flex-direction:column;gap:8px}
+.slc{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 8px;align-items:baseline;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);background:var(--card);font:inherit;text-align:left;width:100%;color:var(--text);cursor:pointer;min-height:var(--tap)}
+.fx .slc{box-shadow:var(--sh1);transition:transform .12s ease}
+.fx .slc:active{transform:scale(.985)}
+.slc .sn{font-size:11px;font-weight:700;color:var(--text2);background:var(--slate-l);border:1px solid var(--border);border-radius:5px;padding:0 5px;line-height:18px}
+.slc .nm{font-size:15px}
+.slc .am{justify-self:end;text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:15px}
+.slc .k2{grid-column:2;font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slc .v2{grid-column:3;font-size:12px;color:var(--text2);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.slc .k2.dc,.slc .v2.dc{color:var(--orange)}
+.slc .w2{grid-column:2/4;font-size:12px;color:var(--text2);font-variant-numeric:tabular-nums;text-align:right}
+.slsum{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;font-size:12px;color:var(--text2);padding:0 4px;font-variant-numeric:tabular-nums}
+.slsum span:nth-child(even){text-align:right}
+.mrow{min-height:52px;gap:12px;border-radius:var(--r-sm)}
+.mrow>.ic{color:var(--blue);flex:none}
+.mrow .mid{display:flex;flex-direction:column;min-width:0}
+.dp3{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) minmax(0,1.1fr);gap:6px}
+.dp3 .inp{padding:0 6px}
+.stp.w{width:100%}
+.stp.w input{flex:1;width:auto}
 .saved{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px 16px;text-align:center}
 .saved .ok{width:80px;height:80px;border-radius:50%;background:var(--green);color:var(--on);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 10px var(--green-l)}
 .saved .ok svg{width:40px;height:40px;stroke-width:3}
@@ -787,32 +815,37 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 <div class="proto" id="v-a" hidden>
   <div class="guide">
     <div class="gsec">
-      <h2 data-hi="7.4d: नया बिल (नया)">7.4d: New Sale (New)</h2>
-      <p data-hi="बिल बनाने की पूरी स्क्रीन: ग्राहक, आइटम, स्कैन, छूट और ख़र्चे, GST, रेफ़रल कमीशन, Quotation से लाना, बैच, पिछले दाम, मिला भुगतान, सेव और भेजना।">The whole bill screen: customer, items, scan, discount and charges, GST, referral commission, import from quotation, batch, last prices, payment received, save and share.</p>
+      <h2 data-hi="7.4d: बिक्री (आपके बदलाव)">7.4d: Sale (Your Changes)</h2>
+      <p data-hi="आपके बताए बदलाव: ऊपर बिक्री + उधार/नक़द कैप्सूल + ⋮, इनवॉइस नं. और तारीख़ की पट्टी, ग्राहक की पूरी सूची, एक आइटम का अलग पेज, नए आइटम कार्ड, और नीचे सिर्फ़ सेव और नया, सेव, ⋮।">Your changes: Sale with a Credit / Cash capsule and ⋮ at the top, a strip with the invoice number and date, a full customer list, a separate page for one item, new item cards, and only Save &amp; New, Save and ⋮ at the bottom.</p>
       <div class="scrlist">
-        <button type="button" data-jump4="empty"><span class="no">1</span><span data-hi="नया बिल (ख़ाली)">New Sale (Empty)</span></button>
-        <button type="button" data-jump4="filled"><span class="no">2</span><span data-hi="नया बिल (भरा हुआ)">New Sale (Filled In)</span></button>
-        <button type="button" data-jump4="spick"><span class="no">3</span><span data-hi="ग्राहक चुनें">Choose Customer</span></button>
-        <button type="button" data-jump4="ipick"><span class="no">4</span><span data-hi="आइटम जोड़ें">Add Items</span></button>
-        <button type="button" data-jump4="chg"><span class="no">5</span><span data-hi="छूट और ख़र्चे">Discount And Charges</span></button>
-        <button type="button" data-jump4="pay"><span class="no">6</span><span data-hi="मिला भुगतान">Payment Received</span></button>
-        <button type="button" data-jump4="ref"><span class="no">7</span><span data-hi="रेफ़रल कमीशन">Referral Commission</span></button>
-        <button type="button" data-jump4="batch"><span class="no">8</span><span data-hi="बैच चुनें">Choose Batch</span></button>
-        <button type="button" data-jump4="lhist"><span class="no">9</span><span data-hi="पिछले दाम">Last Prices</span></button>
-        <button type="button" data-jump4="quote"><span class="no">10</span><span data-hi="Quotation से लाएँ">Import From Quotation</span></button>
-        <button type="button" data-jump4="extras"><span class="no">11</span><span data-hi="बिल की और जानकारी">Bill Details</span></button>
-        <button type="button" data-jump4="saved"><span class="no">12</span><span data-hi="बिल सेव हुआ">Bill Saved</span></button>
+        <button type="button" data-jump4="empty"><span class="no">1</span><span data-hi="बिक्री (ख़ाली)">Sale (Empty)</span></button>
+        <button type="button" data-jump4="filled"><span class="no">2</span><span data-hi="बिक्री (भरी हुई)">Sale (Filled In)</span></button>
+        <button type="button" data-jump4="cpick"><span class="no">3</span><span data-hi="ग्राहक चुनें">Choose Customer</span></button>
+        <button type="button" data-jump4="sline"><span class="no">4</span><span data-hi="आइटम जोड़ें (पेज)">Add Item (Page)</span></button>
+        <button type="button" data-jump4="ipick"><span class="no">5</span><span data-hi="आइटम चुनें (सूची)">Choose Item (List)</span></button>
+        <button type="button" data-jump4="eline"><span class="no">6</span><span data-hi="आइटम बदलें / हटाएँ">Edit Or Delete Item</span></button>
+        <button type="button" data-jump4="batch"><span class="no">7</span><span data-hi="बैच चुनें">Choose Batch</span></button>
+        <button type="button" data-jump4="lhist"><span class="no">8</span><span data-hi="पिछले दाम">Last Prices</span></button>
+        <button type="button" data-jump4="dpick"><span class="no">9</span><span data-hi="बिल की तारीख़">Bill Date</span></button>
+        <button type="button" data-jump4="smenu"><span class="no">10</span><span data-hi="ऊपर ⋮ मेन्यू">Top ⋮ Menu</span></button>
+        <button type="button" data-jump4="quote"><span class="no">11</span><span data-hi="Quotation से लाएँ">Import From Quotation</span></button>
+        <button type="button" data-jump4="ref"><span class="no">12</span><span data-hi="रेफ़रल कमीशन">Referral Commission</span></button>
+        <button type="button" data-jump4="extras"><span class="no">13</span><span data-hi="बिल की और जानकारी">Bill Details</span></button>
+        <button type="button" data-jump4="chg"><span class="no">14</span><span data-hi="छूट और ख़र्चे">Discount And Charges</span></button>
+        <button type="button" data-jump4="pay"><span class="no">15</span><span data-hi="मिला भुगतान">Payment Received</span></button>
+        <button type="button" data-jump4="smore"><span class="no">16</span><span data-hi="नीचे ⋮ शेयर / प्रिंट">Bottom ⋮ Share / Print</span></button>
+        <button type="button" data-jump4="saved"><span class="no">17</span><span data-hi="बिल सेव हुआ">Bill Saved</span></button>
       </div>
     </div>
     <div class="gsec">
       <h2 data-hi="क्या आज़माएँ (7.4d)">Things To Try (7.4d)</h2>
       <ol class="rules">
-        <li data-hi="होम पर 'नया बिल' → ग्राहक चुनें → 'आइटम जोड़ें' में LED Bulb को 3 बार दबाएँ → मात्रा और रेट बदलें।">From Home, New Bill → choose a customer → in Add Items tap LED Bulb 3 times → change the quantity and rate.</li>
-        <li data-hi="सीधे 'सेव' दबाएँ: पहले 'छूट और ख़र्चे' खुलेगा (वेब की तरह, एक बार देखना ज़रूरी)।">Tap Save straight away: Discount And Charges opens first (as on the web, it must be checked once).</li>
-        <li data-hi="भरे हुए बिल में LED का बैच B-2405 चुनें (एक्सपायर) और सेव करें।">In the filled-in bill, choose LED batch B-2405 (expired) and save.</li>
-        <li data-hi="रेफ़रल में Raju Electrician चुनें: रेट में 5% कमीशन जुड़ता है, बिल पर नहीं छपता।">In Referral choose Raju Electrician: 5% commission goes into the rate and is not printed.</li>
-        <li data-hi="मिला भुगतान: नक़द + UPI दोनों में बाँटें; ज़्यादा डालने पर पुराना बाकी चुकता है।">Payment Received: split between Cash and UPI; paying more clears old dues.</li>
-        <li data-hi="'नक़द (काउंटर)' चुनें: ग्राहक का नाम ज़रूरी नहीं, पूरा पैसा मिला माना जाता है।">Choose Cash Sale: no customer needed, the full amount counts as received.</li>
+        <li data-hi="ऊपर "उधार / नक़द" कैप्सूल बदलें: उधार में ग्राहक ज़रूरी, नक़द में नहीं।">Switch the Credit / Cash capsule at the top: a customer is required for Credit, optional for Cash.</li>
+        <li data-hi="इनवॉइस नं. पर दबाकर नंबर बदलें, और तारीख़ पर दबाकर दूसरी तारीख़ चुनें।">Tap the invoice number to edit it, and tap the date to pick another one.</li>
+        <li data-hi=""आइटम जोड़ें" दबाएँ: एक आइटम का पेज खुलेगा। आइटम चुनें, मात्रा, इकाई, दाम सूची, रेट, छूट, बैच भरें, फिर सेव।">Tap Add Item: a page for one item opens. Choose the item, fill in quantity, unit, list price, rate, discount and batch, then Save.</li>
+        <li data-hi="बिल में आइटम के कार्ड को दबाएँ: वही पेज खुलेगा, वहीं "हटाएँ" बटन है।">Tap an item card in the bill: the same page opens, with the Delete button there.</li>
+        <li data-hi="ऊपर ⋮ में Quotation, रेफ़रल और बिल की और जानकारी है; नीचे ⋮ में शेयर और प्रिंट।">The top ⋮ has Quotation, Referral and Bill Details; the bottom ⋮ has Share and Print.</li>
+        <li data-hi="सीधे "सेव" दबाएँ: पहले "छूट और ख़र्चे" खुलेगा (वेब की तरह, एक बार देखना ज़रूरी)।">Tap Save straight away: Discount And Charges opens first (as on the web, it must be checked once).</li>
       </ol>
     </div>
     <div class="gsec">
@@ -1315,17 +1348,36 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 
       <!-- 7.4d new sale -->
       <section class="scn" data-s="sale" hidden>
-        <div class="sh"><button class="btn ico" data-back aria-label="Close"><svg class="ic"><use href="#xic"/></svg></button><div class="mid"><div class="t" data-hi="नया बिल">New Sale</div><button type="button" class="lnk" style="min-height:var(--tap);font-size:12px;padding:0;margin:-12px 0 -14px" data-toast="Opens a calendar to change the bill date." data-toast-hi="बिल की तारीख़ बदलने के लिए कैलेंडर खुलेगा।"><span id="sl-no">INV-0108</span> | <span data-hi="16 नव॰ 2026">16 Nov 2026</span></button></div><button class="btn ico" data-ov="quote" aria-label="Import From Quotation"><svg class="ic"><use href="#imp"/></svg></button><button class="btn ico" data-ov="extras" aria-label="Bill Details"><svg class="ic"><use href="#dots"/></svg></button></div>
+        <div class="sh"><button class="btn ico" data-back aria-label="Close"><svg class="ic"><use href="#xic"/></svg></button><div class="mid shs"><div class="t" data-hi="बिक्री">Sale</div><div class="cap" role="radiogroup" aria-label="Sale Type"><button type="button" role="radio" data-stype="credit" aria-pressed="true"><span data-hi="उधार">Credit</span></button><button type="button" role="radio" data-stype="cash" aria-pressed="false"><span data-hi="नक़द">Cash</span></button></div></div><button class="btn ico" data-ov="smenu" aria-label="More Options"><svg class="ic"><use href="#dots"/></svg></button></div>
+        <div class="invs"><label class="iv"><span class="k" data-hi="इनवॉइस नं.">Invoice No.</span><input id="sl-no" value="INV-0108" autocomplete="off" aria-label="Invoice Number"></label><i></i><button type="button" class="iv" data-ov="dpick"><span class="k" data-hi="तारीख़">Date</span><span class="dv"><span id="sl-date"></span><svg class="ic" style="transform:rotate(90deg)"><use href="#next"/></svg></span></button></div>
         <div class="sb">
-          <div class="seg2" role="radiogroup" id="sl-type"><button type="button" role="radio" data-stype="credit" aria-pressed="true"><span data-hi="उधार / पार्टी">Credit Sale</span></button><button type="button" role="radio" data-stype="cash" aria-pressed="false"><span data-hi="नक़द (काउंटर)">Cash Sale</span></button></div>
           <div id="sl-cust"></div>
           <div class="tagrow" id="sl-tags"></div>
-          <div class="sec" id="sl-ih" data-hi="आइटम">Items</div>
-          <div id="sl-lines" style="display:flex;flex-direction:column;gap:8px"></div>
-          <div class="addrow"><button type="button" class="addbtn" data-ov="ipick"><svg class="ic"><use href="#plus"/></svg><span data-hi="आइटम जोड़ें">Add Items</span></button><button type="button" class="btn ico soft" style="min-height:52px" data-go="scan" data-scanfor="sale" aria-label="Scan Barcode"><svg class="ic"><use href="#scan"/></svg></button></div>
+          <div class="sec" id="sl-ih"></div>
+          <div id="sl-lines" class="sll"></div>
+          <div class="slsum" id="sl-isum"></div>
+          <div class="addrow"><button type="button" class="addbtn" data-lnew><svg class="ic"><use href="#plus"/></svg><span data-hi="आइटम जोड़ें">Add Item</span></button><button type="button" class="btn ico soft" style="min-height:52px" data-go="scan" data-scanfor="sale" aria-label="Scan Barcode"><svg class="ic"><use href="#scan"/></svg></button></div>
           <div class="sumbtns" id="sl-sum"></div>
+          <div class="box" style="gap:6px" id="sl-totbox"></div>
         </div>
-        <div class="sbar"><div class="tot"><span class="t-s" id="sl-cnt"></span><b id="sl-tot"></b></div><div class="row"><button class="btn soft grow" data-ssave="new"><span data-hi="सेव और नया">Save &amp; New</span></button><button class="btn green grow" data-ssave><svg class="ic"><use href="#check"/></svg><span data-hi="सेव करें">Save</span></button></div></div>
+        <div class="sf"><button class="btn soft grow" data-ssave="new"><span data-hi="सेव और नया">Save &amp; New</span></button><button class="btn green grow" data-ssave><svg class="ic"><use href="#check"/></svg><span data-hi="सेव करें">Save</span></button><button class="btn ico soft" data-ov="smore" aria-label="Share Or Print"><svg class="ic"><use href="#dots"/></svg></button></div>
+      </section>
+
+      <!-- 7.4d choose customer -->
+      <section class="scn" data-s="cpick" hidden>
+        <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="mid"><div class="t" data-hi="ग्राहक चुनें">Choose Customer</div></div></div>
+        <div class="sb">
+          <div class="inp"><svg class="ic"><use href="#search"/></svg><input id="spq" type="search" placeholder="Name Or Mobile" data-hi-ph="नाम या मोबाइल" autocomplete="off"></div>
+          <div class="cphd"><span class="t-s" id="sp-cnt"></span><button type="button" class="lnk" data-pform="new"><svg class="ic" style="width:18px;height:18px"><use href="#plus"/></svg><span data-hi="नई पार्टी जोड़ें">Add New Party</span></button></div>
+          <div class="grp" id="sp-list"></div>
+        </div>
+      </section>
+
+      <!-- 7.4d add / edit item -->
+      <section class="scn" data-s="sline" hidden>
+        <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="mid"><div class="t" id="ln-t">Add Item</div></div></div>
+        <div class="sb" id="ln-body"></div>
+        <div class="sf" id="ln-bar"></div>
       </section>
 
       <!-- 7.4d bill saved -->
@@ -1475,22 +1527,37 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
           <div class="row"><button class="btn line grow" data-close><span data-hi="रहने दें">Cancel</span></button><button class="btn green grow" data-pcsave><span data-hi="दाम सेव करें">Save Prices</span></button></div>
         </div>
       </div>
-      <div class="ov bot" data-o="spick" hidden>
-        <div class="sheet" style="gap:8px">
-          <div class="grab"></div>
-          <b data-hi="ग्राहक चुनें">Choose Customer</b>
-          <div class="inp"><svg class="ic"><use href="#search"/></svg><input id="spq" type="search" placeholder="Name Or Mobile" data-hi-ph="नाम या मोबाइल" autocomplete="off"></div>
-          <div class="grp" id="sp-list"></div>
-          <button class="btn soft" data-pform="new"><svg class="ic"><use href="#plus"/></svg><span data-hi="नई पार्टी">New Party</span></button>
-        </div>
-      </div>
       <div class="ov bot" data-o="ipick" hidden>
         <div class="sheet" style="gap:8px">
           <div class="grab"></div>
-          <div class="row" style="justify-content:space-between"><b data-hi="आइटम जोड़ें">Add Items</b><span class="t-x" data-hi="हर बार दबाने पर 1 जुड़ता है">Each Tap Adds 1</span></div>
+          <b data-hi="आइटम चुनें">Choose Item</b>
           <div class="addrow"><div class="inp"><svg class="ic"><use href="#search"/></svg><input id="ipq" type="search" placeholder="Search Item Or Code" data-hi-ph="आइटम या कोड खोजें" autocomplete="off"></div><button type="button" class="btn ico soft" data-go="scan" data-scanfor="sale" aria-label="Scan Barcode"><svg class="ic"><use href="#scan"/></svg></button></div>
           <div class="grp" id="ip-list"></div>
-          <button class="btn blue" data-close><span id="ip-done"></span></button>
+        </div>
+      </div>
+      <div class="ov bot" data-o="smenu" hidden>
+        <div class="sheet" style="gap:4px">
+          <div class="grab"></div>
+          <button type="button" class="srow mrow" data-ov="quote"><svg class="ic"><use href="#imp"/></svg><span class="mid" data-hi="Quotation से लाएँ">Import From Quotation</span></button>
+          <button type="button" class="srow mrow" data-ov="ref"><svg class="ic"><use href="#user"/></svg><span class="mid"><span data-hi="रेफ़रल जोड़ें">Add Referral</span><span class="t-x" id="sm-ref" hidden></span></span></button>
+          <button type="button" class="srow mrow" data-ov="extras" style="border-bottom:0"><svg class="ic"><use href="#bill"/></svg><span class="mid" data-hi="बिल की और जानकारी">Bill Details</span></button>
+        </div>
+      </div>
+      <div class="ov bot" data-o="smore" hidden>
+        <div class="sheet" style="gap:4px">
+          <div class="grab"></div>
+          <button type="button" class="srow mrow" data-ssave="share"><svg class="ic"><use href="#share"/></svg><span class="mid"><span data-hi="शेयर करें">Share</span><span class="t-x" data-hi="बिल सेव करके PDF भेजें: WhatsApp वग़ैरह">Saves the bill and sends the PDF: WhatsApp and others</span></span></button>
+          <button type="button" class="srow mrow" data-ssave="print" style="border-bottom:0"><svg class="ic"><use href="#bill"/></svg><span class="mid"><span data-hi="प्रिंट करें">Print</span><span class="t-x" data-hi="बिल सेव करके PDF छापें">Saves the bill and prints the PDF</span></span></button>
+        </div>
+      </div>
+      <div class="ov bot" data-o="dpick" hidden>
+        <div class="sheet" style="gap:10px">
+          <div class="grab"></div>
+          <b data-hi="बिल की तारीख़">Bill Date</b>
+          <div class="seg2" role="radiogroup"><button type="button" role="radio" data-dq="0" aria-pressed="true"><span data-hi="आज">Today</span></button><button type="button" role="radio" data-dq="1" aria-pressed="false"><span data-hi="कल">Yesterday</span></button></div>
+          <div class="dp3"><div class="inp"><select id="dp-d" aria-label="Day"></select></div><div class="inp"><select id="dp-m" aria-label="Month"></select></div><div class="inp"><select id="dp-y" aria-label="Year"></select></div></div>
+          <div class="hint" data-hi="असली फ़ोन पर यहाँ फ़ोन का अपना कैलेंडर खुलेगा।">On the real phone, the phone's own calendar opens here.</div>
+          <button class="btn blue" data-close><span data-hi="ठीक है">Done</span></button>
         </div>
       </div>
       <div class="ov bot" data-o="chg" hidden>
@@ -1538,15 +1605,6 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
           <div class="grab"></div>
           <div><b data-hi="पिछले दाम">Last Prices</b><div class="t-x" id="lh-sub"></div></div>
           <div class="grp" id="lh-list"></div>
-        </div>
-      </div>
-      <div class="ov bot" data-o="ldisc" hidden>
-        <div class="sheet" style="gap:10px">
-          <div class="grab"></div>
-          <b id="ld-t"></b>
-          <div class="srow2"><div class="fld"><label for="ld-p" data-hi="छूट %">Discount %</label><div class="inp"><input id="ld-p" inputmode="decimal" placeholder="0" autocomplete="off"><span class="pre">%</span></div></div><div class="fld"><label for="ld-f" data-hi="आख़िरी रेट">Final Rate</label><div class="inp"><span class="pre">₹</span><input id="ld-f" inputmode="decimal" autocomplete="off"></div></div></div>
-          <div class="hint" data-hi="आख़िरी रेट लिखने पर छूट % अपने-आप बनती है।">Type a final rate and the discount % is worked out for you.</div>
-          <button class="btn blue" data-ldok><span data-hi="ठीक है">Done</span></button>
         </div>
       </div>
       <div class="ov bot" data-o="quote" hidden>
@@ -1792,7 +1850,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     var ob=Math.round(parseFloat((document.getElementById('pf-ob').value||'0').replace(/,/g,''))*100)||0,id='n'+Date.now();
     P[id]={n:n,k:pay?'s':'c',ph:ph,g:g,city:city,days:days,gst:document.getElementById('pf-gst').value.trim().toUpperCase(),tx:ob?[['ob','OB',TODAY,pay?-ob:ob,0]]:[]};
     toast(n+' saved.',n+' सेव हुई।');
-    if(again){openFormKeep()}else{pk.cur=id;stack.pop();stack.push('party');show('party')}
+    if(again){openFormKeep()}else if(stack[stack.length-2]==='cpick'){SL.party=id;stack.pop();stack.pop();show('sale')}else{pk.cur=id;stack.pop();stack.push('party');show('party')}
   }
   function openFormKeep(){F.forEach(function(i){document.getElementById(i).value=''});document.querySelector('[data-s=pform] .sb').scrollTop=0}
   function delAsk(){var p=P[pk.cur],t=document.getElementById('pd-t'),b=document.getElementById('pd-b'),bt=document.getElementById('pd-btns');
@@ -2019,7 +2077,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(t.hasAttribute('data-idelok')){var nm2=I[ik.cur].n;delete I[ik.cur];toast(nm2+' deleted.',nm2+' हटाया गया।');var k2=stack.lastIndexOf('items');stack=k2<0?['home','items']:stack.slice(0,k2+1);show('items');return}
     if(t.hasAttribute('data-assign')){document.getElementById('if-code').value='JE004';return}
     if(t.hasAttribute('data-scanfor')){ik.scanFor=t.dataset.scanfor;return}
-    if(t.hasAttribute('data-scanhit')){if(ik.scanFor==='sale'){ik.scanFor=null;addLine('led');back();toast('Scanned: LED Bulb 9W Cool Day Light added.','स्कैन हुआ: LED Bulb 9W Cool Day Light जुड़ा।');return}if(ik.scanFor==='code'){ik.scanFor=null;document.getElementById('if-code').value='8901234567012';toast('Code scanned: 8901234567012','कोड स्कैन हुआ: 8901234567012');back()}else{ik.cur='led';ik.tf='all';stack.pop();go('item');toast('Found: LED Bulb 9W Cool Day Light','मिला: LED Bulb 9W Cool Day Light')}return}
+    if(t.hasAttribute('data-scanhit')){if(ik.scanFor==='sale'){ik.scanFor=null;scanSale();return}if(ik.scanFor==='code'){ik.scanFor=null;document.getElementById('if-code').value='8901234567012';toast('Code scanned: 8901234567012','कोड स्कैन हुआ: 8901234567012');back()}else{ik.cur='led';ik.tf='all';stack.pop();go('item');toast('Found: LED Bulb 9W Cool Day Light','मिला: LED Bulb 9W Cool Day Light')}return}
     if(t.hasAttribute('data-pmode')){if(t.dataset.pmode==='setup'&&ik.pm!=='setup'){pin='';pinDots();ov('pin')}else{ik.pm='view';ik.sel={};renderPrices()}return}
     if(t.hasAttribute('data-pmdone')){ik.pm='view';ik.sel={};renderPrices();return}
     if(t.hasAttribute('data-psel')){ik.sel[t.dataset.psel]=!ik.sel[t.dataset.psel];renderPrices();return}
@@ -2061,57 +2119,118 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(bfor==='items')ik.brand=t.dataset.bp;else ik.pbrand=t.dataset.bp;closeOv();show(cur)});
 
   /* ---------- 7.4d new sale ---------- */
-  var SL,slNo=108,pend=null,ckStep=0;
+  var SL,ED,slNo=108,pend=null,ckStep=0,curL=-1;
   var BT={led:[['B-2405','2026-10-31',5],['B-2410','2027-03-31',40],['B-2411','2027-09-30',80]]};
   var QT=[{no:'QT-0031',d:'2026-11-10',p:'mehta',lines:[['led',20],['sw',30],['wire',2]]},{no:'QT-0029',d:'2026-11-02',p:'gupta',lines:[['a16',10],['l16',6]]}];
   var MODES=[['Cash','नक़द','Cash'],['UPI','UPI','UPI'],['Bank Transfer','बैंक','Bank'],['Cheque','चेक','Cheque'],['Card','कार्ड','Card']];
-  function newSale(o){o=o||{};SL={type:'credit',party:o.party||'',lines:[],ref:'',rk:'pct',rv:5,bdP:0,bd:0,tr:0,lab:0,bank:0,round:true,chgOk:false,pays:[],full:false,quote:null,cust:'',mob:''};
+  var PL=[['sp','Sale Price','बिक्री दाम'],['wp','Wholesale','थोक दाम'],['mrp','MRP','MRP']];
+  I.led.au=['Box','Boxes',10];I.sw.au=['Box','Boxes',20];
+  function newSale(o){o=o||{};SL={type:'credit',no:'INV-0'+slNo,date:TODAY,party:o.party||'',lines:[],ref:'',rk:'pct',rv:5,bdP:0,bd:0,tr:0,lab:0,bank:0,round:true,chgOk:false,pays:[],full:false,quote:null};
     if(o.item)addLine(o.item);if(o.fill){SL.party='mehta';addLine('led',2);addLine('sw',10);addLine('wire',1)}}
+  function fct(l){return l.f||1}
   function comm(l){if(!SL.ref)return 0;return SL.rk==='pct'?Math.round(l.base*SL.rv/100):Math.round(SL.rv*100)}
+  function baseFrom(v){return Math.max(0,SL.ref?(SL.rk==='pct'?Math.round(v/(1+SL.rv/100)):v-Math.round(SL.rv*100)):v)}
   function rateOf(l){return l.base+comm(l)}
   function netOf(l){return Math.round(rateOf(l)*(1-(l.disc||0)/100))}
-  function amtOf(l){return Math.round(netOf(l)*l.q)}
+  function amtOf(l){return Math.round(netOf(l)*l.q*fct(l))}
+  function grossOf(l){return Math.round(rateOf(l)*l.q*fct(l))}
+  function uName(l,q){var i=I[l.id];return fct(l)>1&&i.au?(Math.abs(q)===1?i.au[0]:i.au[1]):un(i.u,q)}
+  function uPer(l){var i=I[l.id];return fct(l)>1&&i.au?i.au[0]:per(i.u)}
+  function qtxt(l){return (+(+l.q).toFixed(3)).toLocaleString('en-IN')+' '+uName(l,l.q)}
+  function v2(p){return (p/100).toFixed(2).replace(/\.00$/,'')}
+  function m2(p){return inr(p).replace(/\.00$/,'')}
   function autoBatch(id){var b=BT[id];if(!b)return '';var ok=b.filter(function(x){return x[1]>=TODAY&&x[2]>0});return ok.length?ok[0][0]:''}
-  function addLine(id,q){q=q||1;var e=SL.lines.filter(function(l){return l.id===id})[0];if(e){e.q+=q;return}SL.lines.push({id:id,q:q,base:I[id].sp,disc:0,batch:autoBatch(id)})}
-  function calc(){var items=0,tax=0,cost=0;SL.lines.forEach(function(l){items+=amtOf(l);cost+=Math.round(I[l.id].pp*l.q)});
+  function addLine(id,q){q=q||1;var e=SL.lines.filter(function(l){return l.id===id&&fct(l)===1})[0];if(e){e.q+=q;return}SL.lines.push({id:id,q:q,base:I[id].sp,pl:'sp',f:1,disc:0,batch:autoBatch(id)})}
+  function calc(){var items=0,tax=0,cost=0,gross=0;SL.lines.forEach(function(l){items+=amtOf(l);gross+=grossOf(l);cost+=Math.round(I[l.id].pp*l.q*fct(l))});
     var bdisc=SL.bdP?Math.round(items*SL.bdP/100):Math.min(SL.bd,items),taxable=items-bdisc;
     SL.lines.forEach(function(l){if(items)tax+=Math.round(amtOf(l)/items*taxable*(I[l.id].gst||0)/100)});
     var pre=taxable+tax+SL.tr+SL.lab+SL.bank,total=SL.round?Math.round(pre/100)*100:pre,rec=SL.type==='cash'||SL.full?total:SL.pays.reduce(function(s,p){return s+p.amt},0);
     var predues=SL.type==='credit'&&SL.party&&P[SL.party]?bal(P[SL.party]):0;
-    return {items:items,bdisc:bdisc,taxable:taxable,tax:tax,cg:Math.floor(tax/2),sg:tax-Math.floor(tax/2),pre:pre,ro:total-pre,total:total,rec:rec,dues:Math.max(0,total-rec),predues:predues,tdues:predues+total-rec,cost:cost,count:SL.lines.reduce(function(s,l){return s+l.q},0)}}
+    return {items:items,gross:gross,ldisc:gross-items,bdisc:bdisc,taxable:taxable,tax:tax,cg:Math.floor(tax/2),sg:tax-Math.floor(tax/2),pre:pre,ro:total-pre,total:total,rec:rec,dues:Math.max(0,total-rec),predues:predues,tdues:predues+total-rec,cost:cost,count:SL.lines.reduce(function(s,l){return s+l.q*fct(l)},0)}}
   var ONES=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'],TENS=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
   function w2(n){return n<20?ONES[n]:TENS[Math.floor(n/10)]+(n%10?' '+ONES[n%10]:'')}
   function w3(n){return (n>=100?ONES[Math.floor(n/100)]+' Hundred'+(n%100?' ':''):'')+(n%100?w2(n%100):'')}
   function words(p){var r=Math.floor(p/100),out=[],cr=Math.floor(r/1e7),la=Math.floor(r/1e5)%100,th=Math.floor(r/1e3)%100,rest=r%1000;
     if(cr)out.push(w3(cr)+' Crore');if(la)out.push(w2(la)+' Lakh');if(th)out.push(w2(th)+' Thousand');if(rest)out.push(w3(rest));return 'Rupees '+(out.join(' ')||'Zero')+' Only'}
-  function renderSale(){var c=calc(),pr=SL.party&&P[SL.party];
-    document.getElementById('sl-no').textContent='INV-0'+slNo;
+  function renderSale(){var c=calc(),pr=SL.party&&P[SL.party],cash=SL.type==='cash',n=SL.lines.length;
+    var no=document.getElementById('sl-no');if(document.activeElement!==no)no.value=SL.no;
+    document.getElementById('sl-date').innerHTML=LD(SL.date);
     document.querySelectorAll('[data-stype]').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.stype===SL.type)});
     var cu=document.getElementById('sl-cust');
-    if(SL.type==='cash')cu.innerHTML='<div class="srow2"><div class="fld"><label for="sl-cn">'+L('Customer Name','ग्राहक का नाम')+'</label><div class="inp"><input id="sl-cn" placeholder="'+(hiOn()?'ज़रूरी नहीं':'Optional')+'" value="'+esc(SL.cust)+'" autocomplete="off"></div></div><div class="fld"><label for="sl-cm">'+L('Mobile','मोबाइल')+'</label><div class="inp"><input id="sl-cm" inputmode="tel" placeholder="'+(hiOn()?'ज़रूरी नहीं':'Optional')+'" value="'+esc(SL.mob)+'" autocomplete="off"></div></div></div><div class="t-x" style="margin-top:6px">'+L('Counter sale: the full amount is received now.','काउंटर बिक्री: पूरा पैसा अभी मिल गया।')+'</div>';
-    else if(pr){var b=bal(pr);cu.innerHTML='<button type="button" class="cust" data-ov="spick"><div class="mid"><div class="nm">'+esc(pr.n)+'</div><div class="t-x">'+(b>0?L('Previous Dues ₹'+inr(b),'पुराना बाकी ₹'+inr(b)):b<0?L('Advance ₹'+inr(b),'एडवांस ₹'+inr(b)):L('No Dues','कोई बाकी नहीं'))+(pr.lim?' · '+L('Limit '+r0(pr.lim),'सीमा '+r0(pr.lim)):'')+'</div></div><span class="lnk" style="min-height:0">'+L('Change','बदलें')+'</span></button>'}
-    else cu.innerHTML='<button type="button" class="cust empty" data-ov="spick"><svg class="ic"><use href="#user"/></svg><span>'+L('Choose Customer','ग्राहक चुनें')+'</span></button>';
-    var tg='<button type="button" class="tagb'+(SL.ref?' on':'')+'" data-ov="ref"><svg class="ic" style="width:16px;height:16px"><use href="#user"/></svg><span>'+(SL.ref?L('Referral: '+SL.ref,'रेफ़रल: '+SL.ref):L('Add Referral','रेफ़रल जोड़ें'))+'</span></button>';
+    if(pr){var b=bal(pr);cu.innerHTML='<button type="button" class="cust" data-cpick><div class="mid"><div class="nm">'+esc(pr.n)+'</div><div class="t-x">'+(b>0?L('Previous Dues ₹'+inr(b),'पुराना बाकी ₹'+inr(b)):b<0?L('Advance ₹'+inr(b),'एडवांस ₹'+inr(b)):L('No Dues','कोई बाकी नहीं'))+(pr.lim?' · '+L('Limit '+r0(pr.lim),'सीमा '+r0(pr.lim)):'')+'</div></div><span class="lnk" style="min-height:0">'+L('Change','बदलें')+'</span></button>'}
+    else cu.innerHTML='<button type="button" class="cust empty" data-cpick><svg class="ic"><use href="#user"/></svg><span class="mid">'+(cash?L('Add Customer','ग्राहक जोड़ें'):L('Choose Customer','ग्राहक चुनें'))+'</span>'+(cash?'<span class="opt2">'+L('Optional','ज़रूरी नहीं')+'</span>':'<span class="req">'+L('Required','ज़रूरी')+'</span>')+'</button>'+(cash?'<div class="t-x" style="margin-top:6px">'+L('Counter sale: the full amount is received now.','काउंटर बिक्री: पूरा पैसा अभी मिल गया।')+'</div>':'');
+    var tg='';if(SL.ref)tg+='<button type="button" class="tagb on" data-ov="ref"><svg class="ic" style="width:16px;height:16px"><use href="#user"/></svg><span>'+L('Referral: '+SL.ref,'रेफ़रल: '+SL.ref)+'</span></button>';
     if(SL.quote)tg+='<button type="button" class="tagb on" data-qrm aria-label="Remove Quotation Link"><span>'+L('From '+SL.quote,SL.quote+' से')+'</span><svg class="ic" style="width:16px;height:16px"><use href="#xic"/></svg></button>';
-    document.getElementById('sl-tags').innerHTML=tg;
-    document.getElementById('sl-ih').hidden=!SL.lines.length;
-    document.getElementById('sl-lines').innerHTML=SL.lines.map(function(l,k){var i=I[l.id],bt=BT[l.id],exp=bt&&l.batch&&bt.filter(function(x){return x[0]===l.batch&&x[1]<TODAY}).length;
-      return '<div class="box sl"><div class="sltop"><div class="mid"><div class="nm">'+esc(fullName(i))+'</div><div class="t-x">'+(i.k==='p'?L('In Stock '+uq(i.st,i.u),'स्टॉक '+uq(i.st,i.u))+' · ':'')+L('Per '+per(i.u),'प्रति '+per(i.u))+' · GST '+i.gst+'%'+(comm(l)?' · '+L('Incl. Commission ₹'+inr(comm(l)),'कमीशन ₹'+inr(comm(l))+' सहित'):'')+'</div></div><button class="btn ico del" data-lrm="'+k+'" aria-label="Remove Item"><svg class="ic"><use href="#trash"/></svg></button></div>'
-        +'<div class="sl-q"><div class="stp"><button type="button" data-lq="-" data-i="'+k+'" aria-label="Less">−</button><input data-lqi="'+k+'" inputmode="decimal" value="'+l.q+'" aria-label="Quantity"><button type="button" data-lq="+" data-i="'+k+'" aria-label="More">+</button></div><div class="inp"><span class="pre">₹</span><input data-lr="'+k+'" inputmode="decimal" value="'+(rateOf(l)/100).toFixed(2).replace(/\.00$/,'')+'" aria-label="Rate Per '+per(i.u)+'"></div></div>'
-        +'<div class="sl-x"><div class="lk"><button type="button" class="lnk" data-lh="'+k+'"><svg class="ic" style="width:16px;height:16px"><use href="#clock"/></svg>'+L('Last Prices','पिछले दाम')+'</button><button type="button" class="lnk" data-ld="'+k+'">'+L('Disc '+(+l.disc.toFixed(2))+'%','छूट '+(+l.disc.toFixed(2))+'%')+'</button>'+(bt?'<button type="button" class="lnk'+(exp?' warn':'')+'" data-lb="'+k+'">'+(l.batch?L('Batch '+l.batch,'बैच '+l.batch):L('Choose Batch','बैच चुनें'))+'</button>':'')+'</div><span class="sl-amt">₹'+inr(amtOf(l))+'</span></div></div>'}).join('')
-      ||'<div class="empty"><div class="ring"><svg class="ic"><use href="#cart"/></svg></div><b>'+L('No Items Yet','अभी कोई आइटम नहीं')+'</b><div class="t-s">'+L('Tap Add Items, or scan a barcode.','"आइटम जोड़ें" दबाएँ, या barcode स्कैन करें।')+'</div></div>';
-    var ch=c.bdisc||SL.tr||SL.lab||SL.bank,chv=(c.bdisc?'−₹'+inr(c.bdisc).replace('.00',''):'')+(c.bdisc&&(SL.tr+SL.lab+SL.bank)?' ':'')+((SL.tr+SL.lab+SL.bank)?'+₹'+inr(SL.tr+SL.lab+SL.bank).replace('.00',''):'');
+    var tge=document.getElementById('sl-tags');tge.innerHTML=tg;tge.hidden=!tg;
+    var sr=document.getElementById('sm-ref');sr.hidden=!SL.ref;sr.innerHTML=SL.ref?esc(SL.ref):'';
+    var ih=document.getElementById('sl-ih');ih.hidden=!n;ih.innerHTML=L('Billed Items ('+n+')','बिल के आइटम ('+n+')');
+    document.getElementById('sl-lines').innerHTML=SL.lines.map(function(l,k){var i=I[l.id],g=grossOf(l),a=amtOf(l),dp=+(+l.disc).toFixed(2);
+      return '<button type="button" class="slc" data-ledit="'+k+'"><span class="sn">#'+(k+1)+'</span><span class="nm">'+esc(fullName(i))+'</span><span class="am">'+m2(a)+'</span>'
+        +'<span class="k2">'+L('Item Subtotal','आइटम का जोड़')+'</span><span class="v2">'+esc(qtxt(l))+' × '+m2(rateOf(l)*fct(l))+' = '+m2(g)+'</span>'
+        +(dp?'<span class="k2 dc">'+L('Discount '+dp+'%','छूट '+dp+'%')+'</span><span class="v2 dc">−'+m2(g-a)+'</span>':'')+'</button>'}).join('')
+      ||'<div class="empty"><div class="ring"><svg class="ic"><use href="#cart"/></svg></div><b>'+L('No Items Yet','अभी कोई आइटम नहीं')+'</b><div class="t-s">'+L('Tap Add Item, or scan a barcode.','"आइटम जोड़ें" दबाएँ, या barcode स्कैन करें।')+'</div></div>';
+    var is=document.getElementById('sl-isum');is.hidden=!n;
+    is.innerHTML=n?'<span>'+L('Total Disc: ','कुल छूट: ')+m2(c.ldisc)+'</span><span>'+L('Total Tax: ','कुल टैक्स: ')+m2(c.tax)+'</span><span>'+L('Total Qty: ','कुल मात्रा: ')+(+c.count.toFixed(3)).toLocaleString('en-IN')+'</span><span>'+L('Subtotal: ','जोड़: ')+m2(c.items)+'</span>':'';
+    var ch=c.bdisc||SL.tr||SL.lab||SL.bank,chv=(c.bdisc?'−₹'+m2(c.bdisc):'')+(c.bdisc&&(SL.tr+SL.lab+SL.bank)?' ':'')+((SL.tr+SL.lab+SL.bank)?'+₹'+m2(SL.tr+SL.lab+SL.bank):'');
     document.getElementById('sl-sum').innerHTML='<button type="button" class="sumb'+(SL.chgOk?'':' todo')+'" data-ov="chg">'+(SL.chgOk?'':'<span class="dot">!</span>')+'<small>'+L('Discount & Charges','छूट और ख़र्चे')+'</small><b>'+(ch?chv:L('None','कोई नहीं'))+'</b></button>'
       +'<button type="button" class="sumb" data-ov="pay"><small>'+L('Received','मिला')+'</small><b class="cg">₹'+inr(c.rec)+'</b></button>';
-    document.getElementById('sl-cnt').innerHTML=L(SL.lines.length+(SL.lines.length===1?' Item':' Items')+(c.dues&&SL.type==='credit'?' · Dues ₹'+inr(c.dues):''),SL.lines.length+' आइटम'+(c.dues&&SL.type==='credit'?' · बाकी ₹'+inr(c.dues):''));
-    document.getElementById('sl-tot').innerHTML=L('Total ','कुल ')+R(c.total)}
-  function renderSP(){var q=(document.getElementById('spq').value||'').toLowerCase();
-    document.getElementById('sp-list').innerHTML=Object.keys(P).filter(function(id){var p=P[id];return !p.inactive&&p.k==='c'&&(!q||p.n.toLowerCase().indexOf(q)>-1||p.ph.replace(/\s/g,'').indexOf(q.replace(/\s/g,''))>-1)}).map(function(id){var p=P[id],b=bal(p);
-      return '<button class="srow" data-spick="'+id+'"><div class="mid"><div class="nm">'+esc(p.n)+'</div><div class="t-x">'+sub(p)+'</div></div>'+(b?'<span class="'+(b>0?'cg':'cr')+'" style="font-weight:700;white-space:nowrap">'+(b>0?'↓ ':'↑ ')+inr(b)+'</span>':'')+'</button>'}).join('')||'<div class="empty"><b>'+L('No Customers Match','कोई ग्राहक नहीं मिला')+'</b></div>'}
-  function renderIP(){var q=(document.getElementById('ipq').value||'').toLowerCase(),n=0;
-    document.getElementById('ip-list').innerHTML=Object.keys(I).filter(function(id){var i=I[id];return !i.inactive&&(!q||(fullName(i)+' '+(i.code||'')).toLowerCase().indexOf(q)>-1)}).map(function(id){var i=I[id],ln=SL.lines.filter(function(l){return l.id===id})[0],s=ist(i);
-      return '<button class="srow" data-addi="'+id+'"><div class="mid"><div class="nm">'+esc(fullName(i))+'</div><div class="t-x">'+r0(i.sp)+' · '+(i.k==='p'?L('Stock '+uq(i.st,i.u),'स्टॉक '+uq(i.st,i.u)):L('Service','सेवा'))+'</div></div>'+(ln?'<span class="bd info">× '+ln.q+'</span>':s==='out'?'<span class="bd due">'+L('Out','ख़त्म')+'</span>':'<svg class="ic" style="color:var(--blue)"><use href="#plus"/></svg>')+'</button>'}).join('');
-    n=SL.lines.length;document.getElementById('ip-done').innerHTML=n?L('Done ('+n+(n===1?' Item)':' Items)'),'पूरा ('+n+' आइटम)'):L('Done','पूरा')}
+    var tb=document.getElementById('sl-totbox');tb.hidden=!n;
+    tb.innerHTML=n?'<div class="tl"><span>'+L('Bill Total (With GST)','बिल की रक़म (GST सहित)')+'</span><b>₹'+inr(c.total)+'</b></div>'+(!cash&&c.dues?'<div class="tl"><span>'+L('Bill Dues','इस बिल का बाकी')+'</span><b class="cr">₹'+inr(c.dues)+'</b></div>':''):''}
+  function renderSP(){var q=(document.getElementById('spq').value||'').toLowerCase().replace(/\s/g,'');
+    var ids=Object.keys(P).filter(function(id){var p=P[id];return !p.inactive&&(!q||p.n.toLowerCase().replace(/\s/g,'').indexOf(q)>-1||(p.ph||'').replace(/\s/g,'').indexOf(q)>-1)});
+    document.getElementById('sp-cnt').innerHTML=L('Showing '+ids.length+(ids.length===1?' Party':' Parties'),ids.length+' पार्टी दिख रही हैं');
+    var h=SL.type==='cash'?'<button class="srow cpr" data-spick=""><div class="mid"><div class="nm">'+L('No Customer (Counter Sale)','कोई ग्राहक नहीं (काउंटर)')+'</div><div class="t-x">'+L('Name not needed for a cash sale','नक़द बिक्री में नाम ज़रूरी नहीं')+'</div></div>'+(SL.party?'':'<svg class="ic" style="color:var(--blue)"><use href="#check"/></svg>')+'</button>':'';
+    h+=ids.map(function(id){var p=P[id],b=bal(p);
+      return '<button class="srow cpr" data-spick="'+id+'"><div class="mid"><div class="nm">'+esc(p.n)+'</div><div class="t-x">'+(p.ph?'+91 '+esc(p.ph):L('No Mobile','मोबाइल नहीं'))+'</div></div><div class="pbal">'+(b?'<b class="'+(b>0?'cg':'cr')+'">'+(b>0?'↓ ':'↑ ')+'₹'+m2(b)+'</b><small class="'+(b>0?'cg':'cr')+'">'+(b>0?L('To Receive','मिलेगा'):L('To Pay','देना है'))+'</small>':'<small class="c3">'+L('Settled','बराबर')+'</small>')+'</div></button>'}).join('');
+    document.getElementById('sp-list').innerHTML=h||'<div class="empty"><b>'+L('No Parties Match','कोई पार्टी नहीं मिली')+'</b></div>'}
+  function renderIP(){var q=(document.getElementById('ipq').value||'').toLowerCase();
+    document.getElementById('ip-list').innerHTML=Object.keys(I).filter(function(id){var i=I[id];return !i.inactive&&(!q||(fullName(i)+' '+(i.code||'')).toLowerCase().indexOf(q)>-1)}).map(function(id){var i=I[id],s=ist(i);
+      return '<button class="srow" data-ipk="'+id+'"><div class="mid"><div class="nm">'+esc(fullName(i))+'</div><div class="t-x">'+r0(i.sp)+' · '+(i.k==='p'?L('Stock '+uq(i.st,i.u),'स्टॉक '+uq(i.st,i.u)):L('Service','सेवा'))+'</div></div>'+(ED&&id===ED.id?'<svg class="ic" style="color:var(--blue)"><use href="#check"/></svg>':s==='out'?'<span class="bd due">'+L('Out','ख़त्म')+'</span>':'')+'</button>'}).join('')||'<div class="empty"><b>'+L('No Items Match','कोई आइटम नहीं मिला')+'</b></div>'}
+  /* add / edit item page */
+  function edNew(){curL=-1;ED={id:'',q:1,base:0,pl:'sp',f:1,disc:0,batch:''}}
+  function edOpen(k){curL=k;ED=JSON.parse(JSON.stringify(SL.lines[k]))}
+  function edPick(id){var i=I[id];ED.id=id;ED.pl='sp';ED.base=i.sp;ED.f=1;ED.disc=0;ED.batch=autoBatch(id);if(!(ED.q>0))ED.q=1}
+  function renderLine(){var i=ED.id&&I[ED.id];
+    document.getElementById('ln-t').innerHTML=curL<0?L('Add Item','आइटम जोड़ें'):L('Edit Item','आइटम बदलें');
+    var h='<div class="fld"><label>'+L('Item Name','आइटम का नाम')+'</label>'+(i?'<button type="button" class="cust" data-ov="ipick"><div class="mid"><div class="nm">'+esc(fullName(i))+'</div><div class="t-x">'+(i.k==='p'?L('In Stock '+uq(i.st,i.u),'स्टॉक '+uq(i.st,i.u)):L('Service','सेवा'))+' · GST '+i.gst+'%</div></div><span class="lnk" style="min-height:0">'+L('Change','बदलें')+'</span></button>'
+      :'<button type="button" class="cust empty" data-ov="ipick"><svg class="ic"><use href="#search"/></svg><span class="mid">'+L('Choose Item','आइटम चुनें')+'</span><span class="req">'+L('Required','ज़रूरी')+'</span></button>')+'</div>';
+    if(i){
+      var us='<option value="1">'+esc(un(i.u,2))+'</option>'+(i.au?'<option value="'+i.au[2]+'"'+(fct(ED)>1?' selected':'')+'>'+esc(i.au[0]+' ('+i.au[2]+')')+'</option>':'');
+      h+='<div class="srow2"><div class="fld"><label for="ln-q">'+L('Quantity','मात्रा')+'</label><div class="stp w"><button type="button" data-lnq="-" aria-label="Less">−</button><input id="ln-q" inputmode="decimal" autocomplete="off" aria-label="Quantity"><button type="button" data-lnq="+" aria-label="More">+</button></div></div><div class="fld"><label for="ln-u">'+L('Unit','इकाई')+'</label><div class="inp"><select id="ln-u">'+us+'</select></div></div></div>';
+      var pls=PL.filter(function(x){return i[x[0]]}).map(function(x){return '<option value="'+x[0]+'"'+(ED.pl===x[0]?' selected':'')+'>'+(hiOn()?x[2]:x[1])+'</option>'}).join('');
+      h+='<div class="srow2"><div class="fld"><label for="ln-pl">'+L('List Price','दाम सूची')+'</label><div class="inp"><select id="ln-pl">'+pls+'</select></div></div><div class="fld"><label for="ln-r" id="ln-rl"></label><div class="inp"><span class="pre">₹</span><input id="ln-r" inputmode="decimal" autocomplete="off"></div></div></div>';
+      h+='<div class="srow2"><div class="fld"><label for="ln-dp">'+L('Discount %','छूट %')+'</label><div class="inp"><input id="ln-dp" inputmode="decimal" placeholder="0" autocomplete="off"><span class="pre">%</span></div></div><div class="fld"><label for="ln-f">'+L('Final Rate','आख़िरी रेट')+'</label><div class="inp"><span class="pre">₹</span><input id="ln-f" inputmode="decimal" autocomplete="off"></div></div></div>';
+      h+='<button type="button" class="lnk sm" style="display:inline-flex;flex-direction:row;align-items:center;gap:4px;white-space:nowrap" data-lh><svg class="ic" style="width:16px;height:16px"><use href="#clock"/></svg>'+L('Last Prices','पिछले दाम')+'</button>';
+      var bt=BT[ED.id];if(bt){var x=bt.filter(function(y){return y[0]===ED.batch})[0],ex=x&&x[1]<TODAY;
+        h+='<div class="fld"><label>'+L('Selected Batch','चुना हुआ बैच')+'</label><button type="button" class="cust" data-lb><div class="mid"><div class="nm">'+(x?L('Batch '+x[0],'बैच '+x[0]):L('Choose Batch','बैच चुनें'))+'</div>'+(x?'<div class="t-x"'+(ex?' style="color:var(--red)"':'')+'>'+(ex?L('Expired ','एक्सपायर '):L('Expiry ','एक्सपायरी '))+fd(x[1],hiOn())+' · '+uq(x[2],i.u)+'</div>':'')+'</div><span class="lnk" style="min-height:0">'+L('Change','बदलें')+'</span></button></div>'}
+      h+='<div class="box" style="gap:6px" id="ln-sum"></div>'}
+    document.getElementById('ln-body').innerHTML=h;updLn();
+    document.getElementById('ln-bar').innerHTML=(curL>=0?'<button class="btn del grow" data-ldel><svg class="ic"><use href="#trash"/></svg>'+L('Delete','हटाएँ')+'</button>':'<button class="btn soft grow" data-lsave="new">'+L('Save & New','सेव और नया')+'</button>')+'<button class="btn blue grow" data-lsave><svg class="ic"><use href="#check"/></svg>'+L('Save','सेव करें')+'</button>'}
+  function updLn(skip){if(!ED.id)return;var f=fct(ED);
+    if(skip!=='q')document.getElementById('ln-q').value=+(+ED.q).toFixed(3);
+    if(skip!=='r')document.getElementById('ln-r').value=v2(rateOf(ED)*f);
+    if(skip!=='dp')document.getElementById('ln-dp').value=ED.disc?+(+ED.disc).toFixed(2):'';
+    if(skip!=='f')document.getElementById('ln-f').value=v2(netOf(ED)*f);
+    document.getElementById('ln-rl').innerHTML=L('Rate Per '+uPer(ED),'रेट प्रति '+uPer(ED));
+    var g=grossOf(ED),a=amtOf(ED),s='<div class="tl"><span>'+esc(qtxt(ED))+' × ₹'+m2(rateOf(ED)*f)+'</span><b>₹'+inr(g)+'</b></div>';
+    if(ED.disc)s+='<div class="tl"><span>'+L('Discount '+(+(+ED.disc).toFixed(2))+'%','छूट '+(+(+ED.disc).toFixed(2))+'%')+'</span><b class="cr">−₹'+inr(g-a)+'</b></div>';
+    s+='<div class="tl tt"><span>'+L('Amount','रक़म')+'</span><b>₹'+inr(a)+'</b></div><div class="t-x">'+L('GST '+I[ED.id].gst+'% is added on the bill.','GST '+I[ED.id].gst+'% बिल में जुड़ेगा।')+(comm(ED)?' '+L('Includes referral commission ₹'+inr(comm(ED)*f)+' per '+uPer(ED)+'.','रेफ़रल कमीशन ₹'+inr(comm(ED)*f)+' प्रति '+uPer(ED)+' शामिल।'):'')+'</div>';
+    document.getElementById('ln-sum').innerHTML=s}
+  function saveLine(again){if(!ED.id){toast('Choose the item first.','पहले आइटम चुनें।');document.getElementById('ipq').value='';renderIP();ov('ipick');return}
+    if(!(ED.q>0)){toast('Enter the quantity.','मात्रा लिखें।');return}
+    var add=curL<0;if(add)SL.lines.push(ED);else SL.lines[curL]=ED;
+    if(again){edNew();renderLine();document.querySelector('[data-s=sline] .sb').scrollTop=0;toast('Item added. Add the next one.','आइटम जुड़ा। अगला जोड़ें।');return}
+    back();toast(add?'Item added to the bill.':'Item updated.',add?'आइटम बिल में जुड़ा।':'आइटम बदला।')}
+  function scanSale(){stack.pop();if(stack[stack.length-1]==='sline'){edPick('led');show('sline')}else{edNew();edPick('led');go('sline')}toast('Scanned: LED Bulb 9W Cool Day Light','स्कैन हुआ: LED Bulb 9W Cool Day Light')}
+  /* date */
+  function dshift(iso,d){var t=new Date(iso+'T12:00:00Z');t.setUTCDate(t.getUTCDate()+d);return t.toISOString().slice(0,10)}
+  function renderDP(){var p=SL.date.split('-'),y=+p[0],m=+p[1],d=+p[2],dim=new Date(Date.UTC(y,m,0)).getUTCDate(),o='',k;
+    for(k=1;k<=dim;k++)o+='<option'+(k===d?' selected':'')+'>'+k+'</option>';document.getElementById('dp-d').innerHTML=o;
+    document.getElementById('dp-m').innerHTML=(hiOn()?MHI:ME).map(function(n,k){return '<option value="'+(k+1)+'"'+(k+1===m?' selected':'')+'>'+n+'</option>'}).join('');
+    o='';for(k=2025;k<=2027;k++)o+='<option'+(k===y?' selected':'')+'>'+k+'</option>';document.getElementById('dp-y').innerHTML=o;
+    document.querySelectorAll('[data-dq]').forEach(function(b){b.setAttribute('aria-pressed',SL.date===dshift(TODAY,-(+b.dataset.dq)))})}
+  function dpSet(){var y=+document.getElementById('dp-y').value,m=+document.getElementById('dp-m').value,d=+document.getElementById('dp-d').value,dim=new Date(Date.UTC(y,m,0)).getUTCDate();
+    SL.date=y+'-'+(m<10?'0':'')+m+'-'+(Math.min(d,dim)<10?'0':'')+Math.min(d,dim);renderDP();renderSale()}
   function renderChg(){var c=calc(),p=SL.party&&P[SL.party],h='';
     function row(a,b,cl){h+='<div class="tl'+(cl||'')+'"><span>'+a+'</span><b>'+b+'</b></div>'}
     row(L('Items Total','आइटम का जोड़'),'₹'+inr(c.items));if(c.bdisc)row(L('Discount','छूट')+(SL.bdP?' ('+SL.bdP+'%)':''),'<span class="cr">−₹'+inr(c.bdisc)+'</span>');
@@ -2120,7 +2239,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     h+='<div class="tl"><span class="ckrow" style="gap:8px"><button type="button" class="sw2" role="switch" aria-checked="'+SL.round+'" aria-label="Round Off" data-round></button>'+L('Round Off','राउंड ऑफ़')+'</span><b>'+(c.ro<0?'−':'+')+'₹'+inr(c.ro)+'</b></div>';
     row(L('Total','कुल'),'₹'+inr(c.total),' tt');h+='<div class="words">'+esc(words(c.total))+'</div>';
     document.getElementById('cg-tot').innerHTML=h;
-    var over=p&&p.lim&&c.tdues>p.lim;document.getElementById('cg-warn').innerHTML=over?'<div class="warnb"><svg class="ic"><use href="#clock"/></svg><span>'+L('This takes '+p.n+' to ₹'+inr(c.tdues)+', above their credit limit of '+r0(p.lim)+'.',p.n+' का बाकी ₹'+inr(c.tdues)+' हो जाएगा, उधार सीमा '+r0(p.lim)+' से ज़्यादा।')+'</span></div>':'';
+    var over=SL.type==='credit'&&p&&p.lim&&c.tdues>p.lim;document.getElementById('cg-warn').innerHTML=over?'<div class="warnb"><svg class="ic"><use href="#clock"/></svg><span>'+L('This takes '+p.n+' to ₹'+inr(c.tdues)+', above their credit limit of '+r0(p.lim)+'.',p.n+' का बाकी ₹'+inr(c.tdues)+' हो जाएगा, उधार सीमा '+r0(p.lim)+' से ज़्यादा।')+'</span></div>':'';
     var d=document.getElementById('cg-done-t');d.dataset.en=pend?'Done And Save':'Done';d.dataset.hi=pend?'ठीक है, सेव करें':'ठीक है';d.textContent=hiOn()?d.dataset.hi:d.dataset.en}
   function chgLoad(){var v=function(x){return x?String(x/100):''};document.getElementById('cg-dp').value=SL.bdP||'';document.getElementById('cg-d').value=SL.bdP?'':v(SL.bd);document.getElementById('cg-tr').value=v(SL.tr);document.getElementById('cg-lab').value=v(SL.lab);document.getElementById('cg-bank').value=v(SL.bank);renderChg()}
   function pv(x){return Math.round((parseFloat(document.getElementById(x).value)||0)*100)}
@@ -2135,64 +2254,67 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     var extra=c.rec-c.total;document.getElementById('py-note').innerHTML=extra>0&&!cash?'<div class="okb">'+(c.predues>0?L('₹'+inr(extra)+' clears previous dues, oldest bill first.','₹'+inr(extra)+' से पुराना बाकी चुकेगा, सबसे पुराना बिल पहले।'):L('₹'+inr(extra)+' is saved as advance payment.','₹'+inr(extra)+' एडवांस में जमा होगा।'))+'</div>':''}
   function renderRef(){document.getElementById('rf-who').value=SL.ref;var b=document.getElementById('rf-body');
     if(!SL.ref){b.innerHTML='<div class="t-s">'+L('No commission on this bill.','इस बिल पर कोई कमीशन नहीं।')+'</div>';return}
-    var tot=0,rows=SL.lines.map(function(l){var cm=comm(l)*l.q;tot+=cm;return '<div class="cmt"><span class="nm">'+esc(fullName(I[l.id]))+'</span><b>₹'+inr(cm)+'</b><span class="t-x">'+L(l.q+' × ₹'+inr(l.base)+' → Bill ₹'+inr(rateOf(l)),l.q+' × ₹'+inr(l.base)+' → बिल ₹'+inr(rateOf(l)))+'</span><span></span></div>'}).join('');
+    var tot=0,rows=SL.lines.map(function(l){var cm=comm(l)*l.q*fct(l);tot+=cm;return '<div class="cmt"><span class="nm">'+esc(fullName(I[l.id]))+'</span><b>₹'+inr(cm)+'</b><span class="t-x">'+L(qtxt(l)+' × ₹'+inr(l.base*fct(l))+' → Bill ₹'+inr(rateOf(l)*fct(l)),qtxt(l)+' × ₹'+inr(l.base*fct(l))+' → बिल ₹'+inr(rateOf(l)*fct(l)))+'</span><span></span></div>'}).join('');
     b.innerHTML='<div class="fld"><label>'+L('Rule For This Bill','इस बिल का नियम')+'</label><div class="srow2"><div class="seg2" role="radiogroup" style="grid-column:1/-1"><button type="button" role="radio" data-rk="pct" aria-pressed="'+(SL.rk==='pct')+'">'+L('% Of Sale Price','बिक्री दाम का %')+'</button><button type="button" role="radio" data-rk="unit" aria-pressed="'+(SL.rk==='unit')+'">'+L('₹ Per Unit','₹ प्रति इकाई')+'</button></div></div></div>'
       +'<div class="inp"><input id="rf-v" inputmode="decimal" value="'+SL.rv+'" aria-label="Commission"><span class="pre">'+(SL.rk==='pct'?'%':'₹')+'</span></div>'
       +(SL.lines.length?'<div class="grp">'+rows+'</div><div class="tl tt"><span>'+L('Commission For '+SL.ref,SL.ref+' का कमीशन')+'</span><b>₹'+inr(tot)+'</b></div>':'<div class="t-s">'+L('Add items to see the commission.','कमीशन देखने के लिए आइटम जोड़ें।')+'</div>')}
-  var curL=0;
-  function renderBatch(){var l=SL.lines[curL],b=BT[l.id]||[];
-    document.getElementById('bt-list').innerHTML=b.map(function(x){var ex=x[1]<TODAY;return '<button class="opt" role="radio" data-bpick="'+x[0]+'" aria-checked="'+(x[0]===l.batch)+'" style="min-height:60px"><span class="dot"></span><span class="mid" style="flex:1;min-width:0"><span style="display:block">'+L('Batch '+x[0],'बैच '+x[0])+'</span><span class="t-x" style="display:block;font-weight:500'+(ex?';color:var(--red)':'')+'">'+(ex?L('Expired ','एक्सपायर ')+fd(x[1],hiOn()):L('Expiry ','एक्सपायरी ')+fd(x[1],hiOn()))+'</span></span><span class="t-s" style="white-space:nowrap">'+uq(x[2],I[l.id].u)+'</span></button>'}).join('')}
-  function renderLH(){var l=SL.lines[curL],i=I[l.id],p=SL.party&&P[SL.party];
+  function renderBatch(){var b=BT[ED.id]||[];
+    document.getElementById('bt-list').innerHTML=b.map(function(x){var ex=x[1]<TODAY;return '<button class="opt" role="radio" data-bpick="'+x[0]+'" aria-checked="'+(x[0]===ED.batch)+'" style="min-height:60px"><span class="dot"></span><span class="mid" style="flex:1;min-width:0"><span style="display:block">'+L('Batch '+x[0],'बैच '+x[0])+'</span><span class="t-x" style="display:block;font-weight:500'+(ex?';color:var(--red)':'')+'">'+(ex?L('Expired ','एक्सपायर ')+fd(x[1],hiOn()):L('Expiry ','एक्सपायरी ')+fd(x[1],hiOn()))+'</span></span><span class="t-s" style="white-space:nowrap">'+uq(x[2],I[ED.id].u)+'</span></button>'}).join('')}
+  function renderLH(){var i=I[ED.id],p=SL.party&&P[SL.party];
     document.getElementById('lh-sub').innerHTML=(p?L(p.n+' got these prices for ',p.n+' को ये दाम मिले: '):L('Last prices for ','पिछले दाम: '))+esc(fullName(i));
-    var H=l.id==='led'&&SL.party==='mehta'?[['2026-11-14','INV-0107',8200],['2026-10-05','INV-0098',8000],['2026-09-20','INV-0090',8000]]:[[ '2026-11-03','INV-0101',i.sp-Math.round(i.sp*0.03/100)*100],['2026-10-12','INV-0095',i.sp-Math.round(i.sp*0.05/100)*100]];
-    document.getElementById('lh-list').innerHTML=H.map(function(h){return '<button class="srow" data-lhuse="'+h[2]+'"><div class="mid"><div class="nm">'+r0(h[2])+'</div><div class="t-x">'+esc(h[1])+' | '+LD(h[0])+'</div></div><span class="lnk" style="min-height:0">'+L('Use','लगाएँ')+'</span></button>'}).join('')}
+    var H=ED.id==='led'&&SL.party==='mehta'?[['2026-11-14','INV-0107',8200],['2026-10-05','INV-0098',8000],['2026-09-20','INV-0090',8000]]:[[ '2026-11-03','INV-0101',i.sp-Math.round(i.sp*0.03/100)*100],['2026-10-12','INV-0095',i.sp-Math.round(i.sp*0.05/100)*100]];
+    document.getElementById('lh-list').innerHTML=H.map(function(h){return '<button class="srow" data-lhuse="'+h[2]+'"><div class="mid"><div class="nm">'+r0(h[2])+' '+L('Per '+per(i.u),'प्रति '+per(i.u))+'</div><div class="t-x">'+esc(h[1])+' | '+LD(h[0])+'</div></div><span class="lnk" style="min-height:0">'+L('Use','लगाएँ')+'</span></button>'}).join('')}
   function renderQT(){var list=QT.filter(function(q){return !SL.party||q.p===SL.party});
     document.getElementById('qt-list').innerHTML=list.length?list.map(function(q){var t=q.lines.reduce(function(s,x){return s+I[x[0]].sp*x[1]},0);return '<button class="li" style="font:inherit;text-align:left;width:100%;cursor:pointer;color:var(--text)" data-qimp="'+q.no+'"><div class="mid"><div class="nm">'+esc(P[q.p].n)+'</div><div class="t-x">'+esc(q.no)+' | '+LD(q.d)+'</div></div><div class="end"><div class="v">'+r0(t)+'</div><div class="w c3">'+L(q.lines.length+' Items',q.lines.length+' आइटम')+'</div></div></button>'}).join(''):'<div class="empty"><b>'+L('No Saved Quotations For This Customer','इस ग्राहक की कोई Quotation नहीं')+'</b></div>'}
   function renderPL(){var c=calc(),pf=c.taxable-c.cost;document.getElementById('ex-pl').innerHTML='<div><span>'+L('Sale Value','बिक्री')+'</span><b>₹'+inr(c.taxable)+'</b></div><div><span>'+L('Cost','लागत')+'</span><b>₹'+inr(c.cost)+'</b></div><div><span>'+L('Profit','मुनाफ़ा')+'</span><b class="'+(pf<0?'cr':'cg')+'">₹'+inr(pf)+'</b></div><div><span>'+L('Margin','मार्जिन')+'</span><b>'+(c.taxable?(pf/c.taxable*100).toFixed(1):'0')+'%</b></div>'}
-  function trySave(again){var c=calc();
+  function trySave(after){closeOv();
     if(!SL.lines.length){toast('Add at least one item.','कम से कम एक आइटम जोड़ें।');return}
-    if(SL.type==='credit'&&!SL.party){renderSP();ov('spick');toast('Choose the customer first.','पहले ग्राहक चुनें।');return}
-    pend={again:again};if(!SL.chgOk){chgLoad();ov('chg');return}
+    if(SL.type==='credit'&&!SL.party){document.getElementById('spq').value='';go('cpick');toast('Choose the customer first. It is required for a credit sale.','पहले ग्राहक चुनें। उधार बिक्री में ज़रूरी है।');return}
+    pend={after:after||''};if(!SL.chgOk){chgLoad();ov('chg');return}
     ckStep=0;nextCheck()}
   function nextCheck(){var c=calc(),p=SL.party&&P[SL.party];
     if(ckStep<1){ckStep=1;var ex=SL.lines.filter(function(l){var b=BT[l.id];return b&&b.some(function(x){return x[0]===l.batch&&x[1]<TODAY})});
       if(ex.length){ckShow(L('Sell Expired Stock?','एक्सपायर माल बेचें?'),L('Batch '+ex[0].batch+' of '+fullName(I[ex[0].id])+' has expired.',fullName(I[ex[0].id])+' का बैच '+ex[0].batch+' एक्सपायर हो चुका है।'),L('Sell Anyway','फिर भी बेचें'));return}}
-    if(ckStep<2){ckStep=2;if(p&&p.lim&&c.tdues>p.lim){ckShow(L('Above Credit Limit','उधार सीमा से ज़्यादा'),L('This takes '+p.n+' to ₹'+inr(c.tdues)+', above their credit limit of '+r0(p.lim)+'.',p.n+' का बाकी ₹'+inr(c.tdues)+' हो जाएगा, सीमा '+r0(p.lim)+' से ज़्यादा।'),L('Save Anyway','फिर भी सेव करें'));return}}
+    if(ckStep<2){ckStep=2;if(SL.type==='credit'&&p&&p.lim&&c.tdues>p.lim){ckShow(L('Above Credit Limit','उधार सीमा से ज़्यादा'),L('This takes '+p.n+' to ₹'+inr(c.tdues)+', above their credit limit of '+r0(p.lim)+'.',p.n+' का बाकी ₹'+inr(c.tdues)+' हो जाएगा, सीमा '+r0(p.lim)+' से ज़्यादा।'),L('Save Anyway','फिर भी सेव करें'));return}}
     doSave()}
   function ckShow(t,b,ok){document.getElementById('ck-t').innerHTML=t;document.getElementById('ck-b').innerHTML=b;document.getElementById('ck-ok').innerHTML=ok;ov('schk')}
-  function doSave(){var c=calc(),no='INV-0'+slNo,again=pend&&pend.again;pend=null;
-    SL.lines.forEach(function(l){var i=I[l.id];if(i.k==='p'){i.st-=l.q;if(i.gd.length)i.gd[0][1]-=l.q;i.tx.unshift(['sale',no,TODAY,-l.q])}});
-    if(SL.type==='credit'&&SL.party){var p=P[SL.party];p.tx.push(['inv',no,TODAY,c.total,c.dues]);if(c.rec)p.tx.push(['pay','PR-00'+(45+slNo-108),TODAY,c.rec,0])}
-    var nm=SL.type==='cash'?(SL.cust||(hiOn()?'काउंटर ग्राहक':'Counter Customer')):P[SL.party].n;slNo++;closeOv();
-    if(again){newSale();stack.pop();stack.push('sale');show('sale');toast(no+' saved. New bill started.',no+' सेव हुआ। नया बिल शुरू।');return}
+  function doSave(){var c=calc(),no=(SL.no||'').trim()||'INV-0'+slNo,after=pend?pend.after:'';pend=null;
+    SL.lines.forEach(function(l){var i=I[l.id],q=l.q*fct(l);if(i.k==='p'){i.st-=q;if(i.gd.length)i.gd[0][1]-=q;i.tx.unshift(['sale',no,SL.date,-q])}});
+    if(SL.party){var p=P[SL.party];p.tx.push(['inv',no,SL.date,c.total,c.dues]);if(c.rec)p.tx.push(['pay','PR-00'+(45+slNo-108),SL.date,c.rec,0])}
+    var nm=SL.party?P[SL.party].n:(hiOn()?'काउंटर ग्राहक':'Counter Customer'),credit=SL.type==='credit';slNo++;closeOv();
+    if(after==='new'){newSale();stack.pop();stack.push('sale');show('sale');toast(no+' saved. New bill started.',no+' सेव हुआ। नया बिल शुरू।');return}
     var t=document.getElementById('sv-t');t.dataset.en=no+' Saved';t.dataset.hi=no+' सेव हुआ';t.textContent=hiOn()?t.dataset.hi:t.dataset.en;
     document.getElementById('sv-s').textContent=nm;
-    document.getElementById('sv-kv').innerHTML='<div><span>'+L('Bill Total','बिल की रक़म')+'</span><b>₹'+inr(c.total)+'</b></div><div><span>'+L('Received','मिला')+'</span><b class="cg">₹'+inr(c.rec)+'</b></div><div><span>'+L('Bill Dues','इस बिल का बाकी')+'</span><b class="'+(c.dues?'cr':'')+'">₹'+inr(c.dues)+'</b></div>'+(SL.type==='credit'?'<div><span>'+L('Total Dues','कुल बाकी')+'</span><b class="'+(c.tdues>0?'cr':'')+'">₹'+inr(c.tdues)+'</b></div>':'');
-    stack.pop();stack.push('saved');show('saved')}
-  var _show3=show;show=function(id){_show3(id);if(id==='sale')renderSale();document.querySelectorAll('[data-jump4]').forEach(function(b){b.setAttribute('aria-current',b.dataset.jump4===id)})};
+    document.getElementById('sv-kv').innerHTML='<div><span>'+L('Bill Total','बिल की रक़म')+'</span><b>₹'+inr(c.total)+'</b></div><div><span>'+L('Received','मिला')+'</span><b class="cg">₹'+inr(c.rec)+'</b></div><div><span>'+L('Bill Dues','इस बिल का बाकी')+'</span><b class="'+(c.dues?'cr':'')+'">₹'+inr(c.dues)+'</b></div>'+(credit?'<div><span>'+L('Total Dues','कुल बाकी')+'</span><b class="'+(c.tdues>0?'cr':'')+'">₹'+inr(c.tdues)+'</b></div>':'');
+    stack.pop();stack.push('saved');show('saved');
+    if(after==='share')toast('Opens Share with the bill PDF: WhatsApp and others (on the real phone).','बिल की PDF के साथ भेजने के विकल्प खुलेंगे: WhatsApp वग़ैरह (असली फ़ोन पर)।');
+    if(after==='print')toast('Makes the bill PDF and opens the phone’s print screen (on the real phone).','बिल की PDF बनाकर फ़ोन का प्रिंट खुलेगा (असली फ़ोन पर)।')}
+  var _show3=show;show=function(id){_show3(id);if(id==='sale')renderSale();if(id==='sline')renderLine();if(id==='cpick')renderSP();document.querySelectorAll('[data-jump4]').forEach(function(b){b.setAttribute('aria-current',b.dataset.jump4===id)})};
   stage.addEventListener('click',function(e){
-    var t=e.target.closest('[data-sale],[data-stype],[data-spick],[data-addi],[data-lrm],[data-lq],[data-lh],[data-lhuse],[data-ld],[data-ldok],[data-lb],[data-bpick],[data-qimp],[data-qrm],[data-chgdone],[data-round],[data-payadd],[data-prm],#py-full,[data-rk],[data-ssave],[data-ckok],[data-ov="spick"],[data-ov="ipick"],[data-ov="chg"],[data-ov="pay"],[data-ov="ref"],[data-ov="quote"],[data-ov="extras"]');
+    var t=e.target.closest('[data-sale],[data-stype],[data-cpick],[data-spick],[data-lnew],[data-ledit],[data-ipk],[data-lnq],[data-lsave],[data-ldel],[data-lh],[data-lhuse],[data-lb],[data-bpick],[data-qimp],[data-qrm],[data-chgdone],[data-round],[data-payadd],[data-prm],#py-full,[data-rk],[data-ssave],[data-ckok],[data-dq],[data-ov="ipick"],[data-ov="chg"],[data-ov="pay"],[data-ov="ref"],[data-ov="quote"],[data-ov="extras"],[data-ov="dpick"]');
     if(!t||!stage.contains(t))return;
     if(t.hasAttribute('data-sale')){var k=t.dataset.sale;newSale(k==='party'?{party:pk.cur}:k==='item'?{item:ik.cur}:{});if(cur==='saved'){stack.pop()}go('sale');return}
     var o=t.getAttribute('data-ov');
-    if(o==='spick'){document.getElementById('spq').value='';renderSP();return}
     if(o==='ipick'){document.getElementById('ipq').value='';renderIP();return}
     if(o==='chg'){chgLoad();return}
     if(o==='pay'){renderPay();return}
     if(o==='ref'){renderRef();return}
     if(o==='quote'){renderQT();return}
     if(o==='extras'){renderPL();return}
+    if(o==='dpick'){renderDP();return}
     if(t.hasAttribute('data-stype')){SL.type=t.dataset.stype;renderSale();return}
-    if(t.hasAttribute('data-spick')){SL.party=t.dataset.spick;closeOv();show(cur);return}
-    if(t.hasAttribute('data-addi')){addLine(t.dataset.addi);renderIP();renderSale();return}
-    if(t.hasAttribute('data-lrm')){SL.lines.splice(+t.dataset.lrm,1);renderSale();return}
-    if(t.hasAttribute('data-lq')){var l=SL.lines[+t.dataset.i];l.q=Math.max(1,l.q+(t.dataset.lq==='+'?1:-1));renderSale();return}
-    if(t.hasAttribute('data-lh')){curL=+t.dataset.lh;renderLH();ov('lhist');return}
-    if(t.hasAttribute('data-lhuse')){var l2=SL.lines[curL],r=rateOf(l2),v=+t.dataset.lhuse;l2.disc=r?Math.max(0,(1-v/r)*100):0;closeOv();show(cur);toast('Rate set to '+r0(v)+'.','रेट '+r0(v)+' लगाया।');return}
-    if(t.hasAttribute('data-ld')){curL=+t.dataset.ld;var l3=SL.lines[curL],tt=document.getElementById('ld-t');tt.innerHTML=L('Discount: ','छूट: ')+esc(fullName(I[l3.id]));document.getElementById('ld-p').value=l3.disc?+l3.disc.toFixed(2):'';document.getElementById('ld-f').value=(netOf(l3)/100).toFixed(2);ov('ldisc');return}
-    if(t.hasAttribute('data-ldok')){closeOv();show(cur);return}
-    if(t.hasAttribute('data-lb')){curL=+t.dataset.lb;renderBatch();ov('batch');return}
-    if(t.hasAttribute('data-bpick')){SL.lines[curL].batch=t.dataset.bpick;closeOv();show(cur);return}
+    if(t.hasAttribute('data-cpick')){document.getElementById('spq').value='';go('cpick');return}
+    if(t.hasAttribute('data-spick')){SL.party=t.dataset.spick;back();return}
+    if(t.hasAttribute('data-lnew')){edNew();go('sline');return}
+    if(t.hasAttribute('data-ledit')){edOpen(+t.dataset.ledit);go('sline');return}
+    if(t.hasAttribute('data-ipk')){edPick(t.dataset.ipk);closeOv();renderLine();return}
+    if(t.hasAttribute('data-lnq')){ED.q=Math.max(1,Math.round(ED.q)+(t.dataset.lnq==='+'?1:-1));updLn();return}
+    if(t.hasAttribute('data-lsave')){saveLine(t.dataset.lsave==='new');return}
+    if(t.hasAttribute('data-ldel')){SL.lines.splice(curL,1);back();toast('Item removed from the bill.','आइटम बिल से हटाया।');return}
+    if(t.hasAttribute('data-lh')){renderLH();ov('lhist');return}
+    if(t.hasAttribute('data-lhuse')){var v=+t.dataset.lhuse;ED.base=baseFrom(v);ED.disc=0;ED.f=1;closeOv();renderLine();toast('Rate set to '+r0(v)+'.','रेट '+r0(v)+' लगाया।');return}
+    if(t.hasAttribute('data-lb')){renderBatch();ov('batch');return}
+    if(t.hasAttribute('data-bpick')){ED.batch=t.dataset.bpick;closeOv();renderLine();return}
     if(t.hasAttribute('data-qimp')){var q=QT.filter(function(x){return x.no===t.dataset.qimp})[0];if(!SL.party)SL.party=q.p;q.lines.forEach(function(x){addLine(x[0],x[1])});SL.quote=q.no;closeOv();show(cur);toast(q.lines.length+' items brought in from '+q.no+'.',q.no+' से '+q.lines.length+' आइटम आए।');return}
     if(t.hasAttribute('data-qrm')){SL.quote=null;renderSale();toast('Quotation link removed. The items stay.','Quotation का लिंक हटा। आइटम वैसे ही रहे।');return}
     if(t.hasAttribute('data-round')){SL.round=t.getAttribute('aria-checked')==='true';renderChg();renderSale();return}
@@ -2201,31 +2323,43 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(t.hasAttribute('data-payadd')){SL.full=false;SL.pays.push({mode:'UPI',amt:0,ref:''});renderPay();return}
     if(t.hasAttribute('data-prm')){SL.pays.splice(+t.dataset.prm,1);renderPay();renderSale();return}
     if(t.hasAttribute('data-rk')){SL.rk=t.dataset.rk;SL.rv=SL.rk==='pct'?5:2;renderRef();renderSale();return}
-    if(t.hasAttribute('data-ssave')){trySave(t.dataset.ssave==='new');return}
+    if(t.hasAttribute('data-ssave')){trySave(t.dataset.ssave);return}
     if(t.hasAttribute('data-ckok')){closeOv();show(cur);nextCheck();return}
+    if(t.hasAttribute('data-dq')){SL.date=dshift(TODAY,-(+t.dataset.dq));renderDP();renderSale();return}
   });
   stage.addEventListener('input',function(e){var x=e.target;
-    if(x.matches('[data-lqi]')){var l=SL.lines[+x.dataset.lqi],v=parseFloat(x.value);if(v>0){l.q=v;var a=x.closest('.sl').querySelector('.sl-amt');a.textContent='₹'+inr(amtOf(l));var c=calc();document.getElementById('sl-tot').innerHTML=L('Total ','कुल ')+R(c.total)}return}
-    if(x.matches('[data-lr]')){var l2=SL.lines[+x.dataset.lr],v2=Math.round((parseFloat(x.value)||0)*100),cm=SL.ref?(SL.rk==='pct'?v2-Math.round(v2/(1+SL.rv/100)):SL.rv*100):0;l2.base=Math.max(0,v2-cm);l2.disc=0;x.closest('.sl').querySelector('.sl-amt').textContent='₹'+inr(amtOf(l2));document.getElementById('sl-tot').innerHTML=L('Total ','कुल ')+R(calc().total);return}
-    if(x.id==='sl-cn'){SL.cust=x.value;return}if(x.id==='sl-cm'){SL.mob=x.value;return}
+    if(x.id==='sl-no'){SL.no=x.value;return}
+    if(x.id==='ln-q'){var v=parseFloat(x.value);if(v>0){ED.q=v;updLn('q')}return}
+    if(x.id==='ln-r'){ED.base=baseFrom(Math.round((parseFloat(x.value)||0)*100/fct(ED)));ED.disc=0;updLn('r');return}
+    if(x.id==='ln-dp'){ED.disc=Math.min(100,parseFloat(x.value)||0);updLn('dp');return}
+    if(x.id==='ln-f'){var fi=Math.round((parseFloat(x.value)||0)*100/fct(ED)),r=rateOf(ED);ED.disc=r&&fi<=r?(1-fi/r)*100:0;updLn('f');return}
     if(x.id==='spq'){renderSP();return}if(x.id==='ipq'){renderIP();return}
     if(['cg-dp','cg-d','cg-tr','cg-lab','cg-bank'].indexOf(x.id)>-1){if(x.id==='cg-dp'){SL.bdP=parseFloat(x.value)||0;if(SL.bdP)document.getElementById('cg-d').value=''}if(x.id==='cg-d'){SL.bd=pv('cg-d');if(SL.bd){SL.bdP=0;document.getElementById('cg-dp').value=''}}SL.tr=pv('cg-tr');SL.lab=pv('cg-lab');SL.bank=pv('cg-bank');renderChg();return}
     if(x.matches('[data-pa]')){SL.pays[+x.dataset.pa].amt=Math.round((parseFloat(x.value)||0)*100);var keep=x.dataset.pa;renderPay();var el=document.querySelector('[data-pa="'+keep+'"]');el.focus();el.setSelectionRange(el.value.length,el.value.length);return}
     if(x.matches('[data-pr]')){SL.pays[+x.dataset.pr].ref=x.value;return}
-    if(x.id==='rf-v'){SL.rv=parseFloat(x.value)||0;var pos=x.selectionStart;renderRef();var r=document.getElementById('rf-v');r.focus();try{r.setSelectionRange(pos,pos)}catch(_){}return}
-    if(x.id==='ld-p'){var l3=SL.lines[curL];l3.disc=Math.min(100,parseFloat(x.value)||0);document.getElementById('ld-f').value=(netOf(l3)/100).toFixed(2);return}
-    if(x.id==='ld-f'){var l4=SL.lines[curL],f=Math.round((parseFloat(x.value)||0)*100),r4=rateOf(l4);l4.disc=r4&&f<=r4?(1-f/r4)*100:0;document.getElementById('ld-p').value=l4.disc?+l4.disc.toFixed(2):'';return}
+    if(x.id==='rf-v'){SL.rv=parseFloat(x.value)||0;var pos=x.selectionStart;renderRef();var r2=document.getElementById('rf-v');r2.focus();try{r2.setSelectionRange(pos,pos)}catch(_){}return}
   });
   stage.addEventListener('change',function(e){var x=e.target;
-    if(x.matches('[data-lqi]')){renderSale();return}
+    if(x.id==='ln-q'){updLn();return}
+    if(x.id==='ln-u'){ED.f=+x.value;updLn();return}
+    if(x.id==='ln-pl'){ED.pl=x.value;ED.base=I[ED.id][x.value];ED.disc=0;updLn();return}
+    if(x.id==='dp-d'||x.id==='dp-m'||x.id==='dp-y'){dpSet();return}
     if(x.matches('[data-pm]')){SL.pays[+x.dataset.pm].mode=x.value;renderPay();return}
     if(x.id==='rf-who'){SL.ref=x.value;renderRef();renderSale();return}});
   document.addEventListener('click',function(e){var b=e.target.closest('[data-jump4]');if(!b)return;var j=b.dataset.jump4;
-    newSale(j==='empty'?{}:{fill:true});stack=['home'];go('sale');
-    if(j==='spick'){renderSP();ov('spick')}else if(j==='ipick'){renderIP();ov('ipick')}else if(j==='chg'){chgLoad();ov('chg')}else if(j==='pay'){renderPay();ov('pay')}
-    else if(j==='ref'){SL.ref='Raju Electrician';renderSale();renderRef();ov('ref')}else if(j==='batch'){curL=0;renderBatch();ov('batch')}else if(j==='lhist'){curL=0;renderLH();ov('lhist')}
+    newSale(['empty','cpick','sline','ipick'].indexOf(j)>-1?{}:{fill:true});stack=['home'];go('sale');
+    if(j==='cpick'){document.getElementById('spq').value='';go('cpick')}
+    else if(j==='sline'){edNew();go('sline')}
+    else if(j==='ipick'){edNew();go('sline');document.getElementById('ipq').value='';renderIP();ov('ipick')}
+    else if(j==='eline'){edOpen(0);ED.disc=5;SL.lines[0].disc=5;go('sline')}
+    else if(j==='batch'){edOpen(0);go('sline');renderBatch();ov('batch')}
+    else if(j==='lhist'){edOpen(0);go('sline');renderLH();ov('lhist')}
+    else if(j==='smenu'){ov('smenu')}else if(j==='smore'){ov('smore')}else if(j==='dpick'){renderDP();ov('dpick')}
+    else if(j==='chg'){chgLoad();ov('chg')}else if(j==='pay'){renderPay();ov('pay')}
+    else if(j==='ref'){SL.ref='Raju Electrician';renderSale();renderRef();ov('ref')}
     else if(j==='quote'){SL.lines=[];renderSale();renderQT();ov('quote')}else if(j==='extras'){renderPL();ov('extras')}
-    else if(j==='saved'){SL.chgOk=true;SL.pays=[{mode:'UPI',amt:50000,ref:''}];pend={again:false};doSave()}
+    else if(j==='saved'){SL.chgOk=true;SL.pays=[{mode:'UPI',amt:50000,ref:''}];pend={after:''};doSave()}
+    document.querySelectorAll('[data-jump4]').forEach(function(x){x.setAttribute('aria-current',x===b)});
   });
   newSale();
 })();
