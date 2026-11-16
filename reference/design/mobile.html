@@ -237,6 +237,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .sh .t{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sh .btn.ico{background:transparent;color:var(--text);box-shadow:none}
 .sb{flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.sb>*{flex-shrink:0}
 .sf{flex:none;padding:8px 10px;background:var(--card);border-top:1px solid var(--border);display:flex;gap:8px;min-width:0}
 .fx .sf{box-shadow:0 -6px 16px -10px rgba(17,24,39,.18)}
 .sf>*{min-width:0}
@@ -346,6 +347,19 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .pcard .qa3 .btn{flex-direction:row;min-height:var(--tap);gap:6px;font-size:13px;padding:0 6px}
 .chips.eq{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
 .chips.eq button{white-space:normal;text-overflow:clip;line-height:1.15;padding:2px 3px;font-size:clamp(11.5px,3.7cqi,13px);text-align:center;max-width:none}
+.tabs.slim{padding:0;gap:0;background:var(--slate-l);border-color:transparent}
+.tabs.slim button{position:relative;isolation:isolate;min-height:var(--tap);background:transparent!important;box-shadow:none!important;border-radius:var(--r)}
+.tabs.slim button[aria-selected="true"]::before{content:"";position:absolute;inset:4px;border-radius:9px;background:var(--card);box-shadow:0 1px 3px rgba(17,24,39,.12);z-index:-1}
+.srow3{display:grid;grid-template-columns:minmax(0,1fr) var(--tap) minmax(0,.85fr);gap:6px;align-items:stretch}
+.srow2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px}
+.srow2.b{grid-template-columns:minmax(0,1fr) var(--tap)}
+.srow3 .inp,.srow2 .inp{padding:0 8px;gap:6px;min-width:0}
+.fbtn{position:relative;background:var(--card);border:1px solid var(--border);color:var(--text2);width:var(--tap)}
+.fbtn[aria-pressed="true"]{background:var(--blue-l);border-color:var(--blue);color:var(--blue)}
+.fbtn[aria-pressed="true"]::after{content:"";position:absolute;top:7px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--blue)}
+.seg4{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg4 .seg2{gap:4px}
+.seg4 .seg2 button{min-height:var(--tap);font-size:clamp(12px,3.8cqi,14px);padding:2px}
 .inact .nm{color:var(--text3)}
 .dev .tabs button{font-size:clamp(12.5px,4cqi,14px);padding:0 4px}
 .dev .inp select{font-size:clamp(13.5px,4.3cqi,15px)}
@@ -353,6 +367,47 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .ckl:last-child{border-bottom:0}
 .ckl input{width:22px;height:22px;accent-color:var(--blue);flex:none}
 .ckl .mid{flex:1;min-width:0}
+/* ---------- 7.4c items and stock ---------- */
+.ptot.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.irow .t-x b{font-weight:600;color:var(--text2)}
+.vg{display:flex;flex-direction:column;gap:0}
+.vg>.li{position:relative;z-index:1}
+.vg .vsub{margin:-6px 8px 0;border:1px solid var(--border);border-top:0;border-radius:0 0 var(--r) var(--r);background:var(--card);display:flex;flex-direction:column}
+.vg .vsub .srow{border-radius:0}
+.vg .vsub .srow:last-child{border-radius:0 0 var(--r) var(--r)}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kv div{background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 10px;min-width:0}
+.kv span{display:block;font-size:12px;color:var(--text2)}
+.kv b{display:block;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qtyp{color:var(--green);font-weight:700;white-space:nowrap}
+.qtym{color:var(--red);font-weight:700;white-space:nowrap}
+.cam{flex:1;min-height:0;background:var(--text);color:var(--on);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;text-align:center}
+.camf{width:min(78%,260px);aspect-ratio:1.4;max-width:100%;position:relative;border:0;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.camf .cn{position:absolute;width:30px;height:30px;border:3px solid var(--on)}
+.cn.tl{top:0;left:0;border-right:0;border-bottom:0;border-radius:14px 0 0 0}.cn.tr{top:0;right:0;border-left:0;border-bottom:0;border-radius:0 14px 0 0}.cn.bl{bottom:0;left:0;border-right:0;border-top:0;border-radius:0 0 0 14px}.cn.br{bottom:0;right:0;border-left:0;border-top:0;border-radius:0 0 14px 0}
+.bars{display:flex;gap:3px;height:46%;align-items:stretch}
+.bars i{display:block;width:3px;background:var(--on);opacity:.85}
+.bars i:nth-child(3n){width:6px}.bars i:nth-child(4n){width:2px}
+.scanline{position:absolute;left:8%;right:8%;top:50%;height:2px;background:var(--red-nv);box-shadow:0 0 12px var(--red-nv)}
+.cam .lnk{color:var(--on)}
+.pinb{display:flex;gap:14px;justify-content:center;margin:6px 0}
+.pinb i{width:16px;height:16px;border-radius:50%;border:2px solid var(--text3)}
+.pinb i.on{background:var(--blue);border-color:var(--blue)}
+.kp{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kp button{font:inherit;font-size:22px;font-weight:600;min-height:52px;border-radius:var(--r);border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer}
+.fx .kp button{box-shadow:var(--sh1)}
+.kp button:active{background:var(--blue-l)}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center}
+.pinp{display:flex;align-items:center;gap:4px;min-height:var(--tap);border:1px solid var(--border);border-radius:var(--r-sm);padding:0 8px;background:var(--card);width:104px}
+.pinp input{font:inherit;font-size:15px;font-weight:700;border:0;outline:0;background:transparent;width:100%;min-width:0;text-align:right;color:var(--text)}
+.pinp:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px var(--sel)}
+.newp{color:var(--green);font-weight:700;white-space:nowrap}
+.oldp{color:var(--text3);text-decoration:line-through;white-space:nowrap;font-size:13px}
+.ckrow{display:flex;align-items:center;gap:10px;min-width:0}
+.ckrow input{width:22px;height:22px;accent-color:var(--blue);flex:none}
+.li.ck{cursor:pointer}
+.stk{font-size:clamp(20px,7cqi,26px);font-weight:700;white-space:nowrap;line-height:1.15}
+.stk small{font-size:.6em;font-weight:600;color:var(--text2);margin-left:.2em}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -387,6 +442,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   <symbol id="chat" viewBox="0 0 24 24"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19.3z"/><path d="M9 10h.01M12 10h.01M15 10h.01"/></symbol>
   <symbol id="phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></symbol>
   <symbol id="edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"/></symbol>
+  <symbol id="bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/></symbol>
   <symbol id="filter" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></symbol>
 </svg>
 
@@ -406,7 +462,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   </div>
   <p id="sub-blocks" data-hi="चरण 7.1 और 7.2: 20 रंग और ऐप के बुनियादी टुकड़े। चौड़ाई खिसकाकर देखें कि हर चीज़ हर फ़ोन पर फ़िट होती है।">Steps 7.1 and 7.2: the 20 colours and the app's building blocks. Drag the width to see every piece fit every phone.</p>
   <p id="sub-map" hidden data-hi="चरण 7.3 (मंज़ूर, 15 नवंबर 2026): ऐप में कौन-सी स्क्रीन कहाँ से खुलती है। नारंगी नंबर नीचे समझाए गए हैं।">Step 7.3 (approved, 15 Nov 2026): which screen opens from where. The orange numbers are explained underneath.</p>
-  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a मंज़ूर; अब 7.4b: पार्टी।">Step 7.4: the app's screens, to tap through. 7.4a is approved; now 7.4b: Parties.</p>
+  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a और 7.4b मंज़ूर; अब 7.4c: आइटम और स्टॉक।">Step 7.4: the app's screens, to tap through. 7.4a and 7.4b are approved; now 7.4c: Items And Stock.</p>
 </header>
 
 <div class="wrap" id="v-blocks">
@@ -675,7 +731,38 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 <div class="proto" id="v-a" hidden>
   <div class="guide">
     <div class="gsec">
-      <h2 data-hi="7.4b: पार्टी (नया)">7.4b: Parties (New)</h2>
+      <h2 data-hi="7.4c: आइटम और स्टॉक (नया)">7.4c: Items And Stock (New)</h2>
+      <p data-hi="आइटम की सूची, आइटम का पेज, स्टॉक बदलना, नया आइटम, कैमरा से स्कैन, दाम मैनेजर (PIN से), एक साथ चालू/बंद, ब्रांड, गोदाम और रेट लिस्ट।">The item list, item page, adjusting stock, new item, camera scan, Price Manager (with PIN), bulk active/inactive, brands, godowns and the rate list.</p>
+      <div class="scrlist">
+        <button type="button" data-jump3="items"><span class="no">1</span><span data-hi="आइटम की सूची">Items List</span></button>
+        <button type="button" data-jump3="item"><span class="no">2</span><span data-hi="आइटम का पेज (LED Bulb)">Item Page (LED Bulb)</span></button>
+        <button type="button" data-jump3="adj"><span class="no">3</span><span data-hi="स्टॉक बदलें">Adjust Stock</span></button>
+        <button type="button" data-jump3="iform"><span class="no">4</span><span data-hi="नया आइटम">New Item</span></button>
+        <button type="button" data-jump3="scan"><span class="no">5</span><span data-hi="कैमरा से स्कैन">Camera Scan</span></button>
+        <button type="button" data-jump3="prices"><span class="no">6</span><span data-hi="दाम मैनेजर">Price Manager</span></button>
+        <button type="button" data-jump3="bulkact"><span class="no">7</span><span data-hi="एक साथ चालू / बंद">Bulk Active / Inactive</span></button>
+        <button type="button" data-jump3="brands"><span class="no">8</span><span data-hi="ब्रांड और सीरीज़">Brands And Series</span></button>
+        <button type="button" data-jump3="adjs"><span class="no">9</span><span data-hi="स्टॉक सुधार की सूची">Stock Adjustments</span></button>
+        <button type="button" data-jump3="godowns"><span class="no">10</span><span data-hi="गोदाम और ट्रांसफ़र">Godowns And Transfers</span></button>
+        <button type="button" data-jump3="ratelist"><span class="no">11</span><span data-hi="रेट लिस्ट भेजें">Share Rate List</span></button>
+      </div>
+    </div>
+    <div class="gsec">
+      <h2 data-hi="क्या आज़माएँ (7.4c)">Things To Try (7.4c)</h2>
+      <ol class="rules">
+        <li data-hi="सूची में 'कम स्टॉक' या 'ख़त्म' डिब्बा दबाएँ; Modular Switch 16A दबाकर उसके 3 ब्रांड खोलें।">In the list, tap the Low Stock or Out Of Stock box; tap Modular Switch 16A to open its 3 brands.</li>
+        <li data-hi="LED Bulb: 'स्टॉक बदलें' में 10 घटाएँ, 'बदलाव के बाद स्टॉक' देखें, सेव करें।">LED Bulb: in Adjust, reduce 10, watch Stock After, then save.</li>
+        <li data-hi="दाम मैनेजर: 'दाम बदलें' → कोई भी 4 अंक → आइटम चुनें → 5% बढ़ाएँ → पहले देखें → सेव।">Price Manager: Price Setup → any 4 digits → tick items → increase 5% → preview → save.</li>
+        <li data-hi="नया आइटम: 'वैरिएंट' चुनें; 'पैक और खुला' चालू करें; कोड के पास 📷 से स्कैन।">New Item: choose Variant; turn on Pack And Loose; scan the code with the camera button.</li>
+        <li data-hi="गोदाम: Main Shop से Chowk Store Room में 200 भेजने की कोशिश करें (उतना नहीं है)।">Godowns: try to send 200 from Main Shop to Chowk Store Room (there isn't that much).</li>
+      </ol>
+    </div>
+    <div class="gsec">
+      <h2 data-hi="7.4c में आपसे क्या चाहिए">What We Need From You (7.4c)</h2>
+      <p data-hi="हर आइटम स्क्रीन दबाकर देखिए और बताइए क्या बदलना है। मंज़ूरी के बाद अगला कदम 7.4d: नया बिल।">Tap through every item screen and tell us what to change. After your approval, the next step is 7.4d: New Sale.</p>
+    </div>
+    <div class="gsec">
+      <h2 data-hi="7.4b: पार्टी (मंज़ूर)">7.4b: Parties (Approved)</h2>
       <p data-hi="पार्टी की सूची, पार्टी का पेज, हिसाब, याद दिलाना, नई पार्टी और बदलना। सब कुछ वेब ऐप जैसा, पर फ़ोन के हिसाब से।">The party list, party page, statement, reminder, and adding or editing a party. Everything the web app has, laid out for the phone.</p>
       <div class="scrlist">
         <button type="button" data-jump2="parties"><span class="no">1</span><span data-hi="पार्टी की सूची">Parties List</span></button>
@@ -700,7 +787,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     </div>
     <div class="gsec">
       <h2 data-hi="7.4b में आपसे क्या चाहिए">What We Need From You (7.4b)</h2>
-      <p data-hi="हर पार्टी स्क्रीन दबाकर देखिए और बताइए क्या बदलना है। मंज़ूरी के बाद अगला कदम 7.4c: आइटम और स्टॉक।">Tap through every party screen and tell us what to change. After your approval, the next step is 7.4c: Items and Stock.</p>
+      <p data-hi="7.4b आपसे मंज़ूर (16 नवंबर 2026)।">7.4b was approved on 16 Nov 2026.</p>
     </div>
     <div class="gsec">
       <h2 data-hi="7.4a: ऐप खोलना, होम और मेन्यू (मंज़ूर)">7.4a: Opening, Home And Menu (Approved)</h2>
@@ -802,9 +889,9 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
             <div class="li" role="button" tabindex="0" data-t7="e"><div class="mid"><div class="nm">Raju Electrician</div><div class="t-x" data-hi="ड्राफ़्ट | 11 नव॰ 2026">Draft | 11 Nov 2026</div></div><div class="end"><div class="v c3">1,480.00</div><span class="bd gray" data-hi="ड्राफ़्ट">Draft</span></div></div>
           </div>
           <div id="hi" hidden style="display:flex;flex-direction:column;gap:8px">
-            <div class="li" role="button" tabindex="0" data-t7="c"><div class="mid"><div class="nm">LED Bulb 9W Cool Day Light (Philips)</div><div class="t-x" data-hi="ख़रीद ₹70 · बिक्री ₹85 प्रति Pc">Purchase Price ₹70 · Sale Price ₹85 Per Pc</div></div><div class="end"><div class="v">120 Pcs</div></div></div>
-            <div class="li" role="button" tabindex="0" data-t7="c"><div class="mid"><div class="nm">Havells 1.5 Sq mm Wire 90 m Red</div><div class="t-x" data-hi="ख़रीद ₹1,150 · बिक्री ₹1,390 प्रति Roll">Purchase Price ₹1,150 · Sale Price ₹1,390 Per Roll</div></div><div class="end"><div class="v">4 Rolls</div><span class="bd cr" data-hi="कम स्टॉक">Low Stock</span></div></div>
-            <div class="li" role="button" tabindex="0" data-t7="c"><div class="mid"><div class="nm">Anchor Roma 6A Switch White</div><div class="t-x" data-hi="ख़रीद ₹28 · बिक्री ₹36 प्रति Pc">Purchase Price ₹28 · Sale Price ₹36 Per Pc</div></div><div class="end"><div class="v">350 Pcs</div></div></div>
+            <div class="li" role="button" tabindex="0" data-item="led"><div class="mid"><div class="nm">LED Bulb 9W Cool Day Light (Philips)</div><div class="t-x" data-hi="ख़रीद ₹70 · बिक्री ₹85 प्रति Pc">Purchase Price ₹70 · Sale Price ₹85 Per Pc</div></div><div class="end"><div class="v">120 Pcs</div></div></div>
+            <div class="li" role="button" tabindex="0" data-item="wire"><div class="mid"><div class="nm">Havells 1.5 Sq mm Wire 90 m Red</div><div class="t-x" data-hi="ख़रीद ₹1,150 · बिक्री ₹1,390 प्रति Roll">Purchase Price ₹1,150 · Sale Price ₹1,390 Per Roll</div></div><div class="end"><div class="v">4 Rolls</div><span class="bd cr" data-hi="कम स्टॉक">Low Stock</span></div></div>
+            <div class="li" role="button" tabindex="0" data-item="sw"><div class="mid"><div class="nm">Anchor Roma 6A Switch White</div><div class="t-x" data-hi="ख़रीद ₹28 · बिक्री ₹36 प्रति Pc">Purchase Price ₹28 · Sale Price ₹36 Per Pc</div></div><div class="end"><div class="v">350 Pcs</div></div></div>
           </div>
         </div>
         <div class="sf"><button class="btn soft grow" data-toast="Take Payment comes in step 7.4e." data-toast-hi="भुगतान लेना कदम 7.4e में बनेगा।"><svg class="ic"><use href="#rupee"/></svg><span data-hi="भुगतान लें">Take Payment</span></button><button class="btn ico blue" data-ov="create" aria-label="Create New"><svg class="ic"><use href="#plus"/></svg></button><button class="btn blue grow" data-toast="New Bill comes in step 7.4d." data-toast-hi="नया बिल कदम 7.4d में बनेगा।"><span data-hi="नया बिल">New Bill</span></button></div>
@@ -812,7 +899,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 
       <!-- 6 search -->
       <section class="scn" data-s="search" hidden>
-        <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="inp" style="flex:1"><svg class="ic"><use href="#search"/></svg><input id="q" type="search" placeholder="Search Party, Bill, Item" data-hi-ph="पार्टी, बिल, आइटम खोजें" autocomplete="off"></div><button class="btn ico" aria-label="Scan Barcode" data-toast="Opens the camera to scan a barcode (step 7.4c)." data-toast-hi="barcode स्कैन करने के लिए कैमरा खुलेगा (कदम 7.4c)।"><svg class="ic"><use href="#scan"/></svg></button></div>
+        <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="inp" style="flex:1"><svg class="ic"><use href="#search"/></svg><input id="q" type="search" placeholder="Search Party, Bill, Item" data-hi-ph="पार्टी, बिल, आइटम खोजें" autocomplete="off"></div><button class="btn ico" aria-label="Scan Barcode" data-go="scan"><svg class="ic"><use href="#scan"/></svg></button></div>
         <div class="sb">
           <div id="q-recent" style="display:flex;flex-direction:column;gap:8px">
             <div class="sec" data-hi="हाल की खोज">Recent</div>
@@ -832,8 +919,8 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
             </div>
             <div class="sec" data-g="i" data-hi="आइटम">Items</div>
             <div class="grp" data-g="i">
-              <button class="srow" data-k="led bulb 9w cool day light philips 8901234567012" data-t7="c"><div class="mid"><div class="nm">LED Bulb 9W Cool Day Light (Philips)</div><div class="t-x" data-hi="120 Pcs स्टॉक में">120 Pcs In Stock</div></div><span class="val">₹85</span></button>
-              <button class="srow" data-k="havells 1.5 sq mm wire 90 m red" data-t7="c"><div class="mid"><div class="nm">Havells 1.5 Sq mm Wire 90 m Red</div><div class="t-x" data-hi="4 Rolls स्टॉक में">4 Rolls In Stock</div></div><span class="val">₹1,390</span></button>
+              <button class="srow" data-k="led bulb 9w cool day light philips 8901234567012" data-item="led"><div class="mid"><div class="nm">LED Bulb 9W Cool Day Light (Philips)</div><div class="t-x" data-hi="120 Pcs स्टॉक में">120 Pcs In Stock</div></div><span class="val">₹85</span></button>
+              <button class="srow" data-k="havells 1.5 sq mm wire 90 m red" data-item="wire"><div class="mid"><div class="nm">Havells 1.5 Sq mm Wire 90 m Red</div><div class="t-x" data-hi="4 Rolls स्टॉक में">4 Rolls In Stock</div></div><span class="val">₹1,390</span></button>
             </div>
             <div class="empty" id="q-none" hidden><div class="ring"><svg class="ic"><use href="#search"/></svg></div><b data-hi="कुछ नहीं मिला">Nothing Found</b><div class="t-s" data-hi="नाम, बिल नंबर या barcode दोबारा जाँचें।">Check the name, bill number or barcode.</div></div>
           </div>
@@ -845,7 +932,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
         <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="mid"><div class="t" data-hi="सूचनाएँ">Alerts</div></div></div>
         <div class="sb">
           <div class="li" role="button" tabindex="0" data-party="mehta"><div class="av" style="background:var(--red-l);color:var(--red);box-shadow:none"><svg class="ic"><use href="#clock"/></svg></div><div class="mid"><div class="nm" data-hi="Mehta Electricals का पैसा बकाया">Mehta Electricals Is Overdue</div><div class="t-x" data-hi="₹21,749.40 · 12 दिन से">₹21,749.40 · 12 Days</div></div><span class="bd due" data-hi="बकाया">Overdue</span></div>
-          <div class="li" role="button" tabindex="0" data-t7="c"><div class="av" style="background:var(--orange-l);color:var(--orange);box-shadow:none"><svg class="ic"><use href="#box"/></svg></div><div class="mid"><div class="nm" data-hi="Havells 1.5 Sq mm Wire का स्टॉक कम">Havells 1.5 Sq mm Wire Is Low</div><div class="t-x" data-hi="4 Rolls बचे">4 Rolls Left</div></div><span class="bd cr" data-hi="कम स्टॉक">Low Stock</span></div>
+          <div class="li" role="button" tabindex="0" data-item="wire"><div class="av" style="background:var(--orange-l);color:var(--orange);box-shadow:none"><svg class="ic"><use href="#box"/></svg></div><div class="mid"><div class="nm" data-hi="Havells 1.5 Sq mm Wire का स्टॉक कम">Havells 1.5 Sq mm Wire Is Low</div><div class="t-x" data-hi="4 Rolls बचे">4 Rolls Left</div></div><span class="bd cr" data-hi="कम स्टॉक">Low Stock</span></div>
         </div>
       </section>
 
@@ -871,10 +958,9 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
       <section class="scn" data-s="parties" hidden>
         <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="mid"><div class="t" data-hi="पार्टी">Parties</div></div></div>
         <div class="sb">
-          <div class="tabs" role="tablist"><button role="tab" aria-selected="true" data-kind="all" data-hi="सभी">All</button><button role="tab" aria-selected="false" data-kind="c" data-hi="ग्राहक">Customers</button><button role="tab" aria-selected="false" data-kind="s" data-hi="सप्लायर">Suppliers</button></div>
+          <div class="tabs slim" role="tablist"><button role="tab" aria-selected="true" data-kind="all" data-hi="सभी">All</button><button role="tab" aria-selected="false" data-kind="c" data-hi="ग्राहक">Customers</button><button role="tab" aria-selected="false" data-kind="s" data-hi="सप्लायर">Suppliers</button></div>
           <div class="ptot"><button type="button" data-bal="rec" aria-pressed="false"><div class="k" data-hi="↓ मिलेगा">↓ To Receive</div><div class="v cg" id="pt-rec">₹0</div></button><button type="button" data-bal="pay" aria-pressed="false"><div class="k" data-hi="↑ देना है">↑ To Pay</div><div class="v cr" id="pt-pay">₹0</div></button></div>
-          <div class="inp"><svg class="ic"><use href="#search"/></svg><input id="pq" type="search" placeholder="Search Party Name Or Mobile" data-hi-ph="पार्टी का नाम या मोबाइल खोजें" autocomplete="off"></div>
-          <div class="chips eq" id="pbal"><button type="button" data-bal="all" aria-pressed="true" data-hi="सभी">All</button><button type="button" data-bal="rec" aria-pressed="false" data-hi="मिलेगा">To Receive</button><button type="button" data-bal="pay" aria-pressed="false" data-hi="देना है">To Pay</button><button type="button" data-bal="zero" aria-pressed="false" data-hi="बराबर">Settled</button></div>
+          <div class="srow2"><div class="inp"><svg class="ic"><use href="#search"/></svg><input id="pq" type="search" placeholder="Search" data-hi-ph="खोजें" autocomplete="off"></div><div class="inp"><select id="pbal-sel" aria-label="Balance"><option value="all" data-hi="सभी बैलेंस">All Balances</option><option value="rec" data-hi="मिलेगा">To Receive</option><option value="pay" data-hi="देना है">To Pay</option><option value="zero" data-hi="बराबर">Settled</option></select></div></div>
           <div id="plist" style="display:flex;flex-direction:column;gap:8px"></div>
           <div class="empty" id="pnone" hidden><div class="ring"><svg class="ic"><use href="#user"/></svg></div><b data-hi="कोई पार्टी नहीं मिली">No Parties Match</b><div class="t-s" data-hi="खोज या फ़िल्टर बदलकर देखें।">Try another search or filter.</div></div>
           <button type="button" class="lnk c" id="pinact-btn" data-inact></button>
@@ -950,6 +1036,194 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
         <div class="sf" id="pf-bar"></div>
       </section>
 
+      <!-- 7.4c items list -->
+      <section class="scn" data-s="items" hidden>
+        <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="mid"><div class="t" data-hi="आइटम">Items</div></div><button class="btn ico" data-go="scan" aria-label="Scan Barcode"><svg class="ic"><use href="#scan"/></svg></button></div>
+        <div class="sb">
+          <div class="tabs slim" role="tablist"><button role="tab" aria-selected="true" data-ikind="all" data-hi="सभी">All</button><button role="tab" aria-selected="false" data-ikind="p" data-hi="सामान">Products</button><button role="tab" aria-selected="false" data-ikind="s" data-hi="सेवाएँ">Services</button></div>
+          <div class="ptot three"><button type="button" data-ist="all" aria-pressed="false"><div class="k" data-hi="स्टॉक की क़ीमत">Stock Value</div><div class="v" id="it-val"></div></button><button type="button" data-ist="low" aria-pressed="false"><div class="k" data-hi="कम स्टॉक">Low Stock</div><div class="v co" id="it-low"></div></button><button type="button" data-ist="out" aria-pressed="false"><div class="k" data-hi="ख़त्म">Out Of Stock</div><div class="v cr" id="it-out"></div></button></div>
+          <div class="srow3"><div class="inp"><svg class="ic"><use href="#search"/></svg><input id="iq" type="search" placeholder="Search" data-hi-ph="खोजें" autocomplete="off"></div><button type="button" class="btn ico fbtn" id="ibrand-btn" data-ov="brandpick" data-bfor="items" aria-pressed="false" aria-label="Filter By Brand"><svg class="ic"><use href="#filter"/></svg></button><div class="inp"><select id="ist-sel" aria-label="Stock Status"><option value="all" data-hi="सभी">All</option><option value="in" data-hi="स्टॉक में">In Stock</option><option value="low" data-hi="कम">Low</option><option value="out" data-hi="ख़त्म">Out</option></select></div></div>
+          <div id="ilist" style="display:flex;flex-direction:column;gap:8px"></div>
+          <div class="empty" id="inone" hidden><div class="ring"><svg class="ic"><use href="#box"/></svg></div><b data-hi="कोई आइटम नहीं मिला">No Items Match</b><div class="t-s" data-hi="खोज या फ़िल्टर बदलकर देखें।">Try another search or filter.</div></div>
+        </div>
+        <div class="sf"><button class="btn soft grow" data-ov="imore"><svg class="ic"><use href="#menu"/></svg><span data-hi="और">More</span></button><button class="btn blue grow" data-iform="new"><svg class="ic"><use href="#plus"/></svg><span data-hi="नया आइटम">Add Item</span></button></div>
+      </section>
+
+      <!-- 7.4c item page -->
+      <section class="scn" data-s="item" hidden>
+        <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="mid"><div class="t" id="ip-name"></div><div class="t-x" id="ip-sub"></div></div><button class="btn ico" data-iform="edit" aria-label="Edit Item"><svg class="ic"><use href="#edit"/></svg></button></div>
+        <div class="sb">
+          <div class="box pcard"><div class="pc-top"><div style="min-width:0"><div class="t-x" data-hi="स्टॉक">Stock</div><div class="stk" id="ip-stk"></div></div><div class="pc-lim" id="ip-val"></div></div><div class="qa3"><button class="btn soft" data-adj><svg class="ic"><use href="#box"/></svg><span data-hi="स्टॉक बदलें">Adjust</span></button><button class="btn soft" data-ov="phist"><svg class="ic"><use href="#clock"/></svg><span data-hi="दाम इतिहास">Prices</span></button><button class="btn soft" data-toast="Makes a barcode label PDF to print or share (on the real phone)." data-toast-hi="barcode लेबल की PDF बनेगी, छापने या भेजने के लिए (असली फ़ोन पर)।"><svg class="ic"><use href="#scan"/></svg><span>Barcode</span></button></div></div>
+          <div class="sec" data-hi="दाम">Prices</div>
+          <div class="kv" id="ip-kv"></div>
+          <div class="sec" id="ip-bt-h" data-hi="बैच के हिसाब से स्टॉक">Stock By Batch</div>
+          <div class="grp" id="ip-bt"></div>
+          <div class="sec" data-hi="गोदाम के हिसाब से स्टॉक">Stock By Godown</div>
+          <div class="grp" id="ip-gd"></div>
+          <div class="sec" data-hi="लेन-देन">Transactions</div>
+          <div class="chips eq" id="ip-fil"><button type="button" data-itf="all" aria-pressed="true" data-hi="सभी">All</button><button type="button" data-itf="sale" aria-pressed="false" data-hi="बिक्री">Sale</button><button type="button" data-itf="pur" aria-pressed="false" data-hi="ख़रीद">Buy</button><button type="button" data-itf="adj" aria-pressed="false" data-hi="सुधार">Adjust</button></div>
+          <div id="ip-tx" style="display:flex;flex-direction:column;gap:8px"></div>
+          <div class="empty" id="ip-none" hidden><b data-hi="कोई लेन-देन नहीं">No Transactions</b></div>
+        </div>
+        <div class="sf"><button class="btn soft grow" data-adj><svg class="ic"><use href="#box"/></svg><span data-hi="स्टॉक बदलें">Adjust Stock</span></button><button class="btn blue grow" data-t7="d"><svg class="ic"><use href="#plus"/></svg><span data-hi="बेचें">Sell</span></button></div>
+      </section>
+
+      <!-- 7.4c adjust stock -->
+      <section class="scn" data-s="adj" hidden>
+        <div class="sh"><button class="btn ico" data-back aria-label="Close"><svg class="ic"><use href="#xic"/></svg></button><div class="mid"><div class="t" data-hi="स्टॉक बदलें">Adjust Stock</div><div class="t-x" id="aj-item"></div></div></div>
+        <div class="sb">
+          <div class="fld" id="aj-pick-w"><label for="aj-pick" data-hi="आइटम">Item</label><div class="inp"><select id="aj-pick"></select></div></div>
+          <div class="seg2" role="radiogroup" id="aj-mode"><button type="button" role="radio" data-seg data-ajm="add" aria-pressed="true"><span data-hi="स्टॉक जोड़ें">Add Stock</span></button><button type="button" role="radio" data-seg data-ajm="red" aria-pressed="false"><span data-hi="स्टॉक घटाएँ">Reduce Stock</span></button></div>
+          <div class="fld"><label for="aj-q" id="aj-ql" data-hi="मात्रा">Quantity</label><div class="inp"><input id="aj-q" inputmode="decimal" placeholder="0" autocomplete="off"><span class="pre" id="aj-unit">Pcs</span></div></div>
+          <div class="box" style="flex-direction:row;justify-content:space-between;align-items:center"><span class="t-s" data-hi="बदलाव के बाद स्टॉक">Stock After</span><b id="aj-after"></b></div>
+          <div class="fld"><label for="aj-p" data-hi="दाम / इकाई">Price / Unit</label><div class="inp"><span class="pre">₹</span><input id="aj-p" inputmode="decimal" autocomplete="off"></div></div>
+          <div class="fld"><label for="aj-r" data-hi="कारण">Reason</label><div class="inp"><select id="aj-r"><option>Physical Count Correction</option><option>Damaged</option><option>Expired</option><option>Lost Or Stolen</option><option>Free Sample / Gift</option><option>Own Use</option><option>Other</option></select></div></div>
+          <div class="fld"><label for="aj-b" data-hi="बैच नं.">Batch No.</label><div class="inp"><input id="aj-b" placeholder="Blank = No Batch" data-hi-ph="ख़ाली = कोई बैच नहीं" autocomplete="off"></div></div>
+          <div class="fld"><label for="aj-d" data-hi="तारीख़">Date</label><div class="inp"><svg class="ic"><use href="#cal"/></svg><input id="aj-d" value="16 Nov 2026" readonly></div></div>
+          <div class="ferr" id="aj-err" hidden data-hi="मात्रा लिखें।">Enter the quantity.</div>
+        </div>
+        <div class="sf"><button class="btn green grow" data-ajsave><span data-hi="सेव करें">Save Adjustment</span></button></div>
+      </section>
+
+      <!-- 7.4c add / edit item -->
+      <section class="scn" data-s="iform" hidden>
+        <div class="sh"><button class="btn ico" data-back aria-label="Close"><svg class="ic"><use href="#xic"/></svg></button><div class="mid"><div class="t" id="if-title" data-hi="नया आइटम">New Item</div></div></div>
+        <div class="sb">
+          <div class="seg4" id="if-kv"><div class="seg2" role="radiogroup" id="if-kind"><button type="button" role="radio" data-seg aria-pressed="true"><span data-hi="सामान">Product</span></button><button type="button" role="radio" data-seg aria-pressed="false"><span data-hi="सेवा">Service</span></button></div><div class="seg2" role="radiogroup" id="if-var"><button type="button" role="radio" data-seg data-hides="if-vbox" aria-pressed="true"><span data-hi="अकेला">Single</span></button><button type="button" role="radio" data-seg data-shows2="if-vbox" aria-pressed="false"><span data-hi="वैरिएंट">Variant</span></button></div></div>
+          <div id="if-vbox" hidden style="display:flex;flex-direction:column;gap:12px">
+            <div class="fld"><label for="if-par" data-hi="मुख्य आइटम *">Parent Item *</label><div class="inp"><select id="if-par"><option>Modular Switch 16A</option><option>LED Bulb</option></select></div></div>
+            <div class="fld"><label for="if-ser" data-hi="सीरीज़ / मॉडल *">Series / Model *</label><div class="inp"><input id="if-ser" placeholder="e.g. Coral" autocomplete="off"></div></div>
+          </div>
+          <div class="fld"><label for="if-name" data-hi="आइटम का नाम *">Item Name *</label><div class="inp" id="if-name-w"><input id="if-name" placeholder="e.g. LED Bulb 9W Cool Day Light" data-hi-ph="जैसे LED Bulb 9W Cool Day Light" autocomplete="off"></div><div class="ferr" id="if-err" hidden data-hi="आइटम का नाम लिखें।">Enter the item name.</div></div>
+          <div class="fld"><label for="if-brand" data-hi="ब्रांड">Brand</label><div class="inp"><select id="if-brand"><option value="" data-hi="कोई नहीं">None</option><option>Philips</option><option>Havells</option><option>Anchor</option><option>Legrand</option></select></div><button type="button" class="lnk sm" data-toast="Adds a new brand, e.g. Polycab." data-toast-hi="नया ब्रांड जोड़ेगा, जैसे Polycab।" data-hi="+ नया ब्रांड">+ Add Brand</button></div>
+          <div class="fld"><label for="if-cat" data-hi="श्रेणी">Category</label><div class="inp"><select id="if-cat"><option value="" data-hi="कोई श्रेणी नहीं">No Category</option><option>Lighting</option><option>Wires</option><option>Switches</option><option>MCB</option></select></div></div>
+          <div class="fld"><label for="if-code" data-hi="आइटम कोड">Item Code</label><div class="inp"><input id="if-code" placeholder="Maker's Code" data-hi-ph="कंपनी का कोड" autocomplete="off"><button type="button" class="pk" data-go="scan" data-scanfor="code" aria-label="Scan Barcode"><svg class="ic"><use href="#scan"/></svg></button></div><button type="button" class="lnk sm" data-assign data-hi="कोड दें (JE004)">Assign Code (JE004)</button></div>
+          <div class="fld"><label for="if-unit" data-hi="इकाई">Unit</label><div class="inp"><select id="if-unit"><option>Pcs</option><option>Roll</option><option>Box</option><option>Mtr</option><option>Kg</option></select></div></div>
+          <div class="tg"><span data-hi="पैक और खुला दोनों बेचें">Sell In Pack And Loose</span><button type="button" class="sw2" role="switch" aria-checked="false" aria-label="Sell In Pack And Loose" data-shows="if-pack"></button></div>
+          <div id="if-pack" hidden style="display:flex;flex-direction:column;gap:12px">
+            <div class="fld"><label for="if-pu" data-hi="पैक की इकाई">Pack Unit</label><div class="inp"><select id="if-pu"><option>Box</option><option>Coil</option><option>Packet</option></select></div></div>
+            <div class="fld"><label for="if-ps" data-hi="एक पैक में कितने">How Many In A Pack</label><div class="inp"><input id="if-ps" inputmode="numeric" placeholder="e.g. 10" autocomplete="off"></div><div class="hint" data-hi="स्टॉक खुली इकाई में गिना जाता है, इसलिए हर पीस का हिसाब सही रहता है।">Stock is counted in the loose unit, so every piece is exact.</div></div>
+          </div>
+
+          <button type="button" class="acc" data-grp aria-expanded="true"><svg class="ic" style="color:var(--blue)"><use href="#rupee"/></svg><span data-hi="दाम">Pricing</span><span class="ex"><svg class="ic"><use href="#next"/></svg></span></button>
+          <div class="accb">
+            <div class="fld"><label for="if-sp" data-hi="बिक्री दाम">Sale Price</label><div class="inp"><span class="pre">₹</span><input id="if-sp" inputmode="decimal" placeholder="0.00" autocomplete="off"></div></div>
+            <div class="seg2" role="radiogroup"><button type="button" role="radio" data-seg aria-pressed="true"><span data-hi="टैक्स सहित">With Tax</span></button><button type="button" role="radio" data-seg aria-pressed="false"><span data-hi="टैक्स के बिना">Without Tax</span></button></div>
+            <div class="fld"><label for="if-pp" data-hi="ख़रीद दाम">Purchase Price</label><div class="inp"><span class="pre">₹</span><input id="if-pp" inputmode="decimal" placeholder="0.00" autocomplete="off"></div><div class="hint" id="if-margin"></div></div>
+            <div class="fld"><label for="if-mrp">MRP</label><div class="inp"><span class="pre">₹</span><input id="if-mrp" inputmode="decimal" placeholder="Optional" data-hi-ph="ज़रूरी नहीं" autocomplete="off"></div></div>
+            <div class="fld"><label for="if-wp" data-hi="थोक दाम">Wholesale Price</label><div class="inp"><span class="pre">₹</span><input id="if-wp" inputmode="decimal" placeholder="Optional" data-hi-ph="ज़रूरी नहीं" autocomplete="off"></div></div>
+            <div class="fld"><label for="if-wq" data-hi="थोक के लिए कम से कम">Min. Wholesale Qty</label><div class="inp"><input id="if-wq" inputmode="numeric" placeholder="e.g. 10" autocomplete="off"></div></div>
+            <div class="fld"><label for="if-dc" data-hi="बिक्री पर छूट (%)">Discount On Sale (%)</label><div class="inp"><input id="if-dc" inputmode="decimal" placeholder="0" autocomplete="off"><span class="pre">%</span></div></div>
+          </div>
+          <button type="button" class="acc" data-grp aria-expanded="false"><svg class="ic" style="color:var(--blue)"><use href="#bill"/></svg><span data-hi="टैक्स">Tax</span><span class="ex"><svg class="ic"><use href="#next"/></svg></span></button>
+          <div class="accb" hidden>
+            <div class="fld"><label for="if-gst" data-hi="GST दर">GST Rate</label><div class="inp"><select id="if-gst"><option>None</option><option>GST 5%</option><option>GST 12%</option><option selected>GST 18%</option><option>GST 28%</option></select></div></div>
+            <div class="fld"><label for="if-hsn">HSN / SAC</label><div class="inp"><input id="if-hsn" inputmode="numeric" placeholder="8539" autocomplete="off"></div></div>
+          </div>
+          <button type="button" class="acc" data-grp aria-expanded="false" id="if-stock-h"><svg class="ic" style="color:var(--blue)"><use href="#box"/></svg><span data-hi="स्टॉक">Stock</span><span class="ex"><svg class="ic"><use href="#next"/></svg></span></button>
+          <div class="accb" hidden id="if-stock">
+            <div class="fld" id="if-os-w"><label for="if-os" data-hi="शुरू का स्टॉक">Opening Quantity</label><div class="inp"><input id="if-os" inputmode="decimal" placeholder="0" autocomplete="off"></div></div>
+            <div class="hint" id="if-os-note" hidden data-hi="शुरू का स्टॉक यहाँ नहीं बदलता। 'स्टॉक बदलें' से बदलें।">Opening stock can’t be changed here. Use Adjust Stock.</div>
+            <div class="fld"><label for="if-ap" data-hi="दाम / इकाई">At Price / Unit</label><div class="inp"><span class="pre">₹</span><input id="if-ap" inputmode="decimal" placeholder="Purchase Price" data-hi-ph="ख़रीद दाम" autocomplete="off"></div></div>
+            <div class="fld"><label for="if-min" data-hi="कम से कम कितना स्टॉक रखें">Minimum Stock To Maintain</label><div class="inp"><input id="if-min" inputmode="numeric" placeholder="e.g. 20" autocomplete="off"></div><div class="hint" data-hi="स्टॉक इससे नीचे जाने पर 'कम स्टॉक' की सूचना आएगी।">You’ll see a low-stock alert when stock falls below this.</div></div>
+            <div class="fld"><label for="if-bn" data-hi="बैच नं.">Batch No.</label><div class="inp"><input id="if-bn" placeholder="Blank = No Batch" data-hi-ph="ख़ाली = कोई बैच नहीं" autocomplete="off"></div></div>
+            <div class="fld"><label for="if-ex" data-hi="एक्सपायरी">Expiry</label><div class="inp"><svg class="ic"><use href="#cal"/></svg><input id="if-ex" placeholder="Choose Date" data-hi-ph="तारीख़ चुनें" readonly></div></div>
+            <div class="fld"><label for="if-loc" data-hi="जगह">Location</label><div class="inp"><input id="if-loc" placeholder="e.g. Rack A1 Or Godown" data-hi-ph="जैसे Rack A1 या गोदाम" autocomplete="off"></div></div>
+          </div>
+          <button type="button" class="btn line" data-toast="Opens the camera or the gallery to add a photo (JPG or PNG)." data-toast-hi="फ़ोटो जोड़ने के लिए कैमरा या गैलरी खुलेगी (JPG या PNG)।"><svg class="ic"><use href="#plus"/></svg><span data-hi="फ़ोटो जोड़ें">Add Image</span></button>
+        </div>
+        <div class="sf" id="if-bar"></div>
+      </section>
+
+      <!-- 7.4c camera scan -->
+      <section class="scn" data-s="scan" hidden>
+        <div class="sh"><button class="btn ico" data-back aria-label="Close"><svg class="ic"><use href="#xic"/></svg></button><div class="mid"><div class="t" data-hi="barcode स्कैन करें">Scan Barcode</div></div><button class="btn ico" data-toast="Torch on." data-toast-hi="टॉर्च चालू।" aria-label="Torch"><svg class="ic"><use href="#bulb"/></svg></button></div>
+        <div class="cam">
+          <button class="camf" type="button" data-scanhit aria-label="Scan"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span><span class="bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="scanline"></span></button>
+          <div style="font-weight:600" data-hi="barcode को फ़्रेम के अंदर रखें">Hold The Barcode Inside The Frame</div>
+          <div class="t-x" style="color:var(--sel)" data-hi="नमूने में फ़्रेम दबाएँ: LED Bulb मिलेगा।">In this sample, tap the frame: it finds the LED Bulb.</div>
+          <button type="button" class="lnk c" data-toast="Type the code by hand instead." data-toast-hi="कोड हाथ से लिखें।" data-hi="कोड लिखें">Type The Code</button>
+        </div>
+      </section>
+
+      <!-- 7.4c price manager -->
+      <section class="scn" data-s="prices" hidden>
+        <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="mid"><div class="t" data-hi="दाम मैनेजर">Price Manager</div></div></div>
+        <div class="sb">
+          <div class="seg2" role="radiogroup"><button type="button" role="radio" data-pmode="view" aria-pressed="true"><span data-hi="दाम देखें">Price View</span></button><button type="button" role="radio" data-pmode="setup" aria-pressed="false"><span data-hi="दाम बदलें (PIN)">Price Setup (PIN)</span></button></div>
+          <div class="srow2 b"><div class="inp"><svg class="ic"><use href="#search"/></svg><input id="prq" type="search" placeholder="Search Item Or Code" data-hi-ph="आइटम या कोड खोजें" autocomplete="off"></div><button type="button" class="btn ico fbtn" id="prbrand-btn" data-ov="brandpick" data-bfor="prices" aria-pressed="false" aria-label="Filter By Brand"><svg class="ic"><use href="#filter"/></svg></button></div>
+          <div class="ban info" id="pr-note" hidden style="background:var(--blue-l);color:var(--blue)"><svg class="ic"><use href="#check"/></svg><div class="mid" data-hi="दाम बदलने का तरीक़ा चालू। आइटम चुनें, फिर नीचे 'चुने दाम बदलें'।">Price Setup is on. Tick items, then Change Selected Prices below.</div></div>
+          <div id="prlist" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+        <div class="sf" id="pr-bar"></div>
+      </section>
+
+      <!-- 7.4c bulk active / inactive -->
+      <section class="scn" data-s="bulkact" hidden>
+        <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="mid"><div class="t" data-hi="एक साथ चालू / बंद">Bulk Active / Inactive</div></div></div>
+        <div class="sb">
+          <div class="tabs slim" role="tablist"><button role="tab" aria-selected="true" data-bact="a" data-hi="चालू">Active</button><button role="tab" aria-selected="false" data-bact="i" data-hi="बंद">Inactive</button></div>
+          <div class="t-x" data-hi="आइटम चुनें, फिर नीचे का बटन। कोई आइटम हटता नहीं, सिर्फ़ चालू या बंद होता है।">Tick items, then the button below. Nothing is deleted; items are only made active or inactive.</div>
+          <div id="balist" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+        <div class="sf"><button class="btn blue grow" id="ba-go" data-bago disabled><span id="ba-go-t"></span></button></div>
+      </section>
+
+      <!-- 7.4c brands & series -->
+      <section class="scn" data-s="brands" hidden>
+        <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="mid"><div class="t" data-hi="ब्रांड और सीरीज़">Brands And Series</div></div></div>
+        <div class="sb" id="brlist"></div>
+        <div class="sf"><button class="btn soft grow" data-toast="Adds a series to a brand, e.g. Havells Coral." data-toast-hi="ब्रांड में सीरीज़ जोड़ेगा, जैसे Havells Coral।"><svg class="ic"><use href="#plus"/></svg><span data-hi="नई सीरीज़">Add Series</span></button><button class="btn blue grow" data-toast="Adds a new brand, e.g. Polycab." data-toast-hi="नया ब्रांड जोड़ेगा, जैसे Polycab।"><svg class="ic"><use href="#plus"/></svg><span data-hi="नया ब्रांड">Add Brand</span></button></div>
+      </section>
+
+      <!-- 7.4c stock adjustments -->
+      <section class="scn" data-s="adjs" hidden>
+        <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="mid"><div class="t" data-hi="स्टॉक सुधार">Stock Adjustments</div></div></div>
+        <div class="sb">
+          <div class="ptot three" id="as-tot"></div>
+          <div class="inp"><svg class="ic"><use href="#search"/></svg><input id="asq" type="search" placeholder="Search Item Or Reference" data-hi-ph="आइटम या नंबर खोजें" autocomplete="off"></div>
+          <div id="aslist" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+        <div class="sf"><button class="btn blue grow" data-adjnew><svg class="ic"><use href="#plus"/></svg><span data-hi="नया सुधार">New Adjustment</span></button></div>
+      </section>
+
+      <!-- 7.4c godowns -->
+      <section class="scn" data-s="godowns" hidden>
+        <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="mid"><div class="t" data-hi="गोदाम">Godowns</div><div class="t-x" data-hi="आपका स्टॉक कहाँ रखा है">Where Your Stock Is Kept</div></div></div>
+        <div class="sb">
+          <div id="gdlist" style="display:flex;flex-direction:column;gap:8px"></div>
+          <div class="sec" data-hi="हाल के ट्रांसफ़र">Recent Transfers</div>
+          <div id="trlist" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+        <div class="sf"><button class="btn soft grow" data-toast="Adds a godown: name, address, person in charge, mobile." data-toast-hi="नया गोदाम: नाम, पता, ज़िम्मेदार व्यक्ति, मोबाइल।"><svg class="ic"><use href="#plus"/></svg><span data-hi="नया गोदाम">Add Godown</span></button><button class="btn blue grow" data-go="transfer"><svg class="ic"><use href="#next"/></svg><span data-hi="स्टॉक भेजें">Transfer Stock</span></button></div>
+      </section>
+
+      <!-- 7.4c transfer -->
+      <section class="scn" data-s="transfer" hidden>
+        <div class="sh"><button class="btn ico" data-back aria-label="Close"><svg class="ic"><use href="#xic"/></svg></button><div class="mid"><div class="t" data-hi="स्टॉक भेजें">Transfer Stock</div></div></div>
+        <div class="sb">
+          <div class="fld"><label for="tr-from" data-hi="कहाँ से">From</label><div class="inp"><select id="tr-from"><option>Main Shop</option><option>Chowk Store Room</option></select></div></div>
+          <div class="fld"><label for="tr-to" data-hi="कहाँ">To</label><div class="inp"><select id="tr-to"><option>Chowk Store Room</option><option>Main Shop</option></select></div></div>
+          <div class="fld"><label for="tr-item" data-hi="आइटम">Item</label><div class="inp"><select id="tr-item"></select></div><div class="hint" id="tr-have"></div></div>
+          <div class="fld"><label for="tr-q" data-hi="मात्रा">Quantity</label><div class="inp"><input id="tr-q" inputmode="decimal" placeholder="0" autocomplete="off"></div></div>
+          <div class="ferr" id="tr-err" hidden></div>
+        </div>
+        <div class="sf"><button class="btn green grow" data-trgo><span data-hi="भेजें">Transfer</span></button></div>
+      </section>
+
+      <!-- 7.4c rate list -->
+      <section class="scn" data-s="ratelist" hidden>
+        <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="mid"><div class="t" data-hi="रेट लिस्ट">Rate List</div></div></div>
+        <div class="sb">
+          <div class="fld"><label for="rl-t" data-hi="शीर्षक">Title</label><div class="inp"><input id="rl-t" value="Rate List — November 2026" autocomplete="off"></div></div>
+          <div class="fld"><label for="rl-b" data-hi="ब्रांड">Brand</label><div class="inp"><select id="rl-b"><option data-hi="सभी ब्रांड">All Brands</option><option>Philips</option><option>Havells</option><option>Anchor</option></select></div></div>
+          <div class="fld"><label data-hi="कौन-सा दाम दिखे">Show Rates</label><div class="seg2" role="radiogroup"><button type="button" role="radio" data-seg aria-pressed="true"><span data-hi="GST सहित">Incl. GST</span></button><button type="button" role="radio" data-seg aria-pressed="false"><span data-hi="GST के बिना">Excl. GST</span></button></div></div>
+          <div class="tg"><span data-hi="ख़त्म स्टॉक वाले आइटम भी">Include Out-Of-Stock Items</span><button type="button" class="sw2" role="switch" aria-checked="false" aria-label="Include Out-Of-Stock Items"></button></div>
+          <div class="tg"><span data-hi="हर ब्रांड नए पेज पर">Each Brand On A New Page</span><button type="button" class="sw2" role="switch" aria-checked="true" aria-label="Each Brand On A New Page"></button></div>
+        </div>
+        <div class="sf"><button class="btn soft grow" data-toast="Shares the rate list as Excel (on the real phone)." data-toast-hi="रेट लिस्ट Excel में भेजेगा (असली फ़ोन पर)।"><span>Excel</span></button><button class="btn blue grow" data-toast="Makes the PDF and opens Share: WhatsApp and others (on the real phone)." data-toast-hi="PDF बनाकर भेजने के विकल्प खोलेगा: WhatsApp वग़ैरह (असली फ़ोन पर)।"><svg class="ic"><use href="#share"/></svg><span data-hi="PDF भेजें">Share PDF</span></button></div>
+      </section>
+
       <!-- overlays -->
       <div class="ov" data-o="menu" hidden>
         <nav class="drw" aria-label="Menu">
@@ -957,7 +1231,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
           <button class="mi on" data-close><svg class="ic"><use href="#bill"/></svg><span data-hi="होम">Home</span></button>
           <button class="mi" data-plist="all"><svg class="ic"><use href="#user"/></svg><span data-hi="पार्टी">Parties</span></button>
           <button class="mi" data-grp aria-expanded="false"><svg class="ic"><use href="#box"/></svg><span data-hi="आइटम और स्टॉक">Items &amp; Stock</span><span class="ex"><svg class="ic"><use href="#next"/></svg></span></button>
-          <div hidden><button class="mi sub" data-t7="c"><span data-hi="आइटम">Items</span></button><button class="mi sub" data-t7="c"><span data-hi="दाम मैनेजर">Price Manager</span></button><button class="mi sub" data-t7="c"><span data-hi="स्टॉक सुधार">Stock Adjustments</span></button><button class="mi sub" data-t7="c"><span data-hi="गोदाम">Godowns</span></button></div>
+          <div hidden><button class="mi sub" data-ilist="all"><span data-hi="आइटम">Items</span></button><button class="mi sub" data-go="prices"><span data-hi="दाम मैनेजर">Price Manager</span></button><button class="mi sub" data-go="adjs"><span data-hi="स्टॉक सुधार">Stock Adjustments</span></button><button class="mi sub" data-go="godowns"><span data-hi="गोदाम">Godowns</span></button></div>
           <button class="mi" data-grp aria-expanded="false"><svg class="ic"><use href="#bill"/></svg><span data-hi="बिक्री">Sales</span><span class="ex"><svg class="ic"><use href="#next"/></svg></span></button>
           <div hidden><button class="mi sub" data-t7="e"><span>Quotations</span></button><button class="mi sub" data-t7="d"><span data-hi="बिक्री बिल">Sale Bills</span></button><button class="mi sub" data-t7="e"><span data-hi="डिलीवरी चालान">Delivery Challans</span></button><button class="mi sub" data-t7="e"><span data-hi="मिले भुगतान">Payments Received</span></button><button class="mi sub" data-t7="e"><span data-hi="क्रेडिट नोट">Credit Notes</span></button><button class="mi sub" data-t7="e"><span data-hi="कमीशन">Commission</span></button></div>
           <button class="mi" data-grp aria-expanded="false"><svg class="ic"><use href="#cart"/></svg><span data-hi="ख़रीद">Purchases</span><span class="ex"><svg class="ic"><use href="#next"/></svg></span></button>
@@ -987,7 +1261,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
             <button class="tile" data-t7="f"><svg class="ic"><use href="#rupee"/></svg><span data-hi="भुगतान दें">Payment Out</span></button>
             <button class="tile" data-t7="g"><svg class="ic"><use href="#wallet"/></svg><span data-hi="ख़र्चा">Expense</span></button>
             <button class="tile" data-pform="new"><svg class="ic"><use href="#user"/></svg><span data-hi="नई पार्टी">New Party</span></button>
-            <button class="tile" data-t7="c"><svg class="ic"><use href="#box"/></svg><span data-hi="नया आइटम">New Item</span></button>
+            <button class="tile" data-iform="new"><svg class="ic"><use href="#box"/></svg><span data-hi="नया आइटम">New Item</span></button>
             <button class="tile" data-t7="f"><svg class="ic"><use href="#next"/></svg><span data-hi="डेबिट नोट">Debit Note</span></button>
           </div>
         </div>
@@ -1031,6 +1305,57 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
           <b class="t-h" style="font-size:18px" id="pd-t"></b>
           <div class="t-s" id="pd-b"></div>
           <div class="row" id="pd-btns"></div>
+        </div>
+      </div>
+      <div class="ov bot" data-o="imore" hidden>
+        <div class="sheet" style="gap:6px">
+          <div class="grab"></div>
+          <b data-hi="आइटम: और">Items: More</b>
+          <div class="grp">
+            <button class="srow" data-go="prices"><svg class="ic" style="color:var(--blue)"><use href="#rupee"/></svg><div class="mid" data-hi="दाम मैनेजर (एक साथ दाम बदलें)">Price Manager (Change Prices In Bulk)</div></button>
+            <button class="srow" data-go="bulkact"><svg class="ic" style="color:var(--blue)"><use href="#check"/></svg><div class="mid" data-hi="एक साथ चालू / बंद">Bulk Active / Inactive</div></button>
+            <button class="srow" data-go="brands"><svg class="ic" style="color:var(--blue)"><use href="#box"/></svg><div class="mid" data-hi="ब्रांड और सीरीज़">Brands And Series</div></button>
+            <button class="srow" data-go="adjs"><svg class="ic" style="color:var(--blue)"><use href="#filter"/></svg><div class="mid" data-hi="स्टॉक सुधार">Stock Adjustments</div></button>
+            <button class="srow" data-go="godowns"><svg class="ic" style="color:var(--blue)"><use href="#cart"/></svg><div class="mid" data-hi="गोदाम और ट्रांसफ़र">Godowns And Transfers</div></button>
+            <button class="srow" data-go="ratelist"><svg class="ic" style="color:var(--blue)"><use href="#share"/></svg><div class="mid" data-hi="रेट लिस्ट भेजें">Share Rate List</div></button>
+          </div>
+          <div class="t-x" data-hi="Excel से आइटम जोड़ना सिर्फ़ कंप्यूटर पर (आपका फ़ैसला)।">Importing items from Excel is on the computer only (your decision).</div>
+        </div>
+      </div>
+      <div class="ov bot" data-o="brandpick" hidden>
+        <div class="sheet" style="gap:8px">
+          <div class="grab"></div>
+          <b data-hi="ब्रांड से छाँटें">Filter By Brand</b>
+          <div id="bp-list" style="display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+      </div>
+      <div class="ov bot" data-o="phist" hidden>
+        <div class="sheet" style="gap:8px">
+          <div class="grab"></div>
+          <b id="ph-t" data-hi="दाम का इतिहास">Price History</b>
+          <div class="grp" id="ph-list"></div>
+        </div>
+      </div>
+      <div class="ov bot" data-o="pin" hidden>
+        <div class="sheet" style="gap:8px">
+          <div class="grab"></div>
+          <b data-hi="दाम बदलने का PIN">Price PIN</b>
+          <div class="t-s" data-hi="दाम सिर्फ़ PIN से बदलते हैं, ताकि स्टाफ़ ग़लती से न बदले। नमूने में कोई भी 4 अंक।">Prices change only with the PIN, so staff can't change them by mistake. In this sample, any 4 digits.</div>
+          <div class="pinb" id="pinb"><i></i><i></i><i></i><i></i></div>
+          <div class="kp" id="kp"><button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button><button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button><button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button><button data-close aria-label="Cancel"><svg class="ic" style="margin:auto"><use href="#xic"/></svg></button><button data-k="0">0</button><button data-k="del" aria-label="Delete Digit"><svg class="ic" style="margin:auto"><use href="#back"/></svg></button></div>
+        </div>
+      </div>
+      <div class="ov bot" data-o="pchange" hidden>
+        <div class="sheet" style="gap:10px">
+          <div class="grab"></div>
+          <b id="pc-t"></b>
+          <div class="seg2" role="radiogroup" id="pc-dir"><button type="button" role="radio" data-seg aria-pressed="true"><span data-hi="बढ़ाएँ">Increase</span></button><button type="button" role="radio" data-seg aria-pressed="false"><span data-hi="घटाएँ">Decrease</span></button></div>
+          <div class="seg2" role="radiogroup" id="pc-by"><button type="button" role="radio" data-seg aria-pressed="true"><span data-hi="% से">By %</span></button><button type="button" role="radio" data-seg aria-pressed="false"><span data-hi="₹ से">By ₹</span></button></div>
+          <div class="fld"><label for="pc-v" data-hi="कितना">How Much</label><div class="inp"><input id="pc-v" inputmode="decimal" value="5" autocomplete="off"></div></div>
+          <div class="fld"><label for="pc-w" data-hi="कौन-सा दाम">Which Price</label><div class="inp"><select id="pc-w"><option value="s" data-hi="बिक्री दाम">Sale Price</option><option value="p" data-hi="ख़रीद दाम">Purchase Price</option><option value="m">MRP</option></select></div></div>
+          <div class="sec" data-hi="पहले देखें">Preview</div>
+          <div class="grp" id="pc-prev"></div>
+          <div class="row"><button class="btn line grow" data-close><span data-hi="रहने दें">Cancel</span></button><button class="btn green grow" data-pcsave><span data-hi="दाम सेव करें">Save Prices</span></button></div>
         </div>
       </div>
       <div class="toast ptoast" id="ptoast" hidden><svg class="ic cg2"><use href="#check"/></svg><span id="ptoast-t"></span></div>
@@ -1173,7 +1498,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     var ia=document.getElementById('pinact');ia.hidden=!pk.inact||!ina.length;
     ia.innerHTML=ina.map(function(id){var p=P[id];return '<div class="li inact"><div class="mid"><div class="nm">'+esc(p.n)+'</div><span class="bd gray">'+L('Inactive','बंद')+'</span></div><button class="btn soft" data-mkact="'+id+'">'+L('Make Active','चालू करें')+'</button></div>'}).join('');
     document.querySelectorAll('[data-s=parties] [data-kind]').forEach(function(b){b.setAttribute('aria-selected',b.dataset.kind===pk.kind)});
-    document.querySelectorAll('#pbal [data-bal]').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.bal===pk.bal)});
+    document.getElementById('pbal-sel').value=pk.bal;
     document.querySelectorAll('.ptot [data-bal]').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.bal===pk.bal)});
   }
   function txState(p,t){
@@ -1291,7 +1616,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(t.matches('.sw2[data-shows]')){var on=t.getAttribute('aria-checked')==='true';document.getElementById(t.dataset.shows).hidden=t.hasAttribute('data-inv')?on:!on;return}
   });
   stage.addEventListener('change',function(e){if(e.target.matches('[data-ck]'))ctCount()});
-  document.getElementById('pq').addEventListener('input',renderList);
+  document.getElementById('pq').addEventListener('input',renderList);document.getElementById('pbal-sel').addEventListener('change',function(e){pk.bal=e.target.value;renderList()});
   document.getElementById('ctq').addEventListener('input',renderCt);
   document.addEventListener('click',function(e){var b=e.target.closest('[data-jump2]');if(!b)return;var j=b.dataset.jump2;pk.cur='mehta';pk.tf='all';
     if(j==='parties'){pk.bal='all';pk.kind='all';root('home');go('parties')}
@@ -1302,5 +1627,216 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     else if(j==='pedit'){stack=['home','parties','party'];openForm('edit')}
     else if(j==='contacts'){stack=['home','parties'];openForm('new');cmode='pick';renderCt();ov('contacts')}
   });
+
+  /* ---------- 7.4c items and stock ---------- */
+  var I={
+    led:{n:'LED Bulb 9W Cool Day Light',b:'Philips',c:'Lighting',u:'Pcs',sp:8500,pp:7000,mrp:9900,wp:8000,wq:10,gst:18,hsn:'8539',code:'JE001',st:120,min:20,k:'p',
+      bt:[['B-2410',40,7000],['B-2411',80,7000]],gd:[['Main Shop',100],['Chowk Store Room',20]],
+      ph:[['2026-11-01',8000,8500,'Price Setup','दाम मैनेजर'],['2026-08-15',7800,8000,'Edit Item','आइटम बदला']],
+      tx:[['sale','INV-0107','2026-11-14',-10],['adj','ADJ-0012','2026-11-10',-2],['sale','INV-0101','2026-11-03',-5],['pur','PB-0029','2026-11-02',80]]},
+    wire:{n:'Havells 1.5 Sq mm Wire 90 m Red',b:'Havells',c:'Wires',u:'Roll',sp:139000,pp:115000,mrp:165000,gst:18,hsn:'8544',code:'JE002',st:4,min:10,k:'p',bt:[],gd:[['Main Shop',4]],
+      ph:[['2026-10-20',132000,139000,'Price Setup','दाम मैनेजर']],tx:[['sale','INV-0106','2026-11-12',-6],['adj','ADJ-0010','2026-10-15',-1],['pur','PB-0027','2026-10-12',10]]},
+    sw:{n:'Anchor Roma 6A Switch White',b:'Anchor',c:'Switches',u:'Pcs',sp:3600,pp:2800,mrp:4500,gst:18,hsn:'8536',code:'JE003',st:350,min:50,k:'p',bt:[],gd:[['Main Shop',300],['Chowk Store Room',50]],ph:[],
+      tx:[['adj','ADJ-0011','2026-10-28',12],['pur','PB-0024','2026-10-02',300]]},
+    a16:{n:'Modular Switch 16A',grp:'g16',ser:'Roma',b:'Anchor',c:'Switches',u:'Pcs',sp:9500,pp:7600,gst:18,st:60,min:10,k:'p',bt:[],gd:[['Main Shop',60]],ph:[],tx:[['pur','PB-0026','2026-10-09',60]]},
+    h16:{n:'Modular Switch 16A',grp:'g16',ser:'Coral',b:'Havells',c:'Switches',u:'Pcs',sp:11000,pp:8800,gst:18,st:0,min:10,k:'p',bt:[],gd:[],ph:[],tx:[['sale','INV-0099','2026-10-20',-15],['pur','PB-0026','2026-10-09',15]]},
+    l16:{n:'Modular Switch 16A',grp:'g16',ser:'Myrius',b:'Legrand',c:'Switches',u:'Pcs',sp:12500,pp:9900,gst:18,st:25,min:10,k:'p',bt:[],gd:[['Main Shop',25]],ph:[],tx:[['pur','PB-0026','2026-10-09',25]]},
+    mcb:{n:'Havells MCB 32A Single Pole',b:'Havells',c:'MCB',u:'Pcs',sp:24000,pp:19500,gst:18,st:0,min:5,k:'p',bt:[],gd:[],ph:[],tx:[['sale','INV-0104','2026-11-06',-4],['pur','PB-0025','2026-10-05',4]]},
+    lab:{n:'Wiring Labour Per Point',b:'',c:'',u:'Point',sp:15000,pp:0,gst:18,st:0,k:'s',bt:[],gd:[],ph:[],tx:[]},
+    cfl:{n:'Old CFL 15W',b:'Philips',c:'Lighting',u:'Pcs',sp:9000,pp:7000,gst:18,st:0,min:0,k:'p',bt:[],gd:[],ph:[],tx:[],inactive:true}
+  };
+  var TNI={sale:['Sale Bill','बिक्री बिल'],pur:['Purchase Bill','ख़रीद बिल'],adj:['Stock Adjustment','स्टॉक सुधार'],ob:['Opening Stock','शुरू का स्टॉक'],tr:['Transfer','ट्रांसफ़र']};
+  var ik={brand:'',pbrand:'',kind:'all',st:'all',cur:'led',tf:'all',pm:'view',sel:{},bact:'a',bsel:{},form:'new',ajm:'add',ajItem:null,scanFor:null};
+  function un(u,q){if(u==='Pcs')return 'Pcs';return Math.abs(q)===1?u:u+'s'}
+  function uq(q,u){return (q<0?'−':'')+Math.abs(q).toLocaleString('en-IN')+' '+un(u,q)}
+  function per(u){return u==='Pcs'?'Pc':u}
+  function r0(p){return '₹'+inr(p).replace(/\.00$/,'')}
+  function ist(i){return i.k!=='p'?'svc':i.st<=0?'out':i.min&&i.st<i.min?'low':'in'}
+  function vname(i){return i.grp?i.b+' '+i.ser:i.n}
+  function fullName(i){return i.grp?i.n+' · '+i.b+' '+i.ser:i.n}
+  function stBadge(s){return s==='out'?'<span class="bd due">'+L('Out Of Stock','स्टॉक ख़त्म')+'</span>':s==='low'?'<span class="bd cr">'+L('Low Stock','कम स्टॉक')+'</span>':''}
+  function priceLine(i){return L('Purchase Price '+r0(i.pp)+' · Sale Price '+r0(i.sp)+' Per '+per(i.u),'ख़रीद '+r0(i.pp)+' · बिक्री '+r0(i.sp)+' प्रति '+per(i.u))}
+  function renderItems(){
+    var q=(document.getElementById('iq').value||'').trim().toLowerCase(),br=ik.brand||'',h='',val=0,low=0,out=0,groups={};
+    Object.keys(I).forEach(function(id){var i=I[id];if(i.inactive)return;var s=ist(i);if(i.k==='p'){val+=i.st*i.pp;if(s==='low')low++;if(s==='out')out++}
+      if(ik.kind!=='all'&&i.k!==ik.kind)return;if(ik.st!=='all'&&s!==ik.st)return;if(br&&i.b!==br)return;
+      if(q&&(i.n+' '+(i.b||'')+' '+(i.ser||'')+' '+(i.code||'')).toLowerCase().indexOf(q)<0)return;
+      if(i.grp){(groups[i.grp]=groups[i.grp]||[]).push(id);if(groups[i.grp].length>1)return;h+='@@'+i.grp+'@@';return}
+      if(i.k==='s'){h+='<div class="li" role="button" tabindex="0" data-item="'+id+'"><div class="mid"><div class="nm">'+esc(i.n)+'</div><div class="t-x">'+L('Service','सेवा')+'</div></div><div class="end"><div class="v">'+r0(i.sp)+'</div><div class="w c3">'+L('Per '+i.u,'प्रति '+i.u)+'</div></div></div>';return}
+      h+='<div class="li irow" role="button" tabindex="0" data-item="'+id+'"><div class="mid"><div class="nm">'+esc(i.n)+'</div><div class="t-x">'+priceLine(i)+'</div></div><div class="end"><div class="v">'+uq(i.st,i.u)+'</div>'+stBadge(s)+'</div></div>'});
+    Object.keys(groups).forEach(function(g){var ids=groups[g],f=I[ids[0]],tot=0,minp=1e12,sub='';
+      ids.forEach(function(id){var i=I[id];tot+=i.st;minp=Math.min(minp,i.sp);sub+='<button class="srow" data-item="'+id+'"><div class="mid"><div class="nm">'+esc(vname(i))+'</div><div class="t-x">'+L('Sale Price '+r0(i.sp)+' Per '+per(i.u),'बिक्री '+r0(i.sp)+' प्रति '+per(i.u))+'</div></div><div class="end"><div class="v">'+uq(i.st,i.u)+'</div>'+stBadge(ist(i))+'</div></button>'});
+      var open=ik['open_'+g];
+      h=h.replace('@@'+g+'@@','<div class="vg"><div class="li" role="button" tabindex="0" data-vg="'+g+'" aria-expanded="'+!!open+'"><div class="mid"><div class="nm">'+esc(f.n)+'</div><div class="t-x">'+L(ids.length+(ids.length===1?' Brand':' Brands')+' · From '+r0(minp),ids.length+' ब्रांड · '+r0(minp)+' से')+'</div></div><div class="end"><div class="v">'+uq(tot,f.u)+'</div><div class="w c3" style="display:flex;justify-content:flex-end"><svg class="ic" style="width:18px;height:18px;transform:rotate('+(open?'-90':'90')+'deg)"><use href="#next"/></svg></div></div></div><div class="vsub"'+(open?'':' hidden')+'>'+sub+'</div></div>')});
+    document.getElementById('ilist').innerHTML=h;document.getElementById('inone').hidden=!!h;
+    document.getElementById('it-val').innerHTML=R(val).replace('.00','');document.getElementById('it-low').textContent=low;document.getElementById('it-out').textContent=out;
+    document.querySelectorAll('[data-s=items] [data-ikind]').forEach(function(b){b.setAttribute('aria-selected',b.dataset.ikind===ik.kind)});
+    document.getElementById('ist-sel').value=ik.st;var fb=document.getElementById('ibrand-btn');fb.setAttribute('aria-pressed',!!ik.brand);fb.setAttribute('aria-label',ik.brand?'Brand: '+ik.brand:'Filter By Brand');
+    document.querySelectorAll('[data-s=items] .ptot [data-ist]').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.ist===ik.st&&ik.st!=='all')});
+  }
+  function renderItem(){
+    var i=I[ik.cur];if(!i)return;var s=ist(i);
+    document.getElementById('ip-name').textContent=i.grp?i.n:i.n;
+    document.getElementById('ip-sub').textContent=[i.grp?i.b+' '+i.ser:i.b,i.c,i.code].filter(Boolean).join(' · ')||'';
+    var card=document.querySelector('[data-s=item] .pcard');card.hidden=i.k!=='p';
+    document.getElementById('ip-stk').innerHTML='<span class="'+(s==='out'?'cr':s==='low'?'co':'')+'">'+i.st.toLocaleString('en-IN')+'</span><small>'+un(i.u,i.st)+'</small>';
+    document.getElementById('ip-val').innerHTML='<span class="t-x">'+L('Stock Value','स्टॉक की क़ीमत')+'</span><b>'+R(i.st*i.pp)+'</b>';
+    var kv=[[L('Sale Price','बिक्री दाम'),r0(i.sp)]];
+    if(i.k==='p'){kv.push([L('Purchase Price','ख़रीद दाम'),r0(i.pp)]);if(i.mrp)kv.push(['MRP',r0(i.mrp)]);
+      var m=i.sp-i.pp;kv.push([L('Margin','मुनाफ़ा'),r0(m)+' ('+(i.pp?(m/i.pp*100).toFixed(1):'0')+'%)']);
+      if(i.wp)kv.push([L('Wholesale','थोक'),L(r0(i.wp)+' From '+i.wq+' '+un(i.u,2),r0(i.wp)+', '+i.wq+' '+un(i.u,2)+' से')]);}
+    kv.push(['GST',i.gst+'%'+(i.hsn?' · HSN '+i.hsn:'')]);
+    document.getElementById('ip-kv').innerHTML=kv.map(function(x){return '<div><span>'+x[0]+'</span><b>'+x[1]+'</b></div>'}).join('');
+    var hb=!(i.k==='p'&&i.bt.length);document.getElementById('ip-bt-h').hidden=hb;document.getElementById('ip-bt').hidden=hb;
+    document.getElementById('ip-bt').innerHTML=i.bt.map(function(b){return '<div class="srow" style="cursor:default"><div class="mid"><div class="nm">'+L('Batch '+b[0],'बैच '+b[0])+'</div><div class="t-x">'+L('Rate '+r0(b[2]),'दर '+r0(b[2]))+'</div></div><div class="end"><div class="v">'+uq(b[1],i.u)+'</div></div></div>'}).join('');
+    var gd=document.getElementById('ip-gd');gd.hidden=i.k!=='p';gd.previousElementSibling.hidden=i.k!=='p';
+    gd.innerHTML=(i.gd.length?i.gd:[['Main Shop',0]]).map(function(g){return '<div class="srow" style="cursor:default"><div class="mid"><div class="nm">'+esc(g[0])+'</div></div><div class="end"><div class="v">'+uq(g[1],i.u)+'</div></div></div>'}).join('');
+    var rows=i.tx.filter(function(t){return ik.tf==='all'||t[0]===ik.tf});
+    document.getElementById('ip-tx').innerHTML=rows.map(function(t){var tn=TNI[t[0]];return '<div class="li"'+(t[0]==='sale'?' role="button" tabindex="0" data-t7="e"':t[0]==='pur'?' role="button" tabindex="0" data-t7="f"':'')+'><div class="mid"><div class="nm">'+L(tn[0],tn[1])+'</div><div class="t-x">'+esc(t[1])+' | '+LD(t[2])+'</div></div><div class="end"><div class="'+(t[3]<0?'qtym':'qtyp')+'">'+(t[3]>0?'+':'')+uq(t[3],i.u)+'</div></div></div>'}).join('');
+    document.getElementById('ip-none').hidden=!!rows.length;var f=document.getElementById('ip-fil');f.hidden=i.k!=='p';f.previousElementSibling.hidden=i.k!=='p';
+    document.querySelectorAll('#ip-fil [data-itf]').forEach(function(x){x.setAttribute('aria-pressed',x.dataset.itf===ik.tf)});
+    document.querySelector('[data-s=item] .sf').hidden=i.k!=='p';
+    var pt=document.getElementById('ph-t');pt.dataset.en='Price History';pt.dataset.hi='दाम का इतिहास';
+    document.getElementById('ph-list').innerHTML=i.ph.length?i.ph.map(function(p){return '<div class="srow" style="cursor:default"><div class="mid"><div class="nm"><span class="oldp">'+r0(p[1])+'</span> → <span class="newp">'+r0(p[2])+'</span></div><div class="t-x">'+L(p[3],p[4])+' | '+LD(p[0])+'</div></div></div>'}).join(''):'<div class="empty"><b>'+L('No Price Changes Yet','अभी तक दाम नहीं बदला')+'</b></div>';
+  }
+  function itemOpts(sel){return Object.keys(I).filter(function(id){return I[id].k==='p'&&!I[id].inactive}).map(function(id){return '<option value="'+id+'"'+(id===sel?' selected':'')+'>'+esc(fullName(I[id]))+'</option>'}).join('')}
+  function openAdj(id){ik.ajItem=id||null;var pw=document.getElementById('aj-pick-w'),pk2=document.getElementById('aj-pick');pw.hidden=!!id;if(!id){pk2.innerHTML=itemOpts('led')}
+    ik.ajm='add';document.querySelectorAll('#aj-mode [data-ajm]').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.ajm==='add')});
+    document.getElementById('aj-q').value='';document.getElementById('aj-b').value='';document.getElementById('aj-err').hidden=true;ajSync();go('adj')}
+  function ajI(){return ik.ajItem||document.getElementById('aj-pick').value}
+  function ajSync(){var i=I[ajI()];document.getElementById('aj-item').textContent=ik.ajItem?fullName(i):'';document.getElementById('aj-unit').textContent=un(i.u,2);
+    document.getElementById('aj-p').value=(i.pp/100).toFixed(2);var q=parseFloat(document.getElementById('aj-q').value)||0,a=i.st+(ik.ajm==='add'?q:-q),e=document.getElementById('aj-after');
+    e.textContent=uq(i.st,i.u)+' → '+uq(a,i.u);e.className=a<0?'cr':''}
+  var AJ=[['ADJ-0012','2026-11-10','led',-2,'Damaged','ख़राब'],['ADJ-0011','2026-10-28','sw',12,'Physical Count Correction','गिनती में सुधार'],['ADJ-0010','2026-10-15','wire',-1,'Own Use','अपने काम में']];
+  var RH={'Physical Count Correction':'गिनती में सुधार','Damaged':'ख़राब','Expired':'एक्सपायर','Lost Or Stolen':'खोया या चोरी','Free Sample / Gift':'मुफ़्त नमूना / उपहार','Own Use':'अपने काम में','Other':'और'};
+  function renderAdjs(){var q=(document.getElementById('asq').value||'').toLowerCase(),add=0,red=0,h='';
+    AJ.forEach(function(a){var i=I[a[2]],v=Math.abs(a[3])*i.pp;if(a[3]>0)add+=v;else red+=v;
+      if(q&&(fullName(i)+' '+a[0]).toLowerCase().indexOf(q)<0)return;
+      h+='<div class="li" role="button" tabindex="0" data-item="'+a[2]+'"><div class="mid"><div class="nm">'+esc(fullName(i))+'</div><div class="t-x">'+esc(a[0])+' | '+LD(a[1])+'</div><div class="t-x">'+L(a[4],a[5])+'</div></div><div class="end"><div class="'+(a[3]<0?'qtym':'qtyp')+'">'+(a[3]>0?'+':'')+uq(a[3],i.u)+'</div><div class="w c3">'+r0(Math.abs(a[3])*i.pp)+'</div></div></div>'});
+    document.getElementById('aslist').innerHTML=h||'<div class="empty"><b>'+L('No Adjustments Match','कोई सुधार नहीं मिला')+'</b></div>';
+    document.getElementById('as-tot').innerHTML='<div class="box" style="padding:8px 10px;gap:0"><div class="k t-x">'+L('Stock Added','जुड़ा')+'</div><b class="cg" style="white-space:nowrap">'+R(add).replace('.00','')+'</b></div><div class="box" style="padding:8px 10px;gap:0"><div class="k t-x">'+L('Stock Reduced','घटा')+'</div><b class="cr" style="white-space:nowrap">'+R(red).replace('.00','')+'</b></div><div class="box" style="padding:8px 10px;gap:0"><div class="k t-x">'+L('Net Effect','कुल असर')+'</div><b style="white-space:nowrap">'+(add-red<0?'− ':'')+R(add-red).replace('.00','')+'</b></div>'}
+  function saveAdj(){var q=parseFloat(document.getElementById('aj-q').value)||0,e=document.getElementById('aj-err');
+    if(q<=0){e.dataset.en='Enter the quantity.';e.dataset.hi='मात्रा लिखें।';e.textContent=hiOn()?e.dataset.hi:e.dataset.en;e.hidden=false;return}
+    var id=ajI(),i=I[id],d=ik.ajm==='add'?q:-q;if(i.st+d<0){e.dataset.en='Stock can’t go below 0.';e.dataset.hi='स्टॉक 0 से नीचे नहीं जा सकता।';e.textContent=hiOn()?e.dataset.hi:e.dataset.en;e.hidden=false;return}
+    var no='ADJ-00'+(13+AJ.length-3),r=document.getElementById('aj-r').value,old=i.st;i.st+=d;if(i.gd.length)i.gd[0][1]+=d;else i.gd.push(['Main Shop',i.st]);
+    i.tx.unshift(['adj',no,TODAY,d]);AJ.unshift([no,TODAY,id,d,r,RH[r]||r]);
+    toast('Stock changed: '+uq(old,i.u)+' → '+uq(i.st,i.u)+'.','स्टॉक बदला: '+uq(old,i.u)+' → '+uq(i.st,i.u)+'।');back()}
+  function renderPrices(){var q=(document.getElementById('prq').value||'').toLowerCase(),br=ik.pbrand||'',su=ik.pm==='setup',h='',n=0;
+    Object.keys(I).forEach(function(id){var i=I[id];if(i.inactive||i.k!=='p')return;if(br&&i.b!==br)return;if(q&&(fullName(i)+' '+(i.code||'')).toLowerCase().indexOf(q)<0)return;
+      var sel=!!ik.sel[id];if(sel)n++;
+      h+='<div class="li'+(su?' ck':'')+'"'+(su?' data-psel="'+id+'"':'')+'>'+(su?'<input type="checkbox" '+(sel?'checked ':'')+'tabindex="-1" style="width:22px;height:22px;accent-color:var(--blue);flex:none;pointer-events:none" aria-label="Select">':'')+'<div class="mid"><div class="nm">'+esc(fullName(i))+'</div><div class="t-x">'+L('Purchase '+r0(i.pp)+(i.mrp?' · MRP '+r0(i.mrp):''),'ख़रीद '+r0(i.pp)+(i.mrp?' · MRP '+r0(i.mrp):''))+'</div></div><div class="end"><div class="v">'+r0(i.sp)+'</div><div class="w c3">'+L('Sale Price','बिक्री दाम')+'</div></div></div>'});
+    document.getElementById('prlist').innerHTML=h;var pb=document.getElementById('prbrand-btn');pb.setAttribute('aria-pressed',!!ik.pbrand);document.getElementById('pr-note').hidden=!su;
+    document.querySelectorAll('[data-pmode]').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.pmode===ik.pm)});
+    document.getElementById('pr-bar').innerHTML=su?'<button class="btn soft grow" data-pmdone>'+L('Done','पूरा')+'</button><button class="btn blue grow" data-ov="pchange" data-pcopen'+(n?'':' disabled')+'>'+L('Change Selected ('+n+')','चुने दाम बदलें ('+n+')')+'</button>'
+      :'<button class="btn soft grow" data-go="ratelist"><svg class="ic"><use href="#share"/></svg>'+L('Rate List','रेट लिस्ट')+'</button><button class="btn blue grow" data-pmode="setup">'+L('Price Setup','दाम बदलें')+'</button>'}
+  function pcCalc(){var up=document.querySelectorAll('#pc-dir [data-seg]')[0].getAttribute('aria-pressed')==='true',pct=document.querySelectorAll('#pc-by [data-seg]')[0].getAttribute('aria-pressed')==='true',v=parseFloat(document.getElementById('pc-v').value)||0,w=document.getElementById('pc-w').value,key=w==='s'?'sp':w==='p'?'pp':'mrp',out=[];
+    Object.keys(ik.sel).forEach(function(id){if(!ik.sel[id])return;var i=I[id],o=i[key]||0;if(!o&&key==='mrp')return;var d=pct?Math.round(o*v/100):Math.round(v*100),nw=Math.max(0,up?o+d:o-d);nw=Math.round(nw/100)*100;out.push([id,key,o,nw])});return out}
+  function pcPrev(){var t=document.getElementById('pc-t'),n=Object.keys(ik.sel).filter(function(k){return ik.sel[k]}).length;t.innerHTML=L('Change Prices Of '+n+(n===1?' Item':' Items'),n+' आइटम के दाम बदलें');
+    document.getElementById('pc-prev').innerHTML=pcCalc().map(function(r){return '<div class="srow" style="cursor:default"><div class="mid"><div class="nm">'+esc(fullName(I[r[0]]))+'</div></div><span class="oldp">'+r0(r[2])+'</span><span class="newp">'+r0(r[3])+'</span></div>'}).join('')||'<div class="empty"><b>'+L('Nothing To Change','बदलने को कुछ नहीं')+'</b></div>'}
+  var pin='';function pinDots(){document.querySelectorAll('#pinb i').forEach(function(d,k){d.className=k<pin.length?'on':''})}
+  function renderBact(){var h='',n=0;Object.keys(I).forEach(function(id){var i=I[id];if(i.k!=='p')return;if((ik.bact==='i')!==!!i.inactive)return;var sel=!!ik.bsel[id];if(sel)n++;
+      h+='<div class="li ck" data-bsel="'+id+'"><input type="checkbox" '+(sel?'checked ':'')+'tabindex="-1" style="width:22px;height:22px;accent-color:var(--blue);flex:none;pointer-events:none" aria-label="Select"><div class="mid"><div class="nm">'+esc(fullName(i))+'</div><div class="t-x">'+esc([i.b,i.c].filter(Boolean).join(' · '))+'</div></div><div class="end"><div class="v">'+uq(i.st,i.u)+'</div></div></div>'});
+    document.getElementById('balist').innerHTML=h||'<div class="empty"><b>'+(ik.bact==='i'?L('No Inactive Items','कोई बंद आइटम नहीं'):L('No Active Items','कोई चालू आइटम नहीं'))+'</b></div>';
+    var b=document.getElementById('ba-go');b.disabled=!n;document.getElementById('ba-go-t').innerHTML=ik.bact==='a'?L('Make Inactive ('+n+')','बंद करें ('+n+')'):L('Make Active ('+n+')','चालू करें ('+n+')');
+    document.querySelectorAll('[data-bact]').forEach(function(x){x.setAttribute('aria-selected',x.dataset.bact===ik.bact)})}
+  function renderBrands(){var B={};Object.keys(I).forEach(function(id){var i=I[id];if(!i.b||i.inactive)return;var o=B[i.b]=B[i.b]||{n:0,v:0,s:[]};o.n++;o.v+=i.st*i.pp;if(i.ser&&o.s.indexOf(i.ser)<0)o.s.push(i.ser)});
+    document.getElementById('brlist').innerHTML=Object.keys(B).sort().map(function(b){var o=B[b];return '<div class="box" style="gap:8px"><div class="row" style="justify-content:space-between"><b>'+esc(b)+'</b><span class="t-x">'+L(o.n+(o.n===1?' Item':' Items'),o.n+' आइटम')+' · '+r0(o.v)+'</span></div><div class="meta">'+(o.s.length?o.s.map(function(x){return '<span>'+esc(x)+'</span>'}).join(''):'<span>'+L('No Series Yet','अभी कोई सीरीज़ नहीं')+'</span>')+'</div></div>'}).join('')}
+  var TR=[['TR-0004','2026-11-08','led',20,'Main Shop','Chowk Store Room'],['TR-0003','2026-10-30','sw',50,'Main Shop','Chowk Store Room']];
+  function renderGodowns(){var G={'Main Shop':[0,0],'Chowk Store Room':[0,0]};Object.keys(I).forEach(function(id){var i=I[id];if(i.k!=='p'||i.inactive)return;i.gd.forEach(function(g){if(g[1]>0){G[g[0]][0]++;G[g[0]][1]+=g[1]*i.pp}})});
+    document.getElementById('gdlist').innerHTML=Object.keys(G).map(function(g,k){return '<div class="li"><div class="mid"><div class="nm">'+esc(g)+'</div><div class="t-x">'+L(G[g][0]+' Items · Stock Value '+r0(G[g][1]),G[g][0]+' आइटम · स्टॉक '+r0(G[g][1]))+'</div></div>'+(k===0?'<span class="bd info">'+L('Default','मुख्य')+'</span>':'')+'</div>'}).join('');
+    document.getElementById('trlist').innerHTML=TR.map(function(t){var i=I[t[2]];return '<div class="li"><div class="mid"><div class="nm">'+esc(fullName(i))+'</div><div class="t-x">'+esc(t[0])+' | '+LD(t[1])+'</div><div class="t-x">'+esc(t[4])+' → '+esc(t[5])+'</div></div><div class="end"><div class="v">'+uq(t[3],i.u)+'</div></div></div>'}).join('')}
+  function trSync(){var i=I[document.getElementById('tr-item').value],f=document.getElementById('tr-from').value,g=i.gd.filter(function(x){return x[0]===f})[0],have=g?g[1]:0;
+    document.getElementById('tr-have').innerHTML=L('In '+f+': '+uq(have,i.u),f+' में: '+uq(have,i.u));return have}
+  function openIForm(mode){ik.form=mode;var t=document.getElementById('if-title');
+    ['if-name','if-code','if-sp','if-pp','if-mrp','if-wp','if-wq','if-dc','if-hsn','if-os','if-ap','if-min','if-bn','if-loc','if-ser','if-ps'].forEach(function(x){document.getElementById(x).value=''});
+    document.getElementById('if-err').hidden=true;document.getElementById('if-name-w').classList.remove('err');document.getElementById('if-margin').textContent='';
+    var ed=mode==='edit',i=I[ik.cur];document.getElementById('if-os').disabled=ed;document.getElementById('if-os-note').hidden=!ed;
+    document.getElementById('if-kv').hidden=ed;
+    if(ed){document.getElementById('if-name').value=i.n;document.getElementById('if-brand').value=i.b||'';document.getElementById('if-cat').value=i.c||'';document.getElementById('if-code').value=i.code||'';document.getElementById('if-unit').value=i.u==='Point'?'Pcs':i.u;
+      document.getElementById('if-sp').value=(i.sp/100).toFixed(2);document.getElementById('if-pp').value=i.pp?(i.pp/100).toFixed(2):'';if(i.mrp)document.getElementById('if-mrp').value=(i.mrp/100).toFixed(2);if(i.hsn)document.getElementById('if-hsn').value=i.hsn;if(i.min)document.getElementById('if-min').value=i.min;document.getElementById('if-os').value=i.st;ifMargin();
+      t.dataset.en='Edit Item';t.dataset.hi='आइटम बदलें';
+      document.getElementById('if-bar').innerHTML='<button class="btn ico del" data-idel aria-label="Delete Item"><svg class="ic"><use href="#trash"/></svg></button><button class="btn green grow" data-isave>'+L('Save Changes','बदलाव सेव करें')+'</button>'}
+    else{t.dataset.en='New Item';t.dataset.hi='नया आइटम';document.getElementById('if-brand').value='';document.getElementById('if-cat').value='';
+      document.getElementById('if-bar').innerHTML='<button class="btn soft grow" data-isave="new">'+L('Save & New','सेव और नया')+'</button><button class="btn green grow" data-isave>'+L('Save','सेव करें')+'</button>'}
+    t.textContent=hiOn()?t.dataset.hi:t.dataset.en;go('iform');document.querySelector('[data-s=iform] .sb').scrollTop=0}
+  function ifMargin(){var s=parseFloat(document.getElementById('if-sp').value)||0,p=parseFloat(document.getElementById('if-pp').value)||0,m=document.getElementById('if-margin');
+    if(!s||!p){m.textContent='';return}var d=s-p;m.innerHTML=L('Margin Per Unit: ₹'+d.toFixed(2)+' ('+(d/p*100).toFixed(1)+'%)','हर इकाई पर मुनाफ़ा: ₹'+d.toFixed(2)+' ('+(d/p*100).toFixed(1)+'%)')}
+  function saveIForm(again){var n=document.getElementById('if-name').value.trim();
+    if(!n){document.getElementById('if-err').hidden=false;document.getElementById('if-name-w').classList.add('err');document.querySelector('[data-s=iform] .sb').scrollTop=0;return}
+    var g=function(x){return document.getElementById(x).value},pp=Math.round((parseFloat(g('if-pp'))||0)*100),sp=Math.round((parseFloat(g('if-sp'))||0)*100);
+    if(ik.form==='edit'){var i=I[ik.cur];i.n=n;i.b=g('if-brand');i.c=g('if-cat');i.code=g('if-code');i.sp=sp;i.pp=pp;i.mrp=Math.round((parseFloat(g('if-mrp'))||0)*100);i.min=parseFloat(g('if-min'))||0;toast('Changes saved.','बदलाव सेव हुए।');back();return}
+    var svc=document.querySelectorAll('#if-kind [data-seg]')[1].getAttribute('aria-pressed')==='true',os=parseFloat(g('if-os'))||0,id='i'+Date.now();
+    I[id]={n:n,b:g('if-brand'),c:g('if-cat'),u:g('if-unit'),sp:sp,pp:pp,mrp:Math.round((parseFloat(g('if-mrp'))||0)*100),gst:18,hsn:g('if-hsn'),code:g('if-code'),st:svc?0:os,min:parseFloat(g('if-min'))||0,k:svc?'s':'p',bt:[],gd:os?[['Main Shop',os]]:[],ph:[],tx:os?[['ob','OPEN',TODAY,os]]:[]};
+    toast(n+' saved.',n+' सेव हुआ।');if(again){openIForm('new');stack.pop()}else{ik.cur=id;stack.pop();stack.push('item');show('item')}}
+  function idelAsk(){var i=I[ik.cur],t=document.getElementById('pd-t'),b=document.getElementById('pd-b'),bt=document.getElementById('pd-btns');
+    if(i.tx.length){t.innerHTML=L('Can’t Delete '+i.n,i.n+' हटा नहीं सकते');b.innerHTML=L('This item is on bills or has stock entries, so it can’t be deleted. Make it inactive instead: it leaves the lists, and its bills stay as they are.','यह आइटम बिलों में है या इसका स्टॉक हिसाब है, इसलिए हटा नहीं सकते। इसे बंद कर दें: यह सूची से हट जाएगा, बिल वैसे ही रहेंगे।');
+      bt.innerHTML='<button class="btn line grow" data-close>'+L('Close','बंद करें')+'</button><button class="btn blue grow" data-imkinact>'+L('Make Inactive','बंद करें')+'</button>'}
+    else{t.innerHTML=L('Delete '+i.n+'?',i.n+' हटाएँ?');b.innerHTML=L('This can’t be undone.','यह वापस नहीं होगा।');bt.innerHTML='<button class="btn line grow" data-close>'+L('Keep','रहने दें')+'</button><button class="btn del grow" data-idelok>'+L('Delete Item','आइटम हटाएँ')+'</button>'}
+    ov('pdel')}
+  var _show2=show;show=function(id){_show2(id);
+    if(id==='items')renderItems();if(id==='item')renderItem();if(id==='prices')renderPrices();if(id==='bulkact')renderBact();if(id==='brands')renderBrands();if(id==='adjs')renderAdjs();if(id==='godowns')renderGodowns();
+    if(id==='transfer'){document.getElementById('tr-item').innerHTML=itemOpts('led');document.getElementById('tr-q').value='';document.getElementById('tr-err').hidden=true;trSync()}
+    if(id!=='scan'&&id!=='iform')ik.scanFor=null;
+    document.querySelectorAll('[data-jump3]').forEach(function(b){b.setAttribute('aria-current',b.dataset.jump3===id)})};
+  stage.addEventListener('click',function(e){
+    var t=e.target.closest('[data-item],[data-ikind],[data-ist],[data-vg],[data-itf],[data-adj],[data-adjnew],[data-ajm],[data-ajsave],[data-iform],[data-isave],[data-idel],[data-idelok],[data-imkinact],[data-assign],[data-scanfor],[data-scanhit],[data-pmode],[data-pmdone],[data-psel],[data-pcopen],[data-pcsave],[data-k],[data-bact],[data-bsel],[data-bago],[data-trgo],[data-ilist],#pc-dir [data-seg],#pc-by [data-seg]');
+    if(!t||!stage.contains(t))return;
+    if(t.hasAttribute('data-item')){ik.cur=t.dataset.item;ik.tf='all';if(cur==='scan'){stack.pop()}go('item');return}
+    if(t.hasAttribute('data-ilist')){ik.st=t.dataset.ilist;ik.kind='all';stack=['home'];go('items');return}
+    if(t.hasAttribute('data-ikind')){ik.kind=t.dataset.ikind;ik.st='all';renderItems();return}
+    if(t.hasAttribute('data-ist')){ik.st=t.closest('.ptot')&&ik.st===t.dataset.ist?'all':t.dataset.ist;renderItems();return}
+    if(t.hasAttribute('data-vg')){ik['open_'+t.dataset.vg]=!ik['open_'+t.dataset.vg];renderItems();return}
+    if(t.hasAttribute('data-itf')){ik.tf=t.dataset.itf;renderItem();return}
+    if(t.hasAttribute('data-adj')){openAdj(ik.cur);return}
+    if(t.hasAttribute('data-adjnew')){openAdj(null);return}
+    if(t.hasAttribute('data-ajm')){ik.ajm=t.dataset.ajm;ajSync();return}
+    if(t.hasAttribute('data-ajsave')){saveAdj();return}
+    if(t.hasAttribute('data-iform')){openIForm(t.dataset.iform);return}
+    if(t.hasAttribute('data-isave')){saveIForm(t.dataset.isave==='new');return}
+    if(t.hasAttribute('data-idel')){idelAsk();return}
+    if(t.hasAttribute('data-imkinact')){var nm=I[ik.cur].n;I[ik.cur].inactive=true;toast(nm+' is now inactive.',nm+' अब बंद है।');var k=stack.lastIndexOf('items');stack=k<0?['home','items']:stack.slice(0,k+1);show('items');return}
+    if(t.hasAttribute('data-idelok')){var nm2=I[ik.cur].n;delete I[ik.cur];toast(nm2+' deleted.',nm2+' हटाया गया।');var k2=stack.lastIndexOf('items');stack=k2<0?['home','items']:stack.slice(0,k2+1);show('items');return}
+    if(t.hasAttribute('data-assign')){document.getElementById('if-code').value='JE004';return}
+    if(t.hasAttribute('data-scanfor')){ik.scanFor=t.dataset.scanfor;return}
+    if(t.hasAttribute('data-scanhit')){if(ik.scanFor==='code'){ik.scanFor=null;document.getElementById('if-code').value='8901234567012';toast('Code scanned: 8901234567012','कोड स्कैन हुआ: 8901234567012');back()}else{ik.cur='led';ik.tf='all';stack.pop();go('item');toast('Found: LED Bulb 9W Cool Day Light','मिला: LED Bulb 9W Cool Day Light')}return}
+    if(t.hasAttribute('data-pmode')){if(t.dataset.pmode==='setup'&&ik.pm!=='setup'){pin='';pinDots();ov('pin')}else{ik.pm='view';ik.sel={};renderPrices()}return}
+    if(t.hasAttribute('data-pmdone')){ik.pm='view';ik.sel={};renderPrices();return}
+    if(t.hasAttribute('data-psel')){ik.sel[t.dataset.psel]=!ik.sel[t.dataset.psel];renderPrices();return}
+    if(t.hasAttribute('data-pcopen')){pcPrev();return}
+    if(t.matches('#pc-dir [data-seg],#pc-by [data-seg]')){pcPrev();return}
+    if(t.hasAttribute('data-pcsave')){var rs=pcCalc();rs.forEach(function(r){var i=I[r[0]];if(r[1]==='sp')i.ph.unshift([TODAY,r[2],r[3],'Price Setup','दाम मैनेजर']);i[r[1]]=r[3]});ik.sel={};closeOv();show(cur);toast('Prices saved for '+rs.length+(rs.length===1?' item.':' items.'),rs.length+' आइटम के दाम सेव हुए।');return}
+    if(t.hasAttribute('data-k')){var k3=t.dataset.k;if(k3==='del')pin=pin.slice(0,-1);else if(pin.length<4)pin+=k3;pinDots();if(pin.length===4){setTimeout(function(){ik.pm='setup';ik.sel={};closeOv();show(cur);toast('Price Setup is on.','दाम बदलने का तरीक़ा चालू।')},200)}return}
+    if(t.hasAttribute('data-bact')){ik.bact=t.dataset.bact;ik.bsel={};renderBact();return}
+    if(t.hasAttribute('data-bsel')){ik.bsel[t.dataset.bsel]=!ik.bsel[t.dataset.bsel];renderBact();return}
+    if(t.hasAttribute('data-bago')){var n3=0;Object.keys(ik.bsel).forEach(function(id){if(ik.bsel[id]&&I[id]){I[id].inactive=ik.bact==='a';n3++}});ik.bsel={};renderBact();toast(ik.bact==='a'?n3+(n3===1?' item made inactive.':' items made inactive.'):n3+(n3===1?' item made active.':' items made active.'),ik.bact==='a'?n3+' आइटम बंद हुए।':n3+' आइटम चालू हुए।');return}
+    if(t.hasAttribute('data-trgo')){var i4=I[document.getElementById('tr-item').value],f=document.getElementById('tr-from').value,to=document.getElementById('tr-to').value,q4=parseFloat(document.getElementById('tr-q').value)||0,have=trSync(),er=document.getElementById('tr-err');
+      var bad=f===to?['From and To must be different.','कहाँ से और कहाँ अलग होने चाहिए।']:q4<=0?['Enter the quantity.','मात्रा लिखें।']:q4>have?['Only '+uq(have,i4.u)+' in '+f+'.',f+' में सिर्फ़ '+uq(have,i4.u)+' है।']:null;
+      if(bad){er.dataset.en=bad[0];er.dataset.hi=bad[1];er.textContent=hiOn()?bad[1]:bad[0];er.hidden=false;return}
+      i4.gd.forEach(function(g){if(g[0]===f)g[1]-=q4});var tg=i4.gd.filter(function(g){return g[0]===to})[0];if(tg)tg[1]+=q4;else i4.gd.push([to,q4]);
+      TR.unshift(['TR-000'+(TR.length+3),TODAY,document.getElementById('tr-item').value,q4,f,to]);toast(uq(q4,i4.u)+' sent to '+to+'.',uq(q4,i4.u)+' '+to+' भेजे गए।');back();return}
+  });
+  document.getElementById('iq').addEventListener('input',renderItems);document.getElementById('ist-sel').addEventListener('change',function(e){ik.st=e.target.value;renderItems()});
+  document.getElementById('prq').addEventListener('input',renderPrices);
+  document.getElementById('asq').addEventListener('input',renderAdjs);
+  document.getElementById('aj-q').addEventListener('input',ajSync);document.getElementById('aj-pick').addEventListener('change',ajSync);
+  document.getElementById('pc-v').addEventListener('input',pcPrev);document.getElementById('pc-w').addEventListener('change',pcPrev);
+  document.getElementById('if-sp').addEventListener('input',ifMargin);document.getElementById('if-pp').addEventListener('input',ifMargin);
+  ['tr-item','tr-from'].forEach(function(x){document.getElementById(x).addEventListener('change',trSync)});
+  document.addEventListener('click',function(e){var b=e.target.closest('[data-jump3]');if(!b)return;var j=b.dataset.jump3;ik.cur='led';ik.tf='all';ik.pm='view';ik.sel={};
+    if(j==='items'){ik.st='all';ik.kind='all';ik.brand='';root('home');go('items')}
+    else if(j==='item'){stack=['home','items'];go('item')}
+    else if(j==='adj'){stack=['home','items','item'];openAdj('led')}
+    else if(j==='iform'){stack=['home','items'];openIForm('new')}
+    else if(j==='scan'){stack=['home','items'];go('scan')}
+    else if(j==='prices'){stack=['home','items'];go('prices')}
+    else{stack=['home','items'];go(j)}
+  });
+
+  var bfor='items';
+  function renderBP(){var curb=bfor==='items'?ik.brand:ik.pbrand,B=['','Philips','Havells','Anchor','Legrand'];
+    document.getElementById('bp-list').innerHTML=B.map(function(b){return '<button class="opt" role="radio" data-bp="'+b+'" aria-checked="'+(b===curb)+'"><span class="dot"></span>'+(b?esc(b):L('All Brands','सभी ब्रांड'))+'</button>'}).join('')}
+  stage.addEventListener('click',function(e){var t=e.target.closest('[data-bfor],[data-bp]');if(!t||!stage.contains(t))return;
+    if(t.hasAttribute('data-bfor')){bfor=t.dataset.bfor;renderBP();return}
+    if(bfor==='items')ik.brand=t.dataset.bp;else ik.pbrand=t.dataset.bp;closeOv();show(cur)});
 })();
 </script>
