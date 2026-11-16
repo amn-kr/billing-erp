@@ -145,6 +145,45 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .toast{background:var(--text);color:var(--on);border-radius:var(--r);padding:10px 12px;display:flex;align-items:center;gap:10px;font-size:14px}
 .toast .cg2{color:var(--green-nv)}
 
+/* ---------- Look upgrade (owner, November 16, 2026): depth and touch feedback ----------
+   Only the 20 colours are used; shadows and shine are those same colours made see-through.
+   Everything sits under html.fx, which the page always sets. Approved by the owner on November 16, 2026. */
+.fx{--sh1:0 1px 2px rgba(17,24,39,.05),0 2px 8px -2px rgba(17,24,39,.08);--sh2:0 2px 4px rgba(17,24,39,.05),0 10px 24px -8px rgba(17,24,39,.16);--shine:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,0) 55%,rgba(17,24,39,.10))}
+.fx .btn{transition:transform .12s ease,box-shadow .12s ease,background-color .12s ease;-webkit-tap-highlight-color:transparent}
+.fx .btn:active{transform:translateY(1px) scale(.98)}
+.fx .btn.blue{background:var(--shine),var(--blue);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 6px 14px -4px rgba(29,78,216,.45)}
+.fx .btn.green{background:var(--shine),var(--green);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 6px 14px -4px rgba(21,128,61,.45)}
+.fx .btn.blue:active,.fx .btn.green:active{box-shadow:inset 0 2px 4px rgba(17,24,39,.18),0 2px 6px -2px rgba(17,24,39,.25)}
+.fx .btn.soft{box-shadow:inset 0 0 0 1px var(--sel)}
+.fx .btn.soft:active{background:var(--sel)}
+.fx .btn.line{box-shadow:var(--sh1)}
+.fx .btn.line:active{background:var(--page)}
+.fx .btn.del{box-shadow:inset 0 0 0 1px rgba(200,30,30,.18)}
+.fx .btn.del:active{background:rgba(200,30,30,.14)}
+.fx .box,.fx .li,.fx .hdr{box-shadow:var(--sh1)}
+.fx .li{transition:transform .12s ease,background-color .12s ease}
+.fx .li:active{transform:scale(.99);background:var(--page)}
+.fx .av{background:linear-gradient(135deg,var(--blue-l),var(--sel));box-shadow:inset 0 0 0 1px var(--sel)}
+.fx .nv{position:relative;overflow:hidden;background:radial-gradient(120% 90% at 100% 0%,rgba(29,78,216,.95),rgba(29,78,216,0) 60%),var(--navy);box-shadow:0 10px 22px -10px rgba(30,58,138,.7)}
+.fx .nv::after{content:"";position:absolute;width:90px;height:90px;right:-28px;bottom:-40px;border-radius:50%;background:rgba(255,255,255,.07);pointer-events:none}
+.fx .tabs{background:var(--slate-l);border-color:transparent}
+.fx .tabs button{transition:background-color .15s,color .15s,box-shadow .15s}
+.fx .tabs button[aria-selected="true"]{background:var(--card);color:var(--blue);box-shadow:0 1px 3px rgba(17,24,39,.12)}
+.fx .bar{box-shadow:0 -6px 16px -10px rgba(17,24,39,.18),var(--sh1)}
+.fx .inp{box-shadow:inset 0 1px 2px rgba(17,24,39,.04);transition:border-color .15s,box-shadow .15s}
+.fx .inp:focus-within{box-shadow:0 0 0 3px var(--sel)}
+.fx .sw2::after{box-shadow:0 1px 3px rgba(17,24,39,.3)}
+.fx .tile{background:var(--card);box-shadow:inset 0 0 0 1px var(--border);transition:transform .12s ease,background-color .12s}
+.fx .tile:active{transform:scale(.96);background:var(--blue-l)}
+.fx .tile svg{box-sizing:content-box;padding:8px;border-radius:12px;background:var(--blue-l)}
+.fx .sheet{box-shadow:0 -10px 30px -10px rgba(17,24,39,.35)}
+.fx .dlg{box-shadow:var(--sh2)}
+.fx .toast{box-shadow:var(--sh2)}
+.fx .empty .ring{background:linear-gradient(135deg,var(--blue-l),var(--sel));box-shadow:0 0 0 6px var(--blue-l)}
+.fx .ban{box-shadow:inset 3px 0 0 currentColor}
+.fx .bd{box-shadow:inset 0 0 0 1px rgba(17,24,39,.04)}
+@media (prefers-reduced-motion:reduce){.fx .btn,.fx .li,.fx .tile,.fx .tabs button{transition:none}.fx .btn:active,.fx .li:active,.fx .tile:active{transform:none}}
+
 /* ---------- 7.3 app map ---------- */
 .views{display:inline-flex}
 .map{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
@@ -241,6 +280,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
         <li data-hi="तारीख़ हमेशा पूरी: सितंबर 25, 2026।">Dates are always written in full: September 25, 2026.</li>
         <li data-hi="बटन, खाने, टैब, badge और शीर्षक के हर शब्द का पहला अक्षर बड़ा (English में): Purchase Bill, Take Payment। पूरे वाक्य सामान्य रहते हैं।">Every word of a button, field, tab, badge or heading starts with a capital letter: Purchase Bill, Take Payment. Full sentences stay normal.</li>
         <li data-hi="Delete हमेशा हल्का लाल, कभी भरा हुआ लाल नहीं, और हमेशा पूछकर।">Delete is always light red, never solid red, and always asks first.</li>
+        <li data-hi="नया रूप: बटन में हल्की चमक और छाया, दबाने पर बटन दबता है, कार्ड हल्के उभरे हुए। छाया और चमक भी इन्हीं 20 रंगों से बनती है, कोई नया रंग नहीं।">New look: buttons have a soft shine and shadow and press down when tapped; cards are slightly raised. Shadows and shine are made from the same 20 colours, never a new colour.</li>
         <li data-hi="ऐप सिर्फ़ खड़ा (portrait)। सिर्फ़ हल्का रूप।">Portrait only. Light look only.</li>
       </ol>
     </div>
@@ -504,6 +544,8 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   en.addEventListener('click',function(){lang(false)});hi.addEventListener('click',function(){lang(true)});
   try{if(localStorage.getItem('lang')==='hi')lang(true)}catch(e){}
   document.querySelectorAll('.tabs [role=tab]').forEach(function(t){t.addEventListener('click',function(){t.parentNode.querySelectorAll('[role=tab]').forEach(function(x){x.setAttribute('aria-selected',x===t)})})});
+
+  document.documentElement.classList.add('fx');
 
   var vb=document.getElementById('view-blocks'),vm=document.getElementById('view-map'),B=document.getElementById('v-blocks'),M=document.getElementById('v-map'),WC=document.querySelector('.wctl');
   function view(m){B.hidden=m;M.hidden=!m;WC.hidden=m;document.getElementById('sub-blocks').hidden=m;document.getElementById('sub-map').hidden=!m;vb.setAttribute('aria-pressed',!m);vm.setAttribute('aria-pressed',m)}

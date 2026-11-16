@@ -8,7 +8,7 @@
 - The web app and the Windows/Mac app follow this rule. **Exception (owner, 10 Nov 2026):** the Android/iPhone app has its own mobile screens. They are checked against the approved mobile design (`reference/design/mobile.html`) instead. See "Desktop and mobile apps" in `docs/ARCHITECTURE.md`.
 
 ## Phone app rules (owner, 15 Nov 2026; full plan in `docs/MOBILE-PLAN.md`)
-- **Colours:** only the 20 colours in `docs/MOBILE-PLAN.md` section 2, kept in one shared file. A test fails on any other colour. Every money amount also shows an arrow or a word, never colour alone.
+- **Colours:** only the 20 colours in `docs/MOBILE-PLAN.md` section 2, kept in one shared file. A test fails on any other colour. Every money amount also shows an arrow or a word, never colour alone. Shadows and shine use only these colours made see-through (owner, 16 Nov 2026: the phone app is not flat).
 - **One design for every phone:** no fixed widths. Each screen has one approved picture at 390 px, and automatic fit checks run at every width from 320 to 480 px (nothing outside the screen, no overlaps, no cut text or amounts, buttons at least 44 px). Portrait only.
 - **English and Hindi** for all phone text. Lowest Android version: 7.0.
 - **Wording:** every word of a button, field, tab, badge or heading starts with a capital letter (Purchase Bill). Dates are written in full (September 25, 2026). Names stay on one line and end with "…" when they don't fit.
