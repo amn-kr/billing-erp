@@ -261,6 +261,15 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .drw .sep{height:1px;background:var(--border);margin:6px 12px}
 .ptoast{position:absolute;left:12px;right:12px;bottom:12px;z-index:9;animation:shin .2s ease}
 .ptoast span{min-width:0}
+.si2{flex:1;min-height:0;overflow-y:auto;padding:24px clamp(8px,3.5cqi,18px) 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:radial-gradient(70% 40% at 50% 0%,var(--sel),rgba(219,234,254,0)),var(--page)}
+.si2>*{flex:none}
+.logo.big{width:72px;height:72px;font-size:32px;border-radius:22px}
+.si2-t{font-size:26px;font-weight:700;line-height:1.2}
+.si2-cd{width:100%;background:var(--card);border-radius:20px;padding:18px clamp(8px,3cqi,16px);display:flex;flex-direction:column;gap:12px;box-shadow:var(--sh2,0 2px 8px rgba(17,24,39,.08))}
+.btn.pill{border-radius:999px;min-height:52px;font-size:16px;font-weight:700}
+.si2-or{display:flex;align-items:center;gap:10px;color:var(--text3);font-size:13px;width:100%}
+.si2-or::before,.si2-or::after{content:"";flex:1;height:1px;background:var(--border)}
+.si2-lang{font:inherit;display:inline-flex;align-items:center;gap:6px;min-height:var(--tap);padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;border:1px solid var(--border);background:var(--card);color:var(--text2);cursor:pointer}
 .auth{flex:1;min-height:0;overflow-y:auto;padding:28px 20px 20px;display:flex;flex-direction:column;gap:14px}
 .logo{width:56px;height:56px;border-radius:16px;background:var(--blue);color:var(--on);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:24px;flex:none}
 .fx .logo{background:var(--shine),var(--blue);box-shadow:0 10px 22px -8px rgba(29,78,216,.55)}
@@ -356,6 +365,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
         <li data-hi="हर रक़म के साथ तीर या शब्द भी: ↓ मिलेगा, ↑ देना है।">Every amount also has an arrow or a word: ↓ to get, ↑ to give.</li>
         <li data-hi="हर बटन कम से कम 44 px ऊँचा, उँगली से दबाने लायक़।">Every button is at least 44 px tall, easy for a finger.</li>
         <li data-hi="नाम (पार्टी, सप्लायर, आइटम) हमेशा एक ही लाइन में; जो न समाए वह &quot;…&quot; से ख़त्म। रक़म कभी नहीं कटती, जगह कम हो तो थोड़ी छोटी होती है।">Names (party, supplier, item) always stay on one line; what does not fit ends with "…". Amounts are never cut; they get a little smaller when space is short.</li>
+        <li data-hi="पार्टी की लाइन में नाम के आगे अक्षरों वाला गोला नहीं, बिल की तरह सीधे नाम।">Party rows have no letter circle before the name; the name starts the row, like a bill row.</li>
         <li data-hi="तारीख़ हमेशा पूरी: सितंबर 25, 2026।">Dates are always written in full: September 25, 2026.</li>
         <li data-hi="बटन, खाने, टैब, badge और शीर्षक के हर शब्द का पहला अक्षर बड़ा (English में): Purchase Bill, Take Payment। पूरे वाक्य सामान्य रहते हैं।">Every word of a button, field, tab, badge or heading starts with a capital letter: Purchase Bill, Take Payment. Full sentences stay normal.</li>
         <li data-hi="Delete हमेशा हल्का लाल, कभी भरा हुआ लाल नहीं, और हमेशा पूछकर।">Delete is always light red, never solid red, and always asks first.</li>
@@ -396,9 +406,9 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
       </div>
 
       <div class="lbl" data-hi="सूची की पंक्तियाँ">List Rows</div>
-      <div class="li"><div class="av">ME</div><div class="mid"><div class="nm">Mehta Electricals</div><div class="t-x" data-hi="आख़िरी: अक्टूबर 1, 2026">Last: October 1, 2026</div></div><div class="end"><div class="v cg">21,749.40</div><div class="w cg" data-hi="↓ मिलेगा">↓ To Get</div></div></div>
-      <div class="li"><div class="av">SE</div><div class="mid"><div class="nm">Shree Ganesh Electrical &amp; Sanitary Traders, Kidwai Nagar Kanpur</div><div class="t-x" data-hi="लंबा नाम: एक ही लाइन, फिर …">Long Name: One Line, Then …</div></div><div class="end"><div class="v cr">1,60,119</div><div class="w cr" data-hi="↑ देना है">↑ To Give</div></div></div>
-      <div class="li"><div class="av" style="background:var(--slate-l);color:var(--text2)">WR</div><div class="mid"><div class="nm">Walk-in Ramesh</div><div class="t-x" data-hi="ग्राहक">Customer</div></div><div class="end"><div class="v c3">0</div><div class="w c3" data-hi="बराबर">Settled</div></div></div>
+      <div class="li"><div class="mid"><div class="nm">Mehta Electricals</div><div class="t-x" data-hi="आख़िरी: अक्टूबर 1, 2026">Last: October 1, 2026</div></div><div class="end"><div class="v cg">21,749.40</div><div class="w cg" data-hi="↓ मिलेगा">↓ To Get</div></div></div>
+      <div class="li"><div class="mid"><div class="nm">Shree Ganesh Electrical &amp; Sanitary Traders, Kidwai Nagar Kanpur</div><div class="t-x" data-hi="लंबा नाम: एक ही लाइन, फिर …">Long Name: One Line, Then …</div></div><div class="end"><div class="v cr">1,60,119</div><div class="w cr" data-hi="↑ देना है">↑ To Give</div></div></div>
+      <div class="li"><div class="mid"><div class="nm">Walk-in Ramesh</div><div class="t-x" data-hi="ग्राहक">Customer</div></div><div class="end"><div class="v c3">0</div><div class="w c3" data-hi="बराबर">Settled</div></div></div>
       <div class="li"><div class="mid"><div class="nm">Mehta Electricals</div><div class="t-x" data-hi="INV-0107 · सितंबर 25, 2026">INV-0107 · September 25, 2026</div></div><div class="end"><div class="v">2,123.00</div><span class="bd cr" data-hi="उधार">Credit</span></div></div>
       <div class="li"><div class="mid"><div class="nm">LED Bulb 9W Cool Day Light (Philips)</div><div class="t-x" data-hi="ख़रीद दाम ₹70 · बिक्री दाम ₹85 प्रति पीस">Purchase Price ₹70 · Sale Price ₹85 Per Pc</div></div><div class="end"><div class="v">12 Pcs</div><span class="bd cr" data-hi="स्टॉक कम">Low Stock</span></div></div>
 
@@ -499,8 +509,8 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
           <div class="nv"><div class="k"><span data-hi="↑ आपको देना है">↑ You'll Give</span></div><div class="amt rd">₹60,119</div></div>
         </div>
         <div class="tabs cw" role="tablist"><span class="pin">5</span><button role="tab" aria-selected="true" data-hi="पार्टी">Parties</button><button role="tab" aria-selected="false" data-hi="बिल">Bills</button><button role="tab" aria-selected="false" data-hi="आइटम">Items</button></div>
-        <div class="li"><div class="av">ME</div><div class="mid"><div class="nm">Mehta Electricals</div><div class="t-x" data-hi="अक्टूबर 1, 2026">October 1, 2026</div></div><div class="end"><div class="v cg">21,749.40</div><div class="w cg" data-hi="↓ मिलेगा">↓ To Get</div></div></div>
-        <div class="li"><div class="av">KC</div><div class="mid"><div class="nm">Kanpur Cables Pvt Ltd</div><div class="t-x" data-hi="सितंबर 28, 2026">September 28, 2026</div></div><div class="end"><div class="v cr">60,119</div><div class="w cr" data-hi="↑ देना है">↑ To Give</div></div></div>
+        <div class="li"><div class="mid"><div class="nm">Mehta Electricals</div><div class="t-x" data-hi="अक्टूबर 1, 2026">October 1, 2026</div></div><div class="end"><div class="v cg">21,749.40</div><div class="w cg" data-hi="↓ मिलेगा">↓ To Get</div></div></div>
+        <div class="li"><div class="mid"><div class="nm">Kanpur Cables Pvt Ltd</div><div class="t-x" data-hi="सितंबर 28, 2026">September 28, 2026</div></div><div class="end"><div class="v cr">60,119</div><div class="w cr" data-hi="↑ देना है">↑ To Give</div></div></div>
         <div class="bar"><span class="cw" style="flex:1;display:flex"><span class="pin">6</span><button class="btn soft grow"><svg class="ic"><use href="#rupee"/></svg><span data-hi="भुगतान लें">Take Payment</span></button></span><span class="cw"><span class="pin">7</span><button class="btn ico blue" aria-label="Create New"><svg class="ic"><use href="#plus"/></svg></button></span><span class="cw" style="flex:1;display:flex"><span class="pin">8</span><button class="btn blue grow"><span data-hi="नया बिल">New Bill</span></button></span></div>
       </div>
       <ol class="keys">
@@ -645,14 +655,20 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 
       <!-- 1 sign in -->
       <section class="scn" data-s="signin">
-        <form class="auth" id="f-signin" novalidate>
-          <div class="logo" aria-hidden="true">B</div>
-          <div><div class="t-h">BillinGo</div><div class="t-s" data-hi="अपने ऑनलाइन खाते से साइन इन करें।">Sign in with your online account.</div></div>
-          <div class="fld"><label for="a-em" data-hi="ईमेल">Email</label><div class="inp"><input id="a-em" type="email" value="owner@sharmaelectricals.in" autocomplete="off"></div></div>
-          <div class="fld"><label for="a-pw" data-hi="पासवर्ड">Password</label><div class="inp"><input id="a-pw" type="password" value="sample-password" autocomplete="off"><button type="button" class="eye" id="a-eye" aria-label="Show Password"><svg class="ic"><use href="#eyei"/></svg></button></div></div>
-          <button type="button" class="lnk" data-toast="Forgot Password opens here, the same as on the web." data-toast-hi="यहाँ 'पासवर्ड भूल गए' खुलेगा, वेब जैसा ही।" data-hi="पासवर्ड भूल गए?">Forgot Password?</button>
-          <button type="submit" class="btn blue" id="a-go"><span data-hi="साइन इन">Sign In</span></button>
-          <div class="t-x" style="text-align:center" data-hi="अगली बार ऐप फ़िंगरप्रिंट से खुलेगा, दोबारा साइन इन नहीं।">Next time the app opens with your fingerprint, with no new sign in.</div>
+        <form class="si2" id="f-signin" novalidate>
+          <div class="logo big" aria-hidden="true">B</div>
+          <div style="text-align:center"><div class="si2-t">BillinGo</div><div class="t-s" id="si-sub" data-hi="अपने ऑनलाइन खाते से साइन इन करें।">Sign in with your online account.</div></div>
+          <div class="si2-cd">
+            <div class="fld" id="si-name" hidden><label for="a-nm" data-hi="आपका नाम">Your Name</label><div class="inp"><input id="a-nm" value="Aman Sharma" autocomplete="off"></div></div>
+            <div class="fld"><label for="a-em" data-hi="ईमेल">Email</label><div class="inp"><input id="a-em" type="email" value="owner@sharmaelectricals.in" autocomplete="off"></div></div>
+            <div class="fld"><label for="a-pw" data-hi="पासवर्ड">Password</label><div class="inp"><input id="a-pw" type="password" value="sample-password" autocomplete="off"><button type="button" class="eye" id="a-eye" aria-label="Show Password"><svg class="ic"><use href="#eyei"/></svg></button></div></div>
+            <button type="button" class="lnk" id="si-forgot" data-toast="Forgot Password opens here, the same as on the web." data-toast-hi="यहाँ 'पासवर्ड भूल गए' खुलेगा, वेब जैसा ही।" data-hi="पासवर्ड भूल गए?">Forgot Password?</button>
+            <button type="submit" class="btn blue pill" id="a-go"><span id="a-go-t" data-hi="साइन इन">Sign In</span></button>
+          </div>
+          <div class="si2-or" data-hi="या">or</div>
+          <button type="button" class="lnk c" id="si-mode" data-hi="नए हैं? खाता बनाएँ">New Here? Create An Account</button>
+          <button type="button" class="si2-lang" data-ov="lang"><svg class="ic" style="width:16px;height:16px"><use href="#globe"/></svg><span id="si-lang">English</span></button>
+          <div class="t-x" style="text-align:center" data-hi="अगली बार ऐप फ़िंगरप्रिंट से खुलेगा।">Next time the app opens with your fingerprint.</div>
         </form>
       </section>
 
@@ -688,10 +704,10 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
           </div>
           <div class="tabs" role="tablist" id="htabs"><button role="tab" aria-selected="true" data-pane="hp" data-hi="पार्टी">Parties</button><button role="tab" aria-selected="false" data-pane="hb" data-hi="बिल">Bills</button><button role="tab" aria-selected="false" data-pane="hi" data-hi="आइटम">Items</button></div>
           <div id="hp" class="scrl" style="display:flex;flex-direction:column;gap:8px">
-            <div class="li" role="button" tabindex="0" data-t7="b"><div class="av">ME</div><div class="mid"><div class="nm">Mehta Electricals</div><div class="t-x" data-hi="आख़िरी: अक्टूबर 1, 2026">Last: October 1, 2026</div></div><div class="end"><div class="v cg">21,749.40</div><div class="w cg" data-hi="↓ मिलेगा">↓ To Get</div></div></div>
-            <div class="li" role="button" tabindex="0" data-t7="b"><div class="av">GL</div><div class="mid"><div class="nm">Gupta Lighting House</div><div class="t-x" data-hi="आख़िरी: नवंबर 12, 2026">Last: November 12, 2026</div></div><div class="end"><div class="v cg">4,123.00</div><div class="w cg" data-hi="↓ मिलेगा">↓ To Get</div></div></div>
-            <div class="li" role="button" tabindex="0" data-t7="b"><div class="av">KC</div><div class="mid"><div class="nm">Kanpur Cables Pvt Ltd</div><div class="t-x" data-hi="सप्लायर">Supplier</div></div><div class="end"><div class="v cr">60,119.00</div><div class="w cr" data-hi="↑ देना है">↑ To Give</div></div></div>
-            <div class="li" role="button" tabindex="0" data-t7="b"><div class="av">SG</div><div class="mid"><div class="nm">Shree Ganesh Electrical &amp; Sanitary Store</div><div class="t-x" data-hi="ग्राहक">Customer</div></div><div class="end"><div class="v c3">0</div><div class="w c3" data-hi="बराबर">Settled</div></div></div>
+            <div class="li" role="button" tabindex="0" data-t7="b"><div class="mid"><div class="nm">Mehta Electricals</div><div class="t-x" data-hi="आख़िरी: अक्टूबर 1, 2026">Last: October 1, 2026</div></div><div class="end"><div class="v cg">21,749.40</div><div class="w cg" data-hi="↓ मिलेगा">↓ To Get</div></div></div>
+            <div class="li" role="button" tabindex="0" data-t7="b"><div class="mid"><div class="nm">Gupta Lighting House</div><div class="t-x" data-hi="आख़िरी: नवंबर 12, 2026">Last: November 12, 2026</div></div><div class="end"><div class="v cg">4,123.00</div><div class="w cg" data-hi="↓ मिलेगा">↓ To Get</div></div></div>
+            <div class="li" role="button" tabindex="0" data-t7="b"><div class="mid"><div class="nm">Kanpur Cables Pvt Ltd</div><div class="t-x" data-hi="सप्लायर">Supplier</div></div><div class="end"><div class="v cr">60,119.00</div><div class="w cr" data-hi="↑ देना है">↑ To Give</div></div></div>
+            <div class="li" role="button" tabindex="0" data-t7="b"><div class="mid"><div class="nm">Shree Ganesh Electrical &amp; Sanitary Store</div><div class="t-x" data-hi="ग्राहक">Customer</div></div><div class="end"><div class="v c3">0</div><div class="w c3" data-hi="बराबर">Settled</div></div></div>
           </div>
           <div id="hb" hidden style="display:flex;flex-direction:column;gap:8px">
             <div class="li" role="button" tabindex="0" data-t7="e"><div class="mid"><div class="nm">Mehta Electricals</div><div class="t-x" data-hi="INV-0107 · नवंबर 14, 2026">INV-0107 · November 14, 2026</div></div><div class="end"><div class="v">2,123.00</div><span class="bd cr" data-hi="उधार">Credit</span></div></div>
@@ -719,9 +735,9 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
           <div id="q-res" hidden style="display:flex;flex-direction:column;gap:8px">
             <div class="sec" data-g="p" data-hi="पार्टी">Parties</div>
             <div class="grp" data-g="p">
-              <button class="srow" data-k="mehta electricals" data-t7="b"><div class="av">ME</div><div class="mid"><div class="nm">Mehta Electricals</div></div><span class="v cg" style="font-weight:700">↓ 21,749.40</span></button>
-              <button class="srow" data-k="gupta lighting house" data-t7="b"><div class="av">GL</div><div class="mid"><div class="nm">Gupta Lighting House</div></div><span class="v cg" style="font-weight:700">↓ 4,123.00</span></button>
-              <button class="srow" data-k="kanpur cables pvt ltd" data-t7="b"><div class="av">KC</div><div class="mid"><div class="nm">Kanpur Cables Pvt Ltd</div></div><span class="v cr" style="font-weight:700">↑ 60,119.00</span></button>
+              <button class="srow" data-k="mehta electricals" data-t7="b"><div class="mid"><div class="nm">Mehta Electricals</div></div><span class="v cg" style="font-weight:700">↓ 21,749.40</span></button>
+              <button class="srow" data-k="gupta lighting house" data-t7="b"><div class="mid"><div class="nm">Gupta Lighting House</div></div><span class="v cg" style="font-weight:700">↓ 4,123.00</span></button>
+              <button class="srow" data-k="kanpur cables pvt ltd" data-t7="b"><div class="mid"><div class="nm">Kanpur Cables Pvt Ltd</div></div><span class="v cr" style="font-weight:700">↑ 60,119.00</span></button>
             </div>
             <div class="sec" data-g="b" data-hi="बिल">Bills</div>
             <div class="grp" data-g="b">
@@ -900,10 +916,18 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   });
   stage.addEventListener('keydown',function(e){if((e.key==='Enter'||e.key===' ')&&e.target.matches('[role=button]')){e.preventDefault();e.target.click()}});
   document.getElementById('f-signin').addEventListener('submit',function(e){
-    e.preventDefault();var b=document.getElementById('a-go'),sp=b.querySelector('span');
+    e.preventDefault();var b=document.getElementById('a-go'),sp=document.getElementById('a-go-t');
     b.disabled=true;var old=sp.textContent;b.insertAdjacentHTML('afterbegin','<i class="spin"></i>');sp.textContent=hiOn()?'साइन इन हो रहा है…':'Signing In…';
-    setTimeout(function(){b.disabled=false;b.querySelector('.spin').remove();sp.textContent=old;go('company')},700);
+    setTimeout(function(){b.disabled=false;b.querySelector('.spin').remove();sp.textContent=old;if(upMode){toast('Next you set up your shop: name, state and GSTIN, the same as on the web.','अब दुकान जोड़ें: नाम, राज्य और GSTIN, वेब जैसा ही।')}else go('company')},700);
   });
+
+  var upMode=false;
+  function setMode(up){upMode=up;var h=hiOn();document.getElementById('si-name').hidden=!up;document.getElementById('si-forgot').hidden=up;
+    var t=document.getElementById('a-go-t'),m=document.getElementById('si-mode'),sub=document.getElementById('si-sub');
+    t.dataset.en=up?'Create Account':'Sign In';t.dataset.hi=up?'खाता बनाएँ':'साइन इन';t.textContent=h?t.dataset.hi:t.dataset.en;
+    m.dataset.en=up?'Already Have An Account? Sign In':'New Here? Create An Account';m.dataset.hi=up?'पहले से खाता है? साइन इन करें':'नए हैं? खाता बनाएँ';m.textContent=h?m.dataset.hi:m.dataset.en;
+    sub.dataset.en=up?'Then set up your shop in one step.':'Sign in with your online account.';sub.dataset.hi=up?'फिर एक कदम में अपनी दुकान जोड़ें।':'अपने ऑनलाइन खाते से साइन इन करें।';sub.textContent=h?sub.dataset.hi:sub.dataset.en}
+  document.getElementById('si-mode').addEventListener('click',function(){setMode(!upMode)});
   document.getElementById('phback').addEventListener('click',back);
   document.getElementById('scrlist').addEventListener('click',function(e){var b=e.target.closest('[data-jump]');if(!b)return;var j=b.dataset.jump;
     if(j==='menu'){root('home');ov('menu')}else if(j==='signin'||j==='lock'){root(j)}else if(j==='company'){stack=['signin'];go('company')}else if(j==='home'){root('home')}else{stack=['home'];go(j)}});
@@ -913,7 +937,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
       document.querySelectorAll('[data-g="'+g+'"]').forEach(function(el){el.hidden=!n});if(n)any=true});
     document.getElementById('q-none').hidden=any}
   q.addEventListener('input',filter);
-  function syncLang(){var h=hiOn();document.getElementById('lang-val').textContent=h?'हिंदी':'English';document.querySelectorAll('.opt[data-lang]').forEach(function(o){o.setAttribute('aria-checked',(o.dataset.lang==='hi')===h)})}
+  function syncLang(){var h=hiOn();document.getElementById('lang-val').textContent=h?'हिंदी':'English';document.getElementById('si-lang').textContent=h?'हिंदी':'English';document.querySelectorAll('.opt[data-lang]').forEach(function(o){o.setAttribute('aria-checked',(o.dataset.lang==='hi')===h)})}
   en.addEventListener('click',syncLang);hi.addEventListener('click',syncLang);syncLang();
 })();
 </script>
