@@ -110,6 +110,7 @@ Every screen of the web app (audited on `main`, 15 Nov 2026) is listed below.
   - A bill row in a list of many parties shows the party name first, then the number | date under it (INV-0107 | 25 Sep 2026).
   - A transaction row inside one party (party page, statement) shows the transaction name first (Sale Bill, Payment In), then the number | date under it (INV-0107 | 14 Nov 2026) (owner, 16 Nov 2026).
   - An item row shows the purchase and sale price (Purchase Price ₹70 · Sale Price ₹85 Per Pc), not MRP.
+- **Lists (owner, 16 Nov 2026):** where a list has search, a filter and a status, they sit in **one line**: search (about half), a filter button (for example brand) and a status dropdown. Tabs above a list are slim. A row of 4 filter buttons takes equal widths. Big amounts use a small ₹ with a gap.
 - The work is done in its own branch. Each step comes as a PR, which is merged only with the owner's go-ahead.
 - Each step is shown to the owner before the next one starts.
 
@@ -123,7 +124,7 @@ Each part is a page the owner can open on their own phone.
 | 7.3 | App map: what opens from where, side menu, bottom buttons | ✅ Approved (15 Nov 2026): side menu plus 3 Home bottom buttons (no bottom tab bar); "coming soon" items show with a Soon badge; Home tabs Parties, Bills, Items |
 | 7.4a | Sign in, switch company, Home, side menu, search, language switch. From 7.4a on, every screen is a tap-through sample: tapping a button opens the next screen (sample data) | ✅ Approved (16 Nov 2026): Sign In layout 2 (centred logo, card, pill button, Create An Account, language button); party rows have no letter circle |
 | 7.4b | Parties: list, party page, add/edit with contacts, statement, reminder | ✅ Approved (16 Nov 2026): slim balance card with Reminder, Call and Statement and only the credit limit; small ₹ with a gap; equal-width filter chips; dates as 16 Nov 2026; transaction rows show the name, then number | date |
-| 7.4c | Items and stock: list, item page, batch/MRP/packs, brands, adjustments, godowns and transfers, bulk price update and active/inactive, prices of one item, camera scan | " |
+| 7.4c | Items and stock: list, item page, batch/MRP/packs, brands, adjustments, godowns and transfers, bulk price update and active/inactive, prices of one item, camera scan | ✅ Approved (16 Nov 2026): slim All / Products / Services tabs; search, brand button and stock dropdown in one line; Price Manager asks for the PIN; New Item has Product, Service, Single, Variant in one line |
 | 7.4d | **New sale** (the hardest): customer, items, scan, discount and charges, GST, referral, quotation import, batch pick, price history, received, Save and Share, "Bill saved" | " |
 | 7.4e | Quotations, challans, payments received, credit notes, commission: list, view, cancel | " |
 | 7.4f | Purchases: orders, bills, payments made, debit notes | " |
