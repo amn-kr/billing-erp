@@ -484,8 +484,22 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .mrow{min-height:52px;gap:12px;border-radius:var(--r-sm)}
 .mrow>.ic{color:var(--blue);flex:none}
 .mrow .mid{display:flex;flex-direction:column;min-width:0}
-.dp3{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) minmax(0,1.1fr);gap:6px}
-.dp3 .inp{padding:0 6px}
+.dpk{gap:6px;padding:14px 12px}
+.dpk .row{gap:6px}
+.dpk .row .btn{white-space:nowrap;padding:0 12px}
+.dpk-hd{display:flex;flex-direction:column;gap:2px;padding:0 4px 8px;border-bottom:1px solid var(--border)}
+.dpk-hd b{font-size:22px}
+.dpk-nav{display:flex;align-items:center;justify-content:space-between}
+.dpk-nav .btn.ico{background:transparent;box-shadow:none;color:var(--blue)}
+.dgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+#dp-wk span{text-align:center;font-size:12px;font-weight:600;color:var(--text3);padding:2px 0}
+.dgrid .dd{position:relative;font:inherit;font-size:14px;font-weight:600;min-height:var(--tap);border:0;background:transparent;color:var(--text);cursor:pointer;padding:0;z-index:0;min-width:0}
+.dgrid .dd::before{content:"";position:absolute;left:0;right:0;top:50%;margin:0 auto;transform:translateY(-50%);width:min(36px,100%);aspect-ratio:1/1;border-radius:50%;z-index:-1}
+.dgrid .dd.td{color:var(--blue)}
+.dgrid .dd.td::before{box-shadow:inset 0 0 0 1.5px var(--blue)}
+.dgrid .dd[aria-selected="true"]{color:var(--on)}
+.dgrid .dd[aria-selected="true"]::before{background:var(--blue)}
+.fx .dgrid .dd[aria-selected="true"]::before{box-shadow:0 2px 6px -2px rgba(29,78,216,.55)}
 .stp.w{width:100%}
 .stp.w input{flex:1;width:auto}
 .saved{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px 16px;text-align:center}
@@ -1555,14 +1569,13 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
           <button type="button" class="srow mrow" data-ssave="print" style="border-bottom:0"><svg class="ic"><use href="#bill"/></svg><span class="mid"><span data-hi="प्रिंट करें">Print</span><span class="t-x" data-hi="बिल सेव करके PDF छापें">Saves the bill and prints the PDF</span></span></button>
         </div>
       </div>
-      <div class="ov bot" data-o="dpick" hidden>
-        <div class="sheet" style="gap:10px">
-          <div class="grab"></div>
-          <b data-hi="बिल की तारीख़">Bill Date</b>
-          <div class="seg2" role="radiogroup"><button type="button" role="radio" data-dq="0" aria-pressed="true"><span data-hi="आज">Today</span></button><button type="button" role="radio" data-dq="1" aria-pressed="false"><span data-hi="कल">Yesterday</span></button></div>
-          <div class="dp3"><div class="inp"><select id="dp-d" aria-label="Day"></select></div><div class="inp"><select id="dp-m" aria-label="Month"></select></div><div class="inp"><select id="dp-y" aria-label="Year"></select></div></div>
-          <div class="hint" data-hi="असली फ़ोन पर यहाँ फ़ोन का अपना कैलेंडर खुलेगा।">On the real phone, the phone's own calendar opens here.</div>
-          <button class="btn blue" data-close><span data-hi="ठीक है">Done</span></button>
+      <div class="ov mid" data-o="dpick" hidden>
+        <div class="dlg dpk">
+          <div class="dpk-hd"><span class="t-x" data-hi="बिल की तारीख़">Bill Date</span><b id="dp-big"></b></div>
+          <div class="dpk-nav"><button type="button" class="btn ico" data-dnav="-1" aria-label="Previous Month"><svg class="ic" style="transform:scaleX(-1)"><use href="#next"/></svg></button><b id="dp-mon"></b><button type="button" class="btn ico" data-dnav="1" aria-label="Next Month"><svg class="ic"><use href="#next"/></svg></button></div>
+          <div class="dgrid" id="dp-wk" aria-hidden="true"></div>
+          <div class="dgrid" id="dp-grid" role="grid"></div>
+          <div class="row"><button type="button" class="btn line" data-dtoday><span data-hi="आज">Today</span></button><span style="flex:1"></span><button type="button" class="btn line" data-close><span data-hi="रहने दें">Cancel</span></button><button type="button" class="btn blue" data-dok><span data-hi="ठीक है">OK</span></button></div>
         </div>
       </div>
       <div class="ov bot" data-o="chg" hidden>
@@ -2229,14 +2242,15 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     back();toast(add?'Item added to the bill.':'Item updated.',add?'आइटम बिल में जुड़ा।':'आइटम बदला।')}
   function scanSale(){stack.pop();if(stack[stack.length-1]==='sline'){edPick('led');show('sline')}else{edNew();edPick('led');go('sline')}toast('Scanned: LED Bulb 9W Cool Day Light','स्कैन हुआ: LED Bulb 9W Cool Day Light')}
   /* date */
-  function dshift(iso,d){var t=new Date(iso+'T12:00:00Z');t.setUTCDate(t.getUTCDate()+d);return t.toISOString().slice(0,10)}
-  function renderDP(){var p=SL.date.split('-'),y=+p[0],m=+p[1],d=+p[2],dim=new Date(Date.UTC(y,m,0)).getUTCDate(),o='',k;
-    for(k=1;k<=dim;k++)o+='<option'+(k===d?' selected':'')+'>'+k+'</option>';document.getElementById('dp-d').innerHTML=o;
-    document.getElementById('dp-m').innerHTML=(hiOn()?MHI:ME).map(function(n,k){return '<option value="'+(k+1)+'"'+(k+1===m?' selected':'')+'>'+n+'</option>'}).join('');
-    o='';for(k=2025;k<=2027;k++)o+='<option'+(k===y?' selected':'')+'>'+k+'</option>';document.getElementById('dp-y').innerHTML=o;
-    document.querySelectorAll('[data-dq]').forEach(function(b){b.setAttribute('aria-pressed',SL.date===dshift(TODAY,-(+b.dataset.dq)))})}
-  function dpSet(){var y=+document.getElementById('dp-y').value,m=+document.getElementById('dp-m').value,d=+document.getElementById('dp-d').value,dim=new Date(Date.UTC(y,m,0)).getUTCDate();
-    SL.date=y+'-'+(m<10?'0':'')+m+'-'+(Math.min(d,dim)<10?'0':'')+Math.min(d,dim);renderDP();renderSale()}
+  var MFE=['January','February','March','April','May','June','July','August','September','October','November','December'],MFH=['जनवरी','फ़रवरी','मार्च','अप्रैल','मई','जून','जुलाई','अगस्त','सितंबर','अक्टूबर','नवंबर','दिसंबर'],DPS,DPY,DPM;
+  function dpOpen(){DPS=SL.date;DPY=+DPS.slice(0,4);DPM=+DPS.slice(5,7);renderDP()}
+  function renderDP(){var h=hiOn(),first=new Date(Date.UTC(DPY,DPM-1,1)).getUTCDay(),dim=new Date(Date.UTC(DPY,DPM,0)).getUTCDate(),o='',k;
+    document.getElementById('dp-big').innerHTML=LD(DPS);
+    document.getElementById('dp-mon').innerHTML=L(MFE[DPM-1]+' '+DPY,MFH[DPM-1]+' '+DPY);
+    document.getElementById('dp-wk').innerHTML=(h?['र','सो','मं','बु','गु','शु','श']:['S','M','T','W','T','F','S']).map(function(x){return '<span>'+x+'</span>'}).join('');
+    for(k=0;k<first;k++)o+='<span></span>';
+    for(k=1;k<=dim;k++){var iso=DPY+'-'+(DPM<10?'0':'')+DPM+'-'+(k<10?'0':'')+k;o+='<button type="button" class="dd'+(iso===TODAY?' td':'')+'" data-dday="'+iso+'" aria-selected="'+(iso===DPS)+'" aria-label="'+fd(iso,0)+'">'+k+'</button>'}
+    document.getElementById('dp-grid').innerHTML=o}
   function renderChg(){var c=calc(),p=SL.party&&P[SL.party],h='';
     function row(a,b,cl){h+='<div class="tl'+(cl||'')+'"><span>'+a+'</span><b>'+b+'</b></div>'}
     row(L('Items Total','आइटम का जोड़'),'₹'+inr(c.items));if(c.bdisc)row(L('Discount','छूट')+(SL.bdP?' ('+SL.bdP+'%)':''),'<span class="cr">−₹'+inr(c.bdisc)+'</span>');
@@ -2297,7 +2311,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(after==='print')toast('Makes the bill PDF and opens the phone’s print screen (on the real phone).','बिल की PDF बनाकर फ़ोन का प्रिंट खुलेगा (असली फ़ोन पर)।')}
   var _show3=show;show=function(id){_show3(id);if(id==='sale')renderSale();if(id==='sline')renderLine();if(id==='cpick')renderSP();document.querySelectorAll('[data-jump4]').forEach(function(b){b.setAttribute('aria-current',b.dataset.jump4===id)})};
   stage.addEventListener('click',function(e){
-    var t=e.target.closest('[data-sale],[data-stype],[data-cpick],[data-spick],[data-lnew],[data-ledit],[data-ipk],[data-lnq],[data-lsave],[data-ldel],[data-lh],[data-lhuse],[data-lb],[data-bpick],[data-qimp],[data-qrm],[data-chgdone],[data-round],[data-payadd],[data-prm],#py-full,[data-rk],[data-ssave],[data-ckok],[data-dq],[data-ov="ipick"],[data-ov="chg"],[data-ov="pay"],[data-ov="ref"],[data-ov="quote"],[data-ov="extras"],[data-ov="dpick"]');
+    var t=e.target.closest('[data-sale],[data-stype],[data-cpick],[data-spick],[data-lnew],[data-ledit],[data-ipk],[data-lnq],[data-lsave],[data-ldel],[data-lh],[data-lhuse],[data-lb],[data-bpick],[data-qimp],[data-qrm],[data-chgdone],[data-round],[data-payadd],[data-prm],#py-full,[data-rk],[data-ssave],[data-ckok],[data-dday],[data-dnav],[data-dtoday],[data-dok],[data-ov="ipick"],[data-ov="chg"],[data-ov="pay"],[data-ov="ref"],[data-ov="quote"],[data-ov="extras"],[data-ov="dpick"]');
     if(!t||!stage.contains(t))return;
     if(t.hasAttribute('data-sale')){var k=t.dataset.sale;newSale(k==='party'?{party:pk.cur}:k==='item'?{item:ik.cur}:{});if(cur==='saved'){stack.pop()}go('sale');return}
     var o=t.getAttribute('data-ov');
@@ -2307,7 +2321,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(o==='ref'){renderRef();return}
     if(o==='quote'){renderQT();return}
     if(o==='extras'){renderPL();return}
-    if(o==='dpick'){renderDP();return}
+    if(o==='dpick'){dpOpen();return}
     if(t.hasAttribute('data-stype')){SL.type=t.dataset.stype;renderSale();return}
     if(t.hasAttribute('data-cpick')){document.getElementById('spq').value='';go('cpick');return}
     if(t.hasAttribute('data-spick')){SL.party=t.dataset.spick;back();return}
@@ -2331,7 +2345,10 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(t.hasAttribute('data-rk')){SL.rk=t.dataset.rk;SL.rv=SL.rk==='pct'?5:2;renderRef();renderSale();return}
     if(t.hasAttribute('data-ssave')){trySave(t.dataset.ssave);return}
     if(t.hasAttribute('data-ckok')){closeOv();show(cur);nextCheck();return}
-    if(t.hasAttribute('data-dq')){SL.date=dshift(TODAY,-(+t.dataset.dq));renderDP();renderSale();return}
+    if(t.hasAttribute('data-dday')){DPS=t.dataset.dday;renderDP();return}
+    if(t.hasAttribute('data-dnav')){DPM+=+t.dataset.dnav;if(DPM<1){DPM=12;DPY--}if(DPM>12){DPM=1;DPY++}renderDP();return}
+    if(t.hasAttribute('data-dtoday')){DPS=TODAY;DPY=+TODAY.slice(0,4);DPM=+TODAY.slice(5,7);renderDP();return}
+    if(t.hasAttribute('data-dok')){SL.date=DPS;closeOv();renderSale();return}
   });
   stage.addEventListener('input',function(e){var x=e.target;
     if(x.id==='sl-no'){SL.no=x.value;return}
@@ -2349,7 +2366,6 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(x.id==='ln-q'){updLn();return}
     if(x.id==='ln-u'){ED.f=+x.value;updLn();return}
     if(x.id==='ln-pl'){ED.pl=x.value;ED.base=I[ED.id][x.value];ED.disc=0;updLn();return}
-    if(x.id==='dp-d'||x.id==='dp-m'||x.id==='dp-y'){dpSet();return}
     if(x.matches('[data-pm]')){SL.pays[+x.dataset.pm].mode=x.value;renderPay();return}
     if(x.id==='rf-who'){SL.ref=x.value;renderRef();renderSale();return}});
   document.addEventListener('click',function(e){var b=e.target.closest('[data-jump4]');if(!b)return;var j=b.dataset.jump4;
@@ -2360,7 +2376,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     else if(j==='eline'){edOpen(0);ED.disc=5;SL.lines[0].disc=5;go('sline')}
     else if(j==='batch'){edOpen(0);go('sline');renderBatch();ov('batch')}
     else if(j==='lhist'){edOpen(0);go('sline');renderLH();ov('lhist')}
-    else if(j==='smenu'){ov('smenu')}else if(j==='smore'){ov('smore')}else if(j==='dpick'){renderDP();ov('dpick')}
+    else if(j==='smenu'){ov('smenu')}else if(j==='smore'){ov('smore')}else if(j==='dpick'){dpOpen();ov('dpick')}
     else if(j==='chg'){chgLoad();ov('chg')}else if(j==='pay'){renderPay();ov('pay')}
     else if(j==='ref'){SL.ref='Raju Electrician';renderSale();renderRef();ov('ref')}
     else if(j==='quote'){SL.lines=[];renderSale();renderQT();ov('quote')}else if(j==='extras'){renderPL();ov('extras')}
