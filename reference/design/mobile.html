@@ -481,6 +481,10 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .slc .w2{grid-column:2/4;font-size:12px;color:var(--text2);font-variant-numeric:tabular-nums;text-align:right}
 .slsum{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;font-size:12px;color:var(--text2);padding:0 4px;font-variant-numeric:tabular-nums}
 .slsum span:nth-child(even){text-align:right}
+.sltot{gap:10px;padding:10px}
+.sltot .sumb{background:var(--page);box-shadow:none}
+.sltot .sumb.todo{background:var(--orange-l)}
+.sltb{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--border);padding:8px 2px 0}
 .mrow{min-height:52px;gap:12px;border-radius:var(--r-sm)}
 .mrow>.ic{color:var(--blue);flex:none}
 .mrow .mid{display:flex;flex-direction:column;min-width:0}
@@ -1376,8 +1380,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
           <div id="sl-lines" class="sll"></div>
           <div class="slsum" id="sl-isum"></div>
           <div class="addrow"><button type="button" class="addbtn" data-lnew><svg class="ic"><use href="#plus"/></svg><span data-hi="आइटम जोड़ें">Add Item</span></button><button type="button" class="btn ico soft" style="min-height:52px" data-go="scan" data-scanfor="sale" aria-label="Scan Barcode"><svg class="ic"><use href="#scan"/></svg></button></div>
-          <div class="sumbtns" id="sl-sum"></div>
-          <div class="box" style="gap:6px" id="sl-totbox"></div>
+          <div class="box sltot"><div class="sumbtns" id="sl-sum"></div><div class="sltb" id="sl-totbox"></div></div>
         </div>
         <div class="sf"><button class="btn soft grow" data-ssave="new"><span data-hi="सेव और नया">Save &amp; New</span></button><button class="btn green grow" data-ssave><svg class="ic"><use href="#check"/></svg><span data-hi="सेव करें">Save</span></button><button class="btn ico soft" data-ov="smore" aria-label="Share Or Print"><svg class="ic"><use href="#dots"/></svg></button></div>
       </section>
