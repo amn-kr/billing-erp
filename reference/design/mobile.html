@@ -601,7 +601,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   </div>
   <p id="sub-blocks" data-hi="चरण 7.1 और 7.2: 20 रंग और ऐप के बुनियादी टुकड़े। चौड़ाई खिसकाकर देखें कि हर चीज़ हर फ़ोन पर फ़िट होती है।">Steps 7.1 and 7.2: the 20 colours and the app's building blocks. Drag the width to see every piece fit every phone.</p>
   <p id="sub-map" hidden data-hi="चरण 7.3 (मंज़ूर, 15 नवंबर 2026): ऐप में कौन-सी स्क्रीन कहाँ से खुलती है। नारंगी नंबर नीचे समझाए गए हैं।">Step 7.3 (approved, 15 Nov 2026): which screen opens from where. The orange numbers are explained underneath.</p>
-  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a से 7.4e मंज़ूर; अब 7.4f: ख़रीद।">Step 7.4: the app's screens, to tap through. 7.4a to 7.4e are approved; now 7.4f: purchases.</p>
+  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a से 7.4f मंज़ूर; अगला 7.4g।">Step 7.4: the app's screens, to tap through. 7.4a to 7.4f are approved; 7.4g is next.</p>
 </header>
 
 <div class="wrap" id="v-blocks">
@@ -870,7 +870,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 <div class="proto" id="v-a" hidden>
   <div class="guide">
     <div class="gsec">
-      <h2 data-hi="7.4f: ख़रीद (नया)">7.4f: Purchases (New)</h2>
+      <h2 data-hi="7.4f: ख़रीद (मंज़ूर)">7.4f: Purchases (Approved)</h2>
       <p data-hi="ख़रीद ऑर्डर, ख़रीद बिल (बैच के साथ), सप्लायर को भुगतान और डेबिट नोट: हर एक की सूची, देखना, नया बनाना और रद्द करना।">Purchase orders, purchase bills (with batches), payments made and debit notes: a list, a view, a new form and cancel for each.</p>
       <div class="scrlist">
         <button type="button" data-jump6="polist"><span class="no">1</span><span data-hi="ख़रीद ऑर्डर (सूची)">Purchase Orders (List)</span></button>
@@ -899,8 +899,8 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
       </ol>
     </div>
     <div class="gsec">
-      <h2 data-hi="7.4f में आपसे क्या चाहिए">What We Need From You (7.4f)</h2>
-      <p data-hi="दबाकर देखिए और बताइए क्या बदलना है। मंज़ूरी के बाद अगला कदम 7.4g: ख़र्चे, बैंक खाते, नक़द, चेक।">Tap through and tell us what to change. After your approval, the next step is 7.4g: expenses, bank accounts, cash in hand and cheques.</p>
+      <h2 data-hi="अगला कदम">Next Step</h2>
+      <p data-hi="7.4f आपने 17 नव॰ 2026 को मंज़ूर किया। अगला कदम 7.4g: ख़र्चे, बैंक खाते, नक़द, चेक।">You approved 7.4f on 17 Nov 2026. The next step is 7.4g: expenses, bank accounts, cash in hand and cheques.</p>
     </div>
     <div class="gsec">
       <h2 data-hi="7.4e: बिल, Quotation, चालान, भुगतान, क्रेडिट नोट, कमीशन (मंज़ूर)">7.4e: Bills, Quotations, Challans, Payments, Credit Notes, Commission (Approved)</h2>
@@ -2948,7 +2948,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     s.querySelector('.invs .k').innerHTML=pb?L('Bill No.','बिल नं.'):L('Order No.','ऑर्डर नं.');
     var chev='<svg class="ic" style="transform:rotate(90deg)"><use href="#next"/></svg>',b=pr?bal(pr):0;
     document.getElementById('sl-cust').innerHTML='<button type="button" class="pfield" data-cpick aria-label="Supplier"><svg class="ic"><use href="#user"/></svg>'+(pr?'<span class="nm">'+esc(pr.n)+'</span><span class="cdue">'+(b<0?L('To Pay ₹'+m2(b),'देना है ₹'+m2(b)):b>0?L('Advance ₹'+m2(b),'एडवांस ₹'+m2(b)):L('No Dues','कोई बाकी नहीं'))+'</span>':'<span class="ph">'+L('Choose Supplier','सप्लायर चुनें')+'</span>')+chev+'</button>'
-      +(pb?'<div class="inp" style="margin-top:8px"><span class="pre" style="white-space:nowrap">'+L('Supplier’s Bill No.','सप्लायर का बिल नं.')+'</span><input id="sl-sref" value="'+esc(SL.sref||'')+'" placeholder="KC/2026/900" autocomplete="off"></div>':'<div class="inp" style="margin-top:8px"><span class="pre" style="white-space:nowrap">'+L('Expected','कब आएगा')+'</span><button type="button" class="pk" style="width:auto;flex:1;justify-content:flex-start;padding-left:8px;font:inherit;font-size:15px;color:var(--text)" data-poexp>'+LD(SL.exp)+'</button></div>');
+      +(pb?'<div class="fld" style="margin-top:8px"><label for="sl-sref">'+L('Supplier’s Bill No.','सप्लायर का बिल नं.')+'</label><div class="inp"><input id="sl-sref" value="'+esc(SL.sref||'')+'" placeholder="KC/2026/900" autocomplete="off"></div></div>':'<div class="inp" style="margin-top:8px"><span class="pre" style="white-space:nowrap">'+L('Expected','कब आएगा')+'</span><button type="button" class="pk" style="width:auto;flex:1;justify-content:flex-start;padding-left:8px;font:inherit;font-size:15px;color:var(--text)" data-poexp>'+LD(SL.exp)+'</button></div>');
     var rb=s.querySelector('#sl-sum [data-ov=pay]');if(rb){rb.hidden=!pb;var sm=rb.querySelector('small');if(sm)sm.innerHTML=L('↑ Paid Now','↑ अभी दिया')}
     document.getElementById('sl-sum').style.gridTemplateColumns=pb?'':'1fr';
     var mq=document.querySelector('[data-o=smenu] [data-ov=quote]'),mr=document.querySelector('[data-o=smenu] [data-ov=ref]');mq.hidden=true;mr.hidden=true;
