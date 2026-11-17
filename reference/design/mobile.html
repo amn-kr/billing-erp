@@ -574,7 +574,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   </div>
   <p id="sub-blocks" data-hi="चरण 7.1 और 7.2: 20 रंग और ऐप के बुनियादी टुकड़े। चौड़ाई खिसकाकर देखें कि हर चीज़ हर फ़ोन पर फ़िट होती है।">Steps 7.1 and 7.2: the 20 colours and the app's building blocks. Drag the width to see every piece fit every phone.</p>
   <p id="sub-map" hidden data-hi="चरण 7.3 (मंज़ूर, 15 नवंबर 2026): ऐप में कौन-सी स्क्रीन कहाँ से खुलती है। नारंगी नंबर नीचे समझाए गए हैं।">Step 7.3 (approved, 15 Nov 2026): which screen opens from where. The orange numbers are explained underneath.</p>
-  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a से 7.4c मंज़ूर; अब 7.4d: नया बिल।">Step 7.4: the app's screens, to tap through. 7.4a to 7.4c are approved; now 7.4d: New Sale.</p>
+  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a से 7.4d मंज़ूर; अगला 7.4e।">Step 7.4: the app's screens, to tap through. 7.4a to 7.4d are approved; 7.4e is next.</p>
 </header>
 
 <div class="wrap" id="v-blocks">
@@ -843,7 +843,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 <div class="proto" id="v-a" hidden>
   <div class="guide">
     <div class="gsec">
-      <h2 data-hi="7.4d: बिक्री (आपके बदलाव)">7.4d: Sale (Your Changes)</h2>
+      <h2 data-hi="7.4d: बिक्री (मंज़ूर)">7.4d: Sale (Approved)</h2>
       <p data-hi="आपके बताए बदलाव: ऊपर बिक्री + उधार/नक़द कैप्सूल + ⋮, इनवॉइस नं. और तारीख़ की पट्टी, ग्राहक की पूरी सूची, एक आइटम का अलग पेज, नए आइटम कार्ड, और नीचे सिर्फ़ सेव और नया, सेव, ⋮।">Your changes: Sale with a Credit / Cash capsule and ⋮ at the top, a strip with the invoice number and date, a full customer list, a separate page for one item, new item cards, and only Save &amp; New, Save and ⋮ at the bottom.</p>
       <div class="scrlist">
         <button type="button" data-jump4="empty"><span class="no">1</span><span data-hi="बिक्री (ख़ाली)">Sale (Empty)</span></button>
@@ -877,8 +877,8 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
       </ol>
     </div>
     <div class="gsec">
-      <h2 data-hi="7.4d में आपसे क्या चाहिए">What We Need From You (7.4d)</h2>
-      <p data-hi="बिल बनाकर देखिए और बताइए क्या बदलना है। मंज़ूरी के बाद अगला कदम 7.4e: Quotation, चालान, भुगतान, क्रेडिट नोट, कमीशन।">Make a few bills and tell us what to change. After your approval, the next step is 7.4e: quotations, challans, payments, credit notes and commission.</p>
+      <h2 data-hi="अगला कदम">Next Step</h2>
+      <p data-hi="7.4d आपने 17 नव॰ 2026 को मंज़ूर किया। अगला कदम 7.4e: Quotation, चालान, भुगतान, क्रेडिट नोट, कमीशन।">You approved 7.4d on 17 Nov 2026. The next step is 7.4e: quotations, challans, payments, credit notes and commission.</p>
     </div>
     <div class="gsec">
       <h2 data-hi="7.4c: आइटम और स्टॉक (मंज़ूर)">7.4c: Items And Stock (Approved)</h2>
@@ -2202,22 +2202,25 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     h+=ids.map(function(id){var p=P[id],b=bal(p);
       return '<button class="srow cpr" data-spick="'+id+'"><div class="mid"><div class="nm">'+esc(p.n)+'</div><div class="t-x">'+(p.ph?'+91 '+esc(p.ph):L('No Mobile','मोबाइल नहीं'))+'</div></div><div class="pbal">'+(b?'<b class="'+(b>0?'cg':'cr')+'">'+(b>0?'↓ ':'↑ ')+'₹'+m2(b)+'</b><small class="'+(b>0?'cg':'cr')+'">'+(b>0?L('To Receive','मिलेगा'):L('To Pay','देना है'))+'</small>':'<small class="c3">'+L('Settled','बराबर')+'</small>')+'</div></button>'}).join('');
     document.getElementById('sp-list').innerHTML=h||'<div class="empty"><b>'+L('No Parties Match','कोई पार्टी नहीं मिली')+'</b></div>'}
-  function renderIP(){var inp=document.getElementById('ln-iq'),el=document.getElementById('ln-il');if(!inp||!el)return;
-    var q=inp.value.toLowerCase().trim();if(ED&&ED.id&&inp.value===fullName(I[ED.id]))q='';
+  function renderIP(){var inp=document.getElementById('ln-iq'),el=document.getElementById('ln-il');if(!inp||!el||inp.tagName!=='INPUT')return;
+    var q=(inp.value||'').toLowerCase().trim();
     var ids=Object.keys(I).filter(function(id){var i=I[id];return !i.inactive&&(!q||(fullName(i)+' '+(i.code||'')+' '+(i.b||'')).toLowerCase().indexOf(q)>-1)});
     el.innerHTML='<div class="cnt">'+L('Showing '+ids.length+(ids.length===1?' Item':' Items'),ids.length+' आइटम दिख रहे हैं')+'</div>'+(ids.map(function(id){var i=I[id],s=ist(i);
       return '<button type="button" class="srow cpr" role="option" data-ipk="'+id+'"><div class="mid"><div class="nm">'+esc(fullName(i))+'</div><div class="t-x">'+r0(i.sp)+' · '+(i.k==='p'?L('Stock '+uq(i.st,i.u),'स्टॉक '+uq(i.st,i.u)):L('Service','सेवा'))+(i.code?' · '+esc(i.code):'')+'</div></div>'+(ED&&id===ED.id?'<svg class="ic" style="color:var(--blue)"><use href="#check"/></svg>':s==='out'?'<span class="bd due">'+L('Out','ख़त्म')+'</span>':'')+'</button>'}).join('')||'<div class="empty"><b>'+L('No Items Match','कोई आइटम नहीं मिला')+'</b></div>')}
   function ipOpen(){var el=document.getElementById('ln-il');if(!el)return;renderIP();el.hidden=false;document.getElementById('ln-iq').setAttribute('aria-expanded','true')}
-  function ipClose(){var el=document.getElementById('ln-il');if(el&&!el.hidden){el.hidden=true;document.getElementById('ln-iq').setAttribute('aria-expanded','false')}}
-  function ipFocus(){var x=document.getElementById('ln-iq');if(!x)return;x.focus();x.select();ipOpen()}
+  function ipClose(){var el=document.getElementById('ln-il');if(el&&!el.hidden){el.hidden=true;document.getElementById('ln-iq').setAttribute('aria-expanded','false')}if(ED&&ED.id&&ED.srch){ED.srch=false;renderIF()}}
+  function ipFocus(){var x=document.getElementById('ln-iq');if(!x||x.tagName!=='INPUT')return;x.focus();ipOpen()}
   /* add / edit item page */
   function edNew(){curL=-1;ED={id:'',q:1,base:0,pl:'sp',f:1,disc:0,batch:''}}
-  function edOpen(k){curL=k;ED=JSON.parse(JSON.stringify(SL.lines[k]))}
-  function edPick(id){var i=I[id];ED.id=id;ED.pl='sp';ED.base=i.sp;ED.f=1;ED.disc=0;ED.batch=autoBatch(id);if(!(ED.q>0))ED.q=1}
+  function edOpen(k){curL=k;ED=JSON.parse(JSON.stringify(SL.lines[k]));ED.srch=false}
+  function edPick(id){var i=I[id];ED.srch=false;ED.id=id;ED.pl='sp';ED.base=i.sp;ED.f=1;ED.disc=0;ED.batch=autoBatch(id);if(!(ED.q>0))ED.q=1}
+  function itemField(){var i=ED.id&&I[ED.id],lab='<label for="ln-iq">'+L('Item Name','आइटम का नाम')+'</label>',info=i?'<div class="t-x">'+(i.k==='p'?L('In Stock '+uq(i.st,i.u),'स्टॉक '+uq(i.st,i.u)):L('Service','सेवा'))+(i.code?' · '+esc(i.code):'')+' · GST '+i.gst+'%</div>':'';
+    if(i&&!ED.srch)return '<div class="fld combo">'+lab+'<button type="button" class="pfield" id="ln-iq" data-isrch aria-label="Item Name"><svg class="ic"><use href="#search"/></svg><span class="nm">'+esc(fullName(i))+'</span><svg class="ic" style="transform:rotate(90deg)"><use href="#next"/></svg></button>'+info+'</div>';
+    return '<div class="fld combo">'+lab+'<div class="inp"><svg class="ic"><use href="#search"/></svg><input id="ln-iq" type="search" placeholder="'+(hiOn()?'नाम या कोड खोजें':'Search Name Or Code')+'" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="ln-il"><button type="button" class="pk" data-go="scan" data-scanfor="sale" aria-label="Scan Barcode"><svg class="ic"><use href="#scan"/></svg></button></div>'+info+'<div class="cbl" id="ln-il" role="listbox" hidden></div></div>'}
+  function renderIF(){var w=document.getElementById('ln-if');if(w)w.innerHTML=itemField()}
   function renderLine(){var i=ED.id&&I[ED.id];
     document.getElementById('ln-t').innerHTML=curL<0?L('Add Item','आइटम जोड़ें'):L('Edit Item','आइटम बदलें');
-    var h='<div class="fld combo"><label for="ln-iq">'+L('Item Name','आइटम का नाम')+'</label><div class="inp"><svg class="ic"><use href="#search"/></svg><input id="ln-iq" type="search" placeholder="'+(hiOn()?'नाम या कोड खोजें':'Search Name Or Code')+'" value="'+(i?esc(fullName(i)):'')+'" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="ln-il"><button type="button" class="pk" data-go="scan" data-scanfor="sale" aria-label="Scan Barcode"><svg class="ic"><use href="#scan"/></svg></button></div>'
-      +(i?'<div class="t-x">'+(i.k==='p'?L('In Stock '+uq(i.st,i.u),'स्टॉक '+uq(i.st,i.u)):L('Service','सेवा'))+(i.code?' · '+esc(i.code):'')+' · GST '+i.gst+'%</div>':'')+'<div class="cbl" id="ln-il" role="listbox" hidden></div></div>';
+    var h='<div id="ln-if">'+itemField()+'</div>';
     if(i){
       var us='<option value="1">'+esc(un(i.u,2))+'</option>'+(i.au?'<option value="'+i.au[2]+'"'+(fct(ED)>1?' selected':'')+'>'+esc(i.au[0]+' ('+i.au[2]+')')+'</option>':'');
       h+='<div class="srow2"><div class="fld"><label for="ln-q">'+L('Quantity','मात्रा')+'</label><div class="stp w"><button type="button" data-lnq="-" aria-label="Less">−</button><input id="ln-q" inputmode="decimal" autocomplete="off" aria-label="Quantity"><button type="button" data-lnq="+" aria-label="More">+</button></div></div><div class="fld"><label for="ln-u">'+L('Unit','इकाई')+'</label><div class="inp"><select id="ln-u">'+us+'</select></div></div></div>';
@@ -2316,7 +2319,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(after==='print')toast('Makes the bill PDF and opens the phone’s print screen (on the real phone).','बिल की PDF बनाकर फ़ोन का प्रिंट खुलेगा (असली फ़ोन पर)।')}
   var _show3=show;show=function(id){_show3(id);if(id==='sale')renderSale();if(id==='sline')renderLine();if(id==='cpick')renderSP();document.querySelectorAll('[data-jump4]').forEach(function(b){b.setAttribute('aria-current',b.dataset.jump4===id)})};
   stage.addEventListener('click',function(e){
-    var t=e.target.closest('[data-sale],[data-stype],[data-cpick],[data-spick],[data-lnew],[data-ledit],[data-ipk],[data-lnq],[data-lsave],[data-ldel],[data-lh],[data-lhuse],[data-lb],[data-bpick],[data-qimp],[data-qrm],[data-chgdone],[data-round],[data-payadd],[data-prm],#py-full,[data-rk],[data-ssave],[data-ckok],[data-dday],[data-dnav],[data-dtoday],[data-dok],[data-ov="chg"],[data-ov="pay"],[data-ov="ref"],[data-ov="quote"],[data-ov="extras"],[data-ov="dpick"]');
+    var t=e.target.closest('[data-sale],[data-stype],[data-cpick],[data-spick],[data-lnew],[data-ledit],[data-isrch],[data-ipk],[data-lnq],[data-lsave],[data-ldel],[data-lh],[data-lhuse],[data-lb],[data-bpick],[data-qimp],[data-qrm],[data-chgdone],[data-round],[data-payadd],[data-prm],#py-full,[data-rk],[data-ssave],[data-ckok],[data-dday],[data-dnav],[data-dtoday],[data-dok],[data-ov="chg"],[data-ov="pay"],[data-ov="ref"],[data-ov="quote"],[data-ov="extras"],[data-ov="dpick"]');
     if(!t||!stage.contains(t))return;
     if(t.hasAttribute('data-sale')){var k=t.dataset.sale;newSale(k==='party'?{party:pk.cur}:k==='item'?{item:ik.cur}:{});if(cur==='saved'){stack.pop()}go('sale');return}
     var o=t.getAttribute('data-ov');
@@ -2331,6 +2334,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(t.hasAttribute('data-spick')){SL.party=t.dataset.spick;back();return}
     if(t.hasAttribute('data-lnew')){edNew();go('sline');ipFocus();return}
     if(t.hasAttribute('data-ledit')){edOpen(+t.dataset.ledit);go('sline');return}
+    if(t.hasAttribute('data-isrch')){ED.srch=true;renderIF();ipFocus();return}
     if(t.hasAttribute('data-ipk')){edPick(t.dataset.ipk);renderLine();return}
     if(t.hasAttribute('data-lnq')){ED.q=Math.max(1,Math.round(ED.q)+(t.dataset.lnq==='+'?1:-1));updLn();return}
     if(t.hasAttribute('data-lsave')){saveLine(t.dataset.lsave==='new');return}
@@ -2360,7 +2364,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(x.id==='ln-r'){ED.base=baseFrom(Math.round((parseFloat(x.value)||0)*100/fct(ED)));ED.disc=0;updLn('r');return}
     if(x.id==='ln-dp'){ED.disc=Math.min(100,parseFloat(x.value)||0);updLn('dp');return}
     if(x.id==='ln-f'){var fi=Math.round((parseFloat(x.value)||0)*100/fct(ED)),r=rateOf(ED);ED.disc=r&&fi<=r?(1-fi/r)*100:0;updLn('f');return}
-    if(x.id==='spq'){renderSP();return}if(x.id==='ln-iq'){ipOpen();return}
+    if(x.id==='spq'){renderSP();return}if(x.id==='ln-iq'&&x.tagName==='INPUT'){ipOpen();return}
     if(['cg-dp','cg-d','cg-tr','cg-lab','cg-bank'].indexOf(x.id)>-1){if(x.id==='cg-dp'){SL.bdP=parseFloat(x.value)||0;if(SL.bdP)document.getElementById('cg-d').value=''}if(x.id==='cg-d'){SL.bd=pv('cg-d');if(SL.bd){SL.bdP=0;document.getElementById('cg-dp').value=''}}SL.tr=pv('cg-tr');SL.lab=pv('cg-lab');SL.bank=pv('cg-bank');renderChg();return}
     if(x.matches('[data-pa]')){SL.pays[+x.dataset.pa].amt=Math.round((parseFloat(x.value)||0)*100);var keep=x.dataset.pa;renderPay();var el=document.querySelector('[data-pa="'+keep+'"]');el.focus();el.setSelectionRange(el.value.length,el.value.length);return}
     if(x.matches('[data-pr]')){SL.pays[+x.dataset.pr].ref=x.value;return}
@@ -2372,7 +2376,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(x.id==='ln-pl'){ED.pl=x.value;ED.base=I[ED.id][x.value];ED.disc=0;updLn();return}
     if(x.matches('[data-pm]')){SL.pays[+x.dataset.pm].mode=x.value;renderPay();return}
     if(x.id==='rf-who'){SL.ref=x.value;renderRef();renderSale();return}});
-  stage.addEventListener('focusin',function(e){if(e.target.id==='ln-iq'){e.target.select();ipOpen()}});
+  stage.addEventListener('focusin',function(e){if(e.target.id==='ln-iq'&&e.target.tagName==='INPUT')ipOpen()});
   stage.addEventListener('pointerdown',function(e){if(!e.target.closest('.combo'))ipClose()});
   stage.addEventListener('keydown',function(e){if(e.key==='Escape'&&e.target.id==='ln-iq')ipClose()});
   document.addEventListener('click',function(e){var b=e.target.closest('[data-jump4]');if(!b)return;var j=b.dataset.jump4;
