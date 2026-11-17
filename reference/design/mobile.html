@@ -601,7 +601,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   </div>
   <p id="sub-blocks" data-hi="चरण 7.1 और 7.2: 20 रंग और ऐप के बुनियादी टुकड़े। चौड़ाई खिसकाकर देखें कि हर चीज़ हर फ़ोन पर फ़िट होती है।">Steps 7.1 and 7.2: the 20 colours and the app's building blocks. Drag the width to see every piece fit every phone.</p>
   <p id="sub-map" hidden data-hi="चरण 7.3 (मंज़ूर, 15 नवंबर 2026): ऐप में कौन-सी स्क्रीन कहाँ से खुलती है। नारंगी नंबर नीचे समझाए गए हैं।">Step 7.3 (approved, 15 Nov 2026): which screen opens from where. The orange numbers are explained underneath.</p>
-  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a से 7.4e मंज़ूर; अगला 7.4f: ख़रीद।">Step 7.4: the app's screens, to tap through. 7.4a to 7.4e are approved; 7.4f (purchases) is next.</p>
+  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a से 7.4f मंज़ूर; अगला 7.4g।">Step 7.4: the app's screens, to tap through. 7.4a to 7.4f are approved; 7.4g is next.</p>
 </header>
 
 <div class="wrap" id="v-blocks">
@@ -870,6 +870,39 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 <div class="proto" id="v-a" hidden>
   <div class="guide">
     <div class="gsec">
+      <h2 data-hi="7.4f: ख़रीद (मंज़ूर)">7.4f: Purchases (Approved)</h2>
+      <p data-hi="ख़रीद ऑर्डर, ख़रीद बिल (बैच के साथ), सप्लायर को भुगतान और डेबिट नोट: हर एक की सूची, देखना, नया बनाना और रद्द करना।">Purchase orders, purchase bills (with batches), payments made and debit notes: a list, a view, a new form and cancel for each.</p>
+      <div class="scrlist">
+        <button type="button" data-jump6="polist"><span class="no">1</span><span data-hi="ख़रीद ऑर्डर (सूची)">Purchase Orders (List)</span></button>
+        <button type="button" data-jump6="ponew"><span class="no">2</span><span data-hi="नया ख़रीद ऑर्डर">New Purchase Order</span></button>
+        <button type="button" data-jump6="poview"><span class="no">3</span><span data-hi="ऑर्डर देखें (PO-0012)">Order View (PO-0012)</span></button>
+        <button type="button" data-jump6="pblist"><span class="no">4</span><span data-hi="ख़रीद बिल (सूची)">Purchase Bills (List)</span></button>
+        <button type="button" data-jump6="pbnew"><span class="no">5</span><span data-hi="नया ख़रीद बिल">New Purchase Bill</span></button>
+        <button type="button" data-jump6="pbline"><span class="no">6</span><span data-hi="ख़रीद में आइटम (बैच, एक्सपायरी)">Purchase Item (Batch, Expiry)</span></button>
+        <button type="button" data-jump6="pbview"><span class="no">7</span><span data-hi="ख़रीद बिल देखें (PB-0029)">Purchase Bill View (PB-0029)</span></button>
+        <button type="button" data-jump6="pmlist"><span class="no">8</span><span data-hi="दिए भुगतान (सूची)">Payments Made (List)</span></button>
+        <button type="button" data-jump6="pmnew"><span class="no">9</span><span data-hi="सप्लायर को भुगतान">Pay Supplier</span></button>
+        <button type="button" data-jump6="pmview"><span class="no">10</span><span data-hi="दिया भुगतान देखें">Payment Made View</span></button>
+        <button type="button" data-jump6="dnlist"><span class="no">11</span><span data-hi="डेबिट नोट (सूची)">Debit Notes (List)</span></button>
+        <button type="button" data-jump6="dnnew"><span class="no">12</span><span data-hi="नया डेबिट नोट">New Debit Note</span></button>
+        <button type="button" data-jump6="dnview"><span class="no">13</span><span data-hi="डेबिट नोट देखें">Debit Note View</span></button>
+      </div>
+    </div>
+    <div class="gsec">
+      <h2 data-hi="क्या आज़माएँ (7.4f)">Things To Try (7.4f)</h2>
+      <ol class="rules">
+        <li data-hi="साइड मेन्यू › ख़रीद: ऑर्डर, बिल, दिए भुगतान, डेबिट नोट। सप्लायर पेज पर "भुगतान करें" और "ख़रीद बिल"।">Side menu › Purchases: orders, bills, payments made, debit notes. The supplier page has Pay Supplier and Purchase Bill.</li>
+        <li data-hi="नया ख़रीद बिल: वही बिल वाली स्क्रीन, पर रेट ख़रीद दाम से; सप्लायर का बिल नं. और हर आइटम में बैच व एक्सपायरी।">New Purchase Bill: the same bill screen with purchase rates; the supplier’s bill number, and batch and expiry on each item.</li>
+        <li data-hi="PO-0012 खोलें: "बिल बनाएँ" से माल आने पर ऑर्डर ख़रीद बिल बन जाता है।">Open PO-0012: Convert To Bill turns the order into a purchase bill when the goods arrive.</li>
+        <li data-hi="सप्लायर को भुगतान: सबसे पुराने बिल पहले भरते हैं, बचा हुआ एडवांस।">Pay Supplier: the oldest bills are filled first, the rest is advance.</li>
+        <li data-hi="डेबिट नोट: ख़रीद बिल पर निशान लगाएँ, लौटाई मात्रा लिखें; बैलेंस में घटाएँ या पैसे वापस लें।">Debit Note: tick a purchase bill, enter the quantity sent back; adjust the balance or take a refund.</li>
+      </ol>
+    </div>
+    <div class="gsec">
+      <h2 data-hi="अगला कदम">Next Step</h2>
+      <p data-hi="7.4f आपने 17 नव॰ 2026 को मंज़ूर किया। अगला कदम 7.4g: ख़र्चे, बैंक खाते, नक़द, चेक।">You approved 7.4f on 17 Nov 2026. The next step is 7.4g: expenses, bank accounts, cash in hand and cheques.</p>
+    </div>
+    <div class="gsec">
       <h2 data-hi="7.4e: बिल, Quotation, चालान, भुगतान, क्रेडिट नोट, कमीशन (मंज़ूर)">7.4e: Bills, Quotations, Challans, Payments, Credit Notes, Commission (Approved)</h2>
       <p data-hi="वेब ऐप के यही पेज फ़ोन पर: हर एक की सूची, देखना, नया बनाना और रद्द करना। दस्तावेज़ कभी मिटते नहीं, सिर्फ़ रद्द होते हैं।">The same pages as the web app, on the phone: a list, a view, a new form and cancel for each. Documents are never deleted, only cancelled.</p>
       <div class="scrlist">
@@ -907,10 +940,6 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
         <li data-hi="नया चालान: ग्राहक और आइटम चुनें (बिना दाम); बाद में "बिल बनाएँ" से बिल बनता है।">New Challan: choose the customer and items (no prices); later, Convert To Bill makes the bill.</li>
         <li data-hi="कमीशन: Raju का हिसाब देखें और "दें" से भुगतान करें; ⚙ में श्रेणी के हिसाब से नियम।">Commission: open Raju’s ledger and pay him; ⚙ has the rules by item category.</li>
       </ol>
-    </div>
-    <div class="gsec">
-      <h2 data-hi="अगला कदम">Next Step</h2>
-      <p data-hi="7.4e आपने 17 नव॰ 2026 को मंज़ूर किया। अगला कदम 7.4f: ख़रीद (ऑर्डर, बिल, भुगतान, डेबिट नोट)।">You approved 7.4e on 17 Nov 2026. The next step is 7.4f: purchases (orders, bills, payments made, debit notes).</p>
     </div>
     <div class="gsec">
       <h2 data-hi="7.4d: बिक्री (मंज़ूर)">7.4d: Sale (Approved)</h2>
@@ -1519,7 +1548,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
           <button class="mi" data-grp aria-expanded="false"><svg class="ic"><use href="#bill"/></svg><span data-hi="बिक्री">Sales</span><span class="ex"><svg class="ic"><use href="#next"/></svg></span></button>
           <div hidden><button class="mi sub" data-dl="qt"><span>Quotations</span></button><button class="mi sub" data-dl="inv"><span data-hi="बिक्री बिल">Sale Bills</span></button><button class="mi sub" data-dl="ch"><span data-hi="डिलीवरी चालान">Delivery Challans</span></button><button class="mi sub" data-dl="pr"><span data-hi="मिले भुगतान">Payments Received</span></button><button class="mi sub" data-dl="cn"><span data-hi="क्रेडिट नोट">Credit Notes</span></button><button class="mi sub" data-dl="el"><span data-hi="कमीशन">Commission</span></button></div>
           <button class="mi" data-grp aria-expanded="false"><svg class="ic"><use href="#cart"/></svg><span data-hi="ख़रीद">Purchases</span><span class="ex"><svg class="ic"><use href="#next"/></svg></span></button>
-          <div hidden><button class="mi sub" data-t7="f"><span data-hi="ख़रीद ऑर्डर">Purchase Orders</span></button><button class="mi sub" data-t7="f"><span data-hi="ख़रीद बिल">Purchase Bills</span></button><button class="mi sub" data-t7="f"><span data-hi="दिए भुगतान">Payments Made</span></button><button class="mi sub" data-t7="f"><span data-hi="डेबिट नोट">Debit Notes</span></button></div>
+          <div hidden><button class="mi sub" data-dl="po"><span data-hi="ख़रीद ऑर्डर">Purchase Orders</span></button><button class="mi sub" data-dl="pb"><span data-hi="ख़रीद बिल">Purchase Bills</span></button><button class="mi sub" data-dl="pm"><span data-hi="दिए भुगतान">Payments Made</span></button><button class="mi sub" data-dl="dn"><span data-hi="डेबिट नोट">Debit Notes</span></button></div>
           <button class="mi" data-t7="g"><svg class="ic"><use href="#wallet"/></svg><span data-hi="ख़र्चे">Expenses</span></button>
           <button class="mi" data-grp aria-expanded="false"><svg class="ic"><use href="#rupee"/></svg><span data-hi="बैंक और कैश">Banking &amp; Cash</span><span class="ex"><svg class="ic"><use href="#next"/></svg></span></button>
           <div hidden><button class="mi sub" data-t7="g"><span data-hi="बैंक खाते">Bank Accounts</span></button><button class="mi sub" data-t7="g"><span data-hi="हाथ में कैश">Cash In Hand</span></button><button class="mi sub" data-t7="g"><span data-hi="चेक">Cheques</span></button></div>
@@ -1540,13 +1569,13 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
             <button class="tile" data-dnew="ch"><svg class="ic"><use href="#box"/></svg><span data-hi="डिलीवरी चालान">Delivery Challan</span></button>
             <button class="tile" data-dnew="pr"><svg class="ic"><use href="#rupee"/></svg><span data-hi="भुगतान लें">Payment In</span></button>
             <button class="tile" data-dnew="cn"><svg class="ic"><use href="#back"/></svg><span data-hi="क्रेडिट नोट">Credit Note</span></button>
-            <button class="tile" data-t7="f"><svg class="ic"><use href="#cart"/></svg><span data-hi="ख़रीद बिल">Purchase Bill</span></button>
-            <button class="tile" data-t7="f"><svg class="ic"><use href="#cart"/></svg><span data-hi="ख़रीद ऑर्डर">Purchase Order</span></button>
-            <button class="tile" data-t7="f"><svg class="ic"><use href="#rupee"/></svg><span data-hi="भुगतान दें">Payment Out</span></button>
+            <button class="tile" data-pnew="pb"><svg class="ic"><use href="#cart"/></svg><span data-hi="ख़रीद बिल">Purchase Bill</span></button>
+            <button class="tile" data-pnew="po"><svg class="ic"><use href="#cart"/></svg><span data-hi="ख़रीद ऑर्डर">Purchase Order</span></button>
+            <button class="tile" data-dnew="pm"><svg class="ic"><use href="#rupee"/></svg><span data-hi="भुगतान दें">Payment Out</span></button>
             <button class="tile" data-t7="g"><svg class="ic"><use href="#wallet"/></svg><span data-hi="ख़र्चा">Expense</span></button>
             <button class="tile" data-pform="new"><svg class="ic"><use href="#user"/></svg><span data-hi="नई पार्टी">New Party</span></button>
             <button class="tile" data-iform="new"><svg class="ic"><use href="#box"/></svg><span data-hi="नया आइटम">New Item</span></button>
-            <button class="tile" data-t7="f"><svg class="ic"><use href="#next"/></svg><span data-hi="डेबिट नोट">Debit Note</span></button>
+            <button class="tile" data-dnew="dn"><svg class="ic"><use href="#next"/></svg><span data-hi="डेबिट नोट">Debit Note</span></button>
           </div>
         </div>
       </div>
@@ -1910,12 +1939,12 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     document.getElementById('pp-qa').innerHTML=qa;
     var rows=p.tx.slice().reverse().filter(function(t){if(pk.tf==='all')return true;if(t[0]==='pay'||t[0]==='ob')return false;var s=txState(p,t)[0];return pk.tf==='open'?t[4]>0:pk.tf==='over'?s==='due':t[4]===0});
     document.getElementById('pp-tx').innerHTML=rows.map(function(t){var s=txState(p,t),tn=TN[t[0]];
-      return '<div class="li"'+(t[0]==='ob'?'':' role="button" tabindex="0" '+(t[0]==='pb'?'data-t7="f"':'data-dopen="'+(t[0]==='pay'?'pr':t[0]==='cn'?'cn':'inv')+':'+esc(t[1])+'"'))+'><div class="mid"><div class="nm">'+L(tn[0],tn[1])+'</div><div class="t-x">'+esc(t[1])+' | '+LD(t[2])+'</div></div><div class="end"><div class="v">'+inr(t[3])+'</div><span class="bd '+s[0]+'">'+L(s[1],s[2])+'</span></div></div>'}).join('');
+      return '<div class="li"'+(t[0]==='ob'?'':' role="button" tabindex="0" '+'data-dopen="'+({pay:'pr',cn:'cn',pb:'pb',pm:'pm',dn:'dn'}[t[0]]||'inv')+':'+esc(t[1])+'"')+'><div class="mid"><div class="nm">'+L(tn[0],tn[1])+'</div><div class="t-x">'+esc(t[1])+' | '+LD(t[2])+'</div></div><div class="end"><div class="v">'+inr(t[3])+'</div><span class="bd '+s[0]+'">'+L(s[1],s[2])+'</span></div></div>'}).join('');
     document.getElementById('pp-none').hidden=!!rows.length;
     document.querySelectorAll('#pp-fil [data-tf]').forEach(function(x){x.setAttribute('aria-pressed',x.dataset.tf===pk.tf)});
     document.getElementById('pp-bar').innerHTML=p.k==='c'
       ?'<button class="btn soft grow" data-dnew="pr"><svg class="ic"><use href="#rupee"/></svg>'+L('Take Payment','भुगतान लें')+'</button><button class="btn blue grow" data-sale="party"><svg class="ic"><use href="#plus"/></svg>'+L('New Bill','नया बिल')+'</button>'
-      :'<button class="btn soft grow" data-t7="f"><svg class="ic"><use href="#rupee"/></svg>'+L('Pay Supplier','भुगतान करें')+'</button><button class="btn blue grow" data-t7="f"><svg class="ic"><use href="#plus"/></svg>'+L('Purchase Bill','ख़रीद बिल')+'</button>';
+      :'<button class="btn soft grow" data-dnew="pm"><svg class="ic"><use href="#rupee"/></svg>'+L('Pay Supplier','भुगतान करें')+'</button><button class="btn blue grow" data-pnew="pb"><svg class="ic"><use href="#plus"/></svg>'+L('Purchase Bill','ख़रीद बिल')+'</button>';
     var shop=document.getElementById('home-co').textContent;
     document.getElementById('rm-msg').textContent='Dear '+p.n+', your balance with '+shop+' is ₹'+inr(b)+'. Please pay at the earliest. Thank you.';
   }
@@ -2079,7 +2108,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     var gd=document.getElementById('ip-gd');gd.hidden=i.k!=='p';gd.previousElementSibling.hidden=i.k!=='p';
     gd.innerHTML=(i.gd.length?i.gd:[['Main Shop',0]]).map(function(g){return '<div class="srow" style="cursor:default"><div class="mid"><div class="nm">'+esc(g[0])+'</div></div><div class="end"><div class="v">'+uq(g[1],i.u)+'</div></div></div>'}).join('');
     var rows=i.tx.filter(function(t){return ik.tf==='all'||t[0]===ik.tf});
-    document.getElementById('ip-tx').innerHTML=rows.map(function(t){var tn=TNI[t[0]];return '<div class="li"'+(t[0]==='sale'&&t[1].slice(0,3)==='INV'?' role="button" tabindex="0" data-dopen="inv:'+esc(t[1])+'"':t[0]==='pur'?' role="button" tabindex="0" data-t7="f"':'')+'><div class="mid"><div class="nm">'+L(tn[0],tn[1])+'</div><div class="t-x">'+esc(t[1])+' | '+LD(t[2])+'</div></div><div class="end"><div class="'+(t[3]<0?'qtym':'qtyp')+'">'+(t[3]>0?'+':'')+uq(t[3],i.u)+'</div></div></div>'}).join('');
+    document.getElementById('ip-tx').innerHTML=rows.map(function(t){var tn=TNI[t[0]];return '<div class="li"'+(t[0]==='sale'&&t[1].slice(0,3)==='INV'?' role="button" tabindex="0" data-dopen="inv:'+esc(t[1])+'"':t[0]==='pur'?' role="button" tabindex="0" data-dopen="pb:'+esc(t[1])+'"':'')+'><div class="mid"><div class="nm">'+L(tn[0],tn[1])+'</div><div class="t-x">'+esc(t[1])+' | '+LD(t[2])+'</div></div><div class="end"><div class="'+(t[3]<0?'qtym':'qtyp')+'">'+(t[3]>0?'+':'')+uq(t[3],i.u)+'</div></div></div>'}).join('');
     document.getElementById('ip-none').hidden=!!rows.length;var f=document.getElementById('ip-fil');f.hidden=i.k!=='p';f.previousElementSibling.hidden=i.k!=='p';
     document.querySelectorAll('#ip-fil [data-itf]').forEach(function(x){x.setAttribute('aria-pressed',x.dataset.itf===ik.tf)});
     document.querySelector('[data-s=item] .sf').hidden=i.k!=='p';
@@ -2660,7 +2689,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(o.src){var s=o.src;FM.edit=s.no;FM.no=s.no;FM.d=s.d;FM.p=s.p;if(k==='ch'){FM.lines=s.lines.map(function(l){return {id:l.id,q:l.q,base:I[l.id].sp,pl:'sp',f:1,disc:0,batch:''}});FM.tr=s.tr;FM.veh=s.veh;FM.note=s.note}if(k==='pr'){FM.amt=s.amt;FM.mode=s.mode;FM.ref=s.ref;s.alloc.forEach(function(a){FM.tick[a[0]]=true})}}
     if(k==='pr'&&FM.p&&!o.src){FM.amt=0;unpaid(FM.p).forEach(function(iv){FM.tick[iv.no]=true;FM.amt+=invDues(iv)})}
     nav('dform',{k:k})}
-  function unpaid(p,edit){return DOC.inv.filter(function(d){return d.p===p&&d.st!=='x'&&(invDues(d)>0||(edit&&edit.alloc.some(function(a){return a[0]===d.no})))}).sort(function(a,b){return a.d<b.d?-1:1})}
+  function unpaid(p,edit){return DOC.inv.filter(function(d){return d.p===p&&d.st!=='x'&&(invDues(d)>0||(edit&&edit.alloc.some(function(a){return a[0]===d.no})))}).sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:a.no<b.no?-1:1})}
   function custField(){var pr=FM.p&&P[FM.p];return '<div class="fld"><label>'+L('Customer','ग्राहक')+'</label><button type="button" class="pfield" data-fmcust aria-label="Customer"><svg class="ic"><use href="#user"/></svg>'+(pr?'<span class="nm">'+esc(pr.n)+'</span><span class="cdue">'+(bal(pr)>0?L('Dues ₹'+m2(bal(pr)),'बाकी ₹'+m2(bal(pr))):L('No Dues','कोई बाकी नहीं'))+'</span>':'<span class="ph">'+L('Choose Customer','ग्राहक चुनें')+'</span>')+'<svg class="ic" style="transform:rotate(90deg)"><use href="#next"/></svg></button></div>'}
   function noDate(lbl){return '<div class="invs" style="margin:-12px -12px 0"><div class="iv" style="cursor:default"><span class="k">'+lbl+'</span><span class="dv">'+esc(FM.no)+'</span></div><i></i><button type="button" class="iv" data-fmdate><span class="k">'+L('Date','तारीख़')+'</span><span class="dv">'+LD(FM.d)+'<svg class="ic" style="transform:rotate(90deg)"><use href="#next"/></svg></span></button></div>'}
   function renderDF(){var k=FM.k,h='',bar='',t;
@@ -2749,7 +2778,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(!t||!stage.contains(t))return;
     if(t.hasAttribute('data-dl')){closeOv();nav('dlist',{k:t.dataset.dl});return}
     if(t.hasAttribute('data-dopen')){var pp=t.dataset.dopen.split(':');if(!findDoc(pp[0],pp[1])){toast('This document is not in the sample.','यह दस्तावेज़ नमूने में नहीं है।');return}closeOv();nav('dview',{k:pp[0],no:pp[1]});return}
-    if(t.hasAttribute('data-dnew')){var k=t.dataset.dnew;closeOv();if(k==='inv'){newSale();go('sale');return}if(k==='qt'){qtNew();return}if(k==='el'){elForm();return}fmOpen(k,{p:t.dataset.dp||(k==='pr'&&cur==='party'?pk.cur:'')});return}
+    if(t.hasAttribute('data-dnew')){var k=t.dataset.dnew;closeOv();if(k==='inv'){newSale();go('sale');return}if(k==='qt'){qtNew();return}if(k==='el'){elForm();return}if(k==='po'||k==='pb'){newSale({mode:k,party:t.dataset.dp||''});go('sale');return}fmOpen(k,{p:t.dataset.dp||(cur==='party'?pk.cur:'')});return}
     if(t.hasAttribute('data-draft')){newSale({party:'raju'});addLine('lab',8);addLine('sw',4);go('sale');toast('Draft opened. Finish it and save.','ड्राफ़्ट खुला। पूरा करके सेव करें।');return}
     if(t.hasAttribute('data-dvmore')){gs(dvMenu().map(function(m){return '<button type="button" class="srow mrow" data-dvm="'+m[0]+'"'+(m[4]?' style="color:var(--red)"':'')+'><svg class="ic"'+(m[4]?' style="color:var(--red)"':'')+'><use href="#'+m[1]+'"/></svg><span class="mid">'+L(m[2],m[3])+'</span></button>'}).join(''));return}
     if(t.hasAttribute('data-dvm')){var a=t.dataset.dvm,p=prm(),d=findDoc(p.k,p.no);closeOv();
@@ -2771,7 +2800,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(t.hasAttribute('data-qbsave')){if(!BR.some(function(r){return BQ.qty[r.id]})){toast('Enter at least one quantity first.','पहले कम से कम एक मात्रा लिखें।');return}var ed=BQ.edit;delete BQ.edit;
       if(ed){var o=findDoc('qt',BQ.no);QT[QT.indexOf(o)]=BQ}else{QT.unshift(BQ);qtNo++}var nq=BQ.no;stack.pop();nav('dview',{k:'qt',no:nq});toast(nq+' saved.',nq+' सेव हुई।');return}
     if(t.hasAttribute('data-chconv')){var c=findDoc('ch',t.dataset.chconv);newSale({party:c.p});c.lines.forEach(function(l){addLine(l.id,l.q)});SL.fromCh=c.no;go('sale');toast('Challan items brought into a new bill.','चालान के आइटम नए बिल में आए।');return}
-    if(t.hasAttribute('data-fmcust')){pickCust(function(id){FM.p=id;if(FM.k==='pr'){FM.tick={};FM.amt=0;unpaid(id).forEach(function(iv){FM.tick[iv.no]=true;FM.amt+=invDues(iv)})}if(FM.k==='cn'){FM.inv={};FM.ret={}}});return}
+    if(t.hasAttribute('data-fmcust')){pickCust(function(id){FM.p=id;if(FM.k==='pr'){FM.tick={};FM.amt=0;unpaid(id).forEach(function(iv){FM.tick[iv.no]=true;FM.amt+=invDues(iv)})}if(FM.k==='cn'||FM.k==='dn'){FM.inv={};FM.ret={}}if(FM.k==='pm'){FM.tick={};FM.amt=0;pbUnpaid(id).forEach(function(b){FM.tick[b.no]=true;FM.amt+=pbDues(b)})}});return}
     if(t.hasAttribute('data-fmdate')){dpFor=function(iso){FM.d=iso};dpOpen(FM.d);ov('dpick');return}
     if(t.hasAttribute('data-fmsave')){fmSave();return}
     if(t.hasAttribute('data-chadd')){if(!FM.p&&false)return;LM='ch';edNew();go('sline');ipFocus();return}
@@ -2824,6 +2853,190 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     else if(j==='cmrules'){nav('dlist',{k:'el'});document.querySelector('[data-s=dlist] [data-cmrules]').click()}
     document.querySelectorAll('[data-jump5]').forEach(function(x){x.setAttribute('aria-current',x===b)});
   });
+  /* ---------- 7.4f purchases ---------- */
+  var poNo=13,pbNo=32,pmNo=19,dnNo=3;
+  function PL0(id,q,r,o){var x={id:id,q:q,r:r===undefined?I[id].pp:r};if(o){x.bno=o[0];x.exp=o[1]}return x}
+  P.kanpur.tx.unshift(['pb','PB-0029','2026-11-02',660800,0],['pm','PM-0018','2026-11-05',660800,0]);
+  DOC.pb=[{no:'PB-0031',p:'kanpur',sref:'KC/2026/884',d:'2026-11-10',lines:[PL0('wire',40,115000),PL0('mcb',26,19500)],total:6011900,from:'PO-0011',st:'ok'},
+    {no:'PB-0029',p:'kanpur',sref:'KC/2026/851',d:'2026-11-02',lines:[PL0('led',40,7000,['B-2410','2027-03-31']),PL0('led',40,7000,['B-2411','2027-09-30'])],total:660800,st:'ok'}];
+  DOC.po=[{no:'PO-0012',p:'kanpur',d:'2026-11-14',exp:'2026-11-20',lines:[PL0('wire',20),PL0('mcb',10)],st:'open'},
+    {no:'PO-0011',p:'kanpur',d:'2026-11-01',exp:'2026-11-08',lines:[PL0('wire',40),PL0('mcb',26)],st:'conv',pb:'PB-0031'},
+    {no:'PO-0010',p:'kanpur',d:'2026-10-20',exp:'2026-10-25',lines:[PL0('sw',100)],st:'x'}];
+  DOC.dn=[{no:'DN-0002',p:'kanpur',d:'2026-11-12',pb:['PB-0031'],lines:[PL0('wire',1,115000)],reason:'Damaged Goods',settle:'Cash',total:135700,st:'ok'}];
+  var PMX={'PM-0018':{mode:'Bank Transfer',ref:'UTR 5521 0098',alloc:[['PB-0029',660800]]}};
+  var _eff=eff;eff=function(t){if(t[5]==='x')return 0;if(t[0]==='pm'||t[0]==='dn')return t[3];return _eff(t)};
+  TN.pm=['Payment Out','दिया भुगतान'];TN.dn=['Debit Note','डेबिट नोट'];
+  var _txs2=txState;txState=function(p,t){if(t[5]!=='x'&&t[0]==='pm')return ['info','Paid','दिया'];if(t[5]!=='x'&&t[0]==='dn')return ['info','Adjusted','समायोजित'];return _txs2(p,t)};
+  function ptx(type,no){var r=null;Object.keys(P).forEach(function(id){P[id].tx.forEach(function(t){if(t[0]===type&&t[1]===no)r=t})});return r}
+  function pbDues(d){if(d.st==='x')return 0;var t=ptx('pb',d.no);return t?t[4]:0}
+  function pbState(d){if(d.st==='x')return ['gray','Cancelled','रद्द'];var t=ptx('pb',d.no);return t?txState(P[d.p],t):['paid','Paid','चुकता']}
+  function pmList(){var out=[];Object.keys(P).forEach(function(id){P[id].tx.forEach(function(t){if(t[0]==='pm'){var x=PMX[t[1]]||{mode:'Cash',alloc:[]};out.push({no:t[1],p:id,d:t[2],amt:t[3],mode:x.mode,ref:x.ref||'',alloc:x.alloc||[],withBill:x.withBill||'',st:t[5]==='x'?'x':'ok',t:t})}})});return out.sort(function(a,b){return a.d<b.d?1:a.d>b.d?-1:a.no<b.no?1:-1})}
+  function docCalc(d){var L0=d.lines.reduce(function(s,l){return s+Math.round(l.q*l.r)},0),S=Math.round(d.total*100/118),tax=Math.round(S*0.18);return {items:L0,bdisc:L0-S,taxable:S,cg:Math.floor(tax/2),sg:tax-Math.floor(tax/2),ro:d.total-S-tax,total:d.total,ch:0}}
+  function poTotal(d){return Math.round(d.lines.reduce(function(s,l){return s+l.q*l.r},0)*1.18)}
+  var _fd=findDoc;findDoc=function(k,no){if(k==='pm')return pmList().filter(function(x){return x.no===no})[0];return _fd(k,no)};
+  KD.po={t:['Purchase Orders','ख़रीद ऑर्डर'],st:[['all','All','सभी'],['open','Open','खुले'],['conv','Received','माल आया'],['x','Cancelled','रद्द']],nw:['New Purchase Order','नया ख़रीद ऑर्डर']};
+  KD.pb={t:['Purchase Bills','ख़रीद बिल'],st:[['all','All','सभी'],['due','To Pay','देना है'],['paid','Paid','चुकता'],['x','Cancelled','रद्द']],nw:['New Purchase Bill','नया ख़रीद बिल']};
+  KD.pm={t:['Payments Made','दिए भुगतान'],st:[['all','All Modes','सभी तरीक़े'],['Cash','Cash','नक़द'],['UPI','UPI','UPI'],['Bank Transfer','Bank','बैंक'],['Cheque','Cheque','चेक'],['x','Cancelled','रद्द']],nw:['Pay Supplier','सप्लायर को भुगतान']};
+  KD.dn={t:['Debit Notes','डेबिट नोट'],st:[['all','All','सभी'],['adj','Adjusted','समायोजित'],['ref','Refund Received','पैसे वापस मिले'],['x','Cancelled','रद्द']],nw:['New Debit Note','नया डेबिट नोट']};
+  var _ro=rowsOf;rowsOf=function(k){var R0=[];
+    if(k==='po')DOC.po.forEach(function(d){var s=d.st==='x'?['gray','Cancelled','रद्द']:d.st==='conv'?['paid','Received','माल आया']:['cr','Open','खुला'];R0.push({no:d.no,nm:pname(d),sub:esc(d.no)+' | '+LD(d.d),amt:poTotal(d),b:s,f:d.st,k:d.no+' '+pname(d)})});
+    else if(k==='pb')DOC.pb.forEach(function(d){R0.push({no:d.no,nm:pname(d),sub:esc(d.no)+' | '+LD(d.d)+(d.sref?' · '+esc(d.sref):''),amt:d.total,b:pbState(d),f:d.st==='x'?'x':pbDues(d)?'due':'paid',k:d.no+' '+pname(d)+' '+(d.sref||'')})});
+    else if(k==='pm')pmList().forEach(function(d){R0.push({no:d.no,nm:pname(d),sub:esc(d.no)+' | '+LD(d.d),amt:d.amt,b:d.st==='x'?['gray','Cancelled','रद्द']:['due','↑ Paid','↑ दिया'],f:d.st==='x'?'x':d.mode,k:d.no+' '+pname(d)+' '+d.ref})});
+    else if(k==='dn')DOC.dn.forEach(function(d){R0.push({no:d.no,nm:pname(d),sub:esc(d.no)+' | '+LD(d.d),amt:d.total,b:d.st==='x'?['gray','Cancelled','रद्द']:d.settle==='adj'?['info','Adjusted','समायोजित']:['paid','Refund Received','पैसे वापस मिले'],f:d.st==='x'?'x':d.settle==='adj'?'adj':'ref',k:d.no+' '+pname(d)+' '+d.pb.join(' ')})});
+    else return _ro(k);return R0};
+  var _so=sumOf;sumOf=function(k){var a,b;
+    if(k==='po'){var o=DOC.po.filter(function(d){return d.st==='open'});a=[L('Open Orders','खुले ऑर्डर'),String(o.length)];b=[L('Open Value','खुले ऑर्डर की रक़म'),R(o.reduce(function(s,d){return s+poTotal(d)},0))]}
+    else if(k==='pb'){var t=0,du=0;DOC.pb.forEach(function(d){if(d.st==='x')return;if(d.d.slice(0,7)==='2026-11')t+=d.total;du+=pbDues(d)});a=[L('Bought This Month','इस महीने ख़रीदा'),R(t)];b=[L('↑ Still To Pay','↑ अभी देना है'),'<span class="cr">'+R(du)+'</span>']}
+    else if(k==='pm'){var m=0;pmList().forEach(function(d){if(d.st!=='x'&&d.d.slice(0,7)==='2026-11')m+=d.amt});var du2=0;DOC.pb.forEach(function(d){du2+=pbDues(d)});a=[L('↑ Paid This Month','↑ इस महीने दिया'),'<span class="cr">'+R(m)+'</span>'];b=[L('Still To Pay','अभी देना है'),R(du2)]}
+    else if(k==='dn'){var v=0;DOC.dn.forEach(function(d){if(d.st!=='x')v+=d.total});a=[L('Returned To Suppliers','सप्लायर को लौटाया'),R(v)];b=[L('Debit Notes','डेबिट नोट'),String(DOC.dn.filter(function(d){return d.st!=='x'}).length)]}
+    else return _so(k);
+    return '<div class="dsum"><div><small>'+a[0]+'</small><b>'+a[1]+'</b></div><div><small>'+b[0]+'</small><b>'+b[1]+'</b></div></div>'};
+  function pLines(lines){return '<div class="grp">'+lines.map(function(l,k){var i=I[l.id];return '<div class="srow vl"><span class="sn2">'+(k+1)+'</span><div class="mid"><div class="nm">'+esc(fullName(i))+'</div><div class="t-x one">'+esc(uq(l.q,i.u))+' × '+m2(l.r)+'</div>'+(l.bno?'<div class="t-x one">'+L('Batch '+l.bno,'बैच '+l.bno)+(l.exp?' · '+L('Expiry ','एक्सपायरी ')+fd(l.exp,hiOn()):'')+'</div>':'')+'</div><b class="am2">'+m2(Math.round(l.q*l.r))+'</b></div>'}).join('')+'</div>'}
+  var _rdv=renderDV;renderDV=function(){var p=prm(),k=p.k;if(['po','pb','pm','dn'].indexOf(k)<0)return _rdv();var d=findDoc(k,p.no),h='',bar='',t=d.no,s=LD(d.d);
+    if(k==='pb'){var c=docCalc(d),du=pbDues(d);
+      h+='<div class="vhd"><div><small>'+L('Bill Total','बिल की रक़म')+'</small><b>'+R(d.total)+'</b></div>'+badge(pbState(d))+'</div>';
+      if(d.st==='x')h+='<div class="warnb">'+L('This purchase bill is cancelled. Its stock went out again and the amount to pay was removed.','यह ख़रीद बिल रद्द है। इसका स्टॉक फिर घटा और देनी रक़म हट गई।')+'</div>';
+      h+=partyCard(d)+'<div class="box" style="gap:6px">'+(d.sref?kvr(L('Supplier’s Bill No.','सप्लायर का बिल नं.'),esc(d.sref)):'')+(d.from?kvr(L('From Order','ऑर्डर से'),'<button type="button" class="lnk" style="min-height:0;padding:0" data-dopen="po:'+d.from+'">'+esc(d.from)+'</button>'):'')+kvr(L('Due Date','चुकाने की तारीख़'),LD(addDays(d.d,(P[d.p]||{}).days||0)))+'</div>';
+      h+='<div class="sec">'+L('Items ('+d.lines.length+')','आइटम ('+d.lines.length+')')+'</div>'+pLines(d.lines);
+      h+='<div class="box" style="gap:6px">'+kvr(L('Items Total','आइटम का जोड़'),'₹'+inr(c.items))+(c.bdisc?kvr(L('Discount','छूट'),'−₹'+inr(c.bdisc),'cr'):'')+kvr(L('Taxable Value','टैक्स योग्य रक़म'),'₹'+inr(c.taxable))+kvr(L('CGST (Input)','CGST (इनपुट)'),'₹'+inr(c.cg))+kvr(L('SGST (Input)','SGST (इनपुट)'),'₹'+inr(c.sg))+kvr(L('Round Off','राउंड ऑफ़'),(c.ro<0?'−':'+')+'₹'+inr(c.ro))+'<div class="tl tt"><span>'+L('Total','कुल')+'</span><b>₹'+inr(d.total)+'</b></div>'+kvr(L('↑ Paid','↑ दिया'),'₹'+inr(d.st==='x'?0:d.total-du))+(du?kvr(L('To Pay','देना है'),'₹'+inr(du),'cr'):'')+'</div>';
+      var pays=pmList().filter(function(x){return x.st!=='x'&&x.alloc.some(function(a){return a[0]===d.no})});
+      if(pays.length)h+='<div class="sec">'+L('Payments','भुगतान')+'</div><div class="grp">'+pays.map(function(x){var a=x.alloc.filter(function(y){return y[0]===d.no})[0];return '<button type="button" class="srow cpr" data-dopen="pm:'+x.no+'"><div class="mid"><div class="nm">'+L('Payment Out','दिया भुगतान')+'</div><div class="t-x">'+esc(x.no)+' | '+LD(x.d)+' · '+modeL(x.mode)+'</div></div><b>₹'+m2(a[1])+'</b></button>'}).join('')+'</div>';
+      bar=d.st==='x'?'':(du?'<button class="btn soft grow" data-dnew="pm" data-dp="'+d.p+'"><svg class="ic"><use href="#rupee"/></svg>'+L('Record Payment','भुगतान दर्ज करें')+'</button>':'')+'<button class="btn line grow" data-dnew="dn" data-dp="'+d.p+'">'+L('Return Goods','माल लौटाएँ')+'</button>'}
+    if(k==='po'){var s2=d.st==='x'?['gray','Cancelled','रद्द']:d.st==='conv'?['paid','Received','माल आया']:['cr','Open','खुला'];
+      h+='<div class="vhd"><div><small>'+L('Order Total (With GST)','ऑर्डर का जोड़ (GST सहित)')+'</small><b>'+R(poTotal(d))+'</b></div>'+badge(s2)+'</div>';
+      if(d.st==='conv')h+='<button type="button" class="okb" style="border:0;text-align:left;font:inherit;cursor:pointer;min-height:var(--tap)" data-dopen="pb:'+d.pb+'">'+L('Goods received in '+d.pb+'. Tap to open it.','माल आ गया, '+d.pb+' में दर्ज। खोलने के लिए दबाएँ।')+'</button>';
+      h+=partyCard(d)+'<div class="box" style="gap:6px">'+kvr(L('Expected Delivery','माल कब आएगा'),LD(d.exp))+'</div><div class="sec">'+L('Items ('+d.lines.length+')','आइटम ('+d.lines.length+')')+'</div>'+pLines(d.lines);
+      bar=d.st==='open'?'<button class="btn soft grow" data-toast="Sends the order PDF to the supplier on WhatsApp (on the real phone)." data-toast-hi="ऑर्डर की PDF सप्लायर को WhatsApp पर भेजेगा (असली फ़ोन पर)।"><svg class="ic"><use href="#chat"/></svg>'+L('Share','भेजें')+'</button><button class="btn blue grow" data-poconv="'+d.no+'">'+L('Convert To Bill','बिल बनाएँ')+'</button>':''}
+    if(k==='pm'){var used=d.alloc.reduce(function(a,x){return a+x[1]},0);
+      h+='<div class="vhd"><div><small>'+L('↑ Amount Paid','↑ दी गई रक़म')+'</small><b class="cr">'+R(d.amt)+'</b></div>'+badge(d.st==='x'?['gray','Cancelled','रद्द']:['due','Paid','दिया'])+'</div>';
+      h+=partyCard(d)+'<div class="box" style="gap:6px">'+kvr(L('Paid From','कहाँ से दिया'),modeL(d.mode))+(d.ref?kvr(L('Reference','रेफ़रेंस'),esc(d.ref)):'')+(d.withBill?kvr(L('Paid With Bill','बिल के साथ दिया'),esc(d.withBill)):'')+'</div>';
+      h+='<div class="sec">'+L('Settled Against','किन बिलों में लगा')+'</div>'+(d.alloc.length?'<div class="grp">'+d.alloc.map(function(a){var b=findDoc('pb',a[0]);return '<button type="button" class="srow cpr" data-dopen="pb:'+a[0]+'"><div class="mid"><div class="nm">'+esc(a[0])+'</div><div class="t-x">'+(b?LD(b.d)+' · '+L('Bill ','बिल ')+m2(b.total):'')+'</div></div><b>₹'+m2(a[1])+'</b></button>'}).join('')+'</div>':'')+(d.amt-used>0?'<div class="okb">'+L('₹'+inr(d.amt-used)+' kept as advance with this supplier.','₹'+inr(d.amt-used)+' इस सप्लायर के पास एडवांस में रहा।')+'</div>':'')}
+    if(k==='dn'){var base=d.lines.reduce(function(a,l){return a+Math.round(l.q*l.r)},0);
+      h+='<div class="vhd"><div><small>'+L('Debit Note Total','डेबिट नोट का जोड़')+'</small><b>'+R(d.total)+'</b></div>'+badge(d.st==='x'?['gray','Cancelled','रद्द']:d.settle==='adj'?['info','Adjusted','समायोजित']:['paid','Refund Received','पैसे वापस मिले'])+'</div>';
+      h+=partyCard(d)+'<div class="box" style="gap:6px">'+kvr(L('Against Bills','किन बिलों पर'),esc(d.pb.join(', ')))+kvr(L('Reason','कारण'),esc(d.reason))+kvr(L('Settled As','कैसे निपटाया'),d.settle==='adj'?L('Adjusted In Balance','बैलेंस में घटाया'):L('↓ Refund Received By ','↓ पैसे वापस मिले: ')+modeL(d.settle))+'</div>';
+      h+='<div class="sec">'+L('Items Returned','लौटाए आइटम')+'</div>'+pLines(d.lines)+'<div class="box" style="gap:6px">'+kvr(L('Items','आइटम'),'₹'+inr(base))+kvr('GST','₹'+inr(d.total-base))+'<div class="tl tt"><span>'+L('Total','कुल')+'</span><b>₹'+inr(d.total)+'</b></div></div>'}
+    document.getElementById('dv-t').innerHTML=esc(t);document.getElementById('dv-s').innerHTML=s;document.getElementById('dv-body').innerHTML=h;var bb=document.getElementById('dv-bar');bb.innerHTML=bar;bb.hidden=!bar;
+    document.querySelector('[data-s=dview] [data-dvmore]').hidden=!dvMenu().length};
+  var _dvm=dvMenu;dvMenu=function(){var p=prm(),k=p.k;if(['po','pb','pm','dn'].indexOf(k)<0)return _dvm();var d=findDoc(k,p.no),m=[];if(!d||d.st==='x')return m;
+    if(k==='pb'){m.push(['dtoast','bill','Print','प्रिंट करें']);m.push(['dcan','xic','Cancel Purchase Bill','ख़रीद बिल रद्द करें',1])}
+    if(k==='po'&&d.st==='open'){m.push(['dedit','edit','Edit Order','ऑर्डर बदलें']);m.push(['dcan','xic','Cancel Order','ऑर्डर रद्द करें',1])}
+    if(k==='pm'){m.push(['dedit','edit','Edit Payment','भुगतान बदलें']);m.push(['dcan','xic','Cancel Payment','भुगतान रद्द करें',1])}
+    if(k==='dn')m.push(['dcan','xic','Cancel Debit Note','डेबिट नोट रद्द करें',1]);return m};
+  var _ac=askCancel;askCancel=function(){var p=prm(),k=p.k;if(['po','pb','pm','dn'].indexOf(k)<0)return _ac();var d=findDoc(k,p.no),nm=pname(d),t=L('Cancel '+d.no+'?',d.no+' रद्द करें?'),b='';
+    if(k==='pm'&&d.withBill){toast('Paid with bill '+d.withBill+'. Change it from the bill.','यह बिल '+d.withBill+' के साथ दिया था। बिल में बदलें।');return}
+    if(k==='pb'){var sold=d.lines.some(function(l){return I[l.id].st<l.q});b=L('Its stock goes out again and the ₹'+inr(pbDues(d))+' you owe '+nm+' is removed.'+(sold?' Some of these goods were already sold, so stock will go below zero.':''),'इसका स्टॉक फिर घटेगा और '+nm+' को देने वाले ₹'+inr(pbDues(d))+' हट जाएँगे।'+(sold?' इसमें से कुछ माल बिक चुका है, स्टॉक शून्य से नीचे जाएगा।':''))}
+    if(k==='po')b=L('The order stays in the books marked Cancelled.','ऑर्डर किताबों में "रद्द" लिखा रहेगा।');
+    if(k==='pm')b=L('You will owe '+nm+' ₹'+inr(d.amt)+' again.',nm+' को फिर ₹'+inr(d.amt)+' देने होंगे।');
+    if(k==='dn')b=L('The returned stock comes back into the shop.','लौटाया स्टॉक फिर दुकान में गिना जाएगा।');
+    gd('<b class="t-h" style="font-size:18px">'+t+'</b><div class="t-s">'+b+'</div><div class="t-x">'+L('Documents are never deleted, only cancelled. This cannot be undone.','दस्तावेज़ कभी मिटाए नहीं जाते, सिर्फ़ रद्द होते हैं। यह वापस नहीं होगा।')+'</div><div class="row"><button class="btn line grow" data-close>'+L('Go Back','वापस')+'</button><button class="btn del grow" data-dcanok>'+L('Yes, Cancel','हाँ, रद्द करें')+'</button></div>')};
+  var _dc=doCancel;doCancel=function(){var p=prm(),k=p.k;if(['po','pb','pm','dn'].indexOf(k)<0)return _dc();var d=findDoc(k,p.no);
+    if(k==='pb'){d.st='x';var t=ptx('pb',d.no);if(t)t[5]='x';d.lines.forEach(function(l){var i=I[l.id];if(i.k==='p')i.st-=l.q})}
+    if(k==='po')d.st='x';
+    if(k==='pm'){d.t[5]='x';d.alloc.forEach(function(a){var b=ptx('pb',a[0]);if(b)b[4]+=a[1]})}
+    if(k==='dn'){d.st='x';d.lines.forEach(function(l){var i=I[l.id];if(i.k==='p')i.st+=l.q});if(d.settle==='adj')P[d.p].tx.forEach(function(x){if(x[0]==='dn'&&x[1]===d.no)x[5]='x'})}
+    closeOv();show(cur);toast(d.no+' cancelled. It stays in the books.',d.no+' रद्द हुआ। यह किताबों में रहेगा।')};
+  /* purchase bill and order use the Sale screen */
+  function purMode(){return SL&&(SL.mode==='pb'||SL.mode==='po')}
+  var _ns2=newSale;newSale=function(o){_ns2(o);if(o&&(o.mode==='pb'||o.mode==='po')){SL.no=o.mode==='pb'?'PB-00'+pbNo:'PO-00'+poNo;SL.chgOk=true;SL.sref='';SL.exp=addDays(TODAY,4)}};
+  var _ap=edPick;edPick=function(id){_ap(id);if(purMode()){ED.base=I[id].pp;ED.batch='';ED.bno='';ED.exp=''}};
+  var _rl2=renderLine;renderLine=function(){_rl2();if(!purMode()||LM==='ch'||!ED.id)return;var b=document.getElementById('ln-body'),rows=b.querySelectorAll('.srow2');
+    if(rows[1]){rows[1].firstElementChild.hidden=true;rows[1].style.gridTemplateColumns='1fr'}var lh=b.querySelector('[data-lh]');if(lh)lh.hidden=true;var bt=b.querySelector('[data-lb]');if(bt)bt.parentNode.remove();
+    var rl=document.getElementById('ln-rl');if(rl)rl.innerHTML=L('Purchase Rate Per '+uPer(ED),'ख़रीद रेट प्रति '+uPer(ED));
+    if(SL.mode==='pb'&&BT[ED.id]){var w=document.createElement('div');w.className='srow2';w.innerHTML='<div class="fld"><label for="ln-bno">'+L('Batch No.','बैच नं.')+'</label><div class="inp"><input id="ln-bno" value="'+esc(ED.bno||'')+'" placeholder="B-2412" autocomplete="off"></div></div><div class="fld"><label>'+L('Expiry','एक्सपायरी')+'</label><button type="button" class="pfield" data-lexp aria-label="Expiry">'+(ED.exp?'<span class="nm">'+LD(ED.exp)+'</span>':'<span class="ph">'+L('Choose','चुनें')+'</span>')+'</button></div>';var sum=document.getElementById('ln-sum');sum.parentNode.insertBefore(w,sum)}};
+  var _rs2=renderSale;renderSale=function(){_rs2();document.querySelector('[data-o=smenu] [data-ov=ref]').hidden=purMode();if(!purMode())return;var pb=SL.mode==='pb',s=document.querySelector('[data-s=sale]'),pr=SL.party&&P[SL.party];
+    s.querySelector('.sh .t').innerHTML=pb?L('Purchase Bill','ख़रीद बिल'):L('Purchase Order','ख़रीद ऑर्डर');s.querySelector('.cap').hidden=!pb;
+    s.querySelector('.invs .k').innerHTML=pb?L('Bill No.','बिल नं.'):L('Order No.','ऑर्डर नं.');
+    var chev='<svg class="ic" style="transform:rotate(90deg)"><use href="#next"/></svg>',b=pr?bal(pr):0;
+    document.getElementById('sl-cust').innerHTML='<button type="button" class="pfield" data-cpick aria-label="Supplier"><svg class="ic"><use href="#user"/></svg>'+(pr?'<span class="nm">'+esc(pr.n)+'</span><span class="cdue">'+(b<0?L('To Pay ₹'+m2(b),'देना है ₹'+m2(b)):b>0?L('Advance ₹'+m2(b),'एडवांस ₹'+m2(b)):L('No Dues','कोई बाकी नहीं'))+'</span>':'<span class="ph">'+L('Choose Supplier','सप्लायर चुनें')+'</span>')+chev+'</button>'
+      +(pb?'<div class="fld" style="margin-top:8px"><label for="sl-sref">'+L('Supplier’s Bill No.','सप्लायर का बिल नं.')+'</label><div class="inp"><input id="sl-sref" value="'+esc(SL.sref||'')+'" placeholder="KC/2026/900" autocomplete="off"></div></div>':'<div class="inp" style="margin-top:8px"><span class="pre" style="white-space:nowrap">'+L('Expected','कब आएगा')+'</span><button type="button" class="pk" style="width:auto;flex:1;justify-content:flex-start;padding-left:8px;font:inherit;font-size:15px;color:var(--text)" data-poexp>'+LD(SL.exp)+'</button></div>');
+    var rb=s.querySelector('#sl-sum [data-ov=pay]');if(rb){rb.hidden=!pb;var sm=rb.querySelector('small');if(sm)sm.innerHTML=L('↑ Paid Now','↑ अभी दिया')}
+    document.getElementById('sl-sum').style.gridTemplateColumns=pb?'':'1fr';
+    var mq=document.querySelector('[data-o=smenu] [data-ov=quote]'),mr=document.querySelector('[data-o=smenu] [data-ov=ref]');mq.hidden=true;mr.hidden=true;
+    var tb=document.getElementById('sl-totbox'),c=calc();if(SL.lines.length)tb.innerHTML='<div class="tl"><span>'+(pb?L('Bill Total (With GST)','बिल की रक़म (GST सहित)'):L('Order Total (With GST)','ऑर्डर का जोड़ (GST सहित)'))+'</span><b>₹'+inr(c.total)+'</b></div>'+(pb&&c.dues?'<div class="tl"><span>'+L('To Pay','देना है')+'</span><b class="cr">₹'+inr(c.dues)+'</b></div>':'')};
+  var _rpay=renderPay;renderPay=function(){_rpay();var t=document.querySelector('[data-o=pay] .sheet>b');if(purMode()){t.innerHTML=L('Paid Now','अभी दिया');document.querySelector('[data-o=pay] .tg>span').innerHTML=L('Fully Paid','पूरा दिया')}else{t.innerHTML=L('Payment Received','मिला भुगतान');document.querySelector('[data-o=pay] .tg>span').innerHTML=L('Fully Received','पूरा मिल गया')}};
+  var _ts2=trySave;trySave=function(after){if(!purMode())return _ts2(after);closeOv();if(!SL.lines.length){toast('Add at least one item.','कम से कम एक आइटम जोड़ें।');return}
+    if(!SL.party&&!(SL.mode==='pb'&&SL.type==='cash')){document.getElementById('spq').value='';pickFor=null;go('cpick');toast('Choose the supplier.','सप्लायर चुनें।');return}
+    var c=calc(),pb=SL.mode==='pb',no=(SL.no||'').trim()||(pb?'PB-00'+pbNo:'PO-00'+poNo),lines=SL.lines.map(function(l){var x=PL0(l.id,l.q*fct(l),netOf(l));if(l.bno){x.bno=l.bno;x.exp=l.exp}return x});
+    if(pb){var d={no:no,p:SL.party,cust:SL.party?'':(hiOn()?'नक़द ख़रीद':'Cash Purchase'),sref:SL.sref||'',d:SL.date,lines:lines,total:c.total,from:SL.fromPO||'',st:'ok'};DOC.pb.unshift(d);pbNo++;
+      lines.forEach(function(l){var i=I[l.id];if(i.k==='p'){i.st+=l.q;if(i.gd.length)i.gd[0][1]+=l.q;i.tx.unshift(['pur',no,SL.date,l.q])}if(l.bno&&BT[l.id])BT[l.id].push([l.bno,l.exp||'2099-12-31',l.q])});
+      if(SL.party){P[SL.party].tx.push(['pb',no,SL.date,c.total,c.dues]);if(c.rec){var pm='PM-00'+pmNo;pmNo++;P[SL.party].tx.push(['pm',pm,SL.date,c.rec,0]);PMX[pm]={mode:(SL.pays[0]||{mode:'Cash'}).mode,withBill:no,alloc:[[no,Math.min(c.rec,c.total)]]}}}
+      if(SL.fromPO){var po=findDoc('po',SL.fromPO);if(po){po.st='conv';po.pb=no}}}
+    else{var od={no:no,p:SL.party,d:SL.date,exp:SL.exp,lines:lines,st:'open'};if(SL.poedit){var o=findDoc('po',SL.poedit);DOC.po[DOC.po.indexOf(o)]=od}else{DOC.po.unshift(od);poNo++}}
+    if(after==='new'){newSale({mode:SL.mode});show('sale');toast(no+' saved. Next one started.',no+' सेव हुआ। अगला शुरू।');return}
+    stack.pop();nav('dview',{k:pb?'pb':'po',no:no});toast(no+' saved.',no+' सेव हुआ।')};
+  /* forms: payment made and debit note */
+  var _fo=fmOpen;fmOpen=function(k,o){if(k!=='pm'&&k!=='dn')return _fo(k,o);o=o||{};
+    if(k==='pm'){FM={k:'pm',no:'PM-00'+pmNo,d:TODAY,p:o.p||'',amt:0,mode:'Bank Transfer',ref:'',tick:{}};if(o.src){var s=o.src;FM.edit=s.no;FM.no=s.no;FM.d=s.d;FM.p=s.p;FM.amt=s.amt;FM.mode=s.mode;FM.ref=s.ref;s.alloc.forEach(function(a){FM.tick[a[0]]=true})}else if(FM.p)pbUnpaid(FM.p).forEach(function(b){FM.tick[b.no]=true;FM.amt+=pbDues(b)})}
+    if(k==='dn')FM={k:'dn',no:'DN-000'+dnNo,d:TODAY,p:o.p||'',inv:{},ret:{},reason:'Damaged Goods',settle:'adj'};
+    nav('dform',{k:k})};
+  function pbUnpaid(p,edit){return DOC.pb.filter(function(d){return d.p===p&&d.st!=='x'&&(pbDues(d)>0||(edit&&edit.alloc.some(function(a){return a[0]===d.no})))}).sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:a.no<b.no?-1:1})}
+  function pmAlloc(){var ed=FM.edit?findDoc('pm',FM.edit):null,left=FM.amt,out=[];pbUnpaid(FM.p,ed).forEach(function(b){if(!FM.tick[b.no])return;var due=pbDues(b)+(ed?(ed.alloc.filter(function(a){return a[0]===b.no})[0]||[0,0])[1]:0),a=Math.min(due,Math.max(0,left));left-=a;out.push([b.no,a,due])});return {a:out,adv:Math.max(0,left)}}
+  function renderPMA(){var el=document.getElementById('fm-alloc');if(!el)return;if(!FM.p){el.innerHTML='<div class="hint">'+L('Choose a supplier to see their unpaid bills.','बिना चुकाए बिल देखने के लिए सप्लायर चुनें।')+'</div>';return}
+    var list=pbUnpaid(FM.p,FM.edit?findDoc('pm',FM.edit):null),al=pmAlloc(),h='';
+    if(!list.length)h='<div class="hint">'+L('No unpaid bills. The payment will be kept as an advance.','कोई बाकी बिल नहीं। यह भुगतान एडवांस में रहेगा।')+'</div>';
+    else h='<div class="grp">'+list.map(function(b){var on=!!FM.tick[b.no],a=al.a.filter(function(x){return x[0]===b.no})[0];return '<button type="button" class="srow cpr" role="checkbox" aria-checked="'+on+'" data-ptick="'+b.no+'"><span class="cbx">'+(on?'✓':'')+'</span><div class="mid"><div class="nm">'+esc(b.no)+'</div><div class="t-x">'+LD(b.d)+' · '+L('Due ₹'+m2(a?a[2]:pbDues(b)),'बाकी ₹'+m2(a?a[2]:pbDues(b)))+'</div></div><b class="'+(a&&a[1]?'':'c3')+'">'+(a?'₹'+m2(a[1]):'—')+'</b></button>'}).join('')+'</div><div class="hint">'+L('Oldest bills are filled first. Untick a bill to leave it unpaid.','सबसे पुराने बिल पहले भरते हैं। जो बिल छोड़ना हो उसका निशान हटाएँ।')+'</div>';
+    if(al.adv>0)h+='<div class="okb">'+L('₹'+inr(al.adv)+' is not used for any bill and is kept as advance with this supplier.','₹'+inr(al.adv)+' किसी बिल में नहीं लगा, सप्लायर के पास एडवांस रहेगा।')+'</div>';el.innerHTML=h}
+  function dnRate(b,l){var c=docCalc(b);return c.items?Math.round(l.r*c.taxable/c.items):l.r}
+  function renderDN(){var el=document.getElementById('fm-cn');if(!el)return;if(!FM.p){el.innerHTML='<div class="hint">'+L('Choose the supplier to see their bills.','बिल देखने के लिए सप्लायर चुनें।')+'</div>';renderDNT();return}
+    var list=DOC.pb.filter(function(d){return d.p===FM.p&&d.st!=='x'}),h='<div class="sec">'+L('Against Bills','किन बिलों पर')+'</div>';
+    if(!list.length){el.innerHTML=h+'<div class="hint">'+L('No purchase bills from this supplier.','इस सप्लायर का कोई ख़रीद बिल नहीं।')+'</div>';renderDNT();return}
+    h+='<div class="grp">'+list.map(function(b){var on=!!FM.inv[b.no];return '<button type="button" class="srow cpr" role="checkbox" aria-checked="'+on+'" data-dninv="'+b.no+'"><span class="cbx">'+(on?'✓':'')+'</span><div class="mid"><div class="nm">'+esc(b.no)+'</div><div class="t-x">'+LD(b.d)+' · '+L('Bill ','बिल ')+m2(b.total)+'</div></div></button>'}).join('')+'</div>';
+    list.forEach(function(b){if(!FM.inv[b.no])return;h+='<div class="sec cnh"><span>'+L('Items Of '+b.no,b.no+' के आइटम')+'</span><button type="button" class="lnk sm" data-dnall="'+b.no+'">'+L('Return All','सब लौटाएँ')+'</button></div><div class="grp">'+b.lines.map(function(l,j){var key=b.no+'|'+j,q=FM.ret[key]||0,it=I[l.id];return '<div class="srow vl qbr"><div class="mid"><div class="nm">'+esc(fullName(it))+'</div><div class="t-x one">'+L('Can Return '+l.q,'लौटा सकते '+l.q)+(l.bno?' · '+esc(l.bno):'')+' · ₹'+m2(dnRate(b,l))+'</div></div><div class="stp"><button type="button" data-dnq="-" data-key="'+key+'" aria-label="Less">−</button><input data-dnqi="'+key+'" inputmode="decimal" value="'+(q||'')+'" placeholder="0" aria-label="Return Quantity"><button type="button" data-dnq="+" data-key="'+key+'" aria-label="More">+</button></div></div>'}).join('')+'</div>'});
+    el.innerHTML=h;renderDNT()}
+  function dnLines(){var out=[];Object.keys(FM.ret).forEach(function(key){var q=FM.ret[key];if(!q)return;var pp=key.split('|');if(!FM.inv[pp[0]])return;var b=findDoc('pb',pp[0]),l=b.lines[+pp[1]];out.push(PL0(l.id,q,dnRate(b,l),l.bno?[l.bno,l.exp]:null))});return out}
+  function renderDNT(){var el=document.getElementById('fm-cnt');if(!el)return;var ls=dnLines(),base=ls.reduce(function(a,l){return a+Math.round(l.q*l.r)},0),tot=Math.round(base*1.18);el.innerHTML=kvr(L('Items Returned','लौटाए आइटम'),String(ls.reduce(function(a,l){return a+l.q},0)))+kvr(L('Value','रक़म'),'₹'+inr(base))+kvr('GST','₹'+inr(tot-base))+'<div class="tl tt"><span>'+L('Debit Note Total','डेबिट नोट का जोड़')+'</span><b>₹'+inr(tot)+'</b></div>'}
+  var _rdf=renderDF;renderDF=function(){var k=FM.k;if(k!=='pm'&&k!=='dn')return _rdf();var h='',bar,t,pr=FM.p&&P[FM.p],b=pr?bal(pr):0;
+    var sup='<div class="fld"><label>'+L('Supplier','सप्लायर')+'</label><button type="button" class="pfield" data-fmcust aria-label="Supplier"><svg class="ic"><use href="#user"/></svg>'+(pr?'<span class="nm">'+esc(pr.n)+'</span><span class="cdue">'+(b<0?L('To Pay ₹'+m2(b),'देना है ₹'+m2(b)):L('No Dues','कोई बाकी नहीं'))+'</span>':'<span class="ph">'+L('Choose Supplier','सप्लायर चुनें')+'</span>')+'<svg class="ic" style="transform:rotate(90deg)"><use href="#next"/></svg></button></div>';
+    if(k==='pm'){t=FM.edit?L('Edit Payment Made','दिया भुगतान बदलें'):L('Pay Supplier','सप्लायर को भुगतान');
+      h=noDate(L('Payment No.','भुगतान नं.'))+sup+'<div class="fld"><label for="fm-amt">'+L('↑ Amount Paid','↑ दी गई रक़म')+'</label><div class="inp big"><span class="pre">₹</span><input id="fm-amt" inputmode="decimal" value="'+(FM.amt?v2(FM.amt):'')+'" placeholder="0" autocomplete="off"></div></div>';
+      h+='<div class="srow2"><div class="fld"><label for="fm-mode">'+L('Paid From','कहाँ से दिया')+'</label><div class="inp"><select id="fm-mode">'+MODES.slice(0,4).map(function(m){return '<option value="'+m[0]+'"'+(m[0]===FM.mode?' selected':'')+'>'+(hiOn()?m[1]:m[2])+'</option>'}).join('')+'</select></div></div><div class="fld"'+(FM.mode==='Cash'?' hidden':'')+' id="fm-refw"><label for="fm-ref">'+L('Reference','रेफ़रेंस')+'</label><div class="inp"><input id="fm-ref" value="'+esc(FM.ref)+'" placeholder="'+(hiOn()?'UTR / चेक नं.':'UTR / Cheque No.')+'" autocomplete="off"></div></div></div>';
+      h+='<div class="sec">'+L('Settle Against Bills','किन बिलों में लगाएँ')+'</div><div id="fm-alloc"></div>';
+      bar='<button class="btn blue grow" data-fmsave><svg class="ic"><use href="#check"/></svg>'+L('Save Payment','भुगतान सेव करें')+'</button>'}
+    else{t=L('New Debit Note','नया डेबिट नोट');
+      h=noDate(L('Debit Note No.','डेबिट नोट नं.'))+sup+'<div class="t-x">'+L('Goods sent back to the supplier.','सप्लायर को लौटाया माल।')+'</div><div id="fm-cn"></div>';
+      h+='<div class="fld"><label for="fm-rs">'+L('Reason','कारण')+'</label><div class="inp"><select id="fm-rs">'+[['Damaged Goods','टूटा / ख़राब माल'],['Expired Goods','एक्सपायर माल'],['Wrong Item','ग़लत आइटम'],['Other','दूसरा']].map(function(x){return '<option value="'+x[0]+'"'+(FM.reason===x[0]?' selected':'')+'>'+(hiOn()?x[1]:x[0])+'</option>'}).join('')+'</select></div></div>';
+      h+='<div class="fld"><label for="fm-st">'+L('Settle As','कैसे निपटाएँ')+'</label><div class="inp"><select id="fm-st">'+[['adj','Adjust In Balance','बैलेंस में घटाएँ'],['Cash','Refund In Cash','नक़द वापस'],['UPI','Refund By UPI','UPI से वापस'],['Bank Transfer','Refund To Bank','बैंक में वापस']].map(function(x){return '<option value="'+x[0]+'"'+(FM.settle===x[0]?' selected':'')+'>'+(hiOn()?x[2]:x[1])+'</option>'}).join('')+'</select></div></div><div class="box" style="gap:6px" id="fm-cnt"></div>';
+      bar='<button class="btn blue grow" data-fmsave><svg class="ic"><use href="#check"/></svg>'+L('Save Debit Note','डेबिट नोट सेव करें')+'</button>'}
+    document.getElementById('df-t').innerHTML=t;document.getElementById('df-body').innerHTML=h;document.getElementById('df-bar').innerHTML=bar;if(k==='pm')renderPMA();else renderDN()};
+  var _fs=fmSave;fmSave=function(){var k=FM.k;if(k!=='pm'&&k!=='dn')return _fs();if(!FM.p){toast('Choose the supplier.','सप्लायर चुनें।');return}
+    if(k==='pm'){if(!(FM.amt>0)){toast('Enter the amount paid.','दी गई रक़म लिखें।');return}if(FM.mode==='Cheque'&&!FM.ref){toast('Enter the cheque number.','चेक नंबर लिखें।');return}
+      if(FM.edit){var old=findDoc('pm',FM.edit);old.alloc.forEach(function(a){var t=ptx('pb',a[0]);if(t)t[4]+=a[1]});old.t[3]=FM.amt;old.t[2]=FM.d}
+      var al=pmAlloc();al.a.forEach(function(a){var t=ptx('pb',a[0]);if(t)t[4]-=a[1]});if(!FM.edit){P[FM.p].tx.push(['pm',FM.no,FM.d,FM.amt,0]);pmNo++}
+      PMX[FM.no]={mode:FM.mode,ref:FM.ref,alloc:al.a.filter(function(a){return a[1]>0}).map(function(a){return [a[0],a[1]]})};var no=FM.no;stack.pop();nav('dview',{k:'pm',no:no});toast(no+' saved.',no+' सेव हुआ।');return}
+    var ls=dnLines();if(!ls.length){toast('Enter the quantity returned for at least one item.','कम से कम एक आइटम की लौटाई मात्रा लिखें।');return}
+    var base=ls.reduce(function(a,l){return a+Math.round(l.q*l.r)},0),tot=Math.round(base*1.18),d={no:FM.no,p:FM.p,d:FM.d,pb:Object.keys(FM.inv).filter(function(x){return FM.inv[x]}),lines:ls,reason:FM.reason,settle:FM.settle,total:tot,st:'ok'};
+    DOC.dn.unshift(d);dnNo++;ls.forEach(function(l){var i=I[l.id];if(i.k==='p'){i.st-=l.q;i.tx.unshift(['adj',d.no,TODAY,-l.q])}});if(FM.settle==='adj')P[FM.p].tx.push(['dn',d.no,FM.d,tot,0]);
+    stack.pop();nav('dview',{k:'dn',no:d.no});toast(d.no+' saved.',d.no+' सेव हुआ।')};
+  stage.addEventListener('click',function(e){
+    var t=e.target.closest('[data-pnew],[data-poconv],[data-ptick],[data-dninv],[data-dnall],[data-dnq],[data-lexp],[data-poexp]');if(!t||!stage.contains(t))return;
+    if(t.hasAttribute('data-pnew')){closeOv();newSale({mode:t.dataset.pnew,party:t.dataset.dp||(cur==='party'?pk.cur:'')});go('sale');return}
+    if(t.hasAttribute('data-poconv')){var po=findDoc('po',t.dataset.poconv);newSale({mode:'pb',party:po.p});po.lines.forEach(function(l){addLine(l.id,l.q);SL.lines[SL.lines.length-1].base=l.r});SL.fromPO=po.no;go('sale');toast('Order items brought into a new purchase bill.','ऑर्डर के आइटम नए ख़रीद बिल में आए।');return}
+    if(t.hasAttribute('data-ptick')){var n=t.dataset.ptick;FM.tick[n]=!FM.tick[n];renderPMA();return}
+    if(t.hasAttribute('data-dninv')){var n2=t.dataset.dninv;FM.inv[n2]=!FM.inv[n2];renderDN();return}
+    if(t.hasAttribute('data-dnall')){var b=findDoc('pb',t.dataset.dnall);b.lines.forEach(function(l,j){FM.ret[b.no+'|'+j]=l.q});renderDN();return}
+    if(t.hasAttribute('data-dnq')){var key=t.dataset.key,pp=key.split('|'),mx=findDoc('pb',pp[0]).lines[+pp[1]].q;FM.ret[key]=Math.min(mx,Math.max(0,(FM.ret[key]||0)+(t.dataset.dnq==='+'?1:-1)));document.querySelector('[data-dnqi="'+key+'"]').value=FM.ret[key]||'';renderDNT();return}
+    if(t.hasAttribute('data-lexp')){dpFor=function(iso){ED.exp=iso};dpOpen(ED.exp||addDays(TODAY,365));ov('dpick');return}
+    if(t.hasAttribute('data-poexp')){dpFor=function(iso){SL.exp=iso};dpOpen(SL.exp);ov('dpick');return}
+  });
+  stage.addEventListener('input',function(e){var x=e.target;
+    if(x.id==='ln-bno'){ED.bno=x.value.trim();return}if(x.id==='sl-sref'){SL.sref=x.value;return}
+    if(x.id==='fm-amt'&&FM&&FM.k==='pm'){renderPMA();return}
+    if(x.matches('[data-dnqi]')){var key=x.dataset.dnqi,pp=key.split('|'),mx=findDoc('pb',pp[0]).lines[+pp[1]].q;FM.ret[key]=Math.min(mx,Math.max(0,parseFloat(x.value)||0));renderDNT();return}});
+  document.addEventListener('click',function(e){var b=e.target.closest('[data-jump6]');if(!b)return;var j=b.dataset.jump6;stack=['home'];show('home');
+    if(j==='polist')nav('dlist',{k:'po'});
+    else if(j==='ponew'){newSale({mode:'po',party:'kanpur'});addLine('wire',20);SL.lines[0].base=I.wire.pp;addLine('sw',100);SL.lines[1].base=I.sw.pp;go('sale')}
+    else if(j==='poview')nav('dview',{k:'po',no:'PO-0012'});
+    else if(j==='pblist')nav('dlist',{k:'pb'});
+    else if(j==='pbnew'){newSale({mode:'pb',party:'kanpur'});SL.sref='KC/2026/912';addLine('led',50);SL.lines[0].base=I.led.pp;SL.lines[0].bno='B-2412';SL.lines[0].exp='2028-03-31';go('sale')}
+    else if(j==='pbline'){newSale({mode:'pb',party:'kanpur'});addLine('led',50);SL.lines[0].base=I.led.pp;SL.lines[0].bno='B-2412';SL.lines[0].exp='2028-03-31';go('sale');edOpen(0);go('sline')}
+    else if(j==='pbview')nav('dview',{k:'pb',no:'PB-0029'});
+    else if(j==='pmlist')nav('dlist',{k:'pm'});
+    else if(j==='pmnew')fmOpen('pm',{p:'kanpur'});
+    else if(j==='pmview')nav('dview',{k:'pm',no:'PM-0018'});
+    else if(j==='dnlist')nav('dlist',{k:'dn'});
+    else if(j==='dnnew'){fmOpen('dn',{p:'kanpur'});FM.inv['PB-0031']=true;FM.ret['PB-0031|0']=2;renderDF()}
+    else if(j==='dnview')nav('dview',{k:'dn',no:'DN-0002'});
+    document.querySelectorAll('[data-jump6]').forEach(function(x){x.setAttribute('aria-current',x===b)})});
   newSale();
 })();
 </script>
