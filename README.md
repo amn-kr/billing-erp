@@ -47,7 +47,7 @@ _Last updated: 17 Nov 2026. Details: [`docs/STATUS.md`](docs/STATUS.md)._
 | **Where we are** | Phases 0 to 4 are done. The Windows app (Phase 6) is built. It now waits for checks on real Windows 10/11 PCs and a two-week trial in the owner's shop. |
 | **Latest Windows release** | **v0.1.1** (13 Nov 2026): adds *Bring online books to this PC*. Installers are on the [releases page](https://github.com/amn-kr/billing-erp-releases/releases). |
 | **Live web app** | https://billing-erp-ynqf.onrender.com (free plans; the first open after 15 idle minutes can take about a minute). |
-| **Needs attention** | Nightly database backups have not run since 9 Nov 2026. The fix is merged (PR #105), but GitHub's Actions budget stops the run. The owner needs to sort out the GitHub billing or budget. |
+| **Needs attention** | Nightly database backups have not run since 9 Nov 2026. The fix is merged (PR #105) and in the backup repository, but GitHub's Actions budget stops every run. On hold until 1 Dec 2026, when the free minutes return; a reminder will run one backup and check the restore test that day. |
 | **Next** | Windows trial → phone design (Phase 7, in progress: 7.4a to 7.4d approved, 7.4e next) → Android app (Phase 8). Selling (Phase 5) starts only when the owner asks. |
 
 ---
