@@ -518,6 +518,32 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .sec.cnh{display:flex;align-items:center;justify-content:space-between;margin-bottom:-8px}
 .tl .lnk.kvl{min-height:var(--tap);margin:-12px 0;padding:0 0 0 8px;align-self:center}
 .t-x.one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lays{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.lay{font:inherit;font-size:12px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 4px;border:1px solid var(--border);border-radius:var(--r);background:var(--card);color:var(--text2);cursor:pointer;min-height:var(--tap);min-width:0}
+.lay.on{border-color:var(--blue);background:var(--blue-l);color:var(--blue)}
+.lp{width:44px;height:56px;border:1px solid var(--border);border-radius:4px;background:var(--card);display:flex;flex-direction:column;gap:4px;padding:5px}
+.lp i{display:block;height:6px;border-radius:2px;background:var(--sel)}
+.lp i:first-child{background:var(--blue);height:9px}
+.lp-modern i:first-child{background:var(--navy)}
+.lp-compact{height:44px}
+.cols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.colb{font:inherit;font-size:12px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 2px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--card);color:var(--text2);cursor:pointer;min-height:var(--tap);min-width:0}
+.colb i{width:22px;height:22px;border-radius:50%}
+.colb.on{border-color:var(--blue);background:var(--blue-l);color:var(--blue)}
+.ta{font:inherit;font-size:14px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--card);color:var(--text);padding:8px 10px;resize:vertical;min-height:72px;width:100%}
+.ivp{border:1px solid var(--border);border-radius:var(--r-sm);background:var(--card);padding:10px;font-size:11px;color:var(--text);display:flex;flex-direction:column;gap:6px;min-width:0}
+.ivp .ivh{display:flex;flex-direction:column;align-items:center;text-align:center;gap:1px;border-bottom:2px solid var(--ic);padding-bottom:6px}
+.ivp .ivh b{font-size:14px;color:var(--ic)}
+.ivp-modern .ivh{align-items:flex-start;text-align:left}
+.ivp .ivt{background:var(--ic);color:var(--on);font-weight:700;padding:3px 6px;border-radius:3px}
+.ivp .ivl>div,.ivp .ivs>div{display:flex;justify-content:space-between;gap:6px;border-bottom:1px solid var(--border);padding:3px 0;min-width:0}
+.ivp .ivl span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ivp .ivs .g{font-weight:700;color:var(--ic)}
+.ivp-compact{font-size:10px;gap:3px}
+.ivp .ivw{font-style:italic;color:var(--text2)}
+.ivp .ivf{display:flex;justify-content:space-between;gap:8px;color:var(--text2)}
+.ivp .ivf .sg{align-self:flex-end;border-top:1px solid var(--text3);padding-top:2px;white-space:nowrap}
+.ivp .ivq{border:1px dashed var(--ic);border-radius:3px;padding:4px;text-align:center;color:var(--ic);overflow-wrap:anywhere}
 .mrow{min-height:52px;gap:12px;border-radius:var(--r-sm)}
 .mrow>.ic{color:var(--blue);flex:none}
 .mrow .mid{display:flex;flex-direction:column;min-width:0}
@@ -602,7 +628,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   </div>
   <p id="sub-blocks" data-hi="चरण 7.1 और 7.2: 20 रंग और ऐप के बुनियादी टुकड़े। चौड़ाई खिसकाकर देखें कि हर चीज़ हर फ़ोन पर फ़िट होती है।">Steps 7.1 and 7.2: the 20 colours and the app's building blocks. Drag the width to see every piece fit every phone.</p>
   <p id="sub-map" hidden data-hi="चरण 7.3 (मंज़ूर, 15 नवंबर 2026): ऐप में कौन-सी स्क्रीन कहाँ से खुलती है। नारंगी नंबर नीचे समझाए गए हैं।">Step 7.3 (approved, 15 Nov 2026): which screen opens from where. The orange numbers are explained underneath.</p>
-  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a से 7.4h मंज़ूर; अगला 7.4i: सेटिंग।">Step 7.4: the app's screens, to tap through. 7.4a to 7.4h are approved; 7.4i (settings) is next.</p>
+  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a से 7.4i मंज़ूर; आख़िरी 7.4j।">Step 7.4: the app's screens, to tap through. 7.4a to 7.4i are approved; 7.4j, the last step, is next.</p>
 </header>
 
 <div class="wrap" id="v-blocks">
@@ -871,6 +897,40 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 <div class="proto" id="v-a" hidden>
   <div class="guide">
     <div class="gsec">
+      <h2 data-hi="7.4i: सेटिंग (मंज़ूर)">7.4i: Settings (Approved)</h2>
+      <p data-hi="वेब ऐप की सेटिंग फ़ोन पर: कारोबार, भुगतान, लेन-देन के नंबर, टैक्स और GST, आइटम, प्रिंट और बिल, पासकोड, टीम और Google Drive बैकअप।">The web app’s settings on the phone: business, payment, transaction numbers, taxes and GST, items, print and invoice, passcode, team and Google Drive backup.</p>
+      <div class="scrlist">
+        <button type="button" data-jump9="settings"><span class="no">1</span><span data-hi="सेटिंग (मुख्य)">Settings (Main)</span></button>
+        <button type="button" data-jump9="biz"><span class="no">2</span><span data-hi="कारोबार की जानकारी">Business Details</span></button>
+        <button type="button" data-jump9="pay"><span class="no">3</span><span data-hi="भुगतान की जानकारी">Payment Details</span></button>
+        <button type="button" data-jump9="disp"><span class="no">4</span><span data-hi="दिखावट और मॉड्यूल">Display And Modules</span></button>
+        <button type="button" data-jump9="txn"><span class="no">5</span><span data-hi="लेन-देन">Transactions</span></button>
+        <button type="button" data-jump9="pfx"><span class="no">6</span><span data-hi="prefix बदलें">Change A Prefix</span></button>
+        <button type="button" data-jump9="tax"><span class="no">7</span><span data-hi="टैक्स और GST">Taxes And GST</span></button>
+        <button type="button" data-jump9="item"><span class="no">8</span><span data-hi="आइटम की सेटिंग">Item Settings</span></button>
+        <button type="button" data-jump9="prn"><span class="no">9</span><span data-hi="प्रिंट और बिल">Print And Invoice</span></button>
+        <button type="button" data-jump9="prev"><span class="no">10</span><span data-hi="बिल का नमूना">Invoice Preview</span></button>
+        <button type="button" data-jump9="pass"><span class="no">11</span><span data-hi="लेन-देन का पासकोड">Transaction Passcode</span></button>
+        <button type="button" data-jump9="passchg"><span class="no">12</span><span data-hi="पासकोड बदलें">Change Passcode</span></button>
+        <button type="button" data-jump9="team"><span class="no">13</span><span data-hi="टीम">Team</span></button>
+        <button type="button" data-jump9="invite"><span class="no">14</span><span data-hi="स्टाफ़ बुलाएँ">Invite Staff</span></button>
+        <button type="button" data-jump9="bk"><span class="no">15</span><span data-hi="Google Drive बैकअप">Google Drive Backup</span></button>
+      </div>
+    </div>
+    <div class="gsec">
+      <h2 data-hi="क्या आज़माएँ (7.4i)">Things To Try (7.4i)</h2>
+      <ol class="rules">
+        <li data-hi="होम › सेटिंग: कारोबार, बिल और आइटम, सुरक्षा और बैकअप; जो वेब में अभी नहीं बना उस पर "Soon"।">Home › Settings: business, bills and items, safety and backup; what the web hasn’t built yet shows Soon.</li>
+        <li data-hi="प्रिंट और बिल: डिज़ाइन, रंग, काग़ज़ और क्या छपे चुनें, फिर "बिल का नमूना देखें"।">Print And Invoice: choose the layout, colour, paper and what prints, then Preview Invoice.</li>
+        <li data-hi="टैक्स और GST: GST बंद करें तो टैक्स हर जगह छिप जाता है; कंपोज़िशन चुनें तो बिल "Bill Of Supply" बनता है।">Taxes And GST: turning GST off hides tax everywhere; choosing Composition makes the bill a Bill Of Supply.</li>
+        <li data-hi="Windows की चीज़ें (यह कंप्यूटर, पेन ड्राइव, रिकवरी की, प्रिंटर) फ़ोन पर नहीं हैं, आपके फ़ैसले के मुताबिक़।">Windows-only items (this PC, pen drive, recovery key, printer) are not on the phone, as you decided.</li>
+      </ol>
+    </div>
+    <div class="gsec">
+      <h2 data-hi="अगला कदम">Next Step</h2>
+      <p data-hi="7.4i आपने 17 नव॰ 2026 को मंज़ूर किया। आख़िरी कदम 7.4j: ख़ास हालात (इंटरनेट नहीं, सर्वर जाग रहा है, ग़लती, अनुमति नहीं, ट्रायल ख़त्म)।">You approved 7.4i on 17 Nov 2026. The last step is 7.4j: special states (no internet, server waking up, errors, no permission, trial ended).</p>
+    </div>
+    <div class="gsec">
       <h2 data-hi="7.4h: रिपोर्ट (मंज़ूर)">7.4h: Reports (Approved)</h2>
       <p data-hi="वेब ऐप की 12 बनी हुई रिपोर्ट, कार्ड के रूप में, PDF और Excel भेजने के साथ। बाकी रिपोर्ट वेब में बनते ही फ़ोन पर आएँगी।">The 12 reports built in the web app, as cards, with PDF and Excel share. The others come to the phone when the web has them.</p>
       <div class="scrlist">
@@ -896,10 +956,6 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
         <li data-hi="रिपोर्ट खोलें: ऊपर समय (इस महीने, पिछला महीना, तिमाही, साल, शुरू से) और पार्टी या प्रकार चुनें।">Open a report: choose the period (this month, last month, quarter, year, all time) and the party or type at the top.</li>
         <li data-hi="हर लाइन एक कार्ड है; नीचे कुल का बॉक्स; सबसे नीचे PDF, Excel और WhatsApp से भेजें।">Each line is a card; a total box at the end; PDF, Excel and WhatsApp share at the bottom.</li>
       </ol>
-    </div>
-    <div class="gsec">
-      <h2 data-hi="अगला कदम">Next Step</h2>
-      <p data-hi="7.4h आपने 17 नव॰ 2026 को मंज़ूर किया। अगला कदम 7.4i: सेटिंग।">You approved 7.4h on 17 Nov 2026. The next step is 7.4i: settings.</p>
     </div>
     <div class="gsec">
       <h2 data-hi="7.4g: ख़र्चे, बैंक, नक़द, चेक (मंज़ूर)">7.4g: Expenses, Bank, Cash, Cheques (Approved)</h2>
@@ -1245,11 +1301,31 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
             <button class="srow" data-ov="lang"><svg class="ic" style="color:var(--blue)"><use href="#globe"/></svg><div class="mid" data-hi="भाषा">Language</div><span class="val" id="lang-val">English</span><svg class="ic" style="color:var(--text3)"><use href="#next"/></svg></button>
             <div class="srow" style="cursor:default"><svg class="ic" style="color:var(--blue)"><use href="#finger"/></svg><div class="mid" data-hi="फ़िंगरप्रिंट से खोलें">Fingerprint Unlock</div><button class="sw2" role="switch" aria-checked="true" aria-label="Fingerprint Unlock" id="s-fp"></button></div>
           </div>
+          <div class="sec" data-hi="कारोबार">Business</div>
           <div class="grp">
-            <button class="srow" data-t7="i"><svg class="ic" style="color:var(--text2)"><use href="#bill"/></svg><div class="mid" data-hi="कंपनी की जानकारी">Business Details</div><svg class="ic" style="color:var(--text3)"><use href="#next"/></svg></button>
-            <button class="srow" data-t7="i"><svg class="ic" style="color:var(--text2)"><use href="#share"/></svg><div class="mid" data-hi="प्रिंट और बिल">Print And Invoice</div><svg class="ic" style="color:var(--text3)"><use href="#next"/></svg></button>
-            <button class="srow" data-t7="i"><svg class="ic" style="color:var(--text2)"><use href="#user"/></svg><div class="mid" data-hi="टीम">Team</div><svg class="ic" style="color:var(--text3)"><use href="#next"/></svg></button>
-            <button class="srow" data-t7="i"><svg class="ic" style="color:var(--text2)"><use href="#lockic"/></svg><div class="mid" data-hi="पासकोड">Passcode</div><svg class="ic" style="color:var(--text3)"><use href="#next"/></svg></button>
+            <button class="srow" data-set="biz"><svg class="ic" style="color:var(--text2)"><use href="#bill"/></svg><div class="mid" data-hi="कारोबार की जानकारी">Business Details</div><svg class="ic" style="color:var(--text3)"><use href="#next"/></svg></button>
+            <button class="srow" data-set="pay"><svg class="ic" style="color:var(--text2)"><use href="#rupee"/></svg><div class="mid" data-hi="भुगतान की जानकारी">Payment Details</div><svg class="ic" style="color:var(--text3)"><use href="#next"/></svg></button>
+            <button class="srow" data-set="disp"><svg class="ic" style="color:var(--text2)"><use href="#eyei"/></svg><div class="mid" data-hi="दिखावट और मॉड्यूल">Display And Modules</div><svg class="ic" style="color:var(--text3)"><use href="#next"/></svg></button>
+          </div>
+          <div class="sec" data-hi="बिल और आइटम">Bills And Items</div>
+          <div class="grp">
+            <button class="srow" data-set="txn"><svg class="ic" style="color:var(--text2)"><use href="#book"/></svg><div class="mid" data-hi="लेन-देन (नंबर, prefix)">Transactions (Numbers, Prefixes)</div><svg class="ic" style="color:var(--text3)"><use href="#next"/></svg></button>
+            <button class="srow" data-set="tax"><svg class="ic" style="color:var(--text2)"><use href="#wallet"/></svg><div class="mid" data-hi="टैक्स और GST">Taxes And GST</div><svg class="ic" style="color:var(--text3)"><use href="#next"/></svg></button>
+            <button class="srow" data-set="item"><svg class="ic" style="color:var(--text2)"><use href="#box"/></svg><div class="mid" data-hi="आइटम की सेटिंग">Item Settings</div><svg class="ic" style="color:var(--text3)"><use href="#next"/></svg></button>
+            <button class="srow" data-set="prn"><svg class="ic" style="color:var(--text2)"><use href="#share"/></svg><div class="mid" data-hi="प्रिंट और बिल">Print And Invoice</div><svg class="ic" style="color:var(--text3)"><use href="#next"/></svg></button>
+          </div>
+          <div class="sec" data-hi="सुरक्षा और बैकअप">Safety And Backup</div>
+          <div class="grp">
+            <button class="srow" data-set="pass"><svg class="ic" style="color:var(--text2)"><use href="#lockic"/></svg><div class="mid" data-hi="लेन-देन का पासकोड">Transaction Passcode</div><svg class="ic" style="color:var(--text3)"><use href="#next"/></svg></button>
+            <button class="srow" data-set="team"><svg class="ic" style="color:var(--text2)"><use href="#user"/></svg><div class="mid" data-hi="टीम">Team</div><svg class="ic" style="color:var(--text3)"><use href="#next"/></svg></button>
+            <button class="srow" data-set="bk"><svg class="ic" style="color:var(--text2)"><use href="#check"/></svg><div class="mid" data-hi="Google Drive बैकअप">Google Drive Backup</div><svg class="ic" style="color:var(--text3)"><use href="#next"/></svg></button>
+          </div>
+          <div class="sec" data-hi="जल्द आ रहा है">Coming Soon</div>
+          <div class="grp">
+            <button class="srow" data-t7="soon"><svg class="ic" style="color:var(--text3)"><use href="#bell"/></svg><div class="mid" data-hi="याद दिलाना">Reminders</div><span class="bd gray" data-hi="जल्द">Soon</span></button>
+            <button class="srow" data-t7="soon"><svg class="ic" style="color:var(--text3)"><use href="#chat"/></svg><div class="mid" data-hi="संदेश">Messages</div><span class="bd gray" data-hi="जल्द">Soon</span></button>
+            <button class="srow" data-t7="soon"><svg class="ic" style="color:var(--text3)"><use href="#globe"/></svg><div class="mid" data-hi="कई मुद्राएँ">Multi-Currency</div><span class="bd gray" data-hi="जल्द">Soon</span></button>
+            <button class="srow" data-t7="soon"><svg class="ic" style="color:var(--text3)"><use href="#gear"/></svg><div class="mid" data-hi="सब्सक्रिप्शन">Subscription</div><span class="bd gray" data-hi="जल्द">Soon</span></button>
           </div>
           <div class="t-x" style="text-align:center" data-hi="BillinGo फ़ोन ऐप · नमूना">BillinGo Phone App · Sample</div>
         </div>
@@ -1591,6 +1667,13 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
         <div class="sf"><button class="btn soft" style="padding:0 14px" data-rshare="pdf"><span>PDF</span></button><button class="btn soft" style="padding:0 14px" data-rshare="xls"><span>Excel</span></button><button class="btn green grow" data-rshare="wa"><svg class="ic"><use href="#chat"/></svg><span>WhatsApp</span></button></div>
       </section>
 
+      <!-- 7.4i settings page -->
+      <section class="scn" data-s="set" hidden>
+        <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="mid"><div class="t" id="st-t"></div></div></div>
+        <div class="sb" id="st-b"></div>
+        <div class="sf" id="st-bar"></div>
+      </section>
+
       <!-- 7.4d bill saved -->
       <section class="scn" data-s="saved" hidden>
         <div class="saved">
@@ -1878,7 +1961,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 
   /* ---------- 7.4a tap-through ---------- */
   var stage=document.getElementById('stage'),scns=stage.querySelectorAll('.scn'),stack=['signin'],cur='signin',backOnce=0;
-  var T7={b:['Parties come in step 7.4b.','पार्टी कदम 7.4b में बनेंगी।'],c:['Items and stock come in step 7.4c.','आइटम और स्टॉक कदम 7.4c में बनेंगे।'],d:['New Sale comes in step 7.4d.','नई बिक्री कदम 7.4d में बनेगी।'],e:['This comes in step 7.4e.','यह कदम 7.4e में बनेगा।'],f:['Purchases come in step 7.4f.','ख़रीद कदम 7.4f में बनेगी।'],g:['This comes in step 7.4g.','यह कदम 7.4g में बनेगा।'],h:['Reports come in step 7.4h.','रिपोर्ट कदम 7.4h में बनेंगी।'],i:['This setting comes in step 7.4i.','यह सेटिंग कदम 7.4i में बनेगी।']};
+  var T7={soon:['This comes when it is built in the web app.','यह वेब ऐप में बनने के बाद आएगा।'],b:['Parties come in step 7.4b.','पार्टी कदम 7.4b में बनेंगी।'],c:['Items and stock come in step 7.4c.','आइटम और स्टॉक कदम 7.4c में बनेंगे।'],d:['New Sale comes in step 7.4d.','नई बिक्री कदम 7.4d में बनेगी।'],e:['This comes in step 7.4e.','यह कदम 7.4e में बनेगा।'],f:['Purchases come in step 7.4f.','ख़रीद कदम 7.4f में बनेगी।'],g:['This comes in step 7.4g.','यह कदम 7.4g में बनेगा।'],h:['Reports come in step 7.4h.','रिपोर्ट कदम 7.4h में बनेंगी।'],i:['This setting comes in step 7.4i.','यह सेटिंग कदम 7.4i में बनेगी।']};
   var tt,tEl=document.getElementById('ptoast'),tTx=document.getElementById('ptoast-t');
   function hiOn(){return document.documentElement.lang==='hi'}
   function toast(en,hi){tTx.textContent=hiOn()?hi:en;tEl.hidden=false;clearTimeout(tt);tt=setTimeout(function(){tEl.hidden=true},2600)}
@@ -3345,6 +3428,75 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   document.addEventListener('click',function(e){var b=e.target.closest('[data-jump8]');if(!b)return;var j=b.dataset.jump8;stack=['home'];show('home');document.getElementById('rl-q').value='';
     if(j==='rlist')go('rlist');else{go('rlist');RS.k=j;RS.per=j==='expl'||j==='expc'||j==='expi'?'month':'fy';RS.party=j==='pitem'?'mehta':RS.party;go('rep')}
     document.querySelectorAll('[data-jump8]').forEach(function(x){x.setAttribute('aria-current',x===b)})});
+  /* ---------- 7.4i settings ---------- */
+  var ST={biz:{n:'Sharma Electricals & Hardware',sn:'Sharma',own:'Rakesh Sharma',ph:'98390 00000',em:'sharma.shop@example.com',gst:'09AAAAA0000A1Z5',ad:'12, Nayaganj Main Road',city:'Kanpur',pin:'208001'},
+    pay:{upi:'sharmashop@upi',qr:true,link:false},disp:{mrp:true,cur:true,acc:false},
+    txn:{cash:false,bname:true,time:false,pfx:[['Sale Invoice','INV-',109,true],['Purchase Bill','PB-',32,true],['Quotation','QT-',34,true],['Delivery Challan','DC-',13,true],['Payment In','PR-',46,true],['Payment Out','PM-',19,true],['Credit Note','CN-',4,true],['Debit Note','DN-',3,true],['Expense','EXP-',15,true]]},
+    tax:{gst:true,reg:'Regular',state:'Uttar Pradesh',hsn:true,pos:true,rc:false,cess:false,tcs:false,tds:false,rates:[['GST 0%',0],['GST 5%',5],['GST 12%',12],['GST 18%',18],['GST 28%',28]]},
+    item:{sell:'both',scan:true,pfx:'JE',unit:'Pcs',dec:'2',idisc:true,itax:true,low:true,upd:false,whole:true,batch:true,exp:true,mrp:true},
+    prn:{lay:'classic',col:'blue',paper:'A4',hd:{name:true,addr:true,ph:true,em:false,gst:true},tot:{words:true,rec:true,due:true,pbal:false,mode:true,tax:true,qty:true},sign:true,terms:'1. Goods once sold will not be taken back.\n2. Subject to Kanpur jurisdiction.',copies:{orig:true,dup:false,trip:false}},
+    pass:{on:true},team:[['Rakesh Sharma','owner','Owner (You)'],['Suresh (Counter)','suresh@example.com','Staff'],['Anil (Store)','anil@example.com','Staff · Invite Sent']],
+    bk:{on:true,last:'2026-11-17 02:00',acct:'sharma.shop@example.com'}};
+  var SP={biz:['Business Details','कारोबार की जानकारी'],pay:['Payment Details','भुगतान की जानकारी'],disp:['Display And Modules','दिखावट और मॉड्यूल'],txn:['Transactions','लेन-देन'],tax:['Taxes And GST','टैक्स और GST'],item:['Item Settings','आइटम की सेटिंग'],prn:['Print And Invoice','प्रिंट और बिल'],pass:['Transaction Passcode','लेन-देन का पासकोड'],team:['Team','टीम'],bk:['Google Drive Backup','Google Drive बैकअप']};
+  var SK='biz';
+  function stSw(path,lab,hint){var v=sget(path);return '<div class="tg"><span>'+lab+(hint?'<small class="t-x" style="display:block;font-weight:500">'+hint+'</small>':'')+'</span><button type="button" class="sw2" role="switch" aria-checked="'+(!!v)+'" aria-label="'+esc(typeof lab==='string'?lab.replace(/<[^>]+>/g,''):'')+'" data-stsw="'+path+'"></button></div>'}
+  function sget(p){return p.split('.').reduce(function(o,k){return o&&o[k]},ST)}
+  function sset(p,v){var k=p.split('.'),o=ST;for(var i=0;i<k.length-1;i++)o=o[k[i]];o[k[k.length-1]]=v}
+  function stFl(path,lab,o){o=o||{};return '<div class="fld"><label for="sf-'+path.replace(/\./g,'-')+'">'+lab+'</label><div class="inp">'+(o.pre?'<span class="pre">'+o.pre+'</span>':'')+'<input id="sf-'+path.replace(/\./g,'-')+'" data-stf="'+path+'" value="'+esc(sget(path)||'')+'"'+(o.im?' inputmode="'+o.im+'"':'')+(o.ph?' placeholder="'+esc(o.ph)+'"':'')+' autocomplete="off"></div>'+(o.hint?'<div class="hint">'+o.hint+'</div>':'')+'</div>'}
+  function stSel(path,lab,opts){var v=sget(path);return '<div class="fld"><label for="ss-'+path.replace(/\./g,'-')+'">'+lab+'</label><div class="inp"><select id="ss-'+path.replace(/\./g,'-')+'" data-sts="'+path+'">'+opts.map(function(o){return '<option value="'+esc(o[0])+'"'+(String(v)===String(o[0])?' selected':'')+'>'+(hiOn()?o[2]||o[1]:o[1])+'</option>'}).join('')+'</select></div></div>'}
+  function stSeg(path,lab,opts){var v=sget(path);return '<div class="fld"><label>'+lab+'</label><div class="seg2" role="radiogroup" style="grid-template-columns:repeat('+opts.length+',minmax(0,1fr))">'+opts.map(function(o){return '<button type="button" role="radio" aria-pressed="'+(v===o[0])+'" data-stg="'+path+'" data-v="'+o[0]+'">'+L(o[1],o[2])+'</button>'}).join('')+'</div></div>'}
+  function stBox(h){return '<div class="box" style="gap:2px;padding:6px 12px">'+h+'</div>'}
+  function renderSet(){var k=SK,h='',bar='';document.getElementById('st-t').innerHTML=L(SP[k][0],SP[k][1]);
+    if(k==='biz'){h=stFl('biz.n',L('Business Name','कारोबार का नाम'))+stFl('biz.sn',L('Short Name (Top Bar)','छोटा नाम (ऊपर की पट्टी)'))+stFl('biz.own',L('Owner Name','मालिक का नाम'))+stFl('biz.ph',L('Phone','फ़ोन'),{im:'tel'})+stFl('biz.em',L('Email','ईमेल'),{im:'email'})+stFl('biz.gst',L('GSTIN','GSTIN'),{hint:L('Leave empty if not registered.','रजिस्टर नहीं है तो ख़ाली छोड़ें।')})+stFl('biz.ad',L('Address','पता'),{ph:hiOn()?'दुकान नं., गली, इलाक़ा':'Shop no., street, area'})+'<div class="srow2">'+stFl('biz.city',L('City','शहर'))+stFl('biz.pin',L('PIN Code','पिन कोड'),{im:'numeric'})+'</div>';bar='save'}
+    if(k==='pay'){h=stFl('pay.upi',L('UPI ID For Payments','भुगतान के लिए UPI ID'),{ph:'name@bank'})+stBox(stSw('pay.qr',L('Print Payment QR On Invoices','बिल पर भुगतान का QR छापें'),L('Customers scan it to pay by UPI.','ग्राहक स्कैन करके UPI से भुगतान करें।'))+'<div class="tg"><span>'+L('Add Payment Link To WhatsApp Messages','WhatsApp संदेश में भुगतान लिंक')+'</span><span class="bd gray">'+L('Soon','जल्द')+'</span></div>');bar='save'}
+    if(k==='disp'){h='<div class="sec">'+L('Display','दिखावट')+'</div>'+stBox(stSw('disp.mrp',L('Show MRP','MRP दिखाएँ'))+stSw('disp.cur',L('Show Currency Symbol (₹)','मुद्रा चिह्न (₹) दिखाएँ')))+'<div class="sec">'+L('Modules','मॉड्यूल')+'</div>'+stBox(stSw('disp.acc',L('Accounting','अकाउंटिंग'),L('Ledgers, journal entries and balance sheet.','खाते, जर्नल एंट्री और बैलेंस शीट।')));bar=''}
+    if(k==='txn'){h='<div class="sec">'+L('Transaction Header','लेन-देन का हिस्सा')+'</div>'+stBox(stSw('txn.cash',L('Cash Sale By Default','पहले से नक़द बिक्री'))+stSw('txn.bname',L('Billing Name Of Parties','पार्टी का बिलिंग नाम'))+stSw('txn.time',L('Add Time On Transactions','लेन-देन पर समय भी')))+'<div class="sec">'+L('Transaction Prefixes','लेन-देन के prefix')+'</div><div class="grp">'+ST.txn.pfx.map(function(x,i){return '<button type="button" class="srow cpr" data-stpfx="'+i+'"><div class="mid"><div class="nm">'+esc(x[0])+'</div><div class="t-x">'+L('Next Number ','अगला नंबर ')+esc(x[1])+String(x[2]).padStart(4,'0')+'</div></div><span class="val">'+esc(x[1])+'</span><svg class="ic" style="color:var(--text3)"><use href="#next"/></svg></button>'}).join('')+'</div><div class="hint">'+L('A prefix that is already used on bills can’t be changed; add a new one instead.','जो prefix बिलों में लग चुका है वह बदलता नहीं; नया जोड़ें।')+'</div>'}
+    if(k==='tax'){h=stBox(stSw('tax.gst',L('Enable GST','GST चालू'),L('Off: no tax is charged and tax is hidden across the app.','बंद: कोई टैक्स नहीं लगेगा और ऐप में टैक्स छिप जाएगा।')));if(ST.tax.gst){h+=stSeg('tax.reg',L('Registration Type','रजिस्ट्रेशन का प्रकार'),[['Regular','Regular','रेगुलर'],['Composition','Composition','कंपोज़िशन']])+(ST.tax.reg==='Composition'?'<div class="warnb">'+L('Composition dealers can’t collect GST from customers. Bills become “Bill Of Supply”.','कंपोज़िशन वाले ग्राहक से GST नहीं ले सकते। बिल "Bill Of Supply" बनेगा।')+'</div>':'')+stSel('tax.state',L('State','राज्य'),[['Uttar Pradesh','Uttar Pradesh','उत्तर प्रदेश'],['Delhi','Delhi','दिल्ली'],['Bihar','Bihar','बिहार'],['Madhya Pradesh','Madhya Pradesh','मध्य प्रदेश']])
+      +stBox(stSw('tax.hsn',L('Show HSN/SAC Code On Invoices','बिल पर HSN/SAC कोड'))+stSw('tax.pos',L('Show Place Of Supply','सप्लाई की जगह दिखाएँ'))+stSw('tax.rc',L('Reverse Charge On Purchases','ख़रीद पर रिवर्स चार्ज'))+stSw('tax.cess',L('Additional Cess','अतिरिक्त सेस')))
+      +'<div class="sec">'+L('Tax List','टैक्स की सूची')+'</div><div class="grp">'+ST.tax.rates.map(function(r){return '<div class="srow vl"><div class="mid"><div class="nm">'+esc(r[0])+'</div><div class="t-x">'+L('CGST '+(r[1]/2)+'% + SGST '+(r[1]/2)+'% · Other State IGST '+r[1]+'%','CGST '+(r[1]/2)+'% + SGST '+(r[1]/2)+'% · दूसरा राज्य IGST '+r[1]+'%')+'</div></div></div>'}).join('')+'</div><button type="button" class="lnk sm" data-sttax>'+L('+ Add Tax Rate','+ टैक्स दर जोड़ें')+'</button>'}
+      h+='<div class="sec">'+L('TCS And TDS','TCS और TDS')+'</div>'+stBox(stSw('tax.tcs',L('Enable TCS','TCS चालू'),L('Added to the sale total.','बिक्री के जोड़ में जुड़ता है।'))+stSw('tax.tds',L('Enable TDS','TDS चालू'),L('Deducted from supplier payments.','सप्लायर के भुगतान से कटता है।')))}
+    if(k==='item'){h=stSeg('item.sell',L('What Do You Sell','आप क्या बेचते हैं'),[['p','Products','सामान'],['s','Services','सेवा'],['both','Both','दोनों']])+'<div class="srow2">'+stSel('item.unit',L('Default Unit','पहले से इकाई'),[['Pcs','Pcs'],['Box','Box'],['Mtr','Mtr'],['Kg','Kg']])+stSel('item.dec',L('Qty Decimals','मात्रा दशमलव'),[['0','0'],['1','1'],['2','2'],['3','3']])+'</div>'+stFl('item.pfx',L('Item Code Prefix','आइटम कोड prefix'),{hint:L('Up to 6 letters (A to Z), e.g. JE.','6 अक्षर तक (A से Z), जैसे JE.')})
+      +'<div class="sec">'+L('Price And Billing','दाम और बिलिंग')+'</div>'+stBox(stSw('item.scan',L('Barcode Scan','Barcode स्कैन'))+stSw('item.idisc',L('Item Wise Discount','आइटम के हिसाब से छूट'))+stSw('item.itax',L('Item Wise Tax','आइटम के हिसाब से टैक्स'))+stSw('item.whole',L('Wholesale Price','थोक दाम'),L('An automatic rate from a minimum quantity on the bill.','बिल पर तय मात्रा से अपने-आप रेट।'))+stSw('item.upd',L('Update Sale Price From Bill','बिल से बिक्री दाम बदलें'))+stSw('item.low',L('Show Low Stock Warning','कम स्टॉक की चेतावनी')))
+      +'<div class="sec">'+L('Batch And Serial Tracking','बैच और सीरियल')+'</div>'+stBox(stSw('item.batch',L('Batch No.','बैच नं.'))+stSw('item.exp',L('Expiry Date','एक्सपायरी तारीख़'))+stSw('item.mrp',L('MRP Per Batch','हर बैच का MRP'))+'<div class="tg"><span>'+L('Serial No.','सीरियल नं.')+'</span><span class="bd gray">'+L('Soon','जल्द')+'</span></div>')}
+    if(k==='prn'){var P0=ST.prn;h='<div class="sec">'+L('Invoice Layout','बिल का डिज़ाइन')+'</div><div class="lays">'+[['classic','Classic Boxed','बॉक्स वाला'],['modern','Modern','आधुनिक'],['compact','Compact','छोटा']].map(function(x){return '<button type="button" class="lay'+(P0.lay===x[0]?' on':'')+'" data-stg="prn.lay" data-v="'+x[0]+'" aria-pressed="'+(P0.lay===x[0])+'"><span class="lp lp-'+x[0]+'"><i></i><i></i><i></i></span><span>'+L(x[1],x[2])+'</span></button>'}).join('')+'</div>'
+      +'<div class="fld"><label>'+L('Invoice Colour','बिल का रंग')+'</label><div class="cols">'+[['blue','#1D4ED8','Blue','नीला'],['navy','#1E3A8A','Navy','नेवी'],['green','#15803D','Green','हरा'],['black','#111827','Black','काला']].map(function(c){return '<button type="button" class="colb'+(P0.col===c[0]?' on':'')+'" data-stg="prn.col" data-v="'+c[0]+'" aria-pressed="'+(P0.col===c[0])+'" aria-label="'+c[2]+'"><i style="background:'+c[1]+'"></i><span>'+L(c[2],c[3])+'</span></button>'}).join('')+'</div></div>'
+      +stSeg('prn.paper',L('Paper Size','काग़ज़ का साइज़'),[['A4','A4','A4'],['A5','A5','A5'],['3in','3 Inch','3 इंच']])+'<div class="hint">'+L('On the phone, printing makes a PDF that looks exactly like the printed invoice; share it to WhatsApp or a print app.','फ़ोन पर प्रिंट से PDF बनती है, बिल्कुल छपे बिल जैसी; उसे WhatsApp या प्रिंट ऐप में भेजें।')+'</div>'
+      +'<div class="sec">'+L('Header','ऊपर का हिस्सा')+'</div>'+stBox(stSw('prn.hd.name',L('Company Name','कंपनी का नाम'))+stSw('prn.hd.addr',L('Address','पता'))+stSw('prn.hd.ph',L('Phone Number','फ़ोन नंबर'))+stSw('prn.hd.em',L('Email','ईमेल'))+stSw('prn.hd.gst','GSTIN'))
+      +'<div class="sec">'+L('Totals And Taxes','जोड़ और टैक्स')+'</div>'+stBox(stSw('prn.tot.words',L('Amount In Words','शब्दों में रक़म'))+stSw('prn.tot.rec',L('Received Amount','मिली रक़म'))+stSw('prn.tot.due',L('Balance Due','बाकी रक़म'))+stSw('prn.tot.pbal',L('Party’s Current Balance','पार्टी का कुल बाकी'))+stSw('prn.tot.mode',L('Payment Mode','भुगतान का तरीक़ा'))+stSw('prn.tot.tax',L('Tax Details','टैक्स का ब्योरा'))+stSw('prn.tot.qty',L('Total Quantity','कुल मात्रा')))
+      +'<div class="sec">'+L('Footer','नीचे का हिस्सा')+'</div><div class="fld"><label for="sf-terms">'+L('Terms And Conditions','नियम और शर्तें')+'</label><textarea id="sf-terms" class="ta" data-stf="prn.terms" rows="3">'+esc(P0.terms)+'</textarea></div>'+stBox(stSw('prn.sign',L('Authorized Signatory','अधिकृत हस्ताक्षर')))
+      +'<div class="sec">'+L('Copies','कॉपी')+'</div>'+stBox(stSw('prn.copies.orig',L('Original For Recipient','ग्राहक के लिए मूल'))+stSw('prn.copies.dup',L('Duplicate For Transporter','ट्रांसपोर्टर के लिए डुप्लीकेट'))+stSw('prn.copies.trip',L('Triplicate For Supplier','सप्लायर के लिए तीसरी कॉपी')));bar='prev'}
+    if(k==='pass'){h=stBox(stSw('pass.on',L('Passcode For Edit And Cancel','बदलने और रद्द करने पर पासकोड'),L('Asked before a saved bill or payment is changed or cancelled. Fingerprint works too.','सेव बिल या भुगतान बदलने या रद्द करने से पहले पूछा जाता है। फ़िंगरप्रिंट भी चलता है।')));if(ST.pass.on)h+='<button class="btn line" data-stpass><svg class="ic"><use href="#lockic"/></svg>'+L('Change Passcode','पासकोड बदलें')+'</button><button type="button" class="lnk sm" data-toast="Asks for your account password, then lets you set a new passcode." data-toast-hi="आपके खाते का पासवर्ड पूछेगा, फिर नया पासकोड रखने देगा।">'+L('Forgot Passcode','पासकोड भूल गए')+'</button>'}
+    if(k==='team'){h='<div class="grp">'+ST.team.map(function(m,i){return '<button type="button" class="srow cpr"'+(i?' data-stmem="'+i+'"':' style="cursor:default"')+'><svg class="ic" style="color:var(--blue)"><use href="#user"/></svg><div class="mid"><div class="nm">'+esc(m[0])+'</div><div class="t-x one">'+(i?esc(m[1]):L('This phone','यह फ़ोन'))+'</div></div><span class="bd '+(i?(m[2].indexOf('Invite')>-1?'cr':'gray'):'info')+'">'+L(m[2],m[2].indexOf('Owner')>-1?'मालिक (आप)':m[2].indexOf('Invite')>-1?'स्टाफ़ · बुलावा भेजा':'स्टाफ़')+'</span></button>'}).join('')+'</div><div class="hint">'+L('Staff see and enter bills. What each one may do (roles and access) is decided later, with the field salesman screens.','स्टाफ़ बिल देख और बना सकते हैं। किसे क्या करने दें (रोल और अधिकार), यह बाद में सेल्समैन वाली स्क्रीनों के साथ तय होगा।')+'</div>';bar='invite'}
+    if(k==='bk'){var b=ST.bk;h='<div class="vhd"><div><small>'+L('Backed Up Up To','आख़िरी बैकअप')+'</small><b style="font-size:17px">'+LD(b.last.slice(0,10))+' · 2:00 AM</b></div><span class="bd paid">'+L('Matches Your Books','किताबों से मिलता है')+'</span></div>'+stBox('<div class="tg" style="flex-wrap:wrap;gap:4px 8px"><span style="min-width:0">'+L('Google Drive','Google Drive')+'<small class="t-x" style="display:block;font-weight:500;overflow-wrap:anywhere">'+esc(b.acct)+'</small></span><span class="bd paid">'+L('Connected','जुड़ा है')+'</span></div>'+stSw('bk.on',L('Full Copy Every Day','हर दिन पूरी कॉपी'),L('At 2 AM, into a folder in your Google Drive.','रात 2 बजे, आपकी Google Drive के फ़ोल्डर में।')))+'<div class="hint">'+L('Your books are kept on the server, not on this phone. The backup is an extra copy you own.','आपकी किताबें सर्वर पर रहती हैं, इस फ़ोन पर नहीं। बैकअप आपकी अपनी एक और कॉपी है।')+'</div><button class="btn line" data-strestore><svg class="ic"><use href="#imp"/></svg>'+L('Restore From Backup','बैकअप से वापस लाएँ')+'</button>';bar='backup'}
+    document.getElementById('st-b').innerHTML=h;var bb=document.getElementById('st-bar');bb.hidden=!bar;
+    bb.innerHTML=bar==='save'?'<button class="btn blue grow" data-stsave><svg class="ic"><use href="#check"/></svg>'+L('Save','सेव करें')+'</button>':bar==='prev'?'<button class="btn blue grow" data-stprev><svg class="ic"><use href="#bill"/></svg>'+L('Preview Invoice','बिल का नमूना देखें')+'</button>':bar==='invite'?'<button class="btn blue grow" data-stinv><svg class="ic"><use href="#plus"/></svg>'+L('Invite Staff','स्टाफ़ बुलाएँ')+'</button>':bar==='backup'?'<button class="btn blue grow" data-stbk><svg class="ic"><use href="#check"/></svg>'+L('Backup Now','अभी बैकअप लें')+'</button>':''}
+  function invPrev(){var P0=ST.prn,c={blue:'#1D4ED8',navy:'#1E3A8A',green:'#15803D',black:'#111827'}[P0.col],b=ST.biz,d=DOC.inv[0],cc=invCalc(d);
+    return '<div class="ivp ivp-'+P0.lay+'" style="--ic:'+c+'"><div class="ivh">'+(P0.hd.name?'<b>'+esc(b.n)+'</b>':'')+(P0.hd.addr?'<span>'+esc(b.ad)+', '+esc(b.city)+' '+esc(b.pin)+'</span>':'')+(P0.hd.ph?'<span>'+L('Phone ','फ़ोन ')+esc(b.ph)+'</span>':'')+(P0.hd.em?'<span>'+esc(b.em)+'</span>':'')+(P0.hd.gst&&ST.tax.gst?'<span>GSTIN '+esc(b.gst)+'</span>':'')+'</div><div class="ivt">'+(ST.tax.gst?(ST.tax.reg==='Composition'?L('Bill Of Supply','Bill Of Supply'):L('Tax Invoice','Tax Invoice')):L('Bill','बिल'))+' · '+esc(d.no)+' · '+LD(d.d)+(P0.copies.orig?' · '+L('Original','मूल'):'')+'</div><div class="ivb"><span>'+L('Bill To: ','बिल: ')+esc(pname(d))+'</span></div><div class="ivl">'+d.lines.map(function(l,i){return '<div><span>'+(i+1)+'. '+esc(fullName(I[l.id]))+'</span><span>'+l.q+' × '+m2(l.r)+'</span><b>'+m2(Math.round(l.q*l.r))+'</b></div>'}).join('')+'</div><div class="ivs">'+(P0.tot.qty?'<div><span>'+L('Total Qty','कुल मात्रा')+'</span><b>'+d.lines.reduce(function(s,l){return s+l.q},0)+'</b></div>':'')+(P0.tot.tax&&ST.tax.gst?'<div><span>CGST + SGST</span><b>₹'+inr(cc.cg+cc.sg)+'</b></div>':'')+'<div class="g"><span>'+L('Total','कुल')+'</span><b>₹'+inr(d.total)+'</b></div>'+(P0.tot.rec?'<div><span>'+L('Received','मिला')+'</span><b>₹0.00</b></div>':'')+(P0.tot.due?'<div><span>'+L('Balance Due','बाकी')+'</span><b>₹'+inr(invDues(d))+'</b></div>':'')+(P0.tot.pbal&&d.p?'<div><span>'+L('Party Balance','पार्टी का बाकी')+'</span><b>₹'+inr(bal(P[d.p]))+'</b></div>':'')+'</div>'+(P0.tot.words?'<div class="ivw">'+esc(words(d.total))+'</div>':'')+'<div class="ivf"><span>'+esc(P0.terms).replace(/\n/g,'<br>')+'</span>'+(P0.sign?'<span class="sg">'+L('Authorized Signatory','अधिकृत हस्ताक्षर')+'</span>':'')+'</div>'+(ST.pay.qr?'<div class="ivq">'+L('Scan To Pay: ','भुगतान के लिए स्कैन: ')+esc(ST.pay.upi)+'</div>':'')+'</div>'}
+  var _show9=show;show=function(id){_show9(id);if(id==='set')renderSet()};
+  stage.addEventListener('click',function(e){var t=e.target.closest('[data-set],[data-stsw],[data-stg],[data-stsave],[data-stpfx],[data-stpfxok],[data-sttax],[data-sttaxok],[data-stprev],[data-stpass],[data-stpassok],[data-stmem],[data-stmemact],[data-stinv],[data-stinvok],[data-stbk],[data-strestore]');if(!t||!stage.contains(t))return;
+    if(t.hasAttribute('data-set')){SK=t.dataset.set;go('set');return}
+    if(t.hasAttribute('data-stsw')){var on=t.getAttribute('aria-checked')==='true';sset(t.dataset.stsw,on);if(['tax.gst','pass.on'].indexOf(t.dataset.stsw)>-1)renderSet();toast(on?'Turned on.':'Turned off.',on?'चालू हुआ।':'बंद हुआ।');return}
+    if(t.hasAttribute('data-stg')){sset(t.dataset.stg,t.dataset.v);renderSet();return}
+    if(t.hasAttribute('data-stsave')){toast(SP[SK][0]+' saved.',SP[SK][1]+' सेव हुई।');back();return}
+    if(t.hasAttribute('data-stpfx')){var x=ST.txn.pfx[+t.dataset.stpfx];gs('<b>'+L('Prefixes For '+x[0],x[0]+' के prefix')+'</b><div class="grp"><div class="srow vl"><div class="mid"><div class="nm">'+esc(x[1])+'</div><div class="t-x">'+L('Active · Used On Bills · Next '+x[1]+String(x[2]).padStart(4,'0'),'चालू · बिलों में लगा · अगला '+x[1]+String(x[2]).padStart(4,'0'))+'</div></div><span class="bd info">'+L('Active','चालू')+'</span></div></div><div class="hint">'+L('Used prefixes can’t be edited or deleted.','लगे हुए prefix बदले या हटाए नहीं जा सकते।')+'</div><div class="fld"><label for="px-n">'+L('New Prefix','नया prefix')+'</label><div class="inp"><input id="px-n" placeholder="'+esc(x[1].replace('-','/26-'))+'" autocomplete="off"></div></div><button class="btn blue" data-stpfxok="'+t.dataset.stpfx+'">'+L('Add And Make Active','जोड़ें और चालू करें')+'</button>');return}
+    if(t.hasAttribute('data-stpfxok')){var v=(document.getElementById('px-n').value||'').trim().toUpperCase();if(!v){toast('Enter the new prefix.','नया prefix लिखें।');return}var x2=ST.txn.pfx[+t.dataset.stpfxok];x2[1]=v;x2[2]=1;closeOv();renderSet();toast('New prefix '+v+' is active. Next number '+v+'0001.','नया prefix '+v+' चालू। अगला नंबर '+v+'0001।');return}
+    if(t.hasAttribute('data-sttax')){gs('<b>'+L('Add Tax Rate','टैक्स दर जोड़ें')+'</b><div class="srow2"><div class="fld"><label for="tx-n">'+L('Name','नाम')+'</label><div class="inp"><input id="tx-n" placeholder="GST 3%" autocomplete="off"></div></div><div class="fld"><label for="tx-r">'+L('Rate','दर')+'</label><div class="inp"><input id="tx-r" inputmode="decimal" placeholder="3" autocomplete="off"><span class="pre">%</span></div></div></div><button class="btn blue" data-sttaxok>'+L('Add','जोड़ें')+'</button>');return}
+    if(t.hasAttribute('data-sttaxok')){var r=parseFloat(document.getElementById('tx-r').value);if(!(r>=0)){toast('Enter the rate.','दर लिखें।');return}ST.tax.rates.push([document.getElementById('tx-n').value.trim()||'GST '+r+'%',r]);closeOv();renderSet();toast('Tax rate added.','टैक्स दर जुड़ी।');return}
+    if(t.hasAttribute('data-stprev')){gs('<div class="row" style="justify-content:space-between"><b>'+L('Invoice Preview','बिल का नमूना')+'</b><span class="t-x">'+L(ST.prn.paper==='3in'?'3 Inch':ST.prn.paper,ST.prn.paper==='3in'?'3 इंच':ST.prn.paper)+'</span></div>'+invPrev()+'<button class="btn soft" data-toast="Makes this invoice as a PDF and opens Share (on the real phone)." data-toast-hi="यह बिल PDF बनाकर भेजने के विकल्प खोलेगा (असली फ़ोन पर)।">'+L('Share Sample PDF','नमूना PDF भेजें')+'</button>');return}
+    if(t.hasAttribute('data-stpass')){gs('<b>'+L('Change Passcode','पासकोड बदलें')+'</b><div class="fld"><label for="pc-o">'+L('Current Passcode','अभी का पासकोड')+'</label><div class="inp"><input id="pc-o" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></div></div><div class="srow2"><div class="fld"><label for="pc-n">'+L('New Passcode','नया पासकोड')+'</label><div class="inp"><input id="pc-n" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></div></div><div class="fld"><label for="pc-r">'+L('Type It Again','फिर लिखें')+'</label><div class="inp"><input id="pc-r" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></div></div></div><button class="btn blue" data-stpassok>'+L('Save New Passcode','नया पासकोड सेव करें')+'</button>');return}
+    if(t.hasAttribute('data-stpassok')){var o=document.getElementById('pc-o').value,n=document.getElementById('pc-n').value,a=document.getElementById('pc-r').value;if(o.length!==4||n.length!==4){toast('Use 4 digits.','4 अंक लिखें।');return}if(n!==a){toast('The two passcodes don’t match.','दोनों पासकोड अलग हैं।');return}closeOv();toast('New passcode saved.','नया पासकोड सेव हुआ।');return}
+    if(t.hasAttribute('data-stmem')){var m=ST.team[+t.dataset.stmem],inv=m[2].indexOf('Invite')>-1;gs('<div><b>'+esc(m[0])+'</b><div class="t-x">'+esc(m[1])+'</div></div>'+(inv?'<button type="button" class="srow mrow" data-stmemact="cancel" data-i="'+t.dataset.stmem+'" style="color:var(--red)"><svg class="ic" style="color:var(--red)"><use href="#xic"/></svg><span class="mid">'+L('Cancel Invite','बुलावा रद्द करें')+'</span></button>':'<button type="button" class="srow mrow" data-stmemact="reset" data-i="'+t.dataset.stmem+'"><svg class="ic"><use href="#lockic"/></svg><span class="mid"><span>'+L('Reset Password','पासवर्ड बदलें')+'</span><span class="t-x">'+L('They are signed out on every device straight away.','वे हर डिवाइस से तुरंत बाहर हो जाएँगे।')+'</span></span></button><button type="button" class="srow mrow" data-stmemact="remove" data-i="'+t.dataset.stmem+'" style="color:var(--red);border-bottom:0"><svg class="ic" style="color:var(--red)"><use href="#xic"/></svg><span class="mid"><span>'+L('Remove From Team','टीम से हटाएँ')+'</span><span class="t-x">'+L('Their past entries stay in the books.','उनकी पुरानी एंट्री किताबों में रहेंगी।')+'</span></span></button>'));return}
+    if(t.hasAttribute('data-stmemact')){var i=+t.dataset.i,mm=ST.team[i],act=t.dataset.stmemact;closeOv();if(act==='reset'){toast('Temporary password made. On the real phone it shows once, to give in person.','अस्थायी पासवर्ड बना। असली फ़ोन पर एक बार दिखेगा, ख़ुद जाकर दें।');return}ST.team.splice(i,1);renderSet();toast(act==='cancel'?'Invite cancelled.':mm[0]+' removed. They lose access straight away.',act==='cancel'?'बुलावा रद्द हुआ।':mm[0]+' हटाए गए। उनकी पहुँच तुरंत बंद।');return}
+    if(t.hasAttribute('data-stinv')){gs('<b>'+L('Invite Staff','स्टाफ़ बुलाएँ')+'</b><div class="fld"><label for="iv-n">'+L('Name','नाम')+'</label><div class="inp"><input id="iv-n" autocomplete="off"></div></div><div class="fld"><label for="iv-e">'+L('Email','ईमेल')+'</label><div class="inp"><input id="iv-e" inputmode="email" placeholder="name@example.com" autocomplete="off"></div></div><button class="btn blue" data-stinvok>'+L('Send Invite','बुलावा भेजें')+'</button>');return}
+    if(t.hasAttribute('data-stinvok')){var em=(document.getElementById('iv-e').value||'').trim();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){toast('Enter a valid email address.','सही ईमेल लिखें।');return}ST.team.push([document.getElementById('iv-n').value.trim()||em.split('@')[0],em,'Staff · Invite Sent']);closeOv();renderSet();toast('Invite sent to '+em+'.',em+' को बुलावा भेजा।');return}
+    if(t.hasAttribute('data-stbk')){ST.bk.last=TODAY+' 10:00';toast('Backup done. A full copy is now in Google Drive.','बैकअप हो गया। पूरी कॉपी Google Drive में है।');return}
+    if(t.hasAttribute('data-strestore')){gd('<b class="t-h" style="font-size:18px">'+L('Restore From Backup?','बैकअप से वापस लाएँ?')+'</b><div class="t-s">'+L('The backup opens as new books, next to your current books. Nothing in your current books changes.','बैकअप नई किताबों के रूप में खुलेगा, अभी की किताबों के साथ। अभी की किताबों में कुछ नहीं बदलेगा।')+'</div><div class="row"><button class="btn line grow" data-close>'+L('Cancel','रहने दें')+'</button><button class="btn blue grow" data-close data-toast="Opens the list of backups in Google Drive (on the real phone)." data-toast-hi="Google Drive के बैकअप की सूची खुलेगी (असली फ़ोन पर)।">'+L('Choose Backup','बैकअप चुनें')+'</button></div>');return}
+  });
+  stage.addEventListener('input',function(e){var x=e.target;if(x.matches('[data-stf]'))sset(x.dataset.stf,x.value)});
+  stage.addEventListener('change',function(e){var x=e.target;if(x.matches('[data-sts]')){sset(x.dataset.sts,x.value);toast('Saved.','सेव हुआ।')}});
+  document.addEventListener('click',function(e){var b=e.target.closest('[data-jump9]');if(!b)return;var j=b.dataset.jump9;stack=['home'];show('home');go('settings');
+    if(j==='settings'){}else if(j==='pfx'){SK='txn';go('set');document.querySelector('[data-stpfx="0"]').click()}else if(j==='prev'){SK='prn';go('set');document.querySelector('[data-stprev]').click()}else if(j==='passchg'){SK='pass';go('set');document.querySelector('[data-stpass]').click()}else if(j==='invite'){SK='team';go('set');document.querySelector('[data-stinv]').click()}else{SK=j;go('set')}
+    document.querySelectorAll('[data-jump9]').forEach(function(x){x.setAttribute('aria-current',x===b)})});
   newSale();
 })();
 </script>
