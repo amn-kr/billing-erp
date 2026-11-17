@@ -516,6 +516,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .crr .inp{padding:0 8px}
 .inp.big input{font-size:22px;font-weight:700}
 .sec.cnh{display:flex;align-items:center;justify-content:space-between;margin-bottom:-8px}
+.tl .lnk.kvl{min-height:var(--tap);margin:-12px 0;padding:0 0 0 8px;align-self:center}
 .t-x.one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mrow{min-height:52px;gap:12px;border-radius:var(--r-sm)}
 .mrow>.ic{color:var(--blue);flex:none}
@@ -601,7 +602,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   </div>
   <p id="sub-blocks" data-hi="चरण 7.1 और 7.2: 20 रंग और ऐप के बुनियादी टुकड़े। चौड़ाई खिसकाकर देखें कि हर चीज़ हर फ़ोन पर फ़िट होती है।">Steps 7.1 and 7.2: the 20 colours and the app's building blocks. Drag the width to see every piece fit every phone.</p>
   <p id="sub-map" hidden data-hi="चरण 7.3 (मंज़ूर, 15 नवंबर 2026): ऐप में कौन-सी स्क्रीन कहाँ से खुलती है। नारंगी नंबर नीचे समझाए गए हैं।">Step 7.3 (approved, 15 Nov 2026): which screen opens from where. The orange numbers are explained underneath.</p>
-  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a से 7.4f मंज़ूर; अब 7.4g: ख़र्चे, बैंक, नक़द, चेक।">Step 7.4: the app's screens, to tap through. 7.4a to 7.4f are approved; now 7.4g: expenses, bank, cash and cheques.</p>
+  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a से 7.4g मंज़ूर; अगला 7.4h: रिपोर्ट।">Step 7.4: the app's screens, to tap through. 7.4a to 7.4g are approved; 7.4h (reports) is next.</p>
 </header>
 
 <div class="wrap" id="v-blocks">
@@ -870,7 +871,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 <div class="proto" id="v-a" hidden>
   <div class="guide">
     <div class="gsec">
-      <h2 data-hi="7.4g: ख़र्चे, बैंक, नक़द, चेक (नया)">7.4g: Expenses, Bank, Cash, Cheques (New)</h2>
+      <h2 data-hi="7.4g: ख़र्चे, बैंक, नक़द, चेक (मंज़ूर)">7.4g: Expenses, Bank, Cash, Cheques (Approved)</h2>
       <p data-hi="ख़र्चे, बैंक खाते, हाथ का नक़द और चेक, वेब ऐप की तरह। बैंक मिलान (reconciliation) फ़ोन पर नहीं है, आपके फ़ैसले के मुताबिक़।">Expenses, bank accounts, cash in hand and cheques, as in the web app. Bank reconciliation is not on the phone, as you decided.</p>
       <div class="scrlist">
         <button type="button" data-jump7="exlist"><span class="no">1</span><span data-hi="ख़र्चे (सूची)">Expenses (List)</span></button>
@@ -898,8 +899,8 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
       </ol>
     </div>
     <div class="gsec">
-      <h2 data-hi="7.4g में आपसे क्या चाहिए">What We Need From You (7.4g)</h2>
-      <p data-hi="दबाकर देखिए और बताइए क्या बदलना है। मंज़ूरी के बाद अगला कदम 7.4h: 12 रिपोर्ट कार्ड के रूप में, PDF/Excel भेजना।">Tap through and tell us what to change. After your approval, the next step is 7.4h: the 12 reports as cards, with PDF and Excel share.</p>
+      <h2 data-hi="अगला कदम">Next Step</h2>
+      <p data-hi="7.4g आपने 17 नव॰ 2026 को मंज़ूर किया। अगला कदम 7.4h: 12 रिपोर्ट कार्ड के रूप में, PDF/Excel भेजना।">You approved 7.4g on 17 Nov 2026. The next step is 7.4h: the 12 reports as cards, with PDF and Excel share.</p>
     </div>
     <div class="gsec">
       <h2 data-hi="7.4f: ख़रीद (मंज़ूर)">7.4f: Purchases (Approved)</h2>
@@ -2924,7 +2925,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(k==='pb'){var c=docCalc(d),du=pbDues(d);
       h+='<div class="vhd"><div><small>'+L('Bill Total','बिल की रक़म')+'</small><b>'+R(d.total)+'</b></div>'+badge(pbState(d))+'</div>';
       if(d.st==='x')h+='<div class="warnb">'+L('This purchase bill is cancelled. Its stock went out again and the amount to pay was removed.','यह ख़रीद बिल रद्द है। इसका स्टॉक फिर घटा और देनी रक़म हट गई।')+'</div>';
-      h+=partyCard(d)+'<div class="box" style="gap:6px">'+(d.sref?kvr(L('Supplier’s Bill No.','सप्लायर का बिल नं.'),esc(d.sref)):'')+(d.from?kvr(L('From Order','ऑर्डर से'),'<button type="button" class="lnk" style="min-height:0;padding:0" data-dopen="po:'+d.from+'">'+esc(d.from)+'</button>'):'')+kvr(L('Due Date','चुकाने की तारीख़'),LD(addDays(d.d,(P[d.p]||{}).days||0)))+'</div>';
+      h+=partyCard(d)+'<div class="box" style="gap:6px">'+(d.sref?kvr(L('Supplier’s Bill No.','सप्लायर का बिल नं.'),esc(d.sref)):'')+(d.from?kvr(L('From Order','ऑर्डर से'),'<button type="button" class="lnk kvl" data-dopen="po:'+d.from+'">'+esc(d.from)+'</button>'):'')+kvr(L('Due Date','चुकाने की तारीख़'),LD(addDays(d.d,(P[d.p]||{}).days||0)))+'</div>';
       h+='<div class="sec">'+L('Items ('+d.lines.length+')','आइटम ('+d.lines.length+')')+'</div>'+pLines(d.lines);
       h+='<div class="box" style="gap:6px">'+kvr(L('Items Total','आइटम का जोड़'),'₹'+inr(c.items))+(c.bdisc?kvr(L('Discount','छूट'),'−₹'+inr(c.bdisc),'cr'):'')+kvr(L('Taxable Value','टैक्स योग्य रक़म'),'₹'+inr(c.taxable))+kvr(L('CGST (Input)','CGST (इनपुट)'),'₹'+inr(c.cg))+kvr(L('SGST (Input)','SGST (इनपुट)'),'₹'+inr(c.sg))+kvr(L('Round Off','राउंड ऑफ़'),(c.ro<0?'−':'+')+'₹'+inr(c.ro))+'<div class="tl tt"><span>'+L('Total','कुल')+'</span><b>₹'+inr(d.total)+'</b></div>'+kvr(L('↑ Paid','↑ दिया'),'₹'+inr(d.st==='x'?0:d.total-du))+(du?kvr(L('To Pay','देना है'),'₹'+inr(du),'cr'):'')+'</div>';
       var pays=pmList().filter(function(x){return x.st!=='x'&&x.alloc.some(function(a){return a[0]===d.no})});
@@ -3101,7 +3102,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   function acName(id){var a=AC.filter(function(x){return x.id===id})[0];return a?a.n:id}
   function mask(n){return n?'••• '+n.slice(-4):''}
   var _fd2=findDoc;findDoc=function(k,no){if(k==='ex')return DOC.ex.filter(function(d){return d.no===no})[0];if(k==='ac')return AC.filter(function(a){return a.id===no})[0];if(k==='cq')return cqList().filter(function(c){return c.key===no})[0];return _fd2(k,no)};
-  KD.ex={t:['Expenses','ख़र्चे'],st:[['all','All Categories','सभी श्रेणियाँ']],nw:['Add Expense','ख़र्चा जोड़ें']};
+  KD.ex={t:['Expenses','ख़र्चे'],st:[['all','All','सभी']],nw:['Add Expense','ख़र्चा जोड़ें']};
   KD.ac={t:['Bank And Cash','बैंक और नक़द'],st:[['all','All Accounts','सभी खाते'],['bank','Banks','बैंक'],['cash','Cash','नक़द']],nw:['Add Bank Account','बैंक खाता जोड़ें']};
   KD.cq={t:['Cheques','चेक'],st:[['all','All Cheques','सभी चेक'],['pend','Pending','बाकी'],['dep','Deposited','जमा किया'],['clr','Cleared','क्लियर'],['bnc','Bounced','बाउंस']],nw:['','']};
   var _ro2=rowsOf;rowsOf=function(k){var R0=[];
@@ -3112,9 +3113,9 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   var _so2=sumOf;sumOf=function(k){var a,b;
     if(k==='ex'){var m=0,g=0;DOC.ex.forEach(function(d){if(d.st!=='x'&&d.d.slice(0,7)==='2026-11'){m+=exTotal(d);g+=exGst(d)}});a=[L('↑ Spent This Month','↑ इस महीने ख़र्च'),'<span class="cr">'+R(m)+'</span>'];b=[L('GST Input Credit','GST इनपुट क्रेडिट'),R(g)]}
     else if(k==='ac'){var c=0,bk=0;AC.forEach(function(x){var v=book(x.id).bal;if(x.kind==='cash')c+=v;else bk+=v});a=[L('Cash In Hand','हाथ में नक़द'),R(c)];b=[L('In Banks','बैंकों में'),R(bk)]}
-    else if(k==='cq'){var pi=0,pn=0,io=0;cqList().forEach(function(x){if(x.dir==='in'&&(x.st==='pend'||x.st==='dep')){pi+=x.amt;pn++}if(x.dir==='out'&&x.st==='pend')io+=x.amt});a=[L('↓ To Clear ('+pn+')','↓ क्लियर होने हैं ('+pn+')'),R(pi)];b=[L('↑ Issued, Not Cleared','↑ दिए, क्लियर नहीं'),R(io)]}
+    else if(k==='cq'){var pi=0,pn=0,io=0;cqList().forEach(function(x){if(x.dir==='in'&&(x.st==='pend'||x.st==='dep')){pi+=x.amt;pn++}if(x.dir==='out'&&x.st==='pend')io+=x.amt});a=[L('↓ To Clear ('+pn+')','↓ क्लियर होने हैं ('+pn+')'),R(pi)];b=[L('↑ Issued, Pending','↑ दिए, बाकी'),R(io)]}
     else return _so2(k);return '<div class="dsum"><div><small>'+a[0]+'</small><b>'+a[1]+'</b></div><div><small>'+b[0]+'</small><b>'+b[1]+'</b></div></div>'};
-  var _rdl=renderDL;renderDL=function(){var k=prm().k;if(k==='ex'){KD.ex.st=[['all','All Categories','सभी श्रेणियाँ']].concat(EXC.map(function(c){return [c,c,c]}))}_rdl();
+  var _rdl=renderDL;renderDL=function(){var k=prm().k;if(k==='ex'){KD.ex.st=[['all','All','सभी']].concat(EXC.map(function(c){return [c,c,c]}))}_rdl();
     if(k==='ex')document.getElementById('dl-hd').innerHTML='<button class="btn ico" data-excat aria-label="Expense Categories"><svg class="ic"><use href="#gear"/></svg></button>';
     if(k==='ac')document.getElementById('dl-hd').innerHTML='<button class="btn ico" data-trf aria-label="Transfer Money"><svg class="ic"><use href="#share"/></svg></button>';
     if(k==='cq'){document.getElementById('dl-bar').innerHTML='';document.getElementById('dl-bar').hidden=true}else document.getElementById('dl-bar').hidden=false;};
@@ -3122,7 +3123,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(k==='ex'){t=d.no;s=LD(d.d);var tot=exTotal(d),g=exGst(d);
       h+='<div class="vhd"><div><small>'+L('↑ Amount Spent','↑ ख़र्च की रक़म')+'</small><b class="cr">'+R(tot)+'</b></div>'+badge(d.st==='x'?['gray','Cancelled','रद्द']:['gray',d.cat,d.cat])+'</div>';
       if(d.st==='x')h+='<div class="warnb">'+L('This expense is cancelled. It stays in the books and its money went back to '+acName(d.from)+'.','यह ख़र्चा रद्द है। यह किताबों में रहता है और पैसा '+acName(d.from)+' में वापस गिना गया।')+'</div>';
-      h+='<div class="box" style="gap:6px">'+kvr(L('Paid To','किसे दिया'),esc(d.to))+kvr(L('Paid From','कहाँ से दिया'),'<button type="button" class="lnk" style="min-height:0;padding:0" data-dopen="ac:'+d.from+'">'+esc(acName(d.from))+'</button>')+(d.ref?kvr(L('Bill / Reference No.','बिल / रेफ़रेंस नं.'),esc(d.ref)):'')+'</div>';
+      h+='<div class="box" style="gap:6px">'+kvr(L('Paid To','किसे दिया'),esc(d.to))+kvr(L('Paid From','कहाँ से दिया'),'<button type="button" class="lnk kvl" data-dopen="ac:'+d.from+'">'+esc(acName(d.from))+'</button>')+(d.ref?kvr(L('Bill / Reference No.','बिल / रेफ़रेंस नं.'),esc(d.ref)):'')+'</div>';
       h+='<div class="sec">'+L('Lines','लाइनें')+'</div><div class="grp">'+d.lines.map(function(l,i){return '<div class="srow vl"><span class="sn2">'+(i+1)+'</span><div class="mid"><div class="nm">'+esc(l.t)+'</div><div class="t-x">'+(l.g?'GST '+l.g+'% · ₹'+m2(Math.round(l.a*l.g/100)):L('No GST','GST नहीं'))+'</div></div><b class="am2">'+m2(Math.round(l.a*(1+(l.g||0)/100)))+'</b></div>'}).join('')+'</div>';
       h+='<div class="box" style="gap:6px">'+kvr(L('Amount','रक़म'),'₹'+inr(tot-g))+kvr(L('GST Input Credit','GST इनपुट क्रेडिट'),'₹'+inr(g))+'<div class="tl tt"><span>'+L('Total','कुल')+'</span><b>₹'+inr(tot)+'</b></div></div>'}
     if(k==='ac'){var bk=book(d.id),per=p.per||'this',start=per==='this'?'2026-11-01':per==='last'?'2026-10-01':'',end=per==='last'?'2026-11-01':'',E=bk.E.filter(function(e){return (!start||e.d>=start)&&(!end||e.d<end)}),tin=0,tout=0;E.forEach(function(e){if(e.amt>0)tin+=e.amt;else tout-=e.amt});
@@ -3134,7 +3135,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
       bar=(d.kind==='cash'?'<button class="btn soft grow" data-ccount><svg class="ic"><use href="#check"/></svg>'+L('Count Cash','नक़द गिनें')+'</button>':'')+'<button class="btn blue grow" data-trf="'+d.id+'"><svg class="ic"><use href="#share"/></svg>'+L('Transfer Money','पैसा ट्रांसफ़र')+'</button>'}
     if(k==='cq'){var c=d;t=L('Cheque ','चेक ')+esc(c.no);s=LD(c.d);var cs=cqState(c);
       h+='<div class="vhd"><div><small>'+(c.dir==='in'?L('↓ Received From Customer','↓ ग्राहक से मिला'):L('↑ Issued To Supplier','↑ सप्लायर को दिया'))+'</small><b class="'+(c.dir==='in'?'cg':'cr')+'">'+R(c.amt)+'</b></div>'+badge(cs)+'</div>';
-      h+=partyCard(c)+'<div class="box" style="gap:6px">'+kvr(L('Cheque No.','चेक नं.'),esc(c.no))+kvr(L('Payment','भुगतान'),'<button type="button" class="lnk" style="min-height:0;padding:0" data-dopen="'+(c.dir==='in'?'pr':'pm')+':'+c.doc+'">'+esc(c.doc)+'</button>')+(c.s.bank?kvr(L('Drawn On','किस बैंक का'),esc(c.s.bank)):'')+(c.s.acct?kvr(c.dir==='in'?L('Deposited In','कहाँ जमा'):L('Paid From','कहाँ से'),esc(acName(c.s.acct))):'')+(c.s.dd?kvr(L('Deposited On','जमा की तारीख़'),LD(c.s.dd)):'')+(c.s.cd?kvr(L('Cleared On','क्लियर की तारीख़'),LD(c.s.cd)):'')+(c.st==='bnc'?kvr(L('Bounce Charges','बाउंस चार्ज'),'₹'+inr(c.s.chg||0),'cr')+(c.s.why?kvr(L('Reason','कारण'),esc(c.s.why)):''):'')+'</div>';
+      h+=partyCard(c)+'<div class="box" style="gap:6px">'+kvr(L('Cheque No.','चेक नं.'),esc(c.no))+kvr(L('Payment','भुगतान'),'<button type="button" class="lnk kvl" data-dopen="'+(c.dir==='in'?'pr':'pm')+':'+c.doc+'">'+esc(c.doc)+'</button>')+(c.s.bank?kvr(L('Drawn On','किस बैंक का'),esc(c.s.bank)):'')+(c.s.acct?kvr(c.dir==='in'?L('Deposited In','कहाँ जमा'):L('Paid From','कहाँ से'),esc(acName(c.s.acct))):'')+(c.s.dd?kvr(L('Deposited On','जमा की तारीख़'),LD(c.s.dd)):'')+(c.s.cd?kvr(L('Cleared On','क्लियर की तारीख़'),LD(c.s.cd)):'')+(c.st==='bnc'?kvr(L('Bounce Charges','बाउंस चार्ज'),'₹'+inr(c.s.chg||0),'cr')+(c.s.why?kvr(L('Reason','कारण'),esc(c.s.why)):''):'')+'</div>';
       if(c.st==='bnc')h+='<div class="warnb">'+(c.dir==='in'?L('The payment was undone: '+pname(c)+' owes this money again.','भुगतान हट गया: '+pname(c)+' पर यह रक़म फिर बाकी है।'):L('The payment was undone: you owe '+pname(c)+' this money again.','भुगतान हट गया: '+pname(c)+' को यह रक़म फिर देनी है।'))+'</div>';
       if(c.st==='pend'&&c.dir==='in')bar='<button class="btn blue grow" data-cqdep>'+L('Deposit In Bank','बैंक में जमा करें')+'</button>';
       if(c.st==='dep'||(c.st==='pend'&&c.dir==='out'))bar='<button class="btn del grow" data-cqbnc>'+L('Mark Bounced','बाउंस हुआ')+'</button><button class="btn green grow" data-cqclr>'+L('Mark Cleared','क्लियर हुआ')+'</button>';
@@ -3179,7 +3180,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(FM.upi)AC.forEach(function(a){a.upi=false});
     if(FM.edit){var a=findDoc('ac',FM.edit);a.n=FM.n;a.sub=FM.type;a.no=FM.no;a.ifsc=FM.ifsc;a.br=FM.br;a.ob=FM.ob;a.od=FM.od;a.upi=FM.upi;stack.pop();show(cur);toast('Bank account saved.','बैंक खाता सेव हुआ।');return}
     var id='b'+Date.now();AC.push({id:id,kind:'bank',n:FM.n,sub:FM.type,no:FM.no,ifsc:FM.ifsc,br:FM.br,ob:FM.ob,od:FM.od,upi:FM.upi});stack.pop();nav('dview',{k:'ac',no:id});toast(FM.n+' added.',FM.n+' जुड़ा।')};
-  function trfSheet(from){var opts=function(sel){return AC.map(function(a){return '<option value="'+a.id+'"'+(a.id===sel?' selected':'')+'>'+esc(a.n)+'</option>'}).join('')},f=from||'cash',to=f==='cash'?'hdfc':'cash';
+  function trfSheet(from){var opts=function(sel){return AC.map(function(a){return '<option value="'+a.id+'"'+(a.id===sel?' selected':'')+'>'+esc(a.kind==='cash'?(hiOn()?'नक़द':'Cash'):(a.short||a.n))+'</option>'}).join('')},f=from||'cash',to=f==='cash'?'hdfc':'cash';
     gs('<b>'+L('Transfer Money','पैसा ट्रांसफ़र')+'</b><div class="t-x">'+L('Deposit cash in a bank, withdraw cash, or move money between banks.','नक़द बैंक में जमा करें, बैंक से निकालें, या एक बैंक से दूसरे में भेजें।')+'</div><div class="srow2"><div class="fld"><label for="tr-f">'+L('From','से')+'</label><div class="inp"><select id="tr-f">'+opts(f)+'</select></div></div><div class="fld"><label for="tr-t">'+L('To','में')+'</label><div class="inp"><select id="tr-t">'+opts(to)+'</select></div></div></div><div class="fld"><label for="tr-a">'+L('Amount','रक़म')+'</label><div class="inp"><span class="pre">₹</span><input id="tr-a" inputmode="decimal" placeholder="0" autocomplete="off"></div></div><div class="fld"><label for="tr-n">'+L('Note','नोट')+'</label><div class="inp"><input id="tr-n" placeholder="'+(hiOn()?'ज़रूरी नहीं':'Optional')+'" autocomplete="off"></div></div><div class="hint" id="tr-h"></div><button class="btn blue" data-trfok>'+L('Save Transfer','ट्रांसफ़र सेव करें')+'</button>');trfHint()}
   function trfHint(){var f=document.getElementById('tr-f').value,t=document.getElementById('tr-t').value,af=findDoc('ac',f),at=findDoc('ac',t),h=document.getElementById('tr-h');
     h.innerHTML=f===t?L('Choose two different accounts.','दो अलग खाते चुनें।'):af.kind==='cash'?L('Deposit cash in bank: cash in hand goes down and the bank balance goes up.','नक़द बैंक में जमा: हाथ का नक़द घटेगा, बैंक बैलेंस बढ़ेगा।'):at.kind==='cash'?L('Withdraw cash from bank: bank balance goes down and cash in hand goes up.','बैंक से नक़द निकालें: बैंक बैलेंस घटेगा, हाथ का नक़द बढ़ेगा।'):L('Bank to bank transfer.','एक बैंक से दूसरे बैंक में।')}
