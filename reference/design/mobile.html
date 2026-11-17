@@ -140,6 +140,20 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .ban.off{background:var(--red-l);color:var(--red)}
 .ban.wake{background:var(--orange-l);color:var(--orange)}
 .ban .mid b{display:block}
+.ban.view{background:var(--blue-l);color:var(--blue)}
+.ban.staff{background:var(--slate-l);color:var(--text2)}
+.ban .mid{flex:1;min-width:0}
+.ban .lnk{flex:none;color:inherit;text-decoration:underline}
+.stt{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px 18px;text-align:center;min-height:100%}
+.stt .ring{width:84px;height:84px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.stt .ring .ic{width:38px;height:38px}
+.stt .ring.o{background:var(--orange-l);color:var(--orange);box-shadow:0 0 0 10px var(--orange-l)}
+.stt .ring.r{background:var(--red-l);color:var(--red);box-shadow:0 0 0 10px var(--red-l)}
+.stt .ring.b{background:var(--blue-l);color:var(--blue);box-shadow:0 0 0 10px var(--blue-l)}
+.wbar{width:100%;height:8px;border-radius:4px;background:var(--slate-l);overflow:hidden}
+.wbar i{display:block;height:100%;width:40%;border-radius:4px;background:var(--orange);animation:wb 1.4s ease-in-out infinite}
+@keyframes wb{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+@media (prefers-reduced-motion:reduce){.wbar i{animation:none;width:60%}}
 .skel{height:14px;border-radius:6px;background:var(--slate-l);animation:pl 1.2s ease-in-out infinite alternate}
 @keyframes pl{to{background:var(--border)}}
 .toast{background:var(--text);color:var(--on);border-radius:var(--r);padding:10px 12px;display:flex;align-items:center;gap:10px;font-size:14px}
@@ -628,7 +642,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   </div>
   <p id="sub-blocks" data-hi="चरण 7.1 और 7.2: 20 रंग और ऐप के बुनियादी टुकड़े। चौड़ाई खिसकाकर देखें कि हर चीज़ हर फ़ोन पर फ़िट होती है।">Steps 7.1 and 7.2: the 20 colours and the app's building blocks. Drag the width to see every piece fit every phone.</p>
   <p id="sub-map" hidden data-hi="चरण 7.3 (मंज़ूर, 15 नवंबर 2026): ऐप में कौन-सी स्क्रीन कहाँ से खुलती है। नारंगी नंबर नीचे समझाए गए हैं।">Step 7.3 (approved, 15 Nov 2026): which screen opens from where. The orange numbers are explained underneath.</p>
-  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a से 7.4i मंज़ूर; आख़िरी 7.4j।">Step 7.4: the app's screens, to tap through. 7.4a to 7.4i are approved; 7.4j, the last step, is next.</p>
+  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a से 7.4i मंज़ूर; अब आख़िरी 7.4j: ख़ास हालात।">Step 7.4: the app's screens, to tap through. 7.4a to 7.4i are approved; now the last step, 7.4j: special states.</p>
 </header>
 
 <div class="wrap" id="v-blocks">
@@ -897,6 +911,39 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 <div class="proto" id="v-a" hidden>
   <div class="guide">
     <div class="gsec">
+      <h2 data-hi="7.4j: ख़ास हालात (नया)">7.4j: Special States (New)</h2>
+      <p data-hi="जब कुछ सामान्य न हो तब ऐप क्या दिखाए: इंटरनेट नहीं, सर्वर जाग रहा है, ग़लती, अनुमति नहीं, सिर्फ़ देखना, ट्रायल ख़त्म, अपडेट और साइन आउट। यह फ़ोन डिज़ाइन का आख़िरी कदम है।">What the app shows when things are not normal: no internet, server waking up, errors, no permission, view only, trial ended, update needed and signed out. This is the last step of the phone design.</p>
+      <div class="scrlist">
+        <button type="button" data-jump10="normal"><span class="no">1</span><span data-hi="सब सामान्य">Everything Normal</span></button>
+        <button type="button" data-jump10="offline"><span class="no">2</span><span data-hi="इंटरनेट नहीं (पट्टी)">No Internet (Banner)</span></button>
+        <button type="button" data-jump10="offsave"><span class="no">3</span><span data-hi="इंटरनेट नहीं: बिल फ़ोन में रखा">No Internet: Bill Kept On Phone</span></button>
+        <button type="button" data-jump10="outbox"><span class="no">4</span><span data-hi="भेजने बाकी (सूची)">Waiting To Send (List)</span></button>
+        <button type="button" data-jump10="waking"><span class="no">5</span><span data-hi="सर्वर जाग रहा है">Server Waking Up</span></button>
+        <button type="button" data-jump10="error"><span class="no">6</span><span data-hi="कुछ गड़बड़ हो गई">Something Went Wrong</span></button>
+        <button type="button" data-jump10="saveerr"><span class="no">7</span><span data-hi="सेव नहीं हुआ">Could Not Save</span></button>
+        <button type="button" data-jump10="staff"><span class="no">8</span><span data-hi="स्टाफ़ के रूप में (पट्टी)">Signed In As Staff (Banner)</span></button>
+        <button type="button" data-jump10="perm"><span class="no">9</span><span data-hi="अनुमति नहीं: मालिक से कहें">No Permission: Ask The Owner</span></button>
+        <button type="button" data-jump10="view"><span class="no">10</span><span data-hi="सिर्फ़ देखने के लिए (PC पर गई दुकान)">View Only (Shop Moved To A PC)</span></button>
+        <button type="button" data-jump10="viewtry"><span class="no">11</span><span data-hi="सिर्फ़ देखना: बदलने की कोशिश">View Only: Trying To Change</span></button>
+        <button type="button" data-jump10="trial"><span class="no">12</span><span data-hi="ट्रायल ख़त्म">Trial Ended</span></button>
+        <button type="button" data-jump10="update"><span class="no">13</span><span data-hi="ऐप अपडेट करें">Update Needed</span></button>
+        <button type="button" data-jump10="signedout"><span class="no">14</span><span data-hi="साइन आउट हो गए">Signed Out</span></button>
+      </div>
+    </div>
+    <div class="gsec">
+      <h2 data-hi="क्या आज़माएँ (7.4j)">Things To Try (7.4j)</h2>
+      <ol class="rules">
+        <li data-hi=""इंटरनेट नहीं" चुनें, फिर ऐप में घूमें: हर स्क्रीन पर पट्टी दिखती है; बिल सेव करें तो फ़ोन में रखा जाता है; "फिर कोशिश" दबाने पर भेज दिया जाता है।">Choose No Internet, then move around: the banner shows on every screen; a saved bill is kept on the phone; Retry sends it.</li>
+        <li data-hi=""सिर्फ़ देखने के लिए" चुनें: नया बिल, बदलना या रद्द करना दबाने पर बताता है कि दुकान PC पर है।">Choose View Only: tapping New Bill, edit or cancel explains the shop is on a PC.</li>
+        <li data-hi=""स्टाफ़ के रूप में" चुनें: बिल रद्द करना, टीम या टैक्स की सेटिंग दबाने पर "मालिक से कहें" आता है।">Choose Signed In As Staff: cancelling a bill or opening team or tax settings says Ask The Owner.</li>
+        <li data-hi="आख़िर में "सब सामान्य" दबाकर ऐप पहले जैसा करें।">At the end, tap Everything Normal to put the app back.</li>
+      </ol>
+    </div>
+    <div class="gsec">
+      <h2 data-hi="7.4j में आपसे क्या चाहिए">What We Need From You (7.4j)</h2>
+      <p data-hi="देखिए और बताइए क्या बदलना है। मंज़ूरी के बाद Phase 7 (फ़ोन डिज़ाइन) पूरा; Phase 8 (Android ऐप) Windows ट्रायल पास होने के बाद।">Look through and tell us what to change. After your approval, Phase 7 (phone design) is complete; Phase 8 (the Android app) starts after the Windows trial passes.</p>
+    </div>
+    <div class="gsec">
       <h2 data-hi="7.4i: सेटिंग (मंज़ूर)">7.4i: Settings (Approved)</h2>
       <p data-hi="वेब ऐप की सेटिंग फ़ोन पर: कारोबार, भुगतान, लेन-देन के नंबर, टैक्स और GST, आइटम, प्रिंट और बिल, पासकोड, टीम और Google Drive बैकअप।">The web app’s settings on the phone: business, payment, transaction numbers, taxes and GST, items, print and invoice, passcode, team and Google Drive backup.</p>
       <div class="scrlist">
@@ -925,10 +972,6 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
         <li data-hi="टैक्स और GST: GST बंद करें तो टैक्स हर जगह छिप जाता है; कंपोज़िशन चुनें तो बिल "Bill Of Supply" बनता है।">Taxes And GST: turning GST off hides tax everywhere; choosing Composition makes the bill a Bill Of Supply.</li>
         <li data-hi="Windows की चीज़ें (यह कंप्यूटर, पेन ड्राइव, रिकवरी की, प्रिंटर) फ़ोन पर नहीं हैं, आपके फ़ैसले के मुताबिक़।">Windows-only items (this PC, pen drive, recovery key, printer) are not on the phone, as you decided.</li>
       </ol>
-    </div>
-    <div class="gsec">
-      <h2 data-hi="अगला कदम">Next Step</h2>
-      <p data-hi="7.4i आपने 17 नव॰ 2026 को मंज़ूर किया। आख़िरी कदम 7.4j: ख़ास हालात (इंटरनेट नहीं, सर्वर जाग रहा है, ग़लती, अनुमति नहीं, ट्रायल ख़त्म)।">You approved 7.4i on 17 Nov 2026. The last step is 7.4j: special states (no internet, server waking up, errors, no permission, trial ended).</p>
     </div>
     <div class="gsec">
       <h2 data-hi="7.4h: रिपोर्ट (मंज़ूर)">7.4h: Reports (Approved)</h2>
@@ -1672,6 +1715,11 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
         <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="mid"><div class="t" id="st-t"></div></div></div>
         <div class="sb" id="st-b"></div>
         <div class="sf" id="st-bar"></div>
+      </section>
+
+      <!-- 7.4j full-screen states -->
+      <section class="scn" data-s="stt" hidden>
+        <div class="sb" id="stt-b" style="padding:0"></div>
       </section>
 
       <!-- 7.4d bill saved -->
@@ -3497,6 +3545,55 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   document.addEventListener('click',function(e){var b=e.target.closest('[data-jump9]');if(!b)return;var j=b.dataset.jump9;stack=['home'];show('home');go('settings');
     if(j==='settings'){}else if(j==='pfx'){SK='txn';go('set');document.querySelector('[data-stpfx="0"]').click()}else if(j==='prev'){SK='prn';go('set');document.querySelector('[data-stprev]').click()}else if(j==='passchg'){SK='pass';go('set');document.querySelector('[data-stpass]').click()}else if(j==='invite'){SK='team';go('set');document.querySelector('[data-stinv]').click()}else{SK=j;go('set')}
     document.querySelectorAll('[data-jump9]').forEach(function(x){x.setAttribute('aria-current',x===b)})});
+  /* ---------- 7.4j special states ---------- */
+  var MODE={off:false,view:false,staff:false,err:false},OUT=[],STT='waking',wakeT=null;
+  function banner(){var h='';
+    if(MODE.off)h+='<div class="ban off xban"><svg class="ic"><use href="#nowifi"/></svg><div class="mid"><b>'+L('No Internet','इंटरनेट नहीं है')+'</b><span>'+L('Showing saved data. New bills are kept on this phone.','सेव डेटा दिख रहा है। नए बिल इस फ़ोन में रखे जाएँगे।')+'</span></div><button type="button" class="lnk sm" data-online>'+L('Retry','फिर कोशिश')+'</button></div>'+(OUT.length?'<button type="button" class="ban wake xban" data-outbox style="border:0;font:inherit;text-align:left;cursor:pointer;min-height:var(--tap)"><svg class="ic"><use href="#clock"/></svg><div class="mid"><b>'+L(OUT.length+' Waiting To Send',OUT.length+' भेजने बाकी')+'</b><span>'+L('Tap to see them.','देखने के लिए दबाएँ।')+'</span></div></button>':'');
+    if(MODE.view)h+='<div class="ban view xban"><svg class="ic"><use href="#eyei"/></svg><div class="mid"><b>'+L('View Only','सिर्फ़ देखने के लिए')+'</b><span>'+L('This shop’s books are on a PC now. Changes are made there.','इस दुकान की किताबें अब PC पर हैं। बदलाव वहीं होंगे।')+'</span></div></div>';
+    if(MODE.staff)h+='<div class="ban staff xban"><svg class="ic"><use href="#user"/></svg><div class="mid"><b>'+L('Signed In As Suresh (Staff)','Suresh (स्टाफ़) के रूप में')+'</b><span>'+L('Some actions need the owner.','कुछ काम मालिक ही कर सकते हैं।')+'</span></div></div>';
+    return h}
+  function putBanner(id){document.querySelectorAll('#stage .xban').forEach(function(x){x.remove()});var sc=stage.querySelector('.scn[data-s="'+id+'"]');if(!sc||id==='stt'||id==='signin'||id==='lock'||id==='company')return;var h=banner();if(!h)return;var sb=sc.querySelector('.sb')||sc.querySelector('.saved');if(!sb)return;sb.insertAdjacentHTML('afterbegin',h)}
+  var STD={waking:{ic:'clock',cl:'o',t:['Server Is Waking Up…','सर्वर चालू हो रहा है…'],d:['The free server sleeps after 15 quiet minutes. Waking it can take up to a minute. Your data is safe.','मुफ़्त सर्वर 15 मिनट ख़ाली रहने पर सो जाता है। जगने में एक मिनट तक लग सकता है। आपका डेटा सुरक्षित है।'],bar:1},
+    error:{ic:'xic',cl:'r',t:['Something Went Wrong','कुछ गड़बड़ हो गई'],d:['The app could not open this screen. Your saved bills are safe.','ऐप यह स्क्रीन नहीं खोल पाया। आपके सेव बिल सुरक्षित हैं।'],b:[['data-sttry','Try Again','फिर कोशिश करें','blue'],['data-root="home"','Go To Home','होम पर जाएँ','line']],x:['Error code BG-503 · 17 Nov 2026, 10:42 AM','ग़लती कोड BG-503 · 17 नव॰ 2026, 10:42']},
+    trial:{ic:'lockic',cl:'b',t:['Your Free Trial Has Ended','आपका मुफ़्त ट्रायल ख़त्म हुआ'],d:['Your books are safe. You can still open and view them, share PDFs and download a backup.','आपकी किताबें सुरक्षित हैं। आप उन्हें खोलकर देख सकते हैं, PDF भेज सकते हैं और बैकअप ले सकते हैं।'],li:[['✓','View Bills And Reports','बिल और रिपोर्ट देखें'],['✓','Share PDFs','PDF भेजें'],['✓','Download A Backup','बैकअप लें'],['✗','New Bills And Changes','नए बिल और बदलाव']],b:[['data-stview','View My Books','मेरी किताबें देखें','blue'],['data-toast="Shows our phone number and WhatsApp to continue (plans come with the subscription)." data-toast-hi="आगे चलाने के लिए हमारा फ़ोन और WhatsApp दिखाएगा (प्लान सब्सक्रिप्शन के साथ आएँगे)।"','Talk To Us','हमसे बात करें','line']]},
+    update:{ic:'imp',cl:'b',t:['Update Needed','ऐप अपडेट करें'],d:['This version of the app is too old to talk to the server safely. Update it from the Play Store. Your data stays as it is.','ऐप का यह वर्शन पुराना है, सर्वर से सुरक्षित बात नहीं कर सकता। Play Store से अपडेट करें। आपका डेटा वैसा ही रहेगा।'],b:[['data-toast="Opens the app’s page in the Play Store (on the real phone)." data-toast-hi="Play Store में ऐप का पेज खुलेगा (असली फ़ोन पर)।"','Open Play Store','Play Store खोलें','blue']]},
+    signedout:{ic:'user',cl:'b',t:['You Were Signed Out','आप साइन आउट हो गए'],d:['The owner reset your password. Sign in again with the new password they gave you.','मालिक ने आपका पासवर्ड बदल दिया है। उनके दिए नए पासवर्ड से फिर साइन इन करें।'],b:[['data-root="signin"','Sign In','साइन इन करें','blue']]}};
+  function renderStt(){var d=STD[STT],h='<div class="stt"><div class="ring '+d.cl+'"><svg class="ic"><use href="#'+d.ic+'"/></svg></div><b class="t-h">'+L(d.t[0],d.t[1])+'</b><div class="t-s">'+L(d.d[0],d.d[1])+'</div>';
+    if(d.bar)h+='<div class="wbar"><i></i></div><div class="t-x" id="wk-s">'+L('Trying… 5 seconds','कोशिश जारी… 5 सेकंड')+'</div>';
+    if(d.li)h+='<div class="grp" style="width:100%;text-align:left">'+d.li.map(function(x){return '<div class="srow vl"><b class="'+(x[0]==='✓'?'cg':'cr')+'" style="width:18px">'+x[0]+'</b><div class="mid">'+L(x[1],x[2])+'</div></div>'}).join('')+'</div>';
+    if(d.b)h+='<div style="display:flex;flex-direction:column;gap:8px;width:100%">'+d.b.map(function(x){return '<button class="btn '+x[3]+'" '+x[0]+'>'+L(x[1],x[2])+'</button>'}).join('')+'</div>';
+    if(d.x)h+='<div class="t-x">'+L(d.x[0],d.x[1])+'</div><button type="button" class="lnk sm" style="align-self:center" data-toast="Sends this error to the BillinGo team so they can fix it." data-toast-hi="यह ग़लती BillinGo टीम को भेजेगा ताकि वे ठीक करें।">'+L('Send Report','रिपोर्ट भेजें')+'</button>';
+    document.getElementById('stt-b').innerHTML=h+'</div>';
+    clearInterval(wakeT);if(d.bar){var n=5;wakeT=setInterval(function(){n+=5;var e=document.getElementById('wk-s');if(!e||cur!=='stt'){clearInterval(wakeT);return}if(n>=20){clearInterval(wakeT);root('home');toast('The server is ready.','सर्वर तैयार है।');return}e.innerHTML=L('Trying… '+n+' seconds','कोशिश जारी… '+n+' सेकंड')},900)}}
+  function blockDlg(t,b){gd('<b class="t-h" style="font-size:18px">'+t+'</b><div class="t-s">'+b+'</div><button class="btn blue" data-close>'+L('OK','ठीक है')+'</button>')}
+  var _show10=show;show=function(id){_show10(id);if(id==='stt')renderStt();putBanner(id)};
+  var _ds3=doSave;doSave=function(){var no=(SL.no||'').trim();_ds3();if(MODE.off){OUT.push([no||'Bill',pname({p:SL.party||'',cust:''})]);putBanner(cur);
+    gd('<b class="t-h" style="font-size:18px">'+L('Kept On This Phone','इस फ़ोन में रखा गया')+'</b><div class="t-s">'+L(no+' is saved on this phone and waiting to send. It goes once, never twice, when the internet is back.',no+' इस फ़ोन में सेव है और भेजने के लिए रुका है। इंटरनेट आते ही एक बार जाएगा, दो बार कभी नहीं।')+'</div><div class="row"><button class="btn line grow" data-outbox>'+L('Waiting List','रुके हुए')+'</button><button class="btn blue grow" data-close>'+L('OK','ठीक है')+'</button></div>')}};
+  document.addEventListener('click',function(e){var t=e.target;if(!stage.contains(t))return;
+    if(MODE.view&&t.closest('[data-ssave],[data-fmsave],[data-lsave],[data-qbsave],[data-dnew],[data-sale],[data-pnew],[data-lnew],[data-dvm="dcan"],[data-dvm="dedit"],[data-dcanok],[data-stsave],[data-pform],[data-psave],[data-isave],[data-iform],[data-adj],[data-adjnew],[data-ajsave],[data-cmpay],[data-trf],[data-ccount],[data-cqdep],[data-cqclr],[data-cqbnc],[data-draft],[data-chconv],[data-qconv],[data-poconv],[data-stbk],[data-stinv]')){e.preventDefault();e.stopImmediatePropagation();
+      blockDlg(L('This Shop Is On A PC Now','यह दुकान अब PC पर है'),L('The books moved to the Windows app on a PC (This PC only). On the phone you can view and share, but not change anything.','किताबें PC के Windows ऐप में चली गईं (सिर्फ़ यह PC)। फ़ोन पर आप देख और भेज सकते हैं, बदल नहीं सकते।'));return}
+    if(MODE.staff&&t.closest('[data-dvm="dcan"],[data-dcanok],[data-pcopen],[data-pmode],[data-set="team"],[data-set="bk"],[data-set="tax"],[data-set="txn"],[data-stsave]')){e.preventDefault();e.stopImmediatePropagation();
+      blockDlg(L('Ask The Owner','मालिक से कहें'),L('Staff can’t do this. Ask Rakesh Sharma (Owner) to do it from their phone.','स्टाफ़ यह नहीं कर सकते। Rakesh Sharma (मालिक) से उनके फ़ोन से करवाएँ।'));return}
+    if(MODE.err&&t.closest('[data-ssave],[data-fmsave],[data-chgdone]')){e.preventDefault();e.stopImmediatePropagation();MODE.err=false;
+      gd('<b class="t-h" style="font-size:18px">'+L('Could Not Save','सेव नहीं हुआ')+'</b><div class="t-s">'+L('The server did not answer. Your bill is still here; nothing was lost.','सर्वर ने जवाब नहीं दिया। आपका बिल यहीं है; कुछ नहीं खोया।')+'</div><div class="row"><button class="btn line grow" data-close>'+L('Go Back','वापस')+'</button><button class="btn blue grow" data-close data-toast="Try Save again: it works now." data-toast-hi="फिर से सेव दबाएँ: अब हो जाएगा।">'+L('Try Again','फिर कोशिश करें')+'</button></div>');return}},true);
+  stage.addEventListener('click',function(e){var t=e.target.closest('[data-online],[data-outbox],[data-outsend],[data-sttry],[data-stview]');if(!t||!stage.contains(t))return;
+    if(t.hasAttribute('data-online')){var n=OUT.length;MODE.off=false;OUT=[];closeOv();show(cur);toast(n?'Back online. '+n+(n===1?' bill':' bills')+' sent.':'Back online.',n?'इंटरनेट आ गया। '+n+' बिल भेजे गए।':'इंटरनेट आ गया।');return}
+    if(t.hasAttribute('data-outbox')){gs('<div><b>'+L('Waiting To Send','भेजने बाकी')+'</b><div class="t-x">'+L('Kept safely on this phone. Each goes once, never twice.','इस फ़ोन में सुरक्षित। हर एक एक ही बार जाएगा।')+'</div></div>'+(OUT.length?'<div class="grp">'+OUT.map(function(o){return '<div class="srow vl"><svg class="ic" style="color:var(--orange)"><use href="#clock"/></svg><div class="mid"><div class="nm">'+esc(o[0])+'</div><div class="t-x one">'+esc(o[1])+'</div></div><span class="bd cr">'+L('Waiting','रुका है')+'</span></div>'}).join('')+'</div>':'<div class="hint">'+L('Nothing is waiting.','कुछ नहीं रुका।')+'</div>')+'<button class="btn blue" data-outsend>'+L('Try Sending Now','अभी भेजें')+'</button>');return}
+    if(t.hasAttribute('data-outsend')){if(MODE.off){toast('Still no internet. They will go by themselves when it is back.','अभी भी इंटरनेट नहीं। आते ही अपने-आप जाएँगे।');return}closeOv();return}
+    if(t.hasAttribute('data-sttry')){STT='waking';renderStt();return}
+    if(t.hasAttribute('data-stview')){MODE.view=true;root('home');return}});
+  document.addEventListener('click',function(e){var b=e.target.closest('[data-jump10]');if(!b)return;var j=b.dataset.jump10;MODE={off:false,view:false,staff:false,err:false};OUT=[];clearInterval(wakeT);stack=['home'];
+    if(j==='normal'){show('home');toast('Everything is back to normal.','सब सामान्य है।')}
+    else if(j==='offline'){MODE.off=true;show('home')}
+    else if(j==='offsave'){MODE.off=true;show('home');newSale({fill:true});SL.chgOk=true;go('sale');stage.querySelector('[data-s=sale] [data-ssave]:not([data-ssave=new])').click()}
+    else if(j==='outbox'){MODE.off=true;OUT=[['INV-0108','Mehta Electricals'],['PR-0046','Gupta Lighting House']];show('home');stage.querySelector('#stage [data-outbox]').click()}
+    else if(j==='saveerr'){MODE.err=true;show('home');newSale({fill:true});SL.chgOk=true;go('sale');stage.querySelector('[data-s=sale] [data-ssave]:not([data-ssave=new])').click()}
+    else if(j==='perm'){MODE.staff=true;show('home');nav('dview',{k:'inv',no:'INV-0107'});stage.querySelector('[data-s=dview] [data-dvmore]').click();stage.querySelector('[data-dvm="dcan"]').click()}
+    else if(j==='staff'){MODE.staff=true;show('home')}
+    else if(j==='view'){MODE.view=true;show('home')}
+    else if(j==='viewtry'){MODE.view=true;show('home');stage.querySelector('[data-s=home] [data-sale=new]').click()}
+    else{STT=j;show('home');go('stt')}
+    document.querySelectorAll('[data-jump10]').forEach(function(x){x.setAttribute('aria-current',x===b)})});
   newSale();
 })();
 </script>
