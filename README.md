@@ -48,7 +48,7 @@ _Last updated: 17 Nov 2026. Details: [`docs/STATUS.md`](docs/STATUS.md)._
 | **Latest Windows release** | **v0.1.1** (13 Nov 2026): adds *Bring online books to this PC*. Installers are on the [releases page](https://github.com/amn-kr/billing-erp-releases/releases). |
 | **Live web app** | https://billing-erp-ynqf.onrender.com (free plans; the first open after 15 idle minutes can take about a minute). |
 | **Needs attention** | Nightly database backups have not run since 9 Nov 2026. The fix is merged (PR #105) and in the backup repository, but GitHub's Actions budget stops every run. On hold until 1 Dec 2026, when the free minutes return; a reminder will run one backup and check the restore test that day. |
-| **Next** | Windows trial → phone design (Phase 7, in progress: 7.4a to 7.4d approved, 7.4e next) → Android app (Phase 8). Selling (Phase 5) starts only when the owner asks. |
+| **Next** | Windows trial → phone design (Phase 7, in progress: 7.4a to 7.4e approved, 7.4f next) → Android app (Phase 8). Selling (Phase 5) starts only when the owner asks. |
 
 ---
 
@@ -353,7 +353,7 @@ node saas.js      # website version (needs: cd ../firebase-site/public && python
 | 4 | Reports and Home | ✅ Done |
 | 5 | SaaS and launch: Razorpay, admin console, onboarding, beta | ⏸ On hold until the owner asks |
 | 6 | Windows app and single-PC offline mode | 🔄 Built; real-PC checks and trial pending |
-| 7 | Mobile design | 🔄 In progress (colours, building blocks, app map and screens 7.4a to 7.4d approved; 7.4e next) |
+| 7 | Mobile design | 🔄 In progress (colours, building blocks, app map and screens 7.4a to 7.4e approved; 7.4f next) |
 | 8 | Android app | ⏳ After the Windows trial |
 | 9 | iPhone and Mac builds | ⏳ Later |
 
