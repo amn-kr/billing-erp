@@ -516,6 +516,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .crr .inp{padding:0 8px}
 .inp.big input{font-size:22px;font-weight:700}
 .sec.cnh{display:flex;align-items:center;justify-content:space-between;margin-bottom:-8px}
+.tl .lnk.kvl{min-height:var(--tap);margin:-12px 0;padding:0 0 0 8px;align-self:center}
 .t-x.one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mrow{min-height:52px;gap:12px;border-radius:var(--r-sm)}
 .mrow>.ic{color:var(--blue);flex:none}
@@ -601,7 +602,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   </div>
   <p id="sub-blocks" data-hi="चरण 7.1 और 7.2: 20 रंग और ऐप के बुनियादी टुकड़े। चौड़ाई खिसकाकर देखें कि हर चीज़ हर फ़ोन पर फ़िट होती है।">Steps 7.1 and 7.2: the 20 colours and the app's building blocks. Drag the width to see every piece fit every phone.</p>
   <p id="sub-map" hidden data-hi="चरण 7.3 (मंज़ूर, 15 नवंबर 2026): ऐप में कौन-सी स्क्रीन कहाँ से खुलती है। नारंगी नंबर नीचे समझाए गए हैं।">Step 7.3 (approved, 15 Nov 2026): which screen opens from where. The orange numbers are explained underneath.</p>
-  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a से 7.4f मंज़ूर; अगला 7.4g।">Step 7.4: the app's screens, to tap through. 7.4a to 7.4f are approved; 7.4g is next.</p>
+  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a से 7.4g मंज़ूर; अगला 7.4h: रिपोर्ट।">Step 7.4: the app's screens, to tap through. 7.4a to 7.4g are approved; 7.4h (reports) is next.</p>
 </header>
 
 <div class="wrap" id="v-blocks">
@@ -870,6 +871,38 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 <div class="proto" id="v-a" hidden>
   <div class="guide">
     <div class="gsec">
+      <h2 data-hi="7.4g: ख़र्चे, बैंक, नक़द, चेक (मंज़ूर)">7.4g: Expenses, Bank, Cash, Cheques (Approved)</h2>
+      <p data-hi="ख़र्चे, बैंक खाते, हाथ का नक़द और चेक, वेब ऐप की तरह। बैंक मिलान (reconciliation) फ़ोन पर नहीं है, आपके फ़ैसले के मुताबिक़।">Expenses, bank accounts, cash in hand and cheques, as in the web app. Bank reconciliation is not on the phone, as you decided.</p>
+      <div class="scrlist">
+        <button type="button" data-jump7="exlist"><span class="no">1</span><span data-hi="ख़र्चे (सूची)">Expenses (List)</span></button>
+        <button type="button" data-jump7="exnew"><span class="no">2</span><span data-hi="नया ख़र्चा">New Expense</span></button>
+        <button type="button" data-jump7="exview"><span class="no">3</span><span data-hi="ख़र्चा देखें (EXP-0011)">Expense View (EXP-0011)</span></button>
+        <button type="button" data-jump7="excat"><span class="no">4</span><span data-hi="ख़र्चे की श्रेणियाँ">Expense Categories</span></button>
+        <button type="button" data-jump7="aclist"><span class="no">5</span><span data-hi="बैंक और नक़द">Bank And Cash</span></button>
+        <button type="button" data-jump7="cashbook"><span class="no">6</span><span data-hi="नक़द की किताब">Cash Book</span></button>
+        <button type="button" data-jump7="bankbook"><span class="no">7</span><span data-hi="बैंक की किताब (HDFC)">Bank Book (HDFC)</span></button>
+        <button type="button" data-jump7="trf"><span class="no">8</span><span data-hi="पैसा ट्रांसफ़र">Transfer Money</span></button>
+        <button type="button" data-jump7="ccount"><span class="no">9</span><span data-hi="नक़द गिनें">Count Cash</span></button>
+        <button type="button" data-jump7="acnew"><span class="no">10</span><span data-hi="बैंक खाता जोड़ें">Add Bank Account</span></button>
+        <button type="button" data-jump7="cqlist"><span class="no">11</span><span data-hi="चेक (सूची)">Cheques (List)</span></button>
+        <button type="button" data-jump7="cqview"><span class="no">12</span><span data-hi="चेक देखें (बाकी)">Cheque View (Pending)</span></button>
+        <button type="button" data-jump7="cqbnc"><span class="no">13</span><span data-hi="चेक बाउंस">Cheque Bounced</span></button>
+      </div>
+    </div>
+    <div class="gsec">
+      <h2 data-hi="क्या आज़माएँ (7.4g)">Things To Try (7.4g)</h2>
+      <ol class="rules">
+        <li data-hi="साइड मेन्यू › ख़र्चे: श्रेणी, किसे दिया, कहाँ से दिया (नक़द या बैंक), और GST के साथ लाइनें।">Side menu › Expenses: category, paid to, paid from (cash or bank), and lines with GST.</li>
+        <li data-hi="बैंक और नक़द: हर खाते की किताब, हर लेन-देन के साथ चलता बैलेंस; पैसा ट्रांसफ़र (नक़द जमा, नक़द निकालना, बैंक से बैंक)।">Bank And Cash: a book for each account with the running balance; Transfer Money (deposit cash, withdraw cash, bank to bank).</li>
+        <li data-hi="नक़द की किताब में "नक़द गिनें": गल्ले का असल नक़द लिखें; कम या ज़्यादा हो तो दर्ज होता है।">In the cash book, Count Cash: enter the cash actually in the counter; a short or excess is recorded.</li>
+        <li data-hi="चेक: ग्राहक से मिला चेक बैंक में जमा करें, फिर "क्लियर" या "बाउंस"; बाउंस पर भुगतान हट जाता है।">Cheques: deposit a customer’s cheque, then mark it cleared or bounced; a bounce undoes the payment.</li>
+      </ol>
+    </div>
+    <div class="gsec">
+      <h2 data-hi="अगला कदम">Next Step</h2>
+      <p data-hi="7.4g आपने 17 नव॰ 2026 को मंज़ूर किया। अगला कदम 7.4h: 12 रिपोर्ट कार्ड के रूप में, PDF/Excel भेजना।">You approved 7.4g on 17 Nov 2026. The next step is 7.4h: the 12 reports as cards, with PDF and Excel share.</p>
+    </div>
+    <div class="gsec">
       <h2 data-hi="7.4f: ख़रीद (मंज़ूर)">7.4f: Purchases (Approved)</h2>
       <p data-hi="ख़रीद ऑर्डर, ख़रीद बिल (बैच के साथ), सप्लायर को भुगतान और डेबिट नोट: हर एक की सूची, देखना, नया बनाना और रद्द करना।">Purchase orders, purchase bills (with batches), payments made and debit notes: a list, a view, a new form and cancel for each.</p>
       <div class="scrlist">
@@ -897,10 +930,6 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
         <li data-hi="सप्लायर को भुगतान: सबसे पुराने बिल पहले भरते हैं, बचा हुआ एडवांस।">Pay Supplier: the oldest bills are filled first, the rest is advance.</li>
         <li data-hi="डेबिट नोट: ख़रीद बिल पर निशान लगाएँ, लौटाई मात्रा लिखें; बैलेंस में घटाएँ या पैसे वापस लें।">Debit Note: tick a purchase bill, enter the quantity sent back; adjust the balance or take a refund.</li>
       </ol>
-    </div>
-    <div class="gsec">
-      <h2 data-hi="अगला कदम">Next Step</h2>
-      <p data-hi="7.4f आपने 17 नव॰ 2026 को मंज़ूर किया। अगला कदम 7.4g: ख़र्चे, बैंक खाते, नक़द, चेक।">You approved 7.4f on 17 Nov 2026. The next step is 7.4g: expenses, bank accounts, cash in hand and cheques.</p>
     </div>
     <div class="gsec">
       <h2 data-hi="7.4e: बिल, Quotation, चालान, भुगतान, क्रेडिट नोट, कमीशन (मंज़ूर)">7.4e: Bills, Quotations, Challans, Payments, Credit Notes, Commission (Approved)</h2>
@@ -1549,9 +1578,9 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
           <div hidden><button class="mi sub" data-dl="qt"><span>Quotations</span></button><button class="mi sub" data-dl="inv"><span data-hi="बिक्री बिल">Sale Bills</span></button><button class="mi sub" data-dl="ch"><span data-hi="डिलीवरी चालान">Delivery Challans</span></button><button class="mi sub" data-dl="pr"><span data-hi="मिले भुगतान">Payments Received</span></button><button class="mi sub" data-dl="cn"><span data-hi="क्रेडिट नोट">Credit Notes</span></button><button class="mi sub" data-dl="el"><span data-hi="कमीशन">Commission</span></button></div>
           <button class="mi" data-grp aria-expanded="false"><svg class="ic"><use href="#cart"/></svg><span data-hi="ख़रीद">Purchases</span><span class="ex"><svg class="ic"><use href="#next"/></svg></span></button>
           <div hidden><button class="mi sub" data-dl="po"><span data-hi="ख़रीद ऑर्डर">Purchase Orders</span></button><button class="mi sub" data-dl="pb"><span data-hi="ख़रीद बिल">Purchase Bills</span></button><button class="mi sub" data-dl="pm"><span data-hi="दिए भुगतान">Payments Made</span></button><button class="mi sub" data-dl="dn"><span data-hi="डेबिट नोट">Debit Notes</span></button></div>
-          <button class="mi" data-t7="g"><svg class="ic"><use href="#wallet"/></svg><span data-hi="ख़र्चे">Expenses</span></button>
+          <button class="mi" data-dl="ex"><svg class="ic"><use href="#wallet"/></svg><span data-hi="ख़र्चे">Expenses</span></button>
           <button class="mi" data-grp aria-expanded="false"><svg class="ic"><use href="#rupee"/></svg><span data-hi="बैंक और कैश">Banking &amp; Cash</span><span class="ex"><svg class="ic"><use href="#next"/></svg></span></button>
-          <div hidden><button class="mi sub" data-t7="g"><span data-hi="बैंक खाते">Bank Accounts</span></button><button class="mi sub" data-t7="g"><span data-hi="हाथ में कैश">Cash In Hand</span></button><button class="mi sub" data-t7="g"><span data-hi="चेक">Cheques</span></button></div>
+          <div hidden><button class="mi sub" data-dl="ac"><span data-hi="बैंक खाते">Bank Accounts</span></button><button class="mi sub" data-dopen="ac:cash"><span data-hi="हाथ में कैश">Cash In Hand</span></button><button class="mi sub" data-dl="cq"><span data-hi="चेक">Cheques</span></button></div>
           <button class="mi" data-t7="h"><svg class="ic"><use href="#filter"/></svg><span data-hi="रिपोर्ट">Reports</span></button>
           <button class="mi" style="color:var(--text3)" data-toast="GST is coming soon, on the web and the phone together." data-toast-hi="GST जल्द आ रहा है, वेब और फ़ोन पर एक साथ।"><svg class="ic"><use href="#bill"/></svg><span>GST</span><span class="bd gray" style="margin-left:auto" data-hi="जल्द">Soon</span></button>
           <div class="sep"></div>
@@ -1572,7 +1601,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
             <button class="tile" data-pnew="pb"><svg class="ic"><use href="#cart"/></svg><span data-hi="ख़रीद बिल">Purchase Bill</span></button>
             <button class="tile" data-pnew="po"><svg class="ic"><use href="#cart"/></svg><span data-hi="ख़रीद ऑर्डर">Purchase Order</span></button>
             <button class="tile" data-dnew="pm"><svg class="ic"><use href="#rupee"/></svg><span data-hi="भुगतान दें">Payment Out</span></button>
-            <button class="tile" data-t7="g"><svg class="ic"><use href="#wallet"/></svg><span data-hi="ख़र्चा">Expense</span></button>
+            <button class="tile" data-dnew="ex"><svg class="ic"><use href="#wallet"/></svg><span data-hi="ख़र्चा">Expense</span></button>
             <button class="tile" data-pform="new"><svg class="ic"><use href="#user"/></svg><span data-hi="नई पार्टी">New Party</span></button>
             <button class="tile" data-iform="new"><svg class="ic"><use href="#box"/></svg><span data-hi="नया आइटम">New Item</span></button>
             <button class="tile" data-dnew="dn"><svg class="ic"><use href="#next"/></svg><span data-hi="डेबिट नोट">Debit Note</span></button>
@@ -2896,7 +2925,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(k==='pb'){var c=docCalc(d),du=pbDues(d);
       h+='<div class="vhd"><div><small>'+L('Bill Total','बिल की रक़म')+'</small><b>'+R(d.total)+'</b></div>'+badge(pbState(d))+'</div>';
       if(d.st==='x')h+='<div class="warnb">'+L('This purchase bill is cancelled. Its stock went out again and the amount to pay was removed.','यह ख़रीद बिल रद्द है। इसका स्टॉक फिर घटा और देनी रक़म हट गई।')+'</div>';
-      h+=partyCard(d)+'<div class="box" style="gap:6px">'+(d.sref?kvr(L('Supplier’s Bill No.','सप्लायर का बिल नं.'),esc(d.sref)):'')+(d.from?kvr(L('From Order','ऑर्डर से'),'<button type="button" class="lnk" style="min-height:0;padding:0" data-dopen="po:'+d.from+'">'+esc(d.from)+'</button>'):'')+kvr(L('Due Date','चुकाने की तारीख़'),LD(addDays(d.d,(P[d.p]||{}).days||0)))+'</div>';
+      h+=partyCard(d)+'<div class="box" style="gap:6px">'+(d.sref?kvr(L('Supplier’s Bill No.','सप्लायर का बिल नं.'),esc(d.sref)):'')+(d.from?kvr(L('From Order','ऑर्डर से'),'<button type="button" class="lnk kvl" data-dopen="po:'+d.from+'">'+esc(d.from)+'</button>'):'')+kvr(L('Due Date','चुकाने की तारीख़'),LD(addDays(d.d,(P[d.p]||{}).days||0)))+'</div>';
       h+='<div class="sec">'+L('Items ('+d.lines.length+')','आइटम ('+d.lines.length+')')+'</div>'+pLines(d.lines);
       h+='<div class="box" style="gap:6px">'+kvr(L('Items Total','आइटम का जोड़'),'₹'+inr(c.items))+(c.bdisc?kvr(L('Discount','छूट'),'−₹'+inr(c.bdisc),'cr'):'')+kvr(L('Taxable Value','टैक्स योग्य रक़म'),'₹'+inr(c.taxable))+kvr(L('CGST (Input)','CGST (इनपुट)'),'₹'+inr(c.cg))+kvr(L('SGST (Input)','SGST (इनपुट)'),'₹'+inr(c.sg))+kvr(L('Round Off','राउंड ऑफ़'),(c.ro<0?'−':'+')+'₹'+inr(c.ro))+'<div class="tl tt"><span>'+L('Total','कुल')+'</span><b>₹'+inr(d.total)+'</b></div>'+kvr(L('↑ Paid','↑ दिया'),'₹'+inr(d.st==='x'?0:d.total-du))+(du?kvr(L('To Pay','देना है'),'₹'+inr(du),'cr'):'')+'</div>';
       var pays=pmList().filter(function(x){return x.st!=='x'&&x.alloc.some(function(a){return a[0]===d.no})});
@@ -3037,6 +3066,174 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     else if(j==='dnnew'){fmOpen('dn',{p:'kanpur'});FM.inv['PB-0031']=true;FM.ret['PB-0031|0']=2;renderDF()}
     else if(j==='dnview')nav('dview',{k:'dn',no:'DN-0002'});
     document.querySelectorAll('[data-jump6]').forEach(function(x){x.setAttribute('aria-current',x===b)})});
+  /* ---------- 7.4g expenses, bank, cash, cheques ---------- */
+  var exNo=15,trNo=5,ccNo=1;
+  var AC=[{id:'cash',kind:'cash',n:'Cash In Hand',sub:'Shop Counter',no:'',ifsc:'',br:'',ob:4500000,od:'2026-04-01'},
+    {id:'hdfc',kind:'bank',n:'HDFC Bank',short:'HDFC Bank',sub:'Current Account',no:'50200017707703',ifsc:'HDFC0001234',br:'Mall Road, Kanpur',ob:25000000,od:'2026-04-01',upi:true},
+    {id:'sbi',kind:'bank',n:'State Bank Of India',short:'SBI',sub:'Savings Account',no:'30129871290',ifsc:'SBIN0000123',br:'Civil Lines, Kanpur',ob:5000000,od:'2026-04-01'}];
+  var EXC=['Rent','Electricity','Salary','Tea And Snacks','Repairs','Transport','Internet And Phone','Other'];
+  DOC.ex=[{no:'EXP-0014',d:'2026-11-15',cat:'Rent',to:'Sharma Properties',from:'hdfc',ref:'UTR 7781 0042',lines:[{t:'Shop Rent For November',a:1800000,g:0}],st:'ok'},
+    {no:'EXP-0013',d:'2026-11-12',cat:'Electricity',to:'KESCO',from:'hdfc',ref:'Bill 88123',lines:[{t:'Shop Electricity Bill',a:420000,g:0}],st:'ok'},
+    {no:'EXP-0012',d:'2026-11-10',cat:'Tea And Snacks',to:'Raju Tea Stall',from:'cash',ref:'',lines:[{t:'Tea For 1 To 10 November',a:65000,g:0}],st:'ok'},
+    {no:'EXP-0011',d:'2026-11-06',cat:'Repairs',to:'Verma Electricals',from:'cash',ref:'Bill 552',lines:[{t:'Counter Light Repair',a:100000,g:18},{t:'Wire And Holder',a:20000,g:18}],st:'ok'},
+    {no:'EXP-0010',d:'2026-10-28',cat:'Transport',to:'Shree Transport',from:'cash',ref:'',lines:[{t:'Goods Delivery Charges',a:80000,g:0}],st:'ok'}];
+  var TRF=[{no:'TR-0004',d:'2026-11-11',from:'cash',to:'hdfc',amt:2000000,note:'Cash Deposited'}],CCA=[];
+  PRX['PR-0040'].mode='Cheque';PRX['PR-0040'].ref='004512';PRX['PR-0044'].mode='Cheque';PRX['PR-0044'].ref='118220';PMX['PM-0018'].mode='Cheque';PMX['PM-0018'].ref='000231';
+  var CQS={'pr:PR-0040':{st:'clr',acct:'hdfc',dd:'2026-11-04',cd:'2026-11-05',bank:'SBI'},'pr:PR-0044':{st:'pend',bank:'PNB'},'pm:PM-0018':{st:'clr',acct:'hdfc',cd:'2026-11-07',bank:'HDFC'}};
+  function acOf(mode){return mode==='Cash'?'cash':'hdfc'}
+  function exTotal(d){return d.lines.reduce(function(s,l){return s+Math.round(l.a*(1+(l.g||0)/100))},0)}
+  function exGst(d){return d.lines.reduce(function(s,l){return s+Math.round(l.a*(l.g||0)/100)},0)}
+  function cqList(){var out=[];prList().forEach(function(p){if(p.mode!=='Cheque')return;var s=CQS['pr:'+p.no]||{st:'pend'};out.push({key:'pr:'+p.no,dir:'in',no:p.ref||'—',doc:p.no,p:p.p,d:p.d,amt:p.amt,st:p.st==='x'&&s.st!=='bnc'?'x':s.st,s:s})});
+    pmList().forEach(function(p){if(p.mode!=='Cheque')return;var s=CQS['pm:'+p.no]||{st:'pend'};out.push({key:'pm:'+p.no,dir:'out',no:p.ref||'—',doc:p.no,p:p.p,d:p.d,amt:p.amt,st:p.st==='x'&&s.st!=='bnc'?'x':s.st,s:s})});return out.sort(function(a,b){return a.d<b.d?1:-1})}
+  function cqState(c){return c.st==='clr'?['paid','Cleared','क्लियर']:c.st==='bnc'?['due','Bounced','बाउंस']:c.st==='dep'?['info','Deposited','जमा किया']:c.st==='x'?['gray','Cancelled','रद्द']:['cr','Pending','बाकी']}
+  function book(id){var E=[],acc=AC.filter(function(a){return a.id===id})[0];
+    function add(d,amt,nm,sub,link){E.push({d:d,amt:amt,nm:nm,sub:sub,link:link})}
+    prList().forEach(function(p){if(p.st==='x')return;if(p.mode==='Cheque'){var s=CQS['pr:'+p.no];if(s&&s.st==='clr'&&s.acct===id)add(s.cd,p.amt,L('Cheque Cleared','चेक क्लियर'),esc(p.no)+' · '+esc(pname(p)),'cq:pr:'+p.no);return}if(acOf(p.mode)===id)add(p.d,p.amt,L('Payment In','मिला भुगतान'),esc(p.no)+' · '+esc(pname(p)),'pr:'+p.no)});
+    DOC.inv.forEach(function(v){if(!v.p&&v.st!=='x'&&acOf(v.mode||'Cash')===id)add(v.d,v.total,L('Cash Sale','नक़द बिक्री'),esc(v.no)+' · '+esc(pname(v)),'inv:'+v.no)});
+    pmList().forEach(function(p){if(p.st==='x')return;if(p.mode==='Cheque'){var s=CQS['pm:'+p.no];if(s&&s.st==='clr'&&s.acct===id)add(s.cd,-p.amt,L('Cheque Cleared','चेक क्लियर'),esc(p.no)+' · '+esc(pname(p)),'cq:pm:'+p.no);return}if(acOf(p.mode)===id)add(p.d,-p.amt,L('Payment Out','दिया भुगतान'),esc(p.no)+' · '+esc(pname(p)),'pm:'+p.no)});
+    DOC.ex.forEach(function(x){if(x.st!=='x'&&x.from===id)add(x.d,-exTotal(x),L('Expense: ','ख़र्चा: ')+esc(x.cat),esc(x.no)+' · '+esc(x.to),'ex:'+x.no)});
+    TRF.forEach(function(t){if(t.from===id)add(t.d,-t.amt,L('Transfer Out','पैसा भेजा'),esc(t.no)+' · '+L('To ','को: ')+esc(acName(t.to)),'');if(t.to===id)add(t.d,t.amt,L('Transfer In','पैसा आया'),esc(t.no)+' · '+L('From ','से: ')+esc(acName(t.from)),'')});
+    DOC.cn.forEach(function(c){if(c.st!=='x'&&c.settle!=='adj'&&acOf(c.settle)===id)add(c.d,-c.total,L('Refund To Customer','ग्राहक को वापसी'),esc(c.no)+' · '+esc(pname(c)),'cn:'+c.no)});
+    DOC.dn.forEach(function(c){if(c.st!=='x'&&c.settle!=='adj'&&acOf(c.settle)===id)add(c.d,c.total,L('Refund From Supplier','सप्लायर से वापसी'),esc(c.no)+' · '+esc(pname(c)),'dn:'+c.no)});
+    Object.keys(EL).forEach(function(e){EL[e].led.forEach(function(x){if(x[0]==='pay'&&acOf(x[4])===id)add(x[2],-x[3],L('Commission Paid','कमीशन दिया'),esc(x[1])+' · '+esc(EL[e].n),'el:'+e)})});
+    Object.keys(CQS).forEach(function(k){var s=CQS[k];if(s.st==='bnc'&&s.chg&&s.acct===id)add(s.bd,-s.chg,L('Bounce Charges','बाउंस चार्ज'),L('Cheque ','चेक ')+esc(k.split(':')[1]),'cq:'+k)});
+    CCA.forEach(function(c){if(c.acct===id)add(c.d,c.amt,c.amt>0?L('Cash Count: Excess','गिनती: ज़्यादा'):L('Cash Count: Short','गिनती: कम'),esc(c.no),'')});
+    E.sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0});var run=acc.ob;E.forEach(function(e){run+=e.amt;e.run=run});return {acc:acc,E:E,bal:run}}
+  function acName(id){var a=AC.filter(function(x){return x.id===id})[0];return a?a.n:id}
+  function mask(n){return n?'••• '+n.slice(-4):''}
+  var _fd2=findDoc;findDoc=function(k,no){if(k==='ex')return DOC.ex.filter(function(d){return d.no===no})[0];if(k==='ac')return AC.filter(function(a){return a.id===no})[0];if(k==='cq')return cqList().filter(function(c){return c.key===no})[0];return _fd2(k,no)};
+  KD.ex={t:['Expenses','ख़र्चे'],st:[['all','All','सभी']],nw:['Add Expense','ख़र्चा जोड़ें']};
+  KD.ac={t:['Bank And Cash','बैंक और नक़द'],st:[['all','All Accounts','सभी खाते'],['bank','Banks','बैंक'],['cash','Cash','नक़द']],nw:['Add Bank Account','बैंक खाता जोड़ें']};
+  KD.cq={t:['Cheques','चेक'],st:[['all','All Cheques','सभी चेक'],['pend','Pending','बाकी'],['dep','Deposited','जमा किया'],['clr','Cleared','क्लियर'],['bnc','Bounced','बाउंस']],nw:['','']};
+  var _ro2=rowsOf;rowsOf=function(k){var R0=[];
+    if(k==='ex')DOC.ex.forEach(function(d){R0.push({no:d.no,nm:d.to,sub:esc(d.no)+' | '+LD(d.d),amt:exTotal(d),b:d.st==='x'?['gray','Cancelled','रद्द']:['gray',d.cat,d.cat],f:d.cat,k:d.no+' '+d.to+' '+d.cat+' '+d.ref+' '+d.lines.map(function(l){return l.t}).join(' ')})});
+    else if(k==='ac')AC.forEach(function(a){var b=book(a.id).bal;R0.push({no:a.id,nm:a.n,sub:esc(a.sub)+(a.no?' · '+mask(a.no):''),amt:b,b:a.kind==='cash'?['paid','Cash','नक़द']:a.upi?['info','UPI Default','UPI मुख्य']:['gray','Bank','बैंक'],f:a.kind,k:a.n+' '+a.no})});
+    else if(k==='cq')cqList().forEach(function(c){R0.push({no:c.key,nm:pname(c),sub:L('Cheque ','चेक ')+esc(c.no)+' | '+LD(c.d)+' · '+(c.dir==='in'?L('↓ Received','↓ मिला'):L('↑ Issued','↑ दिया')),amt:c.amt,b:cqState(c),f:c.st,k:c.no+' '+pname(c)+' '+c.doc})});
+    else return _ro2(k);return R0};
+  var _so2=sumOf;sumOf=function(k){var a,b;
+    if(k==='ex'){var m=0,g=0;DOC.ex.forEach(function(d){if(d.st!=='x'&&d.d.slice(0,7)==='2026-11'){m+=exTotal(d);g+=exGst(d)}});a=[L('↑ Spent This Month','↑ इस महीने ख़र्च'),'<span class="cr">'+R(m)+'</span>'];b=[L('GST Input Credit','GST इनपुट क्रेडिट'),R(g)]}
+    else if(k==='ac'){var c=0,bk=0;AC.forEach(function(x){var v=book(x.id).bal;if(x.kind==='cash')c+=v;else bk+=v});a=[L('Cash In Hand','हाथ में नक़द'),R(c)];b=[L('In Banks','बैंकों में'),R(bk)]}
+    else if(k==='cq'){var pi=0,pn=0,io=0;cqList().forEach(function(x){if(x.dir==='in'&&(x.st==='pend'||x.st==='dep')){pi+=x.amt;pn++}if(x.dir==='out'&&x.st==='pend')io+=x.amt});a=[L('↓ To Clear ('+pn+')','↓ क्लियर होने हैं ('+pn+')'),R(pi)];b=[L('↑ Issued, Pending','↑ दिए, बाकी'),R(io)]}
+    else return _so2(k);return '<div class="dsum"><div><small>'+a[0]+'</small><b>'+a[1]+'</b></div><div><small>'+b[0]+'</small><b>'+b[1]+'</b></div></div>'};
+  var _rdl=renderDL;renderDL=function(){var k=prm().k;if(k==='ex'){KD.ex.st=[['all','All','सभी']].concat(EXC.map(function(c){return [c,c,c]}))}_rdl();
+    if(k==='ex')document.getElementById('dl-hd').innerHTML='<button class="btn ico" data-excat aria-label="Expense Categories"><svg class="ic"><use href="#gear"/></svg></button>';
+    if(k==='ac')document.getElementById('dl-hd').innerHTML='<button class="btn ico" data-trf aria-label="Transfer Money"><svg class="ic"><use href="#share"/></svg></button>';
+    if(k==='cq'){document.getElementById('dl-bar').innerHTML='';document.getElementById('dl-bar').hidden=true}else document.getElementById('dl-bar').hidden=false;};
+  var _rdv2=renderDV;renderDV=function(){var p=prm(),k=p.k;if(['ex','ac','cq'].indexOf(k)<0)return _rdv2();var d=findDoc(k,p.no),h='',bar='',t='',s='';
+    if(k==='ex'){t=d.no;s=LD(d.d);var tot=exTotal(d),g=exGst(d);
+      h+='<div class="vhd"><div><small>'+L('↑ Amount Spent','↑ ख़र्च की रक़म')+'</small><b class="cr">'+R(tot)+'</b></div>'+badge(d.st==='x'?['gray','Cancelled','रद्द']:['gray',d.cat,d.cat])+'</div>';
+      if(d.st==='x')h+='<div class="warnb">'+L('This expense is cancelled. It stays in the books and its money went back to '+acName(d.from)+'.','यह ख़र्चा रद्द है। यह किताबों में रहता है और पैसा '+acName(d.from)+' में वापस गिना गया।')+'</div>';
+      h+='<div class="box" style="gap:6px">'+kvr(L('Paid To','किसे दिया'),esc(d.to))+kvr(L('Paid From','कहाँ से दिया'),'<button type="button" class="lnk kvl" data-dopen="ac:'+d.from+'">'+esc(acName(d.from))+'</button>')+(d.ref?kvr(L('Bill / Reference No.','बिल / रेफ़रेंस नं.'),esc(d.ref)):'')+'</div>';
+      h+='<div class="sec">'+L('Lines','लाइनें')+'</div><div class="grp">'+d.lines.map(function(l,i){return '<div class="srow vl"><span class="sn2">'+(i+1)+'</span><div class="mid"><div class="nm">'+esc(l.t)+'</div><div class="t-x">'+(l.g?'GST '+l.g+'% · ₹'+m2(Math.round(l.a*l.g/100)):L('No GST','GST नहीं'))+'</div></div><b class="am2">'+m2(Math.round(l.a*(1+(l.g||0)/100)))+'</b></div>'}).join('')+'</div>';
+      h+='<div class="box" style="gap:6px">'+kvr(L('Amount','रक़म'),'₹'+inr(tot-g))+kvr(L('GST Input Credit','GST इनपुट क्रेडिट'),'₹'+inr(g))+'<div class="tl tt"><span>'+L('Total','कुल')+'</span><b>₹'+inr(tot)+'</b></div></div>'}
+    if(k==='ac'){var bk=book(d.id),per=p.per||'this',start=per==='this'?'2026-11-01':per==='last'?'2026-10-01':'',end=per==='last'?'2026-11-01':'',E=bk.E.filter(function(e){return (!start||e.d>=start)&&(!end||e.d<end)}),tin=0,tout=0;E.forEach(function(e){if(e.amt>0)tin+=e.amt;else tout-=e.amt});
+      t=d.n;s=esc(d.sub)+(d.no?' · '+mask(d.no):'');
+      h+='<div class="vhd"><div><small>'+(d.kind==='cash'?L('Cash In Hand Now','अभी हाथ में नक़द'):L('Balance In Books','किताबों में बैलेंस'))+'</small><b>'+R(bk.bal)+'</b></div>'+(d.upi?'<span class="bd info">'+L('UPI Default','UPI मुख्य')+'</span>':'')+'</div>';
+      h+='<div class="chips eq" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+[['this','This Month','इस महीने'],['last','Last Month','पिछला महीना'],['all','All','सभी']].map(function(x){return '<button type="button" class="chip" data-acper="'+x[0]+'" aria-pressed="'+(per===x[0])+'">'+L(x[1],x[2])+'</button>'}).join('')+'</div>';
+      h+='<div class="dsum"><div><small>'+L('↓ Money In','↓ आया')+'</small><b class="cg">'+R(tin)+'</b></div><div><small>'+L('↑ Money Out','↑ गया')+'</small><b class="cr">'+R(tout)+'</b></div></div>';
+      h+=E.length?'<div class="grp">'+E.slice().reverse().map(function(e){return '<div class="srow cpr"'+(e.link?' role="button" tabindex="0" data-dopen="'+e.link+'"':'')+'><div class="mid"><div class="nm">'+e.nm+'</div><div class="t-x one">'+(e.sub.indexOf(' · ')>0?e.sub.slice(0,e.sub.indexOf(' · '))+' | '+LD(e.d)+e.sub.slice(e.sub.indexOf(' · ')):e.sub+' | '+LD(e.d))+'</div></div><div class="end"><div class="v '+(e.amt>0?'cg':'cr')+'">'+(e.amt>0?'↓ ':'↑ ')+m2(e.amt)+'</div><div class="w c3">'+L('Bal ','बैलेंस ')+m2(e.run)+'</div></div></div>'}).join('')+'</div>':'<div class="empty"><b>'+L('No Entries In This Period','इस समय में कोई लेन-देन नहीं')+'</b></div>';
+      bar=(d.kind==='cash'?'<button class="btn soft grow" data-ccount><svg class="ic"><use href="#check"/></svg>'+L('Count Cash','नक़द गिनें')+'</button>':'')+'<button class="btn blue grow" data-trf="'+d.id+'"><svg class="ic"><use href="#share"/></svg>'+L('Transfer Money','पैसा ट्रांसफ़र')+'</button>'}
+    if(k==='cq'){var c=d;t=L('Cheque ','चेक ')+esc(c.no);s=LD(c.d);var cs=cqState(c);
+      h+='<div class="vhd"><div><small>'+(c.dir==='in'?L('↓ Received From Customer','↓ ग्राहक से मिला'):L('↑ Issued To Supplier','↑ सप्लायर को दिया'))+'</small><b class="'+(c.dir==='in'?'cg':'cr')+'">'+R(c.amt)+'</b></div>'+badge(cs)+'</div>';
+      h+=partyCard(c)+'<div class="box" style="gap:6px">'+kvr(L('Cheque No.','चेक नं.'),esc(c.no))+kvr(L('Payment','भुगतान'),'<button type="button" class="lnk kvl" data-dopen="'+(c.dir==='in'?'pr':'pm')+':'+c.doc+'">'+esc(c.doc)+'</button>')+(c.s.bank?kvr(L('Drawn On','किस बैंक का'),esc(c.s.bank)):'')+(c.s.acct?kvr(c.dir==='in'?L('Deposited In','कहाँ जमा'):L('Paid From','कहाँ से'),esc(acName(c.s.acct))):'')+(c.s.dd?kvr(L('Deposited On','जमा की तारीख़'),LD(c.s.dd)):'')+(c.s.cd?kvr(L('Cleared On','क्लियर की तारीख़'),LD(c.s.cd)):'')+(c.st==='bnc'?kvr(L('Bounce Charges','बाउंस चार्ज'),'₹'+inr(c.s.chg||0),'cr')+(c.s.why?kvr(L('Reason','कारण'),esc(c.s.why)):''):'')+'</div>';
+      if(c.st==='bnc')h+='<div class="warnb">'+(c.dir==='in'?L('The payment was undone: '+pname(c)+' owes this money again.','भुगतान हट गया: '+pname(c)+' पर यह रक़म फिर बाकी है।'):L('The payment was undone: you owe '+pname(c)+' this money again.','भुगतान हट गया: '+pname(c)+' को यह रक़म फिर देनी है।'))+'</div>';
+      if(c.st==='pend'&&c.dir==='in')bar='<button class="btn blue grow" data-cqdep>'+L('Deposit In Bank','बैंक में जमा करें')+'</button>';
+      if(c.st==='dep'||(c.st==='pend'&&c.dir==='out'))bar='<button class="btn del grow" data-cqbnc>'+L('Mark Bounced','बाउंस हुआ')+'</button><button class="btn green grow" data-cqclr>'+L('Mark Cleared','क्लियर हुआ')+'</button>';
+      if(c.st==='clr'||c.st==='bnc')bar='<button class="btn line grow" data-cqundo>'+L('Undo','पहले जैसा करें')+'</button>'}
+    document.getElementById('dv-t').innerHTML=t;document.getElementById('dv-s').innerHTML=s;document.getElementById('dv-body').innerHTML=h;var bb=document.getElementById('dv-bar');bb.innerHTML=bar;bb.hidden=!bar;
+    document.querySelector('[data-s=dview] [data-dvmore]').hidden=!dvMenu().length};
+  var _dvm2=dvMenu;dvMenu=function(){var p=prm(),k=p.k;if(['ex','ac','cq'].indexOf(k)<0)return _dvm2();var d=findDoc(k,p.no),m=[];if(!d)return m;
+    if(k==='ex'&&d.st!=='x'){m.push(['dedit','edit','Edit Expense','ख़र्चा बदलें']);m.push(['dcan','xic','Cancel Expense','ख़र्चा रद्द करें',1])}
+    if(k==='ac'&&d.kind==='bank'){m.push(['acedit','edit','Edit Bank Account','बैंक खाता बदलें']);m.push(['acdel','xic','Delete Account','खाता हटाएँ',1])}
+    return m};
+  var _ac2=askCancel;askCancel=function(){var p=prm();if(p.k!=='ex')return _ac2();var d=findDoc('ex',p.no);
+    gd('<b class="t-h" style="font-size:18px">'+L('Cancel '+d.no+'?',d.no+' रद्द करें?')+'</b><div class="t-s">'+L('₹'+inr(exTotal(d))+' goes back into '+acName(d.from)+'. The expense stays in the books marked Cancelled.','₹'+inr(exTotal(d))+' फिर '+acName(d.from)+' में गिने जाएँगे। ख़र्चा किताबों में "रद्द" लिखा रहेगा।')+'</div><div class="t-x">'+L('Documents are never deleted, only cancelled. This cannot be undone.','दस्तावेज़ कभी मिटाए नहीं जाते, सिर्फ़ रद्द होते हैं। यह वापस नहीं होगा।')+'</div><div class="row"><button class="btn line grow" data-close>'+L('Keep It','रहने दें')+'</button><button class="btn del grow" data-dcanok>'+L('Yes, Cancel','हाँ, रद्द करें')+'</button></div>')};
+  var _dc2=doCancel;doCancel=function(){var p=prm();if(p.k!=='ex')return _dc2();var d=findDoc('ex',p.no);d.st='x';closeOv();show(cur);toast(d.no+' cancelled. It stays in the books.',d.no+' रद्द हुआ। यह किताबों में रहेगा।')};
+  /* forms: expense and bank account */
+  var _fo2=fmOpen;fmOpen=function(k,o){if(k!=='ex'&&k!=='ac')return _fo2(k,o);o=o||{};
+    if(k==='ex'){FM={k:'ex',no:'EXP-00'+exNo,d:TODAY,cat:'',to:'',from:'cash',ref:'',lines:[{t:'',a:0,g:0}]};if(o.src){var s=JSON.parse(JSON.stringify(o.src));FM.edit=s.no;FM.no=s.no;FM.d=s.d;FM.cat=s.cat;FM.to=s.to;FM.from=s.from;FM.ref=s.ref;FM.lines=s.lines}}
+    if(k==='ac'){FM={k:'ac',n:'',type:'Current Account',no:'',ifsc:'',br:'',ob:0,od:TODAY,upi:false};if(o.src){var a=o.src;FM.edit=a.id;FM.n=a.n;FM.type=a.sub;FM.no=a.no;FM.ifsc=a.ifsc;FM.br=a.br;FM.ob=a.ob;FM.od=a.od;FM.upi=!!a.upi}}
+    nav('dform',{k:k})};
+  function exLinesHtml(){return FM.lines.map(function(l,i){return '<div class="box exl" style="gap:8px"><div class="fld"><label for="exl-t'+i+'">'+L('Item / Description','आइटम / विवरण')+'</label><div class="inp"><input id="exl-t'+i+'" data-exlt="'+i+'" value="'+esc(l.t)+'" placeholder="'+(hiOn()?'जैसे: दुकान का किराया':'For example: shop rent')+'" autocomplete="off">'+(FM.lines.length>1?'<button type="button" class="pk" data-exlrm="'+i+'" aria-label="Remove Line"><svg class="ic"><use href="#xic"/></svg></button>':'')+'</div></div><div class="srow2"><div class="fld"><label for="exl-a'+i+'">'+L('Amount','रक़म')+'</label><div class="inp"><span class="pre">₹</span><input id="exl-a'+i+'" data-exla="'+i+'" inputmode="decimal" value="'+(l.a?v2(l.a):'')+'" placeholder="0" autocomplete="off"></div></div><div class="fld"><label for="exl-g'+i+'">'+L('GST Rate','GST दर')+'</label><div class="inp"><select id="exl-g'+i+'" data-exlg="'+i+'">'+[0,5,12,18,28].map(function(g){return '<option value="'+g+'"'+(l.g===g?' selected':'')+'>'+(g?g+'%':(hiOn()?'GST नहीं':'No GST'))+'</option>'}).join('')+'</select></div></div></div></div>'}).join('')}
+  function exTot(){var a=0,g=0;FM.lines.forEach(function(l){a+=l.a;g+=Math.round(l.a*(l.g||0)/100)});var el=document.getElementById('fm-ext');if(el)el.innerHTML=kvr(L('Amount','रक़म'),'₹'+inr(a))+kvr(L('GST Input Credit','GST इनपुट क्रेडिट'),'₹'+inr(g))+'<div class="tl tt"><span>'+L('Total','कुल')+'</span><b>₹'+inr(a+g)+'</b></div>'}
+  var _rdf2=renderDF;renderDF=function(){var k=FM.k;if(k!=='ex'&&k!=='ac')return _rdf2();var h,bar,t;
+    if(k==='ex'){t=FM.edit?L('Edit Expense','ख़र्चा बदलें'):L('New Expense','नया ख़र्चा');
+      h=noDate(L('Expense No.','ख़र्चा नं.'))+'<div class="fld"><label for="fm-cat">'+L('Category','श्रेणी')+'</label><div class="inp"><select id="fm-cat"><option value="">'+(hiOn()?'श्रेणी चुनें':'Choose Category')+'</option>'+EXC.map(function(c){return '<option'+(FM.cat===c?' selected':'')+'>'+esc(c)+'</option>'}).join('')+'</select></div><button type="button" class="lnk sm" data-excat>'+L('+ New Category','+ नई श्रेणी')+'</button></div>';
+      h+='<div class="fld"><label for="fm-to">'+L('Paid To','किसे दिया')+'</label><div class="inp"><input id="fm-to" value="'+esc(FM.to)+'" placeholder="'+(hiOn()?'दुकान, व्यक्ति या सप्लायर':'Shop, person or supplier')+'" autocomplete="off"></div></div>';
+      h+='<div class="srow2"><div class="fld"><label for="fm-from">'+L('Paid From','कहाँ से दिया')+'</label><div class="inp"><select id="fm-from">'+AC.map(function(a){return '<option value="'+a.id+'"'+(FM.from===a.id?' selected':'')+'>'+esc(a.kind==='cash'?(hiOn()?'नक़द':'Cash'):(a.short||a.n))+'</option>'}).join('')+'</select></div></div><div class="fld"><label for="fm-ref">'+L('Bill / Ref. No.','बिल / रेफ़. नं.')+'</label><div class="inp"><input id="fm-ref" value="'+esc(FM.ref)+'" placeholder="'+(hiOn()?'ज़रूरी नहीं':'Optional')+'" autocomplete="off"></div></div></div>';
+      h+='<div class="sec">'+L('Lines','लाइनें')+'</div><div id="fm-exl" class="sll">'+exLinesHtml()+'</div><button type="button" class="lnk sm" data-exladd>'+L('+ Add Line','+ लाइन जोड़ें')+'</button><div class="box" style="gap:6px" id="fm-ext"></div>';
+      bar='<button class="btn blue grow" data-fmsave><svg class="ic"><use href="#check"/></svg>'+L('Save Expense','ख़र्चा सेव करें')+'</button>'}
+    else{t=FM.edit?L('Edit Bank Account','बैंक खाता बदलें'):L('Add Bank Account','बैंक खाता जोड़ें');
+      h='<div class="fld"><label for="ac-n">'+L('Bank Name','बैंक का नाम')+'</label><div class="inp"><input id="ac-n" value="'+esc(FM.n)+'" placeholder="'+(hiOn()?'जैसे: HDFC Bank':'For example: HDFC Bank')+'" autocomplete="off"></div></div>';
+      h+='<div class="fld"><label for="ac-t">'+L('Account Type','खाते का प्रकार')+'</label><div class="inp"><select id="ac-t">'+[['Current Account','करंट खाता'],['Savings Account','बचत खाता'],['OD Account','OD खाता'],['CC Account','CC खाता']].map(function(x){return '<option value="'+x[0]+'"'+(FM.type===x[0]?' selected':'')+'>'+(hiOn()?x[1]:x[0])+'</option>'}).join('')+'</select></div></div>';
+      h+='<div class="fld"><label for="ac-no">'+L('Account Number','खाता नंबर')+'</label><div class="inp"><input id="ac-no" inputmode="numeric" value="'+esc(FM.no)+'" autocomplete="off"></div></div><div class="srow2"><div class="fld"><label for="ac-if">IFSC</label><div class="inp"><input id="ac-if" value="'+esc(FM.ifsc)+'" placeholder="HDFC0001234" autocomplete="off"></div></div><div class="fld"><label for="ac-br">'+L('Branch','शाखा')+'</label><div class="inp"><input id="ac-br" value="'+esc(FM.br)+'" autocomplete="off"></div></div></div>';
+      h+='<div class="srow2"><div class="fld"><label for="ac-ob">'+L('Opening Balance','शुरू का बैलेंस')+'</label><div class="inp"><span class="pre">₹</span><input id="ac-ob" inputmode="decimal" value="'+(FM.ob?v2(FM.ob):'')+'" placeholder="0" autocomplete="off"></div></div><div class="fld"><label>'+L('As On','किस तारीख़ को')+'</label><button type="button" class="pfield" data-acod><span class="nm">'+LD(FM.od)+'</span></button></div></div>';
+      h+='<div class="tg"><span>'+L('UPI Default (UPI, Card And Bank Transfers Go Here)','UPI मुख्य (UPI, कार्ड और बैंक ट्रांसफ़र यहाँ)')+'</span><button type="button" class="sw2" role="switch" aria-checked="'+FM.upi+'" aria-label="UPI Default" id="ac-upi"></button></div>';
+      bar='<button class="btn blue grow" data-fmsave><svg class="ic"><use href="#check"/></svg>'+L('Save','सेव करें')+'</button>'}
+    document.getElementById('df-t').innerHTML=t;document.getElementById('df-body').innerHTML=h;document.getElementById('df-bar').innerHTML=bar;if(k==='ex')exTot()};
+  var _fs2=fmSave;fmSave=function(){var k=FM.k;if(k!=='ex'&&k!=='ac')return _fs2();
+    if(k==='ex'){if(!FM.cat){toast('Choose a category.','श्रेणी चुनें।');return}var ls=FM.lines.filter(function(l){return l.a>0});if(!ls.length){toast('Enter the amount.','रक़म लिखें।');return}
+      var d={no:FM.no,d:FM.d,cat:FM.cat,to:FM.to||FM.cat,from:FM.from,ref:FM.ref,lines:ls.map(function(l){return {t:l.t||FM.cat,a:l.a,g:l.g||0}}),st:'ok'};
+      if(FM.edit){var o=findDoc('ex',FM.edit);DOC.ex[DOC.ex.indexOf(o)]=d}else{DOC.ex.unshift(d);exNo++}stack.pop();nav('dview',{k:'ex',no:d.no});toast(d.no+' saved. It is entered in the '+(d.from==='cash'?'cash':'bank')+' book.',d.no+' सेव हुआ। '+(d.from==='cash'?'नक़द':'बैंक')+' की किताब में दर्ज।');return}
+    FM.n=document.getElementById('ac-n').value.trim();if(!FM.n){toast('Enter the bank name.','बैंक का नाम लिखें।');return}
+    FM.type=document.getElementById('ac-t').value;FM.no=document.getElementById('ac-no').value.trim();FM.ifsc=document.getElementById('ac-if').value.trim().toUpperCase();FM.br=document.getElementById('ac-br').value.trim();FM.ob=Math.round((parseFloat(document.getElementById('ac-ob').value)||0)*100);FM.upi=document.getElementById('ac-upi').getAttribute('aria-checked')==='true';
+    if(FM.upi)AC.forEach(function(a){a.upi=false});
+    if(FM.edit){var a=findDoc('ac',FM.edit);a.n=FM.n;a.sub=FM.type;a.no=FM.no;a.ifsc=FM.ifsc;a.br=FM.br;a.ob=FM.ob;a.od=FM.od;a.upi=FM.upi;stack.pop();show(cur);toast('Bank account saved.','बैंक खाता सेव हुआ।');return}
+    var id='b'+Date.now();AC.push({id:id,kind:'bank',n:FM.n,sub:FM.type,no:FM.no,ifsc:FM.ifsc,br:FM.br,ob:FM.ob,od:FM.od,upi:FM.upi});stack.pop();nav('dview',{k:'ac',no:id});toast(FM.n+' added.',FM.n+' जुड़ा।')};
+  function trfSheet(from){var opts=function(sel){return AC.map(function(a){return '<option value="'+a.id+'"'+(a.id===sel?' selected':'')+'>'+esc(a.kind==='cash'?(hiOn()?'नक़द':'Cash'):(a.short||a.n))+'</option>'}).join('')},f=from||'cash',to=f==='cash'?'hdfc':'cash';
+    gs('<b>'+L('Transfer Money','पैसा ट्रांसफ़र')+'</b><div class="t-x">'+L('Deposit cash in a bank, withdraw cash, or move money between banks.','नक़द बैंक में जमा करें, बैंक से निकालें, या एक बैंक से दूसरे में भेजें।')+'</div><div class="srow2"><div class="fld"><label for="tr-f">'+L('From','से')+'</label><div class="inp"><select id="tr-f">'+opts(f)+'</select></div></div><div class="fld"><label for="tr-t">'+L('To','में')+'</label><div class="inp"><select id="tr-t">'+opts(to)+'</select></div></div></div><div class="fld"><label for="tr-a">'+L('Amount','रक़म')+'</label><div class="inp"><span class="pre">₹</span><input id="tr-a" inputmode="decimal" placeholder="0" autocomplete="off"></div></div><div class="fld"><label for="tr-n">'+L('Note','नोट')+'</label><div class="inp"><input id="tr-n" placeholder="'+(hiOn()?'ज़रूरी नहीं':'Optional')+'" autocomplete="off"></div></div><div class="hint" id="tr-h"></div><button class="btn blue" data-trfok>'+L('Save Transfer','ट्रांसफ़र सेव करें')+'</button>');trfHint()}
+  function trfHint(){var f=document.getElementById('tr-f').value,t=document.getElementById('tr-t').value,af=findDoc('ac',f),at=findDoc('ac',t),h=document.getElementById('tr-h');
+    h.innerHTML=f===t?L('Choose two different accounts.','दो अलग खाते चुनें।'):af.kind==='cash'?L('Deposit cash in bank: cash in hand goes down and the bank balance goes up.','नक़द बैंक में जमा: हाथ का नक़द घटेगा, बैंक बैलेंस बढ़ेगा।'):at.kind==='cash'?L('Withdraw cash from bank: bank balance goes down and cash in hand goes up.','बैंक से नक़द निकालें: बैंक बैलेंस घटेगा, हाथ का नक़द बढ़ेगा।'):L('Bank to bank transfer.','एक बैंक से दूसरे बैंक में।')}
+  stage.addEventListener('click',function(e){
+    var t=e.target.closest('[data-excat],[data-exnewcat],[data-exladd],[data-exlrm],[data-trf],[data-trfok],[data-ccount],[data-ccok],[data-acper],[data-acod],[data-dvm="acedit"],[data-dvm="acdel"],[data-cqdep],[data-cqdepok],[data-cqclr],[data-cqbnc],[data-cqbncok],[data-cqundo],[data-cqundook]');if(!t||!stage.contains(t))return;
+    if(t.hasAttribute('data-excat')){var cnt={};DOC.ex.forEach(function(d){if(d.st!=='x'){cnt[d.cat]=cnt[d.cat]||[0,0];cnt[d.cat][0]++;cnt[d.cat][1]+=exTotal(d)}});gs('<div><b>'+L('Expense Categories','ख़र्चे की श्रेणियाँ')+'</b><div class="t-x">'+L('Totals for all expenses. Add a category here.','सभी ख़र्चों का जोड़। नई श्रेणी यहाँ जोड़ें।')+'</div></div><div class="grp">'+EXC.map(function(c){var x=cnt[c];return '<div class="srow vl"><div class="mid"><div class="nm">'+esc(c)+'</div><div class="t-x">'+(x?L(x[0]+(x[0]===1?' Entry':' Entries'),x[0]+' एंट्री'):L('Not Used','इस्तेमाल नहीं'))+'</div></div><b class="am2">'+(x?'₹'+m2(x[1]):'—')+'</b></div>'}).join('')+'</div><div class="addrow" style="grid-template-columns:minmax(0,1fr) auto"><div class="inp"><input id="ec-n" placeholder="'+(hiOn()?'नई श्रेणी, जैसे जनरेटर डीज़ल':'New category, e.g. Generator Diesel')+'" autocomplete="off"></div><button type="button" class="btn blue" data-exnewcat>'+L('Add','जोड़ें')+'</button></div>');return}
+    if(t.hasAttribute('data-exnewcat')){var n=document.getElementById('ec-n').value.trim();if(!n){toast('Enter the category name.','श्रेणी का नाम लिखें।');return}n=n.replace(/\b\w/g,function(c){return c.toUpperCase()});if(EXC.indexOf(n)<0)EXC.push(n);if(FM&&FM.k==='ex'&&cur==='dform'){FM.cat=n}closeOv();show(cur);toast('Category '+n+' added.','श्रेणी '+n+' जुड़ी।');return}
+    if(t.hasAttribute('data-exladd')){FM.lines.push({t:'',a:0,g:0});document.getElementById('fm-exl').innerHTML=exLinesHtml();exTot();return}
+    if(t.hasAttribute('data-exlrm')){FM.lines.splice(+t.dataset.exlrm,1);document.getElementById('fm-exl').innerHTML=exLinesHtml();exTot();return}
+    if(t.hasAttribute('data-trf')){trfSheet(t.dataset.trf);return}
+    if(t.hasAttribute('data-trfok')){var f=document.getElementById('tr-f').value,to=document.getElementById('tr-t').value,a=Math.round((parseFloat(document.getElementById('tr-a').value)||0)*100);if(f===to){toast('Choose two different accounts.','दो अलग खाते चुनें।');return}if(!(a>0)){toast('Enter the amount.','रक़म लिखें।');return}TRF.push({no:'TR-000'+trNo,d:TODAY,from:f,to:to,amt:a,note:document.getElementById('tr-n').value});trNo++;closeOv();show(cur);toast('₹'+inr(a)+' moved from '+acName(f)+' to '+acName(to)+'.','₹'+inr(a)+' '+acName(f)+' से '+acName(to)+' में गए।');return}
+    if(t.hasAttribute('data-ccount')){var bal=book('cash').bal;gd('<b class="t-h" style="font-size:18px">'+L('Count Cash','नक़द गिनें')+'</b><div class="t-s">'+L('Books say ₹'+inr(bal)+' should be in the counter.','किताबों के हिसाब से गल्ले में ₹'+inr(bal)+' होने चाहिए।')+'</div><div class="fld"><label for="cc-a">'+L('Cash Actually In The Counter','गल्ले में असल नक़द')+'</label><div class="inp"><span class="pre">₹</span><input id="cc-a" inputmode="decimal" value="'+v2(bal)+'" autocomplete="off"></div></div><div id="cc-r"></div><div class="row"><button class="btn line grow" data-close>'+L('Cancel','रहने दें')+'</button><button class="btn blue grow" data-ccok>'+L('Save','सेव करें')+'</button></div>');ccRes();return}
+    if(t.hasAttribute('data-ccok')){var bal2=book('cash').bal,act=Math.round((parseFloat(document.getElementById('cc-a').value)||0)*100),df=act-bal2;closeOv();if(df){CCA.push({no:'CC-000'+ccNo,d:TODAY,acct:'cash',amt:df});ccNo++;show(cur);toast(df>0?'Excess of ₹'+inr(df)+' saved in the cash book.':'Short of ₹'+inr(df)+' saved in the cash book.',df>0?'₹'+inr(df)+' ज़्यादा, नक़द की किताब में दर्ज।':'₹'+inr(df)+' कम, नक़द की किताब में दर्ज।')}else toast('Cash matches the books.','नक़द किताबों से मिलता है।');return}
+    if(t.hasAttribute('data-acper')){var pp=prm();pp.per=t.dataset.acper;renderDV();return}
+    if(t.hasAttribute('data-acod')){dpFor=function(iso){FM.od=iso};dpOpen(FM.od);ov('dpick');return}
+    if(t.dataset.dvm==='acedit'){e.stopPropagation();closeOv();fmOpen('ac',{src:findDoc('ac',prm().no)});return}
+    if(t.dataset.dvm==='acdel'){closeOv();var ac=findDoc('ac',prm().no);if(book(ac.id).E.length){toast('This account has entries. Move them first.','इस खाते में लेन-देन है। पहले उन्हें हटाएँ।');return}AC.splice(AC.indexOf(ac),1);back();toast(ac.n+' deleted.',ac.n+' हटाया।');return}
+    var c=prm().k==='cq'?findDoc('cq',prm().no):null;
+    if(t.hasAttribute('data-cqdep')){gs('<b>'+L('Deposit Cheque '+c.no,'चेक '+c.no+' जमा करें')+'</b><div class="fld"><label for="cq-a">'+L('Deposited In','कहाँ जमा')+'</label><div class="inp"><select id="cq-a">'+AC.filter(function(a){return a.kind==='bank'}).map(function(a){return '<option value="'+a.id+'">'+esc(a.n)+'</option>'}).join('')+'</select></div></div><button class="btn blue" data-cqdepok>'+L('Mark Deposited','जमा किया')+'</button>');return}
+    if(t.hasAttribute('data-cqdepok')){CQS[c.key]=Object.assign(c.s||{},{st:'dep',acct:document.getElementById('cq-a').value,dd:TODAY});closeOv();show(cur);toast('Cheque '+c.no+' deposited. Mark it cleared when the bank credits it.','चेक '+c.no+' जमा हुआ। बैंक में पैसा आने पर "क्लियर" करें।');return}
+    if(t.hasAttribute('data-cqclr')){CQS[c.key]=Object.assign(c.s||{},{st:'clr',acct:(c.s&&c.s.acct)||'hdfc',cd:TODAY});show(cur);toast('Cheque '+c.no+' cleared. Entered in the bank book.','चेक '+c.no+' क्लियर। बैंक की किताब में दर्ज।');return}
+    if(t.hasAttribute('data-cqbnc')){gd('<b class="t-h" style="font-size:18px">'+L('Cheque Bounced?','चेक बाउंस हुआ?')+'</b><div class="t-s">'+L('The payment '+c.doc+' is undone, so the money is owed again.','भुगतान '+c.doc+' हट जाएगा, रक़म फिर बाकी होगी।')+'</div><div class="fld"><label for="cq-c">'+L('Bank Charges For The Bounce','बाउंस का बैंक चार्ज')+'</label><div class="inp"><span class="pre">₹</span><input id="cq-c" inputmode="decimal" value="350" autocomplete="off"></div></div><div class="fld"><label for="cq-w">'+L('Reason','कारण')+'</label><div class="inp"><input id="cq-w" placeholder="'+(hiOn()?'जैसे: खाते में पैसा नहीं':'For example: insufficient funds')+'" autocomplete="off"></div></div><div class="row"><button class="btn line grow" data-close>'+L('Go Back','वापस')+'</button><button class="btn del grow" data-cqbncok>'+L('Mark Bounced','बाउंस हुआ')+'</button></div>');return}
+    if(t.hasAttribute('data-cqbncok')){var chg=Math.round((parseFloat(document.getElementById('cq-c').value)||0)*100),pd=c.dir==='in'?findDoc('pr',c.doc):findDoc('pm',c.doc);pd.t[5]='x';pd.alloc.forEach(function(a){var x=c.dir==='in'?invTx(a[0]):ptx('pb',a[0]);if(x)x[4]+=a[1]});CQS[c.key]=Object.assign(c.s||{},{st:'bnc',acct:(c.s&&c.s.acct)||'hdfc',bd:TODAY,chg:chg,why:document.getElementById('cq-w').value});closeOv();show(cur);toast('Marked bounced. '+pname(c)+(c.dir==='in'?' owes this money again.':' is owed this money again.'),'बाउंस दर्ज। रक़म फिर बाकी है।');return}
+    if(t.hasAttribute('data-cqundo')){gd('<b class="t-h" style="font-size:18px">'+L('Undo This Cheque?','यह चेक पहले जैसा करें?')+'</b><div class="t-s">'+L('It becomes pending again. On the real phone this asks for your passcode or fingerprint.','यह फिर "बाकी" हो जाएगा। असली फ़ोन पर पासकोड या फ़िंगरप्रिंट माँगेगा।')+'</div><div class="row"><button class="btn line grow" data-close>'+L('Keep It','रहने दें')+'</button><button class="btn blue grow" data-cqundook>'+L('Undo','पहले जैसा करें')+'</button></div>');return}
+    if(t.hasAttribute('data-cqundook')){if(c.st==='bnc'){var pd2=c.dir==='in'?findDoc('pr',c.doc):findDoc('pm',c.doc);pd2.t[5]=undefined;pd2.alloc.forEach(function(a){var x=c.dir==='in'?invTx(a[0]):ptx('pb',a[0]);if(x)x[4]-=a[1]})}CQS[c.key]={st:'pend',bank:c.s&&c.s.bank};closeOv();show(cur);toast('Cheque '+c.no+' is pending again.','चेक '+c.no+' फिर बाकी है।');return}
+  },true);
+  function ccRes(){var bal=book('cash').bal,act=Math.round((parseFloat(document.getElementById('cc-a').value)||0)*100),df=act-bal;document.getElementById('cc-r').innerHTML=df===0?'<div class="okb">'+L('Matches the books.','किताबों से मिलता है।')+'</div>':'<div class="warnb">'+(df>0?L('Excess ₹'+inr(df)+' (more cash than the books).','₹'+inr(df)+' ज़्यादा (किताबों से ज़्यादा नक़द)।'):L('Short ₹'+inr(df)+' (less cash than the books).','₹'+inr(df)+' कम (किताबों से कम नक़द)।'))+'</div>'}
+  stage.addEventListener('input',function(e){var x=e.target;
+    if(x.id==='cc-a'){ccRes();return}
+    if(!FM||FM.k!=='ex')return;
+    if(x.id==='fm-to'){FM.to=x.value;return}
+    if(x.matches('[data-exlt]')){FM.lines[+x.dataset.exlt].t=x.value;return}
+    if(x.matches('[data-exla]')){FM.lines[+x.dataset.exla].a=Math.round((parseFloat(x.value)||0)*100);exTot();return}});
+  stage.addEventListener('change',function(e){var x=e.target;
+    if(x.id==='tr-f'||x.id==='tr-t'){trfHint();return}
+    if(!FM)return;
+    if(x.id==='fm-cat'){FM.cat=x.value;return}if(x.id==='fm-from'){FM.from=x.value;return}
+    if(x.matches('[data-exlg]')){FM.lines[+x.dataset.exlg].g=+x.value;exTot();return}});
+  document.addEventListener('click',function(e){var b=e.target.closest('[data-jump7]');if(!b)return;var j=b.dataset.jump7;stack=['home'];show('home');
+    if(j==='exlist')nav('dlist',{k:'ex'});
+    else if(j==='exnew'){fmOpen('ex');FM.cat='Salary';FM.to='Ramesh (Helper)';FM.lines=[{t:'Salary For November',a:1200000,g:0}];renderDF()}
+    else if(j==='exview')nav('dview',{k:'ex',no:'EXP-0011'});
+    else if(j==='excat'){nav('dlist',{k:'ex'});document.querySelector('[data-s=dlist] [data-excat]').click()}
+    else if(j==='aclist')nav('dlist',{k:'ac'});
+    else if(j==='cashbook')nav('dview',{k:'ac',no:'cash'});
+    else if(j==='bankbook')nav('dview',{k:'ac',no:'hdfc'});
+    else if(j==='trf'){nav('dview',{k:'ac',no:'cash'});trfSheet('cash')}
+    else if(j==='ccount'){nav('dview',{k:'ac',no:'cash'});document.querySelector('[data-s=dview] [data-ccount]').click()}
+    else if(j==='acnew'){fmOpen('ac')}
+    else if(j==='cqlist')nav('dlist',{k:'cq'});
+    else if(j==='cqview'){CQS['pr:PR-0044']={st:'pend',bank:'PNB'};nav('dview',{k:'cq',no:'pr:PR-0044'})}
+    else if(j==='cqbnc'){CQS['pr:PR-0044']={st:'dep',acct:'hdfc',dd:TODAY,bank:'PNB'};nav('dview',{k:'cq',no:'pr:PR-0044'});document.querySelector('[data-s=dview] [data-cqbnc]').click()}
+    document.querySelectorAll('[data-jump7]').forEach(function(x){x.setAttribute('aria-current',x===b)})});
   newSale();
 })();
 </script>
