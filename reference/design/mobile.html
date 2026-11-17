@@ -497,8 +497,9 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .dsum small{display:block;font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dsum b{display:block;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:clamp(14px,4.4cqi,17px)}
 .dsum.three b{font-size:clamp(13px,3.8cqi,16px)}
-.vhd{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px}
+.vhd{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 10px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px}
 .fx .vhd{box-shadow:var(--sh1)}
+.vhd>div{min-width:0}
 .vhd small{display:block;font-size:12px;font-weight:600;color:var(--text2)}
 .vhd b{display:block;font-size:22px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .srow.vl{cursor:default;min-height:52px;padding-top:6px;padding-bottom:6px}
@@ -510,7 +511,8 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .qbr .stp{flex:none}
 .cbx{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--on);flex:none}
 [aria-checked="true"]>.cbx{background:var(--blue);border-color:var(--blue)}
-.crr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) 72px;gap:6px;align-items:center}
+.crr{display:grid;grid-template-columns:minmax(0,1fr) 96px;gap:4px 6px;align-items:center}
+.crr>b{grid-column:1/-1;font-size:14px}
 .crr .inp{padding:0 8px}
 .inp.big input{font-size:22px;font-weight:700}
 .sec.cnh{display:flex;align-items:center;justify-content:space-between;margin-bottom:-8px}
@@ -599,7 +601,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   </div>
   <p id="sub-blocks" data-hi="चरण 7.1 और 7.2: 20 रंग और ऐप के बुनियादी टुकड़े। चौड़ाई खिसकाकर देखें कि हर चीज़ हर फ़ोन पर फ़िट होती है।">Steps 7.1 and 7.2: the 20 colours and the app's building blocks. Drag the width to see every piece fit every phone.</p>
   <p id="sub-map" hidden data-hi="चरण 7.3 (मंज़ूर, 15 नवंबर 2026): ऐप में कौन-सी स्क्रीन कहाँ से खुलती है। नारंगी नंबर नीचे समझाए गए हैं।">Step 7.3 (approved, 15 Nov 2026): which screen opens from where. The orange numbers are explained underneath.</p>
-  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a से 7.4d मंज़ूर; अब 7.4e: बिल, Quotation, चालान, भुगतान, क्रेडिट नोट, कमीशन।">Step 7.4: the app's screens, to tap through. 7.4a to 7.4d are approved; now 7.4e: bills, quotations, challans, payments, credit notes and commission.</p>
+  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a से 7.4e मंज़ूर; अगला 7.4f: ख़रीद।">Step 7.4: the app's screens, to tap through. 7.4a to 7.4e are approved; 7.4f (purchases) is next.</p>
 </header>
 
 <div class="wrap" id="v-blocks">
@@ -868,7 +870,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 <div class="proto" id="v-a" hidden>
   <div class="guide">
     <div class="gsec">
-      <h2 data-hi="7.4e: बिल, Quotation, चालान, भुगतान, क्रेडिट नोट, कमीशन (नया)">7.4e: Bills, Quotations, Challans, Payments, Credit Notes, Commission (New)</h2>
+      <h2 data-hi="7.4e: बिल, Quotation, चालान, भुगतान, क्रेडिट नोट, कमीशन (मंज़ूर)">7.4e: Bills, Quotations, Challans, Payments, Credit Notes, Commission (Approved)</h2>
       <p data-hi="वेब ऐप के यही पेज फ़ोन पर: हर एक की सूची, देखना, नया बनाना और रद्द करना। दस्तावेज़ कभी मिटते नहीं, सिर्फ़ रद्द होते हैं।">The same pages as the web app, on the phone: a list, a view, a new form and cancel for each. Documents are never deleted, only cancelled.</p>
       <div class="scrlist">
         <button type="button" data-jump5="blist"><span class="no">1</span><span data-hi="बिक्री बिल (सूची)">Sale Bills (List)</span></button>
@@ -907,8 +909,8 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
       </ol>
     </div>
     <div class="gsec">
-      <h2 data-hi="7.4e में आपसे क्या चाहिए">What We Need From You (7.4e)</h2>
-      <p data-hi="दबाकर देखिए और बताइए क्या बदलना है। मंज़ूरी के बाद अगला कदम 7.4f: ख़रीद (ऑर्डर, बिल, भुगतान, डेबिट नोट)।">Tap through and tell us what to change. After your approval, the next step is 7.4f: purchases (orders, bills, payments made, debit notes).</p>
+      <h2 data-hi="अगला कदम">Next Step</h2>
+      <p data-hi="7.4e आपने 17 नव॰ 2026 को मंज़ूर किया। अगला कदम 7.4f: ख़रीद (ऑर्डर, बिल, भुगतान, डेबिट नोट)।">You approved 7.4e on 17 Nov 2026. The next step is 7.4f: purchases (orders, bills, payments made, debit notes).</p>
     </div>
     <div class="gsec">
       <h2 data-hi="7.4d: बिक्री (मंज़ूर)">7.4d: Sale (Approved)</h2>
@@ -2601,7 +2603,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(k==='el'){var e=d,sm=elSum(e);t=e.n;s=e.ph?'+91 '+esc(e.ph):'';
       h+='<div class="dsum three"><div><small>'+L('Earned','कमाया')+'</small><b>'+R(sm.earn)+'</b></div><div><small>'+L('Paid','दिया')+'</small><b>'+R(sm.paid)+'</b></div><div><small>'+L('↑ Payable','↑ देना है')+'</small><b class="cr">'+R(sm.due)+'</b></div></div>';
       if(sm.wait)h+='<div class="hint">'+L('₹'+inr(sm.wait)+' more becomes payable when the customers pay their bills.','₹'+inr(sm.wait)+' और देना होगा जब ग्राहक अपने बिल चुका देंगे।')+'</div>';
-      h+='<div class="sec">'+L('Ledger','हिसाब')+'</div><div class="grp">'+e.led.slice().reverse().map(function(x){var nm=x[0]==='pay'?L('Paid To Electrician','इलेक्ट्रीशियन को दिया'):x[0]==='ret'?L('Deducted For Return','वापसी पर कटा'):L('Commission On Bill','बिल का कमीशन'),b=x[0]==='pay'?['info','Paid','दिया']:x[0]==='ret'?['due','Deducted','कटा']:x[0]==='wait'?['cr','Waiting For Customer','ग्राहक के भुगतान का इंतज़ार']:['paid','Earned','कमाया'];
+      h+='<div class="sec">'+L('Ledger','हिसाब')+'</div><div class="grp">'+e.led.slice().reverse().map(function(x){var nm=x[0]==='pay'?L('Paid To Electrician','इलेक्ट्रीशियन को दिया'):x[0]==='ret'?L('Deducted For Return','वापसी पर कटा'):L('Commission On Bill','बिल का कमीशन'),b=x[0]==='pay'?['info','Paid','दिया']:x[0]==='ret'?['due','Deducted','कटा']:x[0]==='wait'?['cr','Pending','बाकी']:['paid','Earned','कमाया'];
         return '<div class="srow cpr"'+(x[0]==='earn'||x[0]==='wait'?' role="button" tabindex="0" data-dopen="inv:'+x[1]+'"':x[0]==='ret'?' role="button" tabindex="0" data-dopen="cn:'+x[1]+'"':'')+'><div class="mid"><div class="nm">'+nm+'</div><div class="t-x one">'+esc(x[1])+' | '+LD(x[2])+(x[4]&&P[x[4]]?' · '+esc(P[x[4]].n):x[0]==='pay'?' · '+modeL(x[4]):'')+'</div></div><div class="end"><div class="v'+(x[0]==='ret'?' cr':'')+'">'+(x[0]==='ret'?'−':'')+m2(x[3])+'</div>'+badge(b)+'</div></div>'}).join('')+'</div>';
       bar=sm.due>0?'<button class="btn blue grow" data-cmpay><svg class="ic"><use href="#rupee"/></svg>'+L('Pay ₹'+m2(sm.due),'₹'+m2(sm.due)+' दें')+'</button>':''}
     document.getElementById('dv-t').innerHTML=esc(t);document.getElementById('dv-s').innerHTML=s;
@@ -2677,7 +2679,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
       bar='<button class="btn green grow" data-fmsave><svg class="ic"><use href="#check"/></svg>'+L('Save Receipt','रसीद सेव करें')+'</button>'}
     if(k==='cn'){t=L('New Credit Note','नया क्रेडिट नोट');
       h=noDate(L('Credit Note No.','क्रेडिट नोट नं.'))+custField()+'<div class="t-x">'+L('Goods returned by the customer.','ग्राहक का लौटाया माल।')+'</div><div id="fm-cn"></div>';
-      h+='<div class="srow2"><div class="fld"><label for="fm-rs">'+L('Reason','कारण')+'</label><div class="inp"><select id="fm-rs">'+[['Damaged','टूटा / ख़राब'],['Wrong Item','ग़लत आइटम'],['Not Needed','ज़रूरत नहीं'],['Other','दूसरा']].map(function(x){return '<option value="'+x[0]+'"'+(FM.reason===x[0]?' selected':'')+'>'+(hiOn()?x[1]:x[0])+'</option>'}).join('')+'</select></div></div><div class="fld"><label for="fm-st">'+L('Settle As','कैसे निपटाएँ')+'</label><div class="inp"><select id="fm-st">'+[['adj','Adjust In Balance','बैलेंस में घटाएँ'],['Cash','Refund Cash','नक़द लौटाएँ'],['UPI','Refund UPI','UPI से लौटाएँ'],['Bank Transfer','Refund Bank','बैंक से लौटाएँ']].map(function(x){return '<option value="'+x[0]+'"'+(FM.settle===x[0]?' selected':'')+'>'+(hiOn()?x[2]:x[1])+'</option>'}).join('')+'</select></div></div></div><div class="box" style="gap:6px" id="fm-cnt"></div>';
+      h+='<div class="fld"><label for="fm-rs">'+L('Reason','कारण')+'</label><div class="inp"><select id="fm-rs">'+[['Damaged','टूटा / ख़राब'],['Wrong Item','ग़लत आइटम'],['Not Needed','ज़रूरत नहीं'],['Other','दूसरा']].map(function(x){return '<option value="'+x[0]+'"'+(FM.reason===x[0]?' selected':'')+'>'+(hiOn()?x[1]:x[0])+'</option>'}).join('')+'</select></div></div><div class="fld"><label for="fm-st">'+L('Settle As','कैसे निपटाएँ')+'</label><div class="inp"><select id="fm-st">'+[['adj','Adjust In Balance','बैलेंस में घटाएँ'],['Cash','Refund Cash','नक़द लौटाएँ'],['UPI','Refund UPI','UPI से लौटाएँ'],['Bank Transfer','Refund Bank','बैंक से लौटाएँ']].map(function(x){return '<option value="'+x[0]+'"'+(FM.settle===x[0]?' selected':'')+'>'+(hiOn()?x[2]:x[1])+'</option>'}).join('')+'</select></div></div><div class="box" style="gap:6px" id="fm-cnt"></div>';
       bar='<button class="btn green grow" data-fmsave><svg class="ic"><use href="#check"/></svg>'+L('Save Credit Note','क्रेडिट नोट सेव करें')+'</button>'}
     document.getElementById('df-t').innerHTML=t;document.getElementById('df-body').innerHTML=h;document.getElementById('df-bar').innerHTML=bar;
     if(k==='pr')renderAlloc();if(k==='cn')renderCN()}
