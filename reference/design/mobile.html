@@ -602,7 +602,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   </div>
   <p id="sub-blocks" data-hi="चरण 7.1 और 7.2: 20 रंग और ऐप के बुनियादी टुकड़े। चौड़ाई खिसकाकर देखें कि हर चीज़ हर फ़ोन पर फ़िट होती है।">Steps 7.1 and 7.2: the 20 colours and the app's building blocks. Drag the width to see every piece fit every phone.</p>
   <p id="sub-map" hidden data-hi="चरण 7.3 (मंज़ूर, 15 नवंबर 2026): ऐप में कौन-सी स्क्रीन कहाँ से खुलती है। नारंगी नंबर नीचे समझाए गए हैं।">Step 7.3 (approved, 15 Nov 2026): which screen opens from where. The orange numbers are explained underneath.</p>
-  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a से 7.4g मंज़ूर; अब 7.4h: रिपोर्ट।">Step 7.4: the app's screens, to tap through. 7.4a to 7.4g are approved; now 7.4h: reports.</p>
+  <p id="sub-a" hidden data-hi="चरण 7.4: ऐप की स्क्रीनें, दबाकर चलाइए। 7.4a से 7.4h मंज़ूर; अगला 7.4i: सेटिंग।">Step 7.4: the app's screens, to tap through. 7.4a to 7.4h are approved; 7.4i (settings) is next.</p>
 </header>
 
 <div class="wrap" id="v-blocks">
@@ -871,7 +871,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 <div class="proto" id="v-a" hidden>
   <div class="guide">
     <div class="gsec">
-      <h2 data-hi="7.4h: रिपोर्ट (नया)">7.4h: Reports (New)</h2>
+      <h2 data-hi="7.4h: रिपोर्ट (मंज़ूर)">7.4h: Reports (Approved)</h2>
       <p data-hi="वेब ऐप की 12 बनी हुई रिपोर्ट, कार्ड के रूप में, PDF और Excel भेजने के साथ। बाकी रिपोर्ट वेब में बनते ही फ़ोन पर आएँगी।">The 12 reports built in the web app, as cards, with PDF and Excel share. The others come to the phone when the web has them.</p>
       <div class="scrlist">
         <button type="button" data-jump8="rlist"><span class="no">1</span><span data-hi="सभी रिपोर्ट (सूची)">All Reports (List)</span></button>
@@ -898,8 +898,8 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
       </ol>
     </div>
     <div class="gsec">
-      <h2 data-hi="7.4h में आपसे क्या चाहिए">What We Need From You (7.4h)</h2>
-      <p data-hi="रिपोर्ट देखिए और बताइए क्या बदलना है। मंज़ूरी के बाद अगला कदम 7.4i: सेटिंग।">Look through the reports and tell us what to change. After your approval, the next step is 7.4i: settings.</p>
+      <h2 data-hi="अगला कदम">Next Step</h2>
+      <p data-hi="7.4h आपने 17 नव॰ 2026 को मंज़ूर किया। अगला कदम 7.4i: सेटिंग।">You approved 7.4h on 17 Nov 2026. The next step is 7.4i: settings.</p>
     </div>
     <div class="gsec">
       <h2 data-hi="7.4g: ख़र्चे, बैंक, नक़द, चेक (मंज़ूर)">7.4g: Expenses, Bank, Cash, Cheques (Approved)</h2>
@@ -1588,7 +1588,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
       <section class="scn" data-s="rep" hidden>
         <div class="sh"><button class="btn ico" data-back aria-label="Back"><svg class="ic"><use href="#back"/></svg></button><div class="mid"><div class="t" id="rp-t"></div><div class="t-x" id="rp-s"></div></div></div>
         <div class="sb" id="rp-body"></div>
-        <div class="sf"><button class="btn soft grow" data-rshare="pdf"><svg class="ic"><use href="#bill"/></svg><span>PDF</span></button><button class="btn soft grow" data-rshare="xls"><svg class="ic"><use href="#box"/></svg><span>Excel</span></button><button class="btn green grow" data-rshare="wa"><svg class="ic"><use href="#chat"/></svg><span>WhatsApp</span></button></div>
+        <div class="sf"><button class="btn soft" style="padding:0 14px" data-rshare="pdf"><span>PDF</span></button><button class="btn soft" style="padding:0 14px" data-rshare="xls"><span>Excel</span></button><button class="btn green grow" data-rshare="wa"><svg class="ic"><use href="#chat"/></svg><span>WhatsApp</span></button></div>
       </section>
 
       <!-- 7.4d bill saved -->
@@ -3295,7 +3295,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   function rBuild(){var k=RS.k,f=[],sum=[],rows=[],tot=[],h='';
     var perSel='<div class="inp"><select id="rp-per" aria-label="Period">'+RPER.map(function(p){return '<option value="'+p[0]+'"'+(RS.per===p[0]?' selected':'')+'>'+(hiOn()?p[2]:p[1])+'</option>'}).join('')+'</select></div>';
     var cust=Object.keys(P).filter(function(id){return !P[id].inactive});
-    if(k==='pstmt'){var p=P[RS.party]||P.mehta,open=0,run;f=['<div class="inp"><select id="rp-f1" aria-label="Party">'+cust.map(function(id){return '<option value="'+id+'"'+(RS.party===id?' selected':'')+'>'+esc(P[id].n)+'</option>'}).join('')+'</select></div>',perSel];
+    if(k==='pstmt'){var p=P[RS.party]||P.mehta,open=0,run;f=['<button type="button" class="pfield" data-rpparty aria-label="Party"><svg class="ic"><use href="#user"/></svg><span class="nm">'+esc((P[RS.party]||P.mehta).n)+'</span><svg class="ic" style="transform:rotate(90deg)"><use href="#next"/></svg></button>',perSel];
       var rp0=RPER.filter(function(x){return x[0]===RS.per})[0];p.tx.forEach(function(t){if(t[2]<rp0[3])open+=eff(t)});run=open;var dr=0,cr=0;
       p.tx.filter(function(t){return inPer(t[2])}).forEach(function(t){var a=eff(t);run+=a;if(a>0)dr+=a;else cr-=a;var tn=TN[t[0]]||['Entry','एंट्री'];rows.push(rowH(L(tn[0],tn[1])+(t[5]==='x'?' · '+L('Cancelled','रद्द'):''),esc(t[1])+' | '+LD(t[2]),(a>0?L('Dr ','नाम ')+m2(a):a<0?L('Cr ','जमा ')+m2(a):'0'),L('Bal ','बैलेंस ')+m2(run)+(run<0?' Cr':''),a>0?'':a<0?'cg':'c3',{inv:'inv',pay:'pr',cn:'cn',pb:'pb',pm:'pm',dn:'dn'}[t[0]]?({inv:'inv',pay:'pr',cn:'cn',pb:'pb',pm:'pm',dn:'dn'}[t[0]]+':'+t[1]):''))});
       sum=[[L('Opening','शुरू'),R(open)],[L('Closing','आख़िर'),R(run),run>0?'cg':run<0?'cr':''],[L(run>0?'↓ To Receive':run<0?'↑ To Pay':'Settled',run>0?'↓ मिलेगा':run<0?'↑ देना है':'बराबर'),R(Math.abs(run))]];
@@ -3306,7 +3306,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(k==='ppl'){f=[perSel];var S0=0,C0=0;cust.filter(function(id){return P[id].k==='c'}).concat(['']).forEach(function(id){var iv=custInv().filter(function(d){return d.p===id});if(!iv.length)return;var sv=iv.reduce(function(s,d){return s+invCalc(d).taxable},0),c=iv.reduce(function(s,d){return s+invCost(d)},0),pf=sv-c;S0+=sv;C0+=c;
         rows.push(rowH(esc(id?P[id].n:(hiOn()?'काउंटर बिक्री':'Counter Sales')),L('Sale ₹'+m2(sv)+' · Cost ₹'+m2(c),'बिक्री ₹'+m2(sv)+' · लागत ₹'+m2(c)),m2(pf),L('Profit '+(sv?(pf/sv*100).toFixed(1):'0')+'%','मुनाफ़ा '+(sv?(pf/sv*100).toFixed(1):'0')+'%'),pf<0?'cr':'cg',''))});
       sum=[[L('Sale Value','बिक्री'),R(S0)],[L('Cost','लागत'),R(C0)],[L('Profit','मुनाफ़ा'),R(S0-C0),'cg']];tot=[[L('Sale Value (Without GST)','बिक्री (GST के बिना)'),'₹'+inr(S0)],[L('Cost Of Goods','माल की लागत'),'₹'+inr(C0)],[L('Profit','मुनाफ़ा'),'₹'+inr(S0-C0)]]}
-    if(k==='pitem'){var pp=P[RS.party]||P.mehta;f=['<div class="inp"><select id="rp-f1" aria-label="Party">'+cust.map(function(id){return '<option value="'+id+'"'+(RS.party===id?' selected':'')+'>'+esc(P[id].n)+'</option>'}).join('')+'</select></div>',perSel];var M={};
+    if(k==='pitem'){var pp=P[RS.party]||P.mehta;f=['<button type="button" class="pfield" data-rpparty aria-label="Party"><svg class="ic"><use href="#user"/></svg><span class="nm">'+esc((P[RS.party]||P.mehta).n)+'</span><svg class="ic" style="transform:rotate(90deg)"><use href="#next"/></svg></button>',perSel];var M={};
       custInv().filter(function(d){return d.p===RS.party}).forEach(function(d){var fct2=invCalc(d).items?invCalc(d).taxable/invCalc(d).items:1;d.lines.forEach(function(l){M[l.id]=M[l.id]||{sq:0,sa:0,pq:0,pa:0};M[l.id].sq+=l.q;M[l.id].sa+=Math.round(l.q*l.r*fct2)})});
       pbIn().filter(function(d){return d.p===RS.party}).forEach(function(d){d.lines.forEach(function(l){M[l.id]=M[l.id]||{sq:0,sa:0,pq:0,pa:0};M[l.id].pq+=l.q;M[l.id].pa+=Math.round(l.q*l.r)})});
       var ts=0,tp=0;Object.keys(M).forEach(function(id){var x=M[id],i=I[id];ts+=x.sa;tp+=x.pa;rows.push(rowH(esc(fullName(i)),(x.sq?L('Sold '+uq(x.sq,i.u),'बेचा '+uq(x.sq,i.u)):'')+(x.sq&&x.pq?' · ':'')+(x.pq?L('Bought '+uq(x.pq,i.u),'ख़रीदा '+uq(x.pq,i.u)):''),m2(x.sa||x.pa),x.sa?L('Sale','बिक्री'):L('Purchase','ख़रीद'),'',''))});
@@ -3332,10 +3332,11 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     document.getElementById('rl-list').innerHTML=h||'<div class="empty"><b>'+L('No Report Found','कोई रिपोर्ट नहीं मिली')+'</b></div>'}
   function renderRep(){var t=rTitle(RS.k),o=rBuild();document.getElementById('rp-t').innerHTML=L(t[1],t[2]);var per=RPER.filter(function(x){return x[0]===RS.per})[0];
     document.getElementById('rp-s').innerHTML=o.f.indexOf(o.f.filter(function(x){return x.indexOf('rp-per')>-1})[0])>-1?(fd(per[3]>'2001'?per[3]:'2026-04-01',hiOn())+' – '+fd(per[4]<'2099'?per[4]:TODAY,hiOn())):L('As On ','तारीख़ ')+fd(TODAY,hiOn());
-    var fl=o.f.length===2?'<div class="srow2">'+o.f.join('')+'</div>':o.f.join('');
+    var fl=o.f.join('');
     document.getElementById('rp-body').innerHTML=fl+sumH(o.sum)+(o.rows.length?'<div class="sll">'+o.rows.join('')+'</div>'+totH(o.tot):o.empty||'<div class="empty"><b>'+L('Nothing to show for this period.','इस समय में दिखाने को कुछ नहीं।')+'</b></div>')+(['spp','spg'].indexOf(RS.k)>-1?'<div class="hint">'+L('Sales and purchases include GST.','बिक्री और ख़रीद GST सहित हैं।')+'</div>':['ppl','pitem','batchsale'].indexOf(RS.k)>-1?'<div class="hint">'+L('Sale values are without GST, after discount.','बिक्री की रक़म GST के बिना, छूट के बाद।')+'</div>':'')}
   var _show8=show;show=function(id){_show8(id);if(id==='rlist')renderRL();if(id==='rep')renderRep()};
-  stage.addEventListener('click',function(e){var t=e.target.closest('[data-rep],[data-rsoon],[data-rshare]');if(!t||!stage.contains(t))return;
+  stage.addEventListener('click',function(e){var t=e.target.closest('[data-rep],[data-rsoon],[data-rshare],[data-rpparty]');if(!t||!stage.contains(t))return;
+    if(t.hasAttribute('data-rpparty')){pickCust(function(id){if(id)RS.party=id});return}
     if(t.hasAttribute('data-rep')){RS.k=t.dataset.rep;if(['pstmt','pitem'].indexOf(RS.k)>-1&&!P[RS.party])RS.party='mehta';go('rep');return}
     if(t.hasAttribute('data-rsoon')){toast('This report is being built in the web app. It comes to the phone when it is ready there.','यह रिपोर्ट वेब ऐप में बन रही है। वहाँ तैयार होते ही फ़ोन पर आएगी।');return}
     var w=t.dataset.rshare;toast(w==='pdf'?'Makes the report PDF and opens Share (on the real phone).':w==='xls'?'Makes an Excel file of this report and opens Share (on the real phone).':'Opens WhatsApp with the report PDF (on the real phone).',w==='pdf'?'रिपोर्ट की PDF बनाकर भेजने के विकल्प खोलेगा (असली फ़ोन पर)।':w==='xls'?'इस रिपोर्ट की Excel फ़ाइल बनाकर भेजने के विकल्प खोलेगा (असली फ़ोन पर)।':'रिपोर्ट की PDF के साथ WhatsApp खुलेगा (असली फ़ोन पर)।')});
