@@ -51,10 +51,9 @@ describe('sale invoice', () => {
     expect(await msg({ partyId: verma.id, lines: [{ name: '', qty: '1', price: '0' }] })).toBe('Add at least one item.');
     expect(await msg({ partyId: verma.id, lines: [line(fan, '0', '1890')] })).toBe('Enter a quantity for “Ceiling fan 1200mm”.');
     expect(await msg({ partyId: verma.id, lines: [{ name: 'Mystery switch', qty: '1', price: '10' }] })).toBe('“Mystery switch” isn’t in your items. Pick it from the list or add it as a new item.');
-    await sale(o, { partyId: verma.id, number: 'INV-0042', lines: [line(fan, '1', '1890')] }).expect(201);
-    expect(await msg({ partyId: verma.id, number: 'INV-0042', lines: [line(fan, '1', '1890')] })).toBe('Invoice number INV-0042 is already used.');
-    // a typed number moves the series past it
-    expect((await http().get('/api/sales/next-number?kind=invoice').set(auth(o)).expect(200)).body.number).toBe('INV-0043');
+    // owner, 18 Nov 2026: numbers come only from the app, never typed
+    expect(await msg({ partyId: verma.id, number: 'INV-0042', lines: [line(fan, '1', '1890')] })).toBe('Numbers are given by the app. They can’t be typed.');
+    expect((await http().get('/api/sales/next-number?kind=invoice').set(auth(o)).expect(200)).body.number).toBe('INV-0001');
   });
 
   it('asks once before going over the credit limit', async () => {

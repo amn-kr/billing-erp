@@ -114,7 +114,7 @@ describe('delete a sale invoice', () => {
     expect((await del(o, inv.id).expect(400)).body.message).toBe('Already deleted');
     expect(await stockOf(o, fan.id)).toBe('25.000');
     expect((await http().get(`/api/sales/next-number?kind=invoice&date=${D}`).set(auth(o)).expect(200)).body.number).toBe('INV-0002');
-    expect((await sale(o, { number: 'INV-0001', partyId: verma.id, lines: [line(fan, '1', '1890')] }).expect(400)).body.message).toBe('Invoice number INV-0001 is already used.');
+    expect((await sale(o, { number: 'INV-0001', partyId: verma.id, lines: [line(fan, '1', '1890')] }).expect(400)).body.message).toBe('Numbers are given by the app. They can’t be typed.');
     expect((await sale(o, { partyId: verma.id, lines: [line(fan, '1', '1890')] }).expect(201)).body.number).toBe('INV-0002');
   });
 

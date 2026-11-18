@@ -1153,7 +1153,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
       <h2 data-hi="क्या आज़माएँ (7.4d)">Things To Try (7.4d)</h2>
       <ol class="rules">
         <li data-hi="ऊपर "उधार / नक़द" कैप्सूल बदलें: उधार में ग्राहक ज़रूरी, नक़द में नहीं।">Switch the Credit / Cash capsule at the top: a customer is required for Credit, optional for Cash.</li>
-        <li data-hi="इनवॉइस नं. पर दबाकर नंबर बदलें, और तारीख़ पर दबाकर दूसरी तारीख़ चुनें।">Tap the invoice number to edit it, and tap the date to pick another one.</li>
+        <li data-hi="इनवॉइस नं. और तारीख़ की पट्टी: नंबर सर्वर देता है (बदला नहीं जा सकता); तारीख़ पर दबाकर दूसरी तारीख़ चुनें।">The invoice number and date strip: the number comes from the server (it can’t be edited); tap the date to pick another one.</li>
         <li data-hi=""आइटम जोड़ें" दबाएँ: एक आइटम का पेज खुलेगा। आइटम चुनें, मात्रा, इकाई, दाम सूची, रेट, छूट, बैच भरें, फिर सेव।">Tap Add Item: a page for one item opens. Choose the item, fill in quantity, unit, list price, rate, discount and batch, then Save.</li>
         <li data-hi="बिल में आइटम के कार्ड को दबाएँ: वही पेज खुलेगा, वहीं "हटाएँ" बटन है।">Tap an item card in the bill: the same page opens, with the Delete button there.</li>
         <li data-hi="ऊपर ⋮ में Quotation, रेफ़रल और बिल की और जानकारी है; नीचे ⋮ में शेयर और प्रिंट।">The top ⋮ has Quotation, Referral and Bill Details; the bottom ⋮ has Share and Print.</li>
@@ -1678,7 +1678,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
       <!-- 7.4d new sale -->
       <section class="scn" data-s="sale" hidden>
         <div class="sh"><button class="btn ico" data-back aria-label="Close"><svg class="ic"><use href="#xic"/></svg></button><div class="mid"><div class="t" data-hi="बिक्री">Sale</div></div><div class="cap" role="radiogroup" aria-label="Sale Type"><button type="button" role="radio" data-stype="credit" aria-pressed="true"><span data-hi="उधार">Credit</span></button><button type="button" role="radio" data-stype="cash" aria-pressed="false"><span data-hi="नक़द">Cash</span></button></div><button class="btn ico" data-ov="smenu" aria-label="More Options"><svg class="ic"><use href="#dots"/></svg></button></div>
-        <div class="invs"><label class="iv"><span class="k" data-hi="इनवॉइस नं.">Invoice No.</span><input id="sl-no" value="INV-0108" autocomplete="off" aria-label="Invoice Number"></label><i></i><button type="button" class="iv" data-ov="dpick"><span class="k" data-hi="तारीख़">Date</span><span class="dv"><span id="sl-date"></span><svg class="ic" style="transform:rotate(90deg)"><use href="#next"/></svg></span></button></div>
+        <div class="invs"><div class="iv" style="cursor:default"><span class="k" data-hi="इनवॉइस नं.">Invoice No.</span><span class="dv" id="sl-no">INV-0108</span></div><i></i><button type="button" class="iv" data-ov="dpick"><span class="k" data-hi="तारीख़">Date</span><span class="dv"><span id="sl-date"></span><svg class="ic" style="transform:rotate(90deg)"><use href="#next"/></svg></span></button></div>
         <div class="sb">
           <div id="sl-cust"></div>
           <div class="tagrow" id="sl-tags"></div>
@@ -2519,7 +2519,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   function words(p){var r=Math.floor(p/100),out=[],cr=Math.floor(r/1e7),la=Math.floor(r/1e5)%100,th=Math.floor(r/1e3)%100,rest=r%1000;
     if(cr)out.push(w3(cr)+' Crore');if(la)out.push(w2(la)+' Lakh');if(th)out.push(w2(th)+' Thousand');if(rest)out.push(w3(rest));return 'Rupees '+(out.join(' ')||'Zero')+' Only'}
   function renderSale(){var c=calc(),pr=SL.party&&P[SL.party],cash=SL.type==='cash',n=SL.lines.length;
-    var no=document.getElementById('sl-no');if(document.activeElement!==no)no.value=SL.no;
+    document.getElementById('sl-no').textContent=SL.no;
     document.getElementById('sl-date').innerHTML=LD(SL.date);
     document.querySelectorAll('[data-stype]').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.stype===SL.type)});
     var cu=document.getElementById('sl-cust');
@@ -2707,7 +2707,6 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(t.hasAttribute('data-dok')){if(dpFor){dpFor(DPS);dpFor=null;closeOv();show(cur)}else{SL.date=DPS;closeOv();renderSale()}return}
   });
   stage.addEventListener('input',function(e){var x=e.target;
-    if(x.id==='sl-no'){SL.no=x.value;return}
     if(x.id==='ln-q'){var v=parseFloat(x.value);if(v>0){ED.q=v;updLn('q')}return}
     if(x.id==='ln-r'){ED.base=baseFrom(Math.round((parseFloat(x.value)||0)*100/fct(ED)));ED.disc=0;updLn('r');return}
     if(x.id==='ln-dp'){ED.disc=Math.min(100,parseFloat(x.value)||0);updLn('dp');return}

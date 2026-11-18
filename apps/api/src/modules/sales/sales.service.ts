@@ -14,7 +14,7 @@ import { invoiceBalances, openDues, unusedAmounts } from './dues';
 import { writeAtSale } from './at-sale';
 import { cancelPayment } from './money-in';
 import { ALREADY_DELETED, deleteMark } from '../../common/deleting';
-import { reconciledIn, reconciledMessage, refuseIfReconciled } from '../../common/editing';
+import { reconciledIn, reconciledMessage, refuseIfReconciled, refuseTypedNumber } from '../../common/editing';
 import { refuseIfSoldSince, reverseStock } from './stock-back';
 import { draftSaleCosts } from '../stock/stock-value';
 import { aboveMrpLines, allocateSale, allocsOf, batchesOn, mrpOn, refuseIfBatchShort, expiryOn } from '../stock/batches';
@@ -147,6 +147,8 @@ export class SalesService {
     // a saved document keeps its number for good: an edit sent without one keeps it, a different one is refused
     if (before && input.number.trim() && input.number.trim() !== before.number)
       throw new BadRequestException({ message: `The number of a saved ${KIND_WORD[kind].toLowerCase()} can’t be changed. It stays ${before.number}.`, field: 'number' });
+    // a new document's number always comes from the series (owner, 18 Nov 2026)
+    if (!before) refuseTypedNumber(input.number);
     let number = input.number.trim() || before?.number || '';
     if (number && number !== before?.number) {
       const used = await tx.salesDocument.findFirst({ where: { kind, number, ...(id && { id: { not: id } }) } });

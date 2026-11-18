@@ -267,13 +267,19 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
   });
   // an untouched number follows the series (another bill may be saved first); it is only used on saving
   const nn = useQuery({ ...nextNo(s.doc, s.date), enabled: s.autoNo && !s.editOf });
+  // owner, 18 Nov 2026: numbers come only from the server and follow saves on other screens live
+  const nnKey = `${s.doc}|${s.date}`;
+  const nnWas = useRef(nnKey);
   useEffect(() => {
     const n = nn.data?.number;
     if (!s.autoNo || !n || n === s.no) return;
+    const sameSeries = nnWas.current === nnKey;
+    nnWas.current = nnKey;
+    if (s.no && sameSeries && hasContent(s)) showToast(`${quote ? 'Quotation' : 'Invoice'} no. is now ${n} — ${s.no} was just used by another bill.`);
     up((x) => { x.no = n; });
     const el = document.getElementById('siNo') as HTMLInputElement | null;
     if (el && document.activeElement !== el) el.value = n;
-  }, [nn.data, s.autoNo, s.no, up]);
+  }, [nn.data, s.autoNo, s.no, up]); // eslint-disable-line react-hooks/exhaustive-deps
   const rec = paySum(s);
   const bal = r2(t.total - rec);
   const pre = s.party ? r2(s.party.balance - (s.editOf ? editBalance(s) : 0)) : null;
@@ -425,7 +431,7 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
         <div className="dgsw" id="siMode" role="group" aria-label="Sale type"><span className={cash ? '' : 'on'}>{quote ? 'Party' : 'Credit'}</span><button type="button" className={`dgtg ${cash ? 'on' : ''}`} role="switch" aria-checked={cash} aria-label="Cash sale" data-simode={cash ? 'credit' : 'cash'}
           onClick={() => { up2((x) => { x.mode = cash ? 'credit' : 'cash'; x.recvTouched = quote; if (x.mode === 'cash') { x.party = null; x.pos = ctx.state; } x.pays = []; }); full(); }}><i></i></button><span className={cash ? 'on' : ''}>{quote ? 'Walk-in' : 'Cash'}</span></div>
         <div className="sp"></div>
-        <div className="tnd" id="siND" key={`nd${rk}`}>{ctx.txn?.showNo !== false && <label className="tndf"><span>{quote ? 'Quotation no.' : 'Invoice no.'}</span><input className="fi mono" id="siNo" defaultValue={s.no} autoComplete="off" aria-label={quote ? 'Quotation no.' : 'Invoice no.'} readOnly={!!s.editId} title={s.editId ? 'The number of a saved document can’t be changed' : undefined} onInput={(e) => up2((x) => { x.no = (e.target as HTMLInputElement).value.trim(); x.autoNo = false; })} /></label>}
+        <div className="tnd" id="siND" key={`nd${rk}`}>{ctx.txn?.showNo !== false && <label className="tndf"><span>{quote ? 'Quotation no.' : 'Invoice no.'}</span><input className="fi mono" id="siNo" defaultValue={s.no} autoComplete="off" aria-label={quote ? 'Quotation no.' : 'Invoice no.'} readOnly tabIndex={-1} title={s.editId ? 'The number of a saved document can’t be changed' : 'Numbers are given by the app'} /></label>}
           <label className="tndf"><span>Date</span><input className="fi" type="date" id="siDate" defaultValue={s.date} aria-label="Date" onChange={(e) => { up2((x) => { x.date = e.target.value; if (!x.dueTouched && x.party) x.due = addDaysIso(x.date, x.party.days || 0); }); full(); }} /></label></div>
         <EntryClose onBack={back} onLeave={() => ops.close(tabId, false)} dirty={isDirty(s)} label={quote ? 'Cancel quotation entry' : 'Cancel bill entry'} /></div>
 

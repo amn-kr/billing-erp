@@ -7,6 +7,14 @@ import type { LedgerService, PostInput } from './ledger.service';
  * Checks shared by the edits of expenses, cash / bank entries, stock adjustments and transfers
  * (group 3). The number of a saved record never changes: an edit that sends another one is refused.
  */
+/** Document numbers come only from the server, in every app (owner, 18 Nov 2026). */
+export const NUMBER_FROM_SERVER = 'Numbers are given by the app. They can’t be typed.';
+
+/** A new document must not bring its own number (old-data imports use their own path). */
+export function refuseTypedNumber(sent: string | undefined): void {
+  if (sent && sent.trim()) throw new BadRequestException({ message: NUMBER_FROM_SERVER, field: 'number' });
+}
+
 export function keepNumber(sent: string | undefined, saved: string, what: string) {
   if (sent && sent !== saved) throw new BadRequestException({ message: `The number of a saved ${what} can’t be changed. It stays ${saved}.`, field: 'number' });
 }

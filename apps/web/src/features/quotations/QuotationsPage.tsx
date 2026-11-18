@@ -64,6 +64,12 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
   const saved = useSales('quotation');
   const date = today();
   const [q, setQ] = useState<QDraft>(() => fresh(g, firstNo));
+  // owner, 18 Nov 2026: an unsaved quotation shows the next number live (another screen may save first)
+  const nn = useQuery({ queryKey: ['next-number', 'quote', date], queryFn: () => api<{ number: string }>(`/sales/next-number?kind=quotation&date=${date}`) });
+  useEffect(() => {
+    const n = nn.data?.number;
+    if (n) setQ((x) => (x.id || x.no === n ? x : { ...x, no: n }));
+  }, [nn.data]);
   const [pop, setPop] = useState<'ser' | 'ref' | 'share' | null>(null);
   const [savedOpen, setSavedOpen] = useState(false);
   const [conv, setConv] = useState(false);
@@ -95,7 +101,7 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
   /* ---------- save (prototype qSnapshot / qSave) ---------- */
   const snapshot = (x: QDraft) => {
     const t = qTotals(c, g, x).filter((t2) => !t2.miss && t2.total > 0).sort((a, b) => a.total - b.total)[0];
-    return { number: x.no, date, cust: x.cust, priceListId: x.pl || null, disc: x.disc, sel: x.sel, qty: x.qty, referrerId: x.ref || null, items: Object.keys(x.qty).length, pcs: Object.values(x.qty).reduce((a, b) => a + b, 0), low: t ? { name: qSerName(t.s), total: r2(t.total) } : null };
+    return { number: x.id ? x.no : '', date, cust: x.cust, priceListId: x.pl || null, disc: x.disc, sel: x.sel, qty: x.qty, referrerId: x.ref || null, items: Object.keys(x.qty).length, pcs: Object.values(x.qty).reduce((a, b) => a + b, 0), low: t ? { name: qSerName(t.s), total: r2(t.total) } : null };
   };
   const save = useCallback(async (x: QDraft, silent: boolean): Promise<QDraft | null> => {
     if (x.status === 'converted') { if (!silent) toastSaveFailed('This quotation is converted and locked'); return null; }

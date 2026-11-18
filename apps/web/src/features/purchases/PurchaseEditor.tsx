@@ -174,7 +174,16 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
 
   // the number shown is only a preview until the document is saved
   const nn = useQuery({ queryKey: ['next-number', 'purchase', k], queryFn: () => api<{ number: string }>(`/purchases/next-number?kind=${k}`), enabled: s.autoNo });
-  useEffect(() => { const v = nn.data?.number; if (s.autoNo && v && v !== s.no) up((x) => { x.no = v; }); }, [nn.data]); // eslint-disable-line react-hooks/exhaustive-deps
+  // owner, 18 Nov 2026: numbers come only from the server and follow saves on other screens live
+  const nnWas = useRef(k);
+  useEffect(() => {
+    const v = nn.data?.number;
+    if (!s.autoNo || !v || v === s.no) return;
+    const same = nnWas.current === k;
+    nnWas.current = k;
+    if (s.no && same && entered(s)) showToast(`${NO_LBL[k]} is now ${v} — ${s.no} was just used by another entry.`);
+    up((x) => { x.no = v; });
+  }, [nn.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* first focus: the supplier, or the first item when the supplier is set */
   useEffect(() => { setTimeout(() => (document.querySelector<HTMLElement>(init.party ? '#peRows .pe-item' : '#peParty'))?.focus(), 30); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
@@ -385,7 +394,7 @@ function Editor({ d, init }: { d: EditorData; init: PE }) {
   return (
     <section id="vPEd" ref={ref}>
       <div className="sitop"><button className="ib" type="button" id="peBack" aria-label="Back" title="Back" onClick={back}><RawIcon d={BACK} /></button><h1 id="peTitle">{PE_T[k]}</h1><span className={`st ${k === 'bill' ? 'g' : k === 'debit_note' ? 'r' : ''}`} id="peKindTag">{k === 'bill' ? 'Stock in' : k === 'debit_note' ? 'Stock out' : 'No stock change'}</span><div className="sp"></div>
-        <div className="tnd" id="peND"><label className="tndf"><span>{NO_LBL[k]}</span><input className="fi mono" id="peNo" value={s.no} autoComplete="off" aria-label={NO_LBL[k]} readOnly={!!s.editId} title={s.editId ? 'The number of a saved document can’t be changed' : undefined} onChange={(e) => up((x) => { x.no = e.target.value.trim(); x.autoNo = false; })} /></label>
+        <div className="tnd" id="peND"><label className="tndf"><span>{NO_LBL[k]}</span><input className="fi mono" id="peNo" value={s.no} autoComplete="off" aria-label={NO_LBL[k]} readOnly tabIndex={-1} title={s.editId ? 'The number of a saved document can’t be changed' : 'Numbers are given by the app'} /></label>
           <label className="tndf"><span>Date</span><input className="fi" type="date" id="peDate" value={s.date} aria-label="Date" onChange={(e) => up((x) => { x.date = e.target.value; if (x.party) x.due = addDaysIso(x.date, x.party.days || 0); })} /></label></div>
         <EntryClose onBack={back} onLeave={() => navigate(LIST[cur.current.kind])} dirty={entered(s)} label={`Cancel ${PE_T[k].toLowerCase()} entry`} /></div>
 

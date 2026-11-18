@@ -18,6 +18,7 @@ import { AuditController } from './modules/audit/audit.controller';
 import { HistoryController } from './modules/audit/history.controller';
 import { HistoryService } from './modules/audit/history.service';
 import { HealthController } from './modules/health/health.controller';
+import { LiveController } from './modules/live/live.controller';
 import { ImportsController } from './modules/imports/imports.controller';
 import { ImportsService } from './modules/imports/imports.service';
 import { NumberingService } from './common/numbering.service';
@@ -73,7 +74,7 @@ import { OWNER_CONTROLLERS, OWNER_PROVIDERS } from './owner';
       skipIf: () => config().NODE_ENV === 'test' && process.env.TEST_THROTTLE !== '1',
     }),
   ],
-  controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HistoryController, HealthController, ImportsController,
+  controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HistoryController, HealthController, LiveController, ImportsController,
     PartiesController, ItemsController, BrandsController, StockController, BatchesController, PricingController, SettingsController, PrefixesController, PasscodeController, FeaturesController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController, BackupController, DriveController, FolderController, CloudController, ...OWNER_CONTROLLERS],
   providers: [
     DbService,

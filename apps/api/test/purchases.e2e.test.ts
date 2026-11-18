@@ -60,10 +60,9 @@ describe('purchase bill', () => {
     expect((await buy(o, { partyId: kc.id, lines: [] }).expect(400)).body.message).toBe('Add at least one item.');
     expect((await buy(o, { partyId: kc.id, lines: [line(bulb, '0', '58')] }).expect(400)).body.message).toBe('Enter a quantity for “LED bulb 9W”.');
     expect((await buy(o, { partyId: kc.id, lines: [line(bulb, '5', '0')] }).expect(400)).body.message).toBe('Enter a rate for every item.');
-    await buy(o, { partyId: kc.id, number: 'PB-0218', lines: [line(bulb, '5', '58')] }).expect(201);
-    expect((await buy(o, { partyId: kc.id, number: 'PB-0218', lines: [line(bulb, '5', '58')] }).expect(400)).body.message).toBe('Number PB-0218 is already used.');
-    // a typed number moves the series on
-    expect((await http().get('/api/purchases/next-number?kind=bill').set(auth(o)).expect(200)).body.number).toBe('PB-0219');
+    // owner, 18 Nov 2026: numbers come only from the app, never typed
+    expect((await buy(o, { partyId: kc.id, number: 'PB-0218', lines: [line(bulb, '5', '58')] }).expect(400)).body).toMatchObject({ message: 'Numbers are given by the app. They can’t be typed.', field: 'number' });
+    expect((await http().get('/api/purchases/next-number?kind=bill').set(auth(o)).expect(200)).body.number).toBe('PB-0001');
   });
 
   it('a supplier in another state is charged IGST', async () => {

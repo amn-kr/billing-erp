@@ -9,6 +9,7 @@ import { AuditService } from '../../common/audit.service';
 import { NumberingService } from '../../common/numbering.service';
 import type { RequestContext } from '../../common/context';
 import { day } from '../../common/lookups';
+import { refuseTypedNumber } from '../../common/editing';
 import { booksOf } from './sales.service';
 import { BrandsService } from '../items/brands.service';
 import { NeedsPasscode } from '../settings/passcode.interceptor';
@@ -119,6 +120,8 @@ export class QuotesController {
     if (before?.status === 'converted') throw new BadRequestException({ message: 'This quotation is locked and can’t be edited.' });
     if (before && q.number.trim() && q.number.trim() !== before.number)
       throw new BadRequestException({ message: `The number of a saved quotation can’t be changed. It stays ${before.number}.`, field: 'number' });
+    // a new quotation's number always comes from the series (owner, 18 Nov 2026)
+    if (!before) refuseTypedNumber(q.number);
     let number = q.number.trim() || before?.number || '';
     if (number && number !== before?.number) {
       const used = await tx.salesDocument.findFirst({ where: { kind: 'quotation', number, ...(id && { id: { not: id } }) } });
