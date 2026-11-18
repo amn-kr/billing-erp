@@ -155,6 +155,14 @@ export const PASSCODE_HEADER = 'x-txn-passcode';
  * save is sent again (weak internet, the phone's offline queue). The server saves it once.
  */
 export const REQUEST_KEY_HEADER = 'idempotency-key';
+/**
+ * Phone sign-in (step 8.1c): the phone app sends `x-app-client: phone` on every call. It then gets
+ * its "stay signed in" token in the answer (not as a cookie) and sends it back in `x-refresh-token`
+ * to /auth/refresh and /auth/logout. Browsers keep the cookie; a call from a web page is never
+ * treated as the phone.
+ */
+export const CLIENT_HEADER = 'x-app-client';
+export const REFRESH_HEADER = 'x-refresh-token';
 
 /** A price field of an item, or `pl:<price list id>` for an item's own price in that list. */
 export const priceFieldSchema = z.union([z.enum(PRICE_FIELDS), z.string().regex(/^pl:[0-9a-f-]{36}$/i, 'Unknown price.')]);

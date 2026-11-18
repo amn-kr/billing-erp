@@ -65,6 +65,7 @@ import { FolderController, FolderSender } from './modules/backup/folder';
 import { CloudController, CloudService } from './modules/backup/cloud';
 import { OWNER_CONTROLLERS, OWNER_PROVIDERS } from './owner';
 import { RequestKeyInterceptor } from './common/request-key.interceptor';
+import { PhoneTokenInterceptor } from './modules/auth/cookies';
 
 @Module({
   imports: [
@@ -114,6 +115,7 @@ import { RequestKeyInterceptor } from './common/request-key.interceptor';
     ...OWNER_PROVIDERS,
     { provide: APP_INTERCEPTOR, useClass: PasscodeInterceptor },
     { provide: APP_INTERCEPTOR, useClass: RequestKeyInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: PhoneTokenInterceptor },
   ],
 })
 export class AppModule {}

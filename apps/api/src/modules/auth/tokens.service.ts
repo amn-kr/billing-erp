@@ -8,7 +8,7 @@ import type { AccessClaims } from '../../common/auth.guard';
 
 export const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 
-export interface Issued extends AuthTokens {
+export interface Issued extends Omit<AuthTokens, 'refreshToken' | 'refreshExpires'> {
   refreshToken: string;
   refreshExpires: Date;
   sessionId: string;
