@@ -19,6 +19,7 @@ Owner's decisions from 13 to 15 Nov 2026. This file is the full plan for Phases 
 | 15 Nov | Lowest Android version: **Android 7.0** (chosen by us, as the owner asked). It covers almost every phone in use, and fingerprint unlock works on it. |
 | 15 Nov | Field salesman screens and staff access rules come **after the owner's app is built**, as a separate discussion. |
 | 18 Nov | The **app version** shows at the bottom of Sign In as "BillinGo v1.0.0" and at the bottom of Settings as "BillinGo v1.0.0 · 17 Nov 2026, 6:48 pm" (the date and time of the last update; no build number). Under it in Settings, a half-size round **Check For Update** button (still a 44 px touch area) and one short result line: when an update exists it shows the new version and size, then **Download Update** (small progress bar) and **Install** (Android's own install question; the first time Android also asks to allow installs from BillinGo). After install the app restarts on the new version and the data stays as it is. How updates are delivered (our own download, or Play Store) is settled in Phase 8. |
+| 18 Nov | **Kotlin** (Jetpack Compose) for the Android app, after comparing Capacitor, React Native, Flutter and Kotlin. App ID `in.billingo.app`. English font **Inter** from now on (also on the design page); Hindi stays Noto Sans Devanagari. iPhone code reuse decided later. All start answers are in `docs/PHASE8-PLAN.md` section 2. |
 | 18 Nov | **Tap outside to close:** the side menu, every bottom sheet and every pop-up close when the owner taps outside them, as well as with the phone's Back button. |
 
 ## 2. Colour specification (20 colours)
@@ -139,25 +140,25 @@ Each part is a page the owner can open on their own phone.
 
 **Phase 7 gate:** every item in section 3 that is on the phone has a screen in the design, and the owner has approved every part. ✅ **Passed on 17 Nov 2026:** all parts (7.1 to 7.4j) are approved and merged; the full fit check passed for every step.
 
-## 7. Phase 8: Android app (APK), about 8–10 weeks
-The detailed step-by-step plan is in [`docs/PHASE8-PLAN.md`](PHASE8-PLAN.md) (approved by the owner on 18 Nov 2026).
+## 7. Phase 8: Android app (APK) in Kotlin, about 17 weeks
+The detailed step-by-step plan, with the owner's answers, is in [`docs/PHASE8-PLAN.md`](PHASE8-PLAN.md). In short (owner, 18 Nov 2026): Kotlin with Jetpack Compose in `apps/android`, App ID `in.billingo.app`, fonts Inter and Noto Sans Devanagari; Phase 8 starts now.
 
 | Step | What | Gate |
 |---|---|---|
-| 8.0 | Starts only when Phase 7 is approved **and** the Windows trial has passed (or the owner allows otherwise) | — |
-| 8.1 | **Groundwork, nothing new on screen:** (a) the web screens' server calls (about 236 places) move into shared code that the phone also uses; (b) a phone sign-in mode: today the "stay signed in" key lives in a browser cookie, which apps can't rely on, so on the phone it is kept in Android's secure store; (c) the server accepts the app's address | All existing web tests and pictures still pass unchanged; new API tests pass |
-| 8.2 | **App frame** (`apps/mobile`, Capacitor + React): sign in, Home with real data, side menu, switch company, language, "No internet", "Server is waking up…", "Update available" check; the APK is built on GitHub and published on the releases page; the **signing key** is made (see risk 3) | Owner installs the APK on their phone and signs in |
-| 8.3 | Parties, with contacts | Every step 8.3–8.10: flow tests on an Android emulator, fit checks, one picture per screen against the design, a new APK, owner tries it on their phone |
+| 8.0 | Start: the owner allowed Phase 8 now, before the rest of the Windows trial (18 Nov 2026) | — |
+| 8.1 | **Server groundwork:** phone sign-in, one-time keys against double bills, the server's OpenAPI description, the "latest version" answer; shared maths examples in `packages/shared` | All existing web tests and pictures still pass unchanged; new server tests pass |
+| 8.2 | **App frame and building blocks** (`apps/android`, Kotlin + Compose): the 20 colours, fonts, building blocks, sign in, fingerprint, Home, side menu, switch company, language, "No internet", "Server is waking up…", Check For Update; the **signing key** is made (see risk 3) | Owner installs the APK on their phone and signs in |
+| 8.3 | Parties, with contacts | Every step 8.3–8.10: shared maths examples, Compose fit checks, one picture per screen against the design, flow tests on an Android emulator, a new APK, owner tries it on their phone |
 | 8.4 | Items and stock, with camera scan | " |
 | 8.5 | **New sale, the invoice PDF and WhatsApp share** | " and the PDF looks exactly like the printed invoice |
 | 8.6 | Quotations, challans, payments received, credit notes, commission | " |
 | 8.7 | Purchases | " |
 | 8.8 | Expenses, bank, cash, cheques | " |
 | 8.9 | Reports | " |
-| 8.10 | Settings, with fingerprint | " |
-| 8.11 | **Full testing and trial:** a cheap and a mid-range Android phone, Android 7 and the newest, slow internet (2G/3G-like), reading in sunlight, Hindi throughout; about two weeks of use in the owner's shop; checklist `docs/ANDROID-TRIAL.md` | The checklist passes and the owner is happy to give it to another shop |
+| 8.10 | Settings and special states | " |
+| 8.11 | **Full testing and trial:** the owner's phone and a cheap older phone, Android 7 and the newest, slow internet, sunlight reading, Hindi throughout; about two weeks of use in the owner's shop; checklist `docs/ANDROID-TRIAL.md` | The checklist passes and the owner is happy to give it to another shop |
 | 8.12 | Play Store (₹2,100 once) | Later, owner's decision |
-| Later | Field salesman screens and staff access | After the owner's discussion (section 1) |
+| Later | iPhone (decide then whether to reuse Kotlin code), field salesman screens and staff access, offline | After the owner's decisions |
 
 ## 8. Alongside, after the Windows trial: web and Windows apps
 - Switch to the 20 colours. This needs the owner's written exception to the "look exactly like the prototype" rule in `CLAUDE.md`.
@@ -168,7 +169,8 @@ Unchanged (see `docs/ARCHITECTURE.md`).
 
 ## 10. Risks and how they are handled
 1. **The free server sleeps** after 15 idle minutes, so the first open can take up to a minute. The owner decided to keep the free plan for now. The app shows "Server is waking up…" so nobody thinks it is broken.
-2. **Invoice PDF on the phone:** the web prints through the browser, which the phone can't do. Step 8.5 makes a real PDF file, checked against the printed invoice.
+2. **Invoice PDF on the phone:** the web prints through the browser, which the phone can't do. Step 8.5 draws the invoice with Android's PDF maker, checked against the printed invoice.
+7. **Phone and web maths drift apart** (Kotlin is a second copy of the preview maths): one shared list of examples that both the web and the app must pass on every change.
 3. **APK signing key:** if it is lost, installed apps can never be updated. It is kept as a GitHub secret, and the owner keeps a second copy (pen drive or printout), like the recovery key.
 4. **Double bills on weak internet:** idempotency keys, with a test.
 5. **Breaking the web app while sharing code (8.1):** the existing web tests and pictures must pass unchanged.
