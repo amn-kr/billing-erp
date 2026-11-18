@@ -61,7 +61,7 @@ import billingo.app.ui.theme.Size
  * arrives in 8.2c, so the buttons say so for now.
  */
 @Composable
-fun SignInScreen(version: String) {
+fun SignInScreen(version: String, onSecret: (() -> Unit)? = null) {
     val ctx = LocalContext.current
     val later = stringResource(R.string.coming_next)
     val soon = { Toast.makeText(ctx, later, Toast.LENGTH_SHORT).show() }
@@ -129,7 +129,16 @@ fun SignInScreen(version: String) {
             LinkButton(stringResource(R.string.new_here), soon)
             LanguageChip(stringResource(R.string.language_name), soon)
             Text(stringResource(R.string.fingerprint_next_time), fontSize = 12.sp, color = Colours.Text3, fontFamily = font, textAlign = TextAlign.Center)
-            Text(stringResource(R.string.version_line, version), fontSize = 12.sp, color = Colours.Text3, fontFamily = font, textAlign = TextAlign.Center)
+            // test builds: five taps on the version line open the Building Blocks page
+            var taps by rememberSaveable { mutableStateOf(0) }
+            Text(
+                stringResource(R.string.version_line, version),
+                fontSize = 12.sp,
+                color = Colours.Text3,
+                fontFamily = font,
+                textAlign = TextAlign.Center,
+                modifier = if (onSecret == null) Modifier else Modifier.clickable(interactionSource = null, indication = null) { if (++taps >= 5) { taps = 0; onSecret() } },
+            )
         }
     }
 }
