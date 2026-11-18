@@ -30,7 +30,8 @@ const pending = new WeakMap<Page, number>();
 /** Counts the page's open requests to the API (the rebuild's screens load data in several requests). */
 function trackApi(page: Page) {
   pending.set(page, 0);
-  const isApi = (u: string) => u.includes('/api/');
+  // the live connection (/api/live) stays open on purpose, so it never counts as "still loading"
+  const isApi = (u: string) => u.includes('/api/') && !u.includes('/api/live');
   page.on('request', (r) => { if (isApi(r.url())) pending.set(page, (pending.get(page) ?? 0) + 1); });
   const done = (r: { url(): string }) => { if (isApi(r.url())) pending.set(page, Math.max(0, (pending.get(page) ?? 1) - 1)); };
   page.on('requestfinished', done);

@@ -42,6 +42,7 @@ The rebuild needs npm packages. If `npm view react version` fails with 403, this
 - **Dates:** ISO `date`. The business timezone is Asia/Kolkata. The financial year runs April to March.
 - **Tenancy:** every shop-owned table has `business_id`. Set the RLS context per request in the API.
 - **Documents:** never deleted, only cancelled. Write audit-log entries for create, update and cancel.
+- **Document numbers (owner, 18 Nov 2026):** always assigned by the server, never typed or edited by anyone, in every app (web, Windows, phone). Open screens show the next number live and update it when another device saves the same kind of document.
 - **Tests:** unit tests for maths, API tests per endpoint, Playwright for flows. Port `reference/tests/flows.js` checks to the new app.
 - **Commits:** small, with descriptive messages. Never commit secrets; use `.env.example`.
 

@@ -10,7 +10,7 @@ import { day, isoOf } from '../../common/lookups';
 import { booksOf, linePackSize } from '../sales/sales.service';
 import { refuseIfSoldSince, reverseStock } from '../sales/stock-back';
 import { cancelPayment, cancelPendingCheques, cashBankFor } from '../sales/money-in';
-import { reconciledIn, reconciledMessage, refuseIfReconciled, repostPayment } from '../../common/editing';
+import { reconciledIn, reconciledMessage, refuseIfReconciled, refuseTypedNumber, repostPayment } from '../../common/editing';
 import { billBalances, settledElsewhere, usedOut } from './dues';
 import { refreshPurchasePrices } from '../stock/stock-value';
 import { batchesOn, batchRows, mrpOn, refuseIfBatchShort, refuseOverBatch, resolveBatch } from '../stock/batches';
@@ -134,6 +134,8 @@ export class PurchasesService {
     if (bad) throw new BadRequestException({ message: `Enter a quantity for “${bad.name || items.get(bad.itemId)!.name}”.` });
     if (k !== 'order' && input.lines.some((l) => !money(l.rate).gt(0))) throw new BadRequestException({ message: 'Enter a rate for every item.' });
     const docType = DOC_TYPE[k];
+    // a new document's number always comes from the series (owner, 18 Nov 2026); old-data imports keep theirs
+    if (!before && !legacy) refuseTypedNumber(input.number);
     let number = before?.number ?? input.number.trim();
     if (!before && number && (await tx.purchaseDocument.findFirst({ where: { kind: k, number } }))) throw new BadRequestException({ message: `Number ${number} is already used.`, field: 'number' });
     // returning goods: no more than is in stock (prototype); an edited note's own goods are already back
