@@ -4,8 +4,8 @@
  */
 import type { Tx } from '../../common/db.service';
 
-/** Not backed up: sign-in sessions, invitations (sent again if needed) and the backup's own tables. */
-export const NOT_BACKED_UP = ['sessions', 'invites', 'change_log', 'backup_destinations', 'backup_files'] as const;
+/** Not backed up: sign-in sessions, invitations (sent again if needed), the backup's own tables and one-time keys. */
+export const NOT_BACKED_UP = ['sessions', 'invites', 'change_log', 'backup_destinations', 'backup_files', 'request_keys'] as const;
 /**
  * Backed up but not put back by a restore: who may open the books and what was paid for belong to
  * the account, not to the books. The owner is added to restored books; staff are invited again.

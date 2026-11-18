@@ -64,6 +64,7 @@ import { DriveController, DriveSender } from './modules/backup/drive';
 import { FolderController, FolderSender } from './modules/backup/folder';
 import { CloudController, CloudService } from './modules/backup/cloud';
 import { OWNER_CONTROLLERS, OWNER_PROVIDERS } from './owner';
+import { RequestKeyInterceptor } from './common/request-key.interceptor';
 
 @Module({
   imports: [
@@ -112,6 +113,7 @@ import { OWNER_CONTROLLERS, OWNER_PROVIDERS } from './owner';
     PasscodeService,
     ...OWNER_PROVIDERS,
     { provide: APP_INTERCEPTOR, useClass: PasscodeInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: RequestKeyInterceptor },
   ],
 })
 export class AppModule {}

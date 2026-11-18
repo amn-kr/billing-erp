@@ -150,6 +150,11 @@ export const pinSchema = z.string().regex(/^\d{4}$/, 'Enter 4 digits.');
 export const passcodeSchema = z.string().regex(/^\d{4,6}$/, 'Enter 4 to 6 digits.');
 /** The request header that carries the transaction passcode to edit and cancel calls. */
 export const PASSCODE_HEADER = 'x-txn-passcode';
+/**
+ * One-time key against double saves (step 8.1b): a new key per save, the same key when the same
+ * save is sent again (weak internet, the phone's offline queue). The server saves it once.
+ */
+export const REQUEST_KEY_HEADER = 'idempotency-key';
 
 /** A price field of an item, or `pl:<price list id>` for an item's own price in that list. */
 export const priceFieldSchema = z.union([z.enum(PRICE_FIELDS), z.string().regex(/^pl:[0-9a-f-]{36}$/i, 'Unknown price.')]);

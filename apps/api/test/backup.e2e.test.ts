@@ -89,7 +89,7 @@ describe('change list', () => {
       FROM pg_class c
       WHERE c.relnamespace = 'public'::regnamespace AND c.relkind = 'r'
         AND (c.relname = 'businesses' OR EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid = c.oid AND a.attname = 'business_id' AND NOT a.attisdropped))
-        AND c.relname NOT IN ('sessions', 'invites', 'change_log', 'backup_destinations', 'backup_files')`;
+        AND c.relname NOT IN ('sessions', 'invites', 'change_log', 'backup_destinations', 'backup_files', 'request_keys')`;
     expect(rows.length).toBeGreaterThan(40);
     expect(rows.filter((r) => !r.has).map((r) => r.t)).toEqual([]);
   });
