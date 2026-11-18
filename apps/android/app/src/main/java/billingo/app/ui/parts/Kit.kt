@@ -166,8 +166,9 @@ fun ListRow(name: String, sub: String, onClick: (() -> Unit)? = null, end: @Comp
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Column(Modifier.weight(1f)) {
+            // the name stays on one line with "…"; the detail line may wrap (design .t-x)
             T(name, weight = FontWeight.SemiBold, oneLine = true)
-            T(sub, size = 12.sp, colour = Colours.Text3, oneLine = true)
+            T(sub, size = 12.sp, colour = Colours.Text3)
         }
         Column(Modifier.widthIn(max = 180.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) { end() }
     }
@@ -307,17 +308,58 @@ fun BottomBar(content: @Composable androidx.compose.foundation.layout.RowScope.(
  * 17 Nov 2026). Put it last in a screen's Box so it covers everything.
  */
 @Composable
-fun Dim(onDismiss: () -> Unit, centre: Boolean = false, content: @Composable BoxScope.() -> Unit) {
+fun Dim(onDismiss: () -> Unit, centre: Boolean = false, left: Boolean = false, content: @Composable BoxScope.() -> Unit) {
     Box(
         Modifier.fillMaxSize().background(see(Colours.Text, 0.45f)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onDismiss),
-        contentAlignment = if (centre) Alignment.Center else Alignment.BottomCenter,
+        contentAlignment = when { centre -> Alignment.Center; left -> Alignment.TopStart; else -> Alignment.BottomCenter },
+        content = content,
+    )
+}
+
+/**
+ * A screen's own header (.sh): white with a line under it, an optional button on the left, the
+ * title on one line with "…" (and a small line under it), and buttons on the right.
+ */
+@Composable
+fun Header(title: String, sub: String? = null, left: (@Composable () -> Unit)? = null, right: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {}) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(Colours.Card)
+            .drawBehind { drawLine(Colours.Border, Offset(0f, size.height), Offset(size.width, size.height), 1.dp.toPx()) }
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        if (left != null) left() else Spacer(Modifier.width(8.dp))
+        Column(Modifier.weight(1f)) {
+            T(title, weight = FontWeight.Bold, oneLine = true)
+            if (sub != null) T(sub, size = 12.sp, colour = Colours.Text3, oneLine = true)
+        }
+        right()
+    }
+}
+
+/** The bar fixed at the bottom of a screen (.sf): white, a line and a soft shadow above it. */
+@Composable
+fun FootBar(content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .shadow(8.dp, RoundedCornerShape(0.dp), ambientColor = see(Colours.Text, 0.18f), spotColor = see(Colours.Text, 0.18f))
+            .background(Colours.Card)
+            .drawBehind { drawLine(Colours.Border, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
+            .navigationBarsPadding()
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
         content = content,
     )
 }
 
 /** A sheet coming up from the bottom (.sheet) with its grab handle and title. */
 @Composable
-fun Sheet(title: String, content: @Composable ColumnScope.() -> Unit) {
+fun Sheet(title: String, close: (@Composable () -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
     val shape = RoundedCornerShape(topStart = Size.RadiusLarge, topEnd = Size.RadiusLarge)
     Column(
         Modifier
@@ -330,7 +372,10 @@ fun Sheet(title: String, content: @Composable ColumnScope.() -> Unit) {
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom = 4.dp).width(36.dp).height(4.dp).background(Colours.Border, RoundedCornerShape(2.dp)))
-        T(title, weight = FontWeight.Bold)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            T(title, Modifier.weight(1f), weight = FontWeight.Bold)
+            close?.invoke()
+        }
         content()
     }
 }

@@ -1,11 +1,17 @@
 package billingo.app.data
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -38,6 +44,40 @@ data class MeBusiness(val id: String, val name: String, val short: String? = nul
 data class Membership(val businessId: String, val businessName: String, val businessShort: String? = null, val city: String? = null, val gstin: String? = null, val role: String)
 
 @Serializable
+data class Party(val id: String, val name: String, val kind: String = "customer", val balance: String = "0", val phone: String = "")
+
+@Serializable
+data class SaleParty(val id: String, val name: String)
+
+@Serializable
+data class SaleRow(
+    val id: String,
+    val number: String,
+    val date: String,
+    val dueDate: String? = null,
+    val mode: String = "credit",
+    val partyName: String = "",
+    val total: String = "0",
+    val balance: String = "0",
+    val cancelled: Boolean = false,
+)
+
+@Serializable
+data class Item(
+    val id: String,
+    val name: String,
+    val kind: String = "goods",
+    val unit: String = "",
+    val sale: String = "0",
+    val purchase: String = "0",
+    val stock: String? = null,
+    val level: String = "ok",
+)
+
+@Serializable
+data class AppVersion(val latest: String? = null, val date: String? = null, val download: String? = null, val notes: String = "", val minimum: String? = null)
+
+@Serializable
 data class Me(val user: MeUser, val business: MeBusiness? = null, val role: String? = null, val memberships: List<Membership> = emptyList())
 
 /**
@@ -53,6 +93,12 @@ class Api(private val base: String, private val store: Store, private val client
         private set
     private val renewing = Mutex()
 
+    /**
+     * Calls taking longer than [SLOW_MS] right now: the free server is probably waking up, and the
+     * app shows "Server Is Waking Up…" (design 7.4j) until they are answered.
+     */
+    val slow = MutableStateFlow(0)
+
     suspend fun login(email: String, password: String): Tokens =
         keep(send("POST", "/auth/login", buildJsonObject { put("email", email); put("password", password) }, Tokens.serializer(), auth = false))
 
@@ -60,6 +106,13 @@ class Api(private val base: String, private val store: Store, private val client
         keep(send("POST", "/auth/register", buildJsonObject { put("name", name); put("email", email); put("password", password) }, Tokens.serializer(), auth = false))
 
     suspend fun me(): Me = send("GET", "/me", null, Me.serializer())
+
+    suspend fun parties(): List<Party> = send("GET", "/parties", null, ListSerializer(Party.serializer()))
+    suspend fun sales(): List<SaleRow> = send("GET", "/sales?kind=invoice", null, ListSerializer(SaleRow.serializer()))
+    suspend fun items(): List<Item> = send("GET", "/items", null, ListSerializer(Item.serializer()))
+
+    /** Check For Update: the newest phone version on the releases page (no sign-in needed). */
+    suspend fun appVersion(): AppVersion = send("GET", "/app-version?app=android", null, AppVersion.serializer(), auth = false)
 
     /** Work in another company: new tokens for it. */
     suspend fun switchCompany(businessId: String): Tokens =
@@ -109,7 +162,7 @@ class Api(private val base: String, private val store: Store, private val client
         refresh: String? = null,
         again: Boolean = true,
     ): T {
-        val r = withContext(Dispatchers.IO) {
+        val r = withSlowWatch { withContext(Dispatchers.IO) {
             val b = Request.Builder().url(base.trimEnd('/') + "/api" + path)
                 .header("x-app-client", "phone")
                 .header("Accept", "application/json")
@@ -122,12 +175,18 @@ class Api(private val base: String, private val store: Store, private val client
             } catch (e: IOException) {
                 throw ApiError(0, NO_INTERNET)
             }
-        }
+        } }
         val (code, text) = r
         if (code == 401 && auth && again && store.refreshToken != null && renew()) return send(method, path, body, answer, auth, refresh, again = false)
         if (code !in 200..299) throw problem(code, text)
         @Suppress("UNCHECKED_CAST")
         return if (answer == null || text.isBlank()) Unit as T else JSON.decodeFromString(answer, text)
+    }
+
+    private suspend fun <T> withSlowWatch(work: suspend () -> T): T = coroutineScope {
+        var counted = false
+        val timer = launch { delay(SLOW_MS); counted = true; slow.update { it + 1 } }
+        try { work() } finally { timer.cancel(); if (counted) slow.update { it - 1 } }
     }
 
     private fun problem(code: Int, text: String): ApiError {
@@ -147,6 +206,7 @@ class Api(private val base: String, private val store: Store, private val client
 
     companion object {
         const val NO_INTERNET = "No internet connection."
+        const val SLOW_MS = 4_000L
         val JSON = Json { ignoreUnknownKeys = true; explicitNulls = false }
         private val JSON_TYPE = "application/json".toMediaType()
         fun defaultClient(): OkHttpClient = OkHttpClient.Builder()

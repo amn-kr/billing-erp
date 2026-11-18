@@ -19,6 +19,23 @@ sealed interface Screen {
     data class Home(val me: Me) : Screen
 }
 
+/** Home's lists; null when the server refused one (no permission) or it hasn't come yet. */
+data class HomeData(
+    val parties: List<Party>? = null,
+    val sales: List<SaleRow>? = null,
+    val items: List<Item>? = null,
+    val problem: ApiError? = null,
+)
+
+/** Check For Update: what the last check found. */
+sealed interface Update {
+    data object Idle : Update
+    data object Checking : Update
+    data object Latest : Update
+    data class Available(val version: String, val download: String) : Update
+    data class Failed(val error: ApiError) : Update
+}
+
 /**
  * The app's sign-in journey (design 7.4a: Sign In → Choose Company → Home; next time the
  * fingerprint, when it is on). The server stays the boss: the phone keeps only the sign-in token.
@@ -33,7 +50,42 @@ class AppModel(private val api: Api, private val store: Store, private val finge
     var problem by mutableStateOf<ApiError?>(null)
         private set
 
+    /** Home's lists (loaded when Home opens, again on pull-down) */
+    var home by mutableStateOf(HomeData())
+        private set
+    var homeLoading by mutableStateOf(false)
+        private set
+    var update by mutableStateOf<Update>(Update.Idle)
+        private set
+
     init { open() }
+
+    /** Load Home's parties, bills and items, each on its own so one refusal doesn't hide the rest. */
+    fun loadHome() {
+        if (homeLoading) return
+        homeLoading = true
+        viewModelScope.launch {
+            var problem: ApiError? = null
+            suspend fun <T> one(get: suspend () -> T): T? = try { get() } catch (e: ApiError) { if (e.status != 403) problem = problem ?: e; null }
+            val p = one { api.parties() }
+            val s = one { api.sales() }
+            val i = one { api.items() }
+            // keep what was shown before when the internet is gone
+            home = HomeData(p ?: home.parties, s ?: home.sales, i ?: home.items, problem)
+            homeLoading = false
+        }
+    }
+
+    /** Check For Update (design 7.4i): compare with the newest phone version on the releases page. */
+    fun checkUpdate(current: String) {
+        update = Update.Checking
+        viewModelScope.launch {
+            update = try {
+                val v = api.appVersion()
+                if (v.latest != null && v.download != null && newer(v.latest, current)) Update.Available(v.latest, v.download) else Update.Latest
+            } catch (e: ApiError) { Update.Failed(e) }
+        }
+    }
 
     /** On opening: no saved sign-in → Sign In; fingerprint on → Welcome Back; else straight in. */
     fun open() {
@@ -98,6 +150,7 @@ class AppModel(private val api: Api, private val store: Store, private val finge
     private fun enter(me: Me, choose: Boolean) {
         store.companyName = me.business?.name
         screen = if (choose && me.memberships.size > 1) Screen.Choose(me) else Screen.Home(me)
+        if (screen is Screen.Home) { home = HomeData(); loadHome() }
     }
 
     private fun act(work: suspend () -> Unit) {
@@ -115,4 +168,12 @@ class AppModel(private val api: Api, private val store: Store, private val finge
         const val NEED_PASSWORD = "need_password"
         const val OWNER_ACCOUNT = "owner_account"
     }
+}
+
+/** "1.0.10" is newer than "1.0.9": compared as numbers. */
+fun newer(a: String, b: String): Boolean {
+    val x = a.split('.').map { it.toIntOrNull() ?: 0 }
+    val y = b.split('.').map { it.toIntOrNull() ?: 0 }
+    for (i in 0 until 3) if (x.getOrElse(i) { 0 } != y.getOrElse(i) { 0 }) return x.getOrElse(i) { 0 } > y.getOrElse(i) { 0 }
+    return false
 }
