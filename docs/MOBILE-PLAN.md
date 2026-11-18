@@ -14,6 +14,7 @@ Owner's decisions from 13 to 15 Nov 2026. This file is the full plan for Phases 
 | 15 Nov | The web app moves to the same test method (one picture plus fit checks) after the Windows trial, together with the colour change. |
 | 15 Nov | The server stays on the current free plan. The app shows "Server is waking up…" while it starts. |
 | 15 Nov | The app's name and icon are the same as the Windows app's. |
+| 18 Nov | **Phase 8 (the app) starts now**, before the Windows trial ends. Trial sections A, B, C, E and H passed; the rest (D, F, F2, G and the shop trial I) comes after the phone app is launched. This replaces the 13 Nov rule that Phase 8 waits for the trial. |
 | 15 Nov | Languages: **English and Hindi**. |
 | 15 Nov | Lowest Android version: **Android 7.0** (chosen by us, as the owner asked). It covers almost every phone in use, and fingerprint unlock works on it. |
 | 15 Nov | Field salesman screens and staff access rules come **after the owner's app is built**, as a separate discussion. |

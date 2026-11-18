@@ -44,11 +44,11 @@ _Last updated: 18 Nov 2026. Details: [`docs/STATUS.md`](docs/STATUS.md)._
 
 | | |
 |---|---|
-| **Where we are** | Phases 0 to 4 are done. The Windows app (Phase 6) is built. Real-PC checks are under way: install (Windows 10 and 11), This PC only, printing, restore and update passed (18 Nov 2026). Left: backups, cloud move, connect to cloud and uninstall, then a two-week trial in the owner's shop. |
+| **Where we are** | Phases 0 to 4 are done. The Windows app (Phase 6) is built. Real-PC checks are under way: install (Windows 10 and 11), This PC only, printing, restore and update passed (18 Nov 2026). Left: backups, cloud move, connect to cloud and uninstall, then a two-week trial in the owner's shop, after the phone app is launched. |
 | **Latest Windows release** | **v0.1.1** (13 Nov 2026): adds *Bring online books to this PC*. Installers are on the [releases page](https://github.com/amn-kr/billing-erp-releases/releases). |
 | **Live web app** | https://billing-erp-ynqf.onrender.com (free plans; the first open after 15 idle minutes can take about a minute). |
 | **Needs attention** | Nightly database backups have not run since 9 Nov 2026. The fix is merged (PR #105) and in the backup repository, but GitHub's Actions budget stops every run. On hold until 1 Dec 2026, when the free minutes return; a reminder will run one backup and check the restore test that day. |
-| **Next** | Windows trial → Android app (Phase 8). The phone design (Phase 7) is complete. Selling (Phase 5) starts only when the owner asks. |
+| **Next** | Android app (Phase 8). The phone design (Phase 7) is complete. The rest of the Windows trial comes after the phone app is launched (owner, 18 Nov 2026). Selling (Phase 5) starts only when the owner asks. |
 
 ---
 
@@ -354,7 +354,7 @@ node saas.js      # website version (needs: cd ../firebase-site/public && python
 | 5 | SaaS and launch: Razorpay, admin console, onboarding, beta | ⏸ On hold until the owner asks |
 | 6 | Windows app and single-PC offline mode | 🔄 Built; real-PC checks half done (18 Nov), trial pending |
 | 7 | Mobile design | ✅ Done (17 Nov 2026): colours, building blocks, app map and every screen (7.4a to 7.4j) approved |
-| 8 | Android app | ⏳ After the Windows trial |
+| 8 | Android app | ⏳ Next |
 | 9 | iPhone and Mac builds | ⏳ Later |
 
 Each phase has a gate that must pass before the next starts. Full plan: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
