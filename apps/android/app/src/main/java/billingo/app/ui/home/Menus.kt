@@ -107,6 +107,7 @@ fun SideMenu(
     onClose: () -> Unit,
     onChangeCompany: () -> Unit,
     onLater: () -> Unit,
+    onParties: () -> Unit,
     onGst: () -> Unit,
     onSignOut: () -> Unit,
     onCheckUpdate: () -> Unit,
@@ -143,7 +144,7 @@ fun SideMenu(
                 }
             }
             MenuLine(Icons.Bill, stringResource(R.string.m_home), onClose, on = true)
-            MenuLine(Icons.User, stringResource(R.string.m_parties), onLater)
+            MenuLine(Icons.User, stringResource(R.string.m_parties), onParties)
             MenuGroup(Icons.Box, stringResource(R.string.m_items_stock), listOf(stringResource(R.string.m_items), stringResource(R.string.m_prices), stringResource(R.string.m_adjust), stringResource(R.string.m_godowns)), onLater)
             MenuGroup(Icons.Bill, stringResource(R.string.m_sales), listOf(stringResource(R.string.m_quotations), stringResource(R.string.m_sale_bills), stringResource(R.string.m_challans), stringResource(R.string.m_paid_in), stringResource(R.string.m_credit_notes), stringResource(R.string.m_commission)), onLater)
             MenuGroup(Icons.Cart, stringResource(R.string.m_purchases), listOf(stringResource(R.string.m_orders), stringResource(R.string.m_purchase_bills), stringResource(R.string.m_paid_out), stringResource(R.string.m_debit_notes)), onLater)

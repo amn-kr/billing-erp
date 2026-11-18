@@ -115,6 +115,8 @@ fun HomeScreen(
     onCreate: () -> Unit,
     onRefresh: () -> Unit,
     onLater: () -> Unit,
+    onParties: (bal: String) -> Unit = { onLater() },
+    onParty: (Party) -> Unit = { onLater() },
 ) {
     val hi = LocalConfiguration.current.locales[0].language == "hi"
     var tab by rememberSaveable { mutableIntStateOf(0) }
@@ -141,12 +143,12 @@ fun HomeScreen(
             LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (offline) item { Banner(BannerKind.Offline, stringResource(R.string.offline_title), stringResource(R.string.offline_text)) }
                 else if (waking) item { Banner(BannerKind.Waking, stringResource(R.string.waking_title), stringResource(R.string.waking_text)) }
-                item { Summary(data.parties, onLater) }
+                item { Summary(data.parties, onParties) }
                 item { Tabs(listOf(stringResource(R.string.tab_parties), stringResource(R.string.tab_bills), stringResource(R.string.tab_items)), tab) { tab = it } }
                 when (tab) {
                     0 -> rows(data.parties, loading) { list ->
                         if (list.isEmpty()) item { EmptyState(Icons.User, stringResource(R.string.no_parties), stringResource(R.string.no_parties_sub), stringResource(R.string.add_party), onLater) }
-                        items(HomeMaths.ordered(list).take(50), key = { it.id }) { PartyRow(it, onLater) }
+                        items(HomeMaths.ordered(list).take(50), key = { it.id }) { PartyRow(it) { onParty(it) } }
                     }
                     1 -> rows(data.sales, loading) { list ->
                         if (list.isEmpty()) item { EmptyState(Icons.Bill, stringResource(R.string.no_bills), stringResource(R.string.no_bills_sub), stringResource(R.string.new_bill), onLater) }
@@ -177,13 +179,13 @@ private fun <T> androidx.compose.foundation.lazy.LazyListScope.rows(list: List<T
 }
 
 @Composable
-private fun Summary(parties: List<Party>?, onTap: () -> Unit) {
+private fun Summary(parties: List<Party>?, onTap: (String) -> Unit) {
     val t = HomeMaths.totals(parties ?: emptyList())
     @Composable
     fun count(n: Int) = if (n == 1) stringResource(R.string.parties_n_1) else stringResource(R.string.parties_n, n)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        SummaryCard(stringResource(R.string.you_get), t.get.toPlainString(), count(t.getCount), toGet = true, modifier = Modifier.weight(1f).clickable(role = Role.Button, onClick = onTap))
-        SummaryCard(stringResource(R.string.you_give), t.give.toPlainString(), count(t.giveCount), toGet = false, modifier = Modifier.weight(1f).clickable(role = Role.Button, onClick = onTap))
+        SummaryCard(stringResource(R.string.you_get), t.get.toPlainString(), count(t.getCount), toGet = true, modifier = Modifier.weight(1f).clickable(role = Role.Button) { onTap("rec") })
+        SummaryCard(stringResource(R.string.you_give), t.give.toPlainString(), count(t.giveCount), toGet = false, modifier = Modifier.weight(1f).clickable(role = Role.Button) { onTap("pay") })
     }
 }
 

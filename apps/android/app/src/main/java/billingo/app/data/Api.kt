@@ -111,6 +111,12 @@ class Api(private val base: String, private val store: Store, private val client
     suspend fun sales(): List<SaleRow> = send("GET", "/sales?kind=invoice", null, ListSerializer(SaleRow.serializer()))
     suspend fun items(): List<Item> = send("GET", "/items", null, ListSerializer(Item.serializer()))
 
+    suspend fun partiesFull(archived: Boolean = false): List<PartyFull> =
+        send("GET", if (archived) "/parties?archived=true" else "/parties", null, ListSerializer(PartyFull.serializer()))
+    suspend fun party(id: String): PartyFull = send("GET", "/parties/$id", null, PartyFull.serializer())
+    suspend fun partyTx(id: String): List<PartyTx> = send("GET", "/reports/party-tx/$id", null, ListSerializer(PartyTx.serializer()))
+    suspend fun statement(id: String, from: String, to: String): Statement = send("GET", "/reports/statement/$id?from=$from&to=$to", null, Statement.serializer())
+
     /** Check For Update: the newest phone version on the releases page (no sign-in needed). */
     suspend fun appVersion(): AppVersion = send("GET", "/app-version?app=android", null, AppVersion.serializer(), auth = false)
 

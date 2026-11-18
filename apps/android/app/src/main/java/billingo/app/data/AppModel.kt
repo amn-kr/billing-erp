@@ -19,6 +19,14 @@ sealed interface Screen {
     data class Home(val me: Me) : Screen
 }
 
+/** Screens opened on top of Home (Back closes the top one). */
+sealed interface Route {
+    /** the party list, maybe filtered to money to get ("rec") or to give ("pay") */
+    data class Parties(val bal: String = "all") : Route
+    data class Party(val id: String, val name: String) : Route
+    data class Statement(val id: String, val name: String) : Route
+}
+
 /** Home's lists; null when the server refused one (no permission) or it hasn't come yet. */
 data class HomeData(
     val parties: List<Party>? = null,
@@ -57,6 +65,14 @@ class AppModel(private val api: Api, private val store: Store, private val finge
         private set
     var update by mutableStateOf<Update>(Update.Idle)
         private set
+
+    /** the screens open above Home, the top one last */
+    val stack = androidx.compose.runtime.mutableStateListOf<Route>()
+    fun open(r: Route) { stack.add(r) }
+    fun back(): Boolean = if (stack.isEmpty()) false else { stack.removeAt(stack.lastIndex); true }
+
+    /** the server, for screens that load their own data */
+    val server: Api get() = api
 
     init { open() }
 
@@ -141,6 +157,7 @@ class AppModel(private val api: Api, private val store: Store, private val finge
 
     fun signOut() = act {
         api.logout()
+        stack.clear()
         fingerprintOn = false
         screen = Screen.SignIn
     }
@@ -150,7 +167,7 @@ class AppModel(private val api: Api, private val store: Store, private val finge
     private fun enter(me: Me, choose: Boolean) {
         store.companyName = me.business?.name
         screen = if (choose && me.memberships.size > 1) Screen.Choose(me) else Screen.Home(me)
-        if (screen is Screen.Home) { home = HomeData(); loadHome() }
+        if (screen is Screen.Home) { home = HomeData(); stack.clear(); loadHome() }
     }
 
     private fun act(work: suspend () -> Unit) {

@@ -155,6 +155,8 @@ fun Btn(
     icon: ImageVector? = null,
     pill: Boolean = false,
     busy: Boolean = false,
+    /** the small row buttons of a card (.qa3 .btn): 13 sp text, less padding */
+    small: Boolean = false,
 ) {
     val shape = if (pill) RoundedCornerShape(999.dp) else RoundedCornerShape(Size.Radius)
     val press = remember { MutableInteractionSource() }
@@ -180,14 +182,14 @@ fun Btn(
             .then(if (solid) Modifier.background(shine(), shape) else Modifier)
             .let { kind.edge()(it, shape) }
             .clickable(interactionSource = press, indication = null, role = Role.Button, enabled = !busy, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            .padding(horizontal = if (small) 6.dp else 16.dp, vertical = if (small) 4.dp else 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (small) 6.dp else 8.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (busy) Spinner(kind.ink())
-        else if (icon != null) Icon(icon, contentDescription = null, tint = kind.ink(), modifier = Modifier.size(20.dp))
+        else if (icon != null) Icon(icon, contentDescription = null, tint = kind.ink(), modifier = Modifier.size(if (small) 18.dp else 20.dp))
         // a long label goes onto a second line on narrow phones, never cut (fit rule, owner 15 Nov 2026)
-        T(text, colour = kind.ink(), weight = if (pill) FontWeight.Bold else FontWeight.SemiBold, size = if (pill) 16.sp else 15.sp, align = TextAlign.Center)
+        T(text, colour = kind.ink(), weight = if (pill) FontWeight.Bold else FontWeight.SemiBold, size = if (pill) 16.sp else if (small) 13.sp else 15.sp, align = TextAlign.Center)
     }
 }
 

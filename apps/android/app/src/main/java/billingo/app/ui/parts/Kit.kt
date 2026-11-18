@@ -265,10 +265,10 @@ fun CheckRow(text: String, on: Boolean, onChange: (Boolean) -> Unit) {
 
 /** A choice field (.fld + select): shows the choice; tapping opens the choices (a sheet on the screens). */
 @Composable
-fun ChoiceField(label: String, value: String, onClick: () -> Unit) {
+fun ChoiceField(label: String?, value: String, onClick: () -> Unit) {
     val shape = RoundedCornerShape(Size.RadiusSmall)
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        T(label, colour = Colours.Text2, weight = FontWeight.SemiBold, size = 13.sp)
+        if (label != null) T(label, colour = Colours.Text2, weight = FontWeight.SemiBold, size = 13.sp)
         Row(
             Modifier
                 .fillMaxWidth()
@@ -507,4 +507,78 @@ fun EmptyState(icon: ImageVector, title: String, text: String, button: String, o
             Btn(button, onButton, icon = Icons.Plus)
         }
     }
+}
+
+/** Filter chips sharing the width (.chips.eq): the chosen one is solid blue. */
+@Composable
+fun Chips(items: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        items.forEachIndexed { i, name ->
+            val on = i == selected
+            val shape = RoundedCornerShape(999.dp)
+            Box(
+                Modifier
+                    .weight(1f)
+                    .heightIn(min = Size.Tap)
+                    .background(if (on) Colours.Blue else Colours.Card, shape)
+                    .border(1.dp, if (on) Colours.Blue else Colours.Border, shape)
+                    .clickable(role = Role.Tab) { onSelect(i) }
+                    .padding(horizontal = 3.dp, vertical = 2.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                T(name, size = 13.sp, weight = FontWeight.SemiBold, colour = if (on) Colours.OnColour else Colours.Text, align = TextAlign.Center)
+            }
+        }
+    }
+}
+
+/** A box with a small label over an amount (.ptot button); pressed = a filter is on. */
+@Composable
+fun TotalBox(label: String, amount: String, colour: androidx.compose.ui.graphics.Color, on: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(Size.Radius)
+    Column(
+        modifier
+            .heightIn(min = Size.Tap)
+            .raised(shape)
+            .background(if (on) Colours.LightBlue else Colours.Card, shape)
+            .border(1.dp, if (on) Colours.Blue else Colours.Border, shape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+    ) {
+        T(label, size = 12.sp, weight = FontWeight.SemiBold, colour = Colours.Text2, oneLine = true)
+        T(amount, size = 16.sp, weight = FontWeight.Bold, colour = colour, numbers = true, oneLine = true)
+    }
+}
+
+/** A sheet to pick one of a few options (radio rows, design .opt). */
+@Composable
+fun ChoiceSheet(title: String, options: List<String>, selected: Int, onClose: () -> Unit, onPick: (Int) -> Unit) {
+    Dim(onClose) {
+        Sheet(title) {
+            options.forEachIndexed { i, name ->
+                val on = i == selected
+                val shape = RoundedCornerShape(Size.Radius)
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 52.dp)
+                        .background(if (on) Colours.LightBlue else Colours.Card, shape)
+                        .border(1.dp, if (on) Colours.Blue else Colours.Border, shape)
+                        .clickable(role = Role.RadioButton) { onPick(i) }
+                        .padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Box(Modifier.size(20.dp).border(2.dp, if (on) Colours.Blue else Colours.Text3, CircleShape).padding(4.dp).background(if (on) Colours.Blue else Colours.Card, CircleShape))
+                    T(name, weight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+}
+
+/** A small grey heading above a group (.sec). */
+@Composable
+fun SectionTitle(text: String) {
+    T(text.uppercase(), Modifier.padding(start = 2.dp, top = 4.dp), size = 12.sp, weight = FontWeight.Bold, colour = Colours.Text3)
 }
