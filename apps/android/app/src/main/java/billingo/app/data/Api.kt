@@ -29,7 +29,7 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /** A refusal from the server, with its message in plain words; status 0 means no internet. */
-class ApiError(val status: Int, override val message: String, val code: String? = null) : Exception(message)
+class ApiError(val status: Int, override val message: String, val code: String? = null, val field: String? = null) : Exception(message)
 
 @Serializable
 data class Tokens(val accessToken: String, val expiresIn: Int = 900, val refreshToken: String? = null, val refreshExpires: String? = null, val owner: Boolean = false)
@@ -116,6 +116,14 @@ class Api(private val base: String, private val store: Store, private val client
     suspend fun party(id: String): PartyFull = send("GET", "/parties/$id", null, PartyFull.serializer())
     suspend fun partyTx(id: String): List<PartyTx> = send("GET", "/reports/party-tx/$id", null, ListSerializer(PartyTx.serializer()))
     suspend fun statement(id: String, from: String, to: String): Statement = send("GET", "/reports/statement/$id?from=$from&to=$to", null, Statement.serializer())
+
+    suspend fun createParty(body: JsonObject): Saved = send("POST", "/parties", body, Saved.serializer())
+    suspend fun updateParty(id: String, body: JsonObject): Saved = send("PATCH", "/parties/$id", body, Saved.serializer())
+    suspend fun partyUsage(id: String): Usage = send("GET", "/parties/$id/usage", null, Usage.serializer())
+    suspend fun deleteParty(id: String) { send<Unit>("POST", "/parties/$id/delete", null, null) }
+    suspend fun archiveParty(id: String, archived: Boolean) { send<Unit>("POST", "/parties/$id/" + (if (archived) "archive" else "restore"), null, null) }
+    suspend fun partyGroups(): List<PartyGroup> = send("GET", "/party-groups", null, ListSerializer(PartyGroup.serializer()))
+    suspend fun addPartyGroup(name: String): PartyGroup = send("POST", "/party-groups", buildJsonObject { put("name", name) }, PartyGroup.serializer())
 
     /** Check For Update: the newest phone version on the releases page (no sign-in needed). */
     suspend fun appVersion(): AppVersion = send("GET", "/app-version?app=android", null, AppVersion.serializer(), auth = false)
@@ -207,7 +215,7 @@ class Api(private val base: String, private val store: Store, private val client
             m != null -> m
             else -> "Something went wrong."
         }
-        return ApiError(code, msg, (o?.get("code") as? JsonPrimitive)?.contentOrNull)
+        return ApiError(code, msg, (o?.get("code") as? JsonPrimitive)?.contentOrNull, (o?.get("field") as? JsonPrimitive)?.contentOrNull)
     }
 
     companion object {
