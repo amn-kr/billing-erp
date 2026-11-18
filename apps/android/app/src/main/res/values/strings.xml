@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BillinGo</string>
+    <string name="signin_sub">Sign in with your online account.</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="show_password">Show Password</string>
+    <string name="hide_password">Hide Password</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="sign_in">Sign In</string>
+    <string name="or">or</string>
+    <string name="new_here">New Here? Create An Account</string>
+    <string name="fingerprint_next_time">Next time the app opens with your fingerprint.</string>
+    <string name="language_name">English</string>
+    <string name="version_line">BillinGo v%1$s</string>
+    <string name="coming_next">Sign in arrives in the next app version.</string>
+</resources>
