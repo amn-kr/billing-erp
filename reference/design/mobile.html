@@ -140,6 +140,15 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .ban.off{background:var(--red-l);color:var(--red)}
 .ban.wake{background:var(--orange-l);color:var(--orange)}
 .ban .mid b{display:block}
+.vtag{font-size:12px;color:var(--text3);text-align:center;font-variant-numeric:tabular-nums}
+.vbox{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.fx .vbox{box-shadow:var(--sh1)}
+.vbox .vt{font-weight:700}
+.vbox .btn{width:100%}
+.vbox ul{margin:0;padding-left:18px;text-align:left;font-size:13px;color:var(--text2);align-self:stretch}
+.vbox .pbar{width:100%;height:8px;border-radius:4px;background:var(--slate-l);overflow:hidden}
+.vbox .pbar i{display:block;height:100%;background:var(--blue);border-radius:4px;transition:width .3s ease}
+.vbox .spin{border-color:rgba(29,78,216,.25);border-top-color:var(--blue)}
 .ban.view{background:var(--blue-l);color:var(--blue)}
 .ban.staff{background:var(--slate-l);color:var(--text2)}
 .ban .mid{flex:1;min-width:0}
@@ -911,6 +920,19 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 <div class="proto" id="v-a" hidden>
   <div class="guide">
     <div class="gsec">
+      <h2 data-hi="आपके नए बदलाव (18 नव॰ 2026)">Your New Changes (18 Nov 2026)</h2>
+      <p data-hi="1) ऐप का वर्शन साइन इन के नीचे और सेटिंग के नीचे दिखता है; सेटिंग में "अपडेट देखें" → "अपडेट डाउनलोड करें" → "इंस्टॉल"। 2) साइड मेन्यू, नीचे से खुलने वाली शीट और हर पॉप-अप उसके बाहर दबाने पर बंद हो जाता है।">1) The app version shows at the bottom of Sign In and of Settings; Settings has Check For Update → Download Update → Install. 2) The side menu, bottom sheets and every pop-up close when you tap outside them.</p>
+      <div class="scrlist">
+        <button type="button" data-jump11="vsi"><span class="no">1</span><span data-hi="साइन इन पर वर्शन">Version On Sign In</span></button>
+        <button type="button" data-jump11="vset"><span class="no">2</span><span data-hi="सेटिंग में वर्शन और अपडेट">Version And Update In Settings</span></button>
+        <button type="button" data-jump11="vavail"><span class="no">3</span><span data-hi="अपडेट आया है">Update Available</span></button>
+        <button type="button" data-jump11="vdl"><span class="no">4</span><span data-hi="अपडेट डाउनलोड हो रहा है">Downloading The Update</span></button>
+        <button type="button" data-jump11="vready"><span class="no">5</span><span data-hi="इंस्टॉल के लिए तैयार">Ready To Install</span></button>
+        <button type="button" data-jump11="vlatest"><span class="no">6</span><span data-hi="सबसे नया वर्शन">Latest Version</span></button>
+        <button type="button" data-jump11="outside"><span class="no">7</span><span data-hi="बाहर दबाकर बंद करें (मेन्यू खुला)">Tap Outside To Close (Menu Open)</span></button>
+      </div>
+    </div>
+    <div class="gsec">
       <h2 data-hi="7.4j: ख़ास हालात (मंज़ूर)">7.4j: Special States (Approved)</h2>
       <p data-hi="जब कुछ सामान्य न हो तब ऐप क्या दिखाए: इंटरनेट नहीं, सर्वर जाग रहा है, ग़लती, अनुमति नहीं, सिर्फ़ देखना, ट्रायल ख़त्म, अपडेट और साइन आउट। यह फ़ोन डिज़ाइन का आख़िरी कदम है।">What the app shows when things are not normal: no internet, server waking up, errors, no permission, view only, trial ended, update needed and signed out. This is the last step of the phone design.</p>
       <div class="scrlist">
@@ -1242,6 +1264,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
           <button type="button" class="lnk c" id="si-mode" data-hi="नए हैं? खाता बनाएँ">New Here? Create An Account</button>
           <button type="button" class="si2-lang" data-ov="lang"><svg class="ic" style="width:16px;height:16px"><use href="#globe"/></svg><span id="si-lang">English</span></button>
           <div class="t-x" style="text-align:center" data-hi="अगली बार ऐप फ़िंगरप्रिंट से खुलेगा।">Next time the app opens with your fingerprint.</div>
+          <div class="vtag" id="ver-si"></div>
         </form>
       </section>
 
@@ -1370,7 +1393,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
             <button class="srow" data-t7="soon"><svg class="ic" style="color:var(--text3)"><use href="#globe"/></svg><div class="mid" data-hi="कई मुद्राएँ">Multi-Currency</div><span class="bd gray" data-hi="जल्द">Soon</span></button>
             <button class="srow" data-t7="soon"><svg class="ic" style="color:var(--text3)"><use href="#gear"/></svg><div class="mid" data-hi="सब्सक्रिप्शन">Subscription</div><span class="bd gray" data-hi="जल्द">Soon</span></button>
           </div>
-          <div class="t-x" style="text-align:center" data-hi="BillinGo फ़ोन ऐप · नमूना">BillinGo Phone App · Sample</div>
+          <div class="vbox" id="ver-st"></div>
         </div>
       </section>
 
@@ -3594,6 +3617,40 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     else if(j==='viewtry'){MODE.view=true;show('home');stage.querySelector('[data-s=home] [data-sale=new]').click()}
     else{STT=j;show('home');go('stt')}
     document.querySelectorAll('[data-jump10]').forEach(function(x){x.setAttribute('aria-current',x===b)})});
+  /* ---------- owner, 18 Nov 2026: version, update, tap outside ---------- */
+  var VER={cur:['1.0.0',12],nw:['1.0.1',13],st:'idle',pct:0,last:''},vT=null;
+  function vname(v){return L('Version '+v[0]+' (Build '+v[1]+')','वर्शन '+v[0]+' (बिल्ड '+v[1]+')')}
+  function renderVer(){var si=document.getElementById('ver-si');if(si)si.innerHTML='BillinGo · '+vname(VER.cur);var b=document.getElementById('ver-st');if(!b)return;
+    var h='<div class="vt">'+L('BillinGo Phone App','BillinGo फ़ोन ऐप')+'</div><div class="t-s">'+vname(VER.cur)+'</div>';
+    if(VER.st==='idle')h+='<button class="btn soft" data-vchk><svg class="ic"><use href="#imp"/></svg>'+L('Check For Update','अपडेट देखें')+'</button>'+(VER.last?'<div class="t-x">'+L('Last checked ','आख़िरी बार देखा ')+VER.last+'</div>':'');
+    if(VER.st==='checking')h+='<button class="btn soft" disabled><span class="spin"></span>'+L('Checking…','देख रहे हैं…')+'</button>';
+    if(VER.st==='latest')h+='<div class="okb" style="align-self:stretch">'+L('You have the latest version.','आपके पास सबसे नया वर्शन है।')+'</div><button class="btn soft" data-vchk>'+L('Check Again','फिर देखें')+'</button>';
+    if(VER.st==='avail')h+='<div class="ban wake" style="align-self:stretch;text-align:left"><svg class="ic"><use href="#imp"/></svg><div class="mid"><b>'+L('Update Available','अपडेट आया है')+'</b><span>'+vname(VER.nw)+' · 8.4 MB</span></div></div><ul><li>'+L('Faster bill saving on slow internet','धीमे इंटरनेट पर बिल जल्दी सेव')+'</li><li>'+L('Small fixes in reports','रिपोर्ट में छोटे सुधार')+'</li></ul><button class="btn blue" data-vdl><svg class="ic"><use href="#imp"/></svg>'+L('Download Update','अपडेट डाउनलोड करें')+'</button>';
+    if(VER.st==='dl')h+='<div class="pbar"><i style="width:'+VER.pct+'%"></i></div><div class="t-x">'+L('Downloading… '+VER.pct+'% of 8.4 MB','डाउनलोड हो रहा है… 8.4 MB का '+VER.pct+'%')+'</div><button class="btn line" data-vcancel>'+L('Cancel','रोकें')+'</button>';
+    if(VER.st==='ready')h+='<div class="okb" style="align-self:stretch">'+L('Downloaded. Ready to install.','डाउनलोड हो गया। इंस्टॉल के लिए तैयार।')+'</div><button class="btn green" data-vinst><svg class="ic"><use href="#check"/></svg>'+L('Install Update','अपडेट इंस्टॉल करें')+'</button>';
+    b.innerHTML=h}
+  function vDl(){VER.st='dl';VER.pct=0;renderVer();clearInterval(vT);vT=setInterval(function(){VER.pct=Math.min(100,VER.pct+20);if(VER.pct>=100){clearInterval(vT);VER.st='ready'}renderVer()},450)}
+  var _show11=show;show=function(id){_show11(id);if(id==='settings'||id==='signin')renderVer()};
+  var _lang2=null;
+  stage.addEventListener('click',function(e){
+    if(e.target.classList&&e.target.classList.contains('ov')&&!e.target.hidden){closeOv();show(cur);return}
+    var t=e.target.closest('[data-vchk],[data-vdl],[data-vcancel],[data-vinst],[data-vinstok]');if(!t||!stage.contains(t))return;
+    if(t.hasAttribute('data-vchk')){if(MODE.off){toast('No internet. Check again when you are online.','इंटरनेट नहीं है। ऑनलाइन होने पर फिर देखें।');return}VER.st='checking';renderVer();setTimeout(function(){VER.last=hiOn()?'आज':'today';VER.st=VER.cur[0]===VER.nw[0]?'latest':'avail';renderVer()},900);return}
+    if(t.hasAttribute('data-vdl')){vDl();return}
+    if(t.hasAttribute('data-vcancel')){clearInterval(vT);VER.st='avail';renderVer();toast('Download stopped.','डाउनलोड रोका।');return}
+    if(t.hasAttribute('data-vinst')){gd('<div class="row" style="gap:10px"><div class="logo" aria-hidden="true" style="width:40px;height:40px;font-size:18px">B</div><b class="t-h" style="font-size:17px">BillinGo</b></div><div class="t-s">'+L('Do you want to install an update to this app? Your bills and data stay as they are.','क्या आप इस ऐप का अपडेट इंस्टॉल करना चाहते हैं? आपके बिल और डेटा वैसे ही रहेंगे।')+'</div><div class="t-x">'+L('This is Android’s own question. The first time, Android also asks you to allow installs from BillinGo.','यह Android का अपना सवाल है। पहली बार Android यह भी पूछता है कि BillinGo से इंस्टॉल की अनुमति दें।')+'</div><div class="row"><button class="btn line grow" data-close>'+L('Cancel','रद्द')+'</button><button class="btn blue grow" data-vinstok>'+L('Install','इंस्टॉल')+'</button></div>');return}
+    if(t.hasAttribute('data-vinstok')){closeOv();VER.cur=VER.nw.slice();VER.st='idle';VER.last='';root('lock');toast('Updated to version '+VER.cur[0]+'. Your data is safe.','वर्शन '+VER.cur[0]+' में अपडेट हुआ। आपका डेटा सुरक्षित है।');return}});
+  document.addEventListener('click',function(e){var b=e.target.closest('[data-jump11]');if(!b)return;var j=b.dataset.jump11;MODE={off:false,view:false,staff:false,err:false};clearInterval(vT);
+    if(j==='vsi'){root('signin')}
+    else if(j==='vset'){VER.cur=['1.0.0',12];VER.st='idle';VER.last='';stack=['home'];show('home');go('settings')}
+    else if(j==='vavail'){VER.cur=['1.0.0',12];VER.st='avail';VER.last=hiOn()?'आज':'today';stack=['home'];show('home');go('settings')}
+    else if(j==='vdl'){VER.cur=['1.0.0',12];stack=['home'];show('home');go('settings');vDl()}
+    else if(j==='vready'){VER.cur=['1.0.0',12];VER.st='ready';stack=['home'];show('home');go('settings')}
+    else if(j==='vlatest'){VER.cur=VER.nw.slice();VER.st='latest';stack=['home'];show('home');go('settings')}
+    else if(j==='outside'){stack=['home'];show('home');ov('menu')}
+    stage.querySelector('[data-s=settings] .sb').scrollTop=99999;
+    document.querySelectorAll('[data-jump11]').forEach(function(x){x.setAttribute('aria-current',x===b)})});
+  renderVer();
   newSale();
 })();
 </script>
