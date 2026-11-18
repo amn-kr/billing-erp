@@ -1,9 +1,13 @@
 name: Phone app
 
 # Builds the Android app (apps/android) on every change (owner, 18 Nov 2026: the repository is public,
-# so these builds are free). It runs the app's tests first (only the 20 colours, …); the test APK is
-# kept for 14 days under the run's Artifacts, to install on a phone.
-# Signed releases for Check For Update come with the signing key (step 8.2e).
+# so these builds are free). It runs the app's tests first (only the 20 colours, …), then:
+#   every change: an APK signed with the app's key (step 8.2e), kept 14 days under the run's
+#     Artifacts. Signed with the same key every time, so it installs over the previous one.
+#   tag android-v<version> (for example android-v1.0.1): the same, put on the releases page
+#     (github.com/amn-kr/billing-erp-releases) as a draft; once published, Check For Update finds it.
+# The key and its password come from the repository's secrets ANDROID_KEYSTORE_B64 and
+# ANDROID_KEY_PASSWORD; without them (a fork) only the tests run.
 on:
   pull_request:
     paths:
@@ -16,6 +20,7 @@ on:
       - 'apps/android/**'
       - 'packages/shared/examples/**'
       - '.github/workflows/android.yml'
+    tags: ['android-v*']
   workflow_dispatch:
 
 permissions:
@@ -29,7 +34,7 @@ jobs:
   apk:
     name: Phone app (tests and APK)
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 40
     defaults:
       run:
         working-directory: apps/android
@@ -41,14 +46,46 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: gradle
-      - name: Tests, then the test APK
-        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug
-      - name: Keep the test APK
+      - name: Tests
+        run: ./gradlew --no-daemon :app:testDebugUnitTest
+      - name: The version (from the tag, else 1.0.0)
+        id: v
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/android-v* ]]; then echo "version=${GITHUB_REF#refs/tags/android-v}" >> "$GITHUB_OUTPUT"; else echo "version=1.0.0" >> "$GITHUB_OUTPUT"; fi
+      - name: The signing key, from the repository's secrets
+        id: key
+        env:
+          KEY_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KEY_B64" ]; then echo "No signing key here (a fork?): only the tests run."; echo "ok=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          echo "$KEY_B64" | base64 -d > "$RUNNER_TEMP/billingo-release.jks"
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+      - name: The signed APK
+        if: steps.key.outputs.ok == 'true'
+        env:
+          BILLINGO_KEYSTORE: ${{ runner.temp }}/billingo-release.jks
+          BILLINGO_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          ./gradlew --no-daemon :app:assembleRelease -PappVersion=${{ steps.v.outputs.version }}
+          mv app/build/outputs/apk/release/app-release.apk "app/build/BillinGo-${{ steps.v.outputs.version }}.apk"
+      - name: Keep the APK
+        if: steps.key.outputs.ok == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: BillinGo-test-apk
-          path: apps/android/app/build/outputs/apk/debug/app-debug.apk
+          name: BillinGo-apk
+          path: apps/android/app/build/BillinGo-*.apk
           retention-days: 14
+      - name: Put a release on the releases page (draft)
+        if: steps.key.outputs.ok == 'true' && startsWith(github.ref, 'refs/tags/android-v')
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          gh release create "android-v${{ steps.v.outputs.version }}" "app/build/BillinGo-${{ steps.v.outputs.version }}.apk" \
+            --repo amn-kr/billing-erp-releases --draft --title "BillinGo phone app ${{ steps.v.outputs.version }}" \
+            --notes "Phone app (Android 7.0 and newer). Download the APK and install it; it updates the app already on the phone."
+      - name: Remove the key from the machine
+        if: always()
+        run: rm -f "$RUNNER_TEMP/billingo-release.jks"
       - name: Keep the test report when a test fails
         if: failure()
         uses: actions/upload-artifact@v4
