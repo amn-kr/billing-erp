@@ -35,11 +35,12 @@ jobs:
         working-directory: apps/android
     steps:
       - uses: actions/checkout@v4
+      # only GitHub's own actions are allowed in this repository; setup-java also keeps Gradle's downloads
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
+          cache: gradle
       - name: Tests, then the test APK
         run: ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug
       - name: Keep the test APK
