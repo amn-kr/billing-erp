@@ -22,6 +22,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
@@ -31,7 +32,11 @@ import androidx.lifecycle.ViewModelProvider
 import billingo.app.data.Api
 import billingo.app.data.AppModel
 import billingo.app.data.SafeStore
+import billingo.app.data.Route
 import billingo.app.data.Screen
+import billingo.app.ui.parties.PartiesScreen
+import billingo.app.ui.parties.PartyScreen
+import billingo.app.ui.parties.StatementScreen
 import billingo.app.ui.blocks.BlocksScreen
 import billingo.app.ui.home.CreateNewSheet
 import billingo.app.ui.home.HomeScreen
@@ -106,6 +111,7 @@ class MainActivity : AppCompatActivity() {
                 var createOpen by rememberSaveable { mutableStateOf(false) }
                 var signOutOpen by rememberSaveable { mutableStateOf(false) }
                 val waking by api.slow.collectAsState()
+                val holder = rememberSaveableStateHolder()
                 val hindi = resources.configuration.locales[0].language == "hi"
                 if (blocks) { BlocksScreen(onBack = { blocks = false }); return@BillinGoTheme }
                 val problem = words(m.problem)
@@ -127,6 +133,21 @@ class MainActivity : AppCompatActivity() {
                             LaunchedEffect(Unit) { unlock() }
                         }
                         is Screen.Home -> {
+                            val shop = s.me.business?.name ?: ""
+                            // a screen opened above Home; the phone's Back closes it
+                            val top = m.stack.lastOrNull()
+                            if (top != null) {
+                                BackHandler { m.back() }
+                                // each open screen keeps its own choices (tab, filter, search) while another is on top
+                                holder.SaveableStateProvider("${m.stack.size}:$top") {
+                                when (top) {
+                                    is Route.Parties -> PartiesScreen(m.server, top.bal, { m.back() }, { p -> m.open(Route.Party(p.id, p.name)) }, later)
+                                    is Route.Party -> PartyScreen(m.server, top.id, top.name, shop, { m.back() }, { m.open(Route.Statement(top.id, top.name)) }, later)
+                                    is Route.Statement -> StatementScreen(m.server, top.id, top.name, { m.back() }, later)
+                                }
+                                }
+                                return@Box
+                            }
                             HomeScreen(
                                 me = s.me,
                                 data = m.home,
@@ -137,6 +158,8 @@ class MainActivity : AppCompatActivity() {
                                 onCreate = { createOpen = true },
                                 onRefresh = m::loadHome,
                                 onLater = later,
+                                onParties = { bal -> m.open(Route.Parties(bal)) },
+                                onParty = { p -> m.open(Route.Party(p.id, p.name)) },
                             )
                             if (menuOpen) {
                                 BackHandler { menuOpen = false }
@@ -148,6 +171,7 @@ class MainActivity : AppCompatActivity() {
                                     onClose = { menuOpen = false },
                                     onChangeCompany = { menuOpen = false; m.switchCompany() },
                                     onLater = later,
+                                    onParties = { menuOpen = false; m.open(Route.Parties()) },
                                     onGst = gst,
                                     onSignOut = { menuOpen = false; signOutOpen = true },
                                     onCheckUpdate = { m.checkUpdate(BuildConfig.VERSION_NAME) },
