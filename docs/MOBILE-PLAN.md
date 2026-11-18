@@ -18,7 +18,7 @@ Owner's decisions from 13 to 15 Nov 2026. This file is the full plan for Phases 
 | 15 Nov | Languages: **English and Hindi**. |
 | 15 Nov | Lowest Android version: **Android 7.0** (chosen by us, as the owner asked). It covers almost every phone in use, and fingerprint unlock works on it. |
 | 15 Nov | Field salesman screens and staff access rules come **after the owner's app is built**, as a separate discussion. |
-| 18 Nov | The **app version** shows at the bottom of Sign In and of Settings. Settings has **Check For Update**: when an update exists it shows what's new and the size, then **Download Update** (with progress) and **Install** (Android's own install question; the first time Android also asks to allow installs from BillinGo). After install the app restarts on the new version and the data stays as it is. How updates are delivered (our own download, or Play Store) is settled in Phase 8. |
+| 18 Nov | The **app version** shows at the bottom of Sign In and of Settings as one small centred line, "BillinGo 1.0.0 · updated 17 Nov 2026, 6:48 pm" (no build number). Under it in Settings, a small round **Check For Update** button and one short result line: when an update exists it shows the new version and size, then **Download Update** (small progress bar) and **Install** (Android's own install question; the first time Android also asks to allow installs from BillinGo). After install the app restarts on the new version and the data stays as it is. How updates are delivered (our own download, or Play Store) is settled in Phase 8. |
 | 18 Nov | **Tap outside to close:** the side menu, every bottom sheet and every pop-up close when the owner taps outside them, as well as with the phone's Back button. |
 
 ## 2. Colour specification (20 colours)
