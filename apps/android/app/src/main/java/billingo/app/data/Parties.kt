@@ -40,7 +40,28 @@ data class PartyFull(
     val creditDays: Int = 0,
     val billing: Address? = null,
     val archived: Boolean = false,
+    val billingName: String = "",
+    val gstType: String = "",
+    val state: String = "",
+    val shipping: String = "",
+    val openingBalance: String = "0.00",
+    val openingType: String = "receive",
+    val openingDate: String? = null,
+    val contacts: List<Contact> = emptyList(),
 )
+
+@Serializable
+data class Contact(val label: String, val value: String)
+
+/** Whether a party can be deleted, and if not, why (GET /parties/:id/usage). */
+@Serializable
+data class Usage(val canDelete: Boolean, val message: String = "")
+
+@Serializable
+data class PartyGroup(val id: String, val name: String, val parties: Int = 0)
+
+@Serializable
+data class Saved(val id: String, val name: String)
 
 /** One line of a party's transactions (GET /reports/party-tx/:id): what is still open on it, and when it was due. */
 @Serializable

@@ -25,6 +25,8 @@ sealed interface Route {
     data class Parties(val bal: String = "all") : Route
     data class Party(val id: String, val name: String) : Route
     data class Statement(val id: String, val name: String) : Route
+    /** New Party ([id] null) or Edit Party */
+    data class PartyForm(val id: String?) : Route
 }
 
 /** Home's lists; null when the server refused one (no permission) or it hasn't come yet. */
@@ -70,6 +72,17 @@ class AppModel(private val api: Api, private val store: Store, private val finge
     val stack = androidx.compose.runtime.mutableStateListOf<Route>()
     fun open(r: Route) { stack.add(r) }
     fun back(): Boolean = if (stack.isEmpty()) false else { stack.removeAt(stack.lastIndex); true }
+
+    /** the top screen replaced by another (a new party, once saved, opens its page) */
+    fun replace(r: Route) { if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex); stack.add(r) }
+
+    /** after deleting or closing a party: its form and its page both close */
+    fun leaveParty(id: String) {
+        while (stack.isNotEmpty()) {
+            val t = stack.last()
+            if ((t is Route.PartyForm && t.id == id) || (t is Route.Party && t.id == id) || (t is Route.Statement && t.id == id)) stack.removeAt(stack.lastIndex) else break
+        }
+    }
 
     /** the server, for screens that load their own data */
     val server: Api get() = api

@@ -35,6 +35,7 @@ import billingo.app.data.SafeStore
 import billingo.app.data.Route
 import billingo.app.data.Screen
 import billingo.app.ui.parties.PartiesScreen
+import billingo.app.ui.parties.PartyFormScreen
 import billingo.app.ui.parties.PartyScreen
 import billingo.app.ui.parties.StatementScreen
 import billingo.app.ui.blocks.BlocksScreen
@@ -141,8 +142,13 @@ class MainActivity : AppCompatActivity() {
                                 // each open screen keeps its own choices (tab, filter, search) while another is on top
                                 holder.SaveableStateProvider("${m.stack.size}:$top") {
                                 when (top) {
-                                    is Route.Parties -> PartiesScreen(m.server, top.bal, { m.back() }, { p -> m.open(Route.Party(p.id, p.name)) }, later)
-                                    is Route.Party -> PartyScreen(m.server, top.id, top.name, shop, { m.back() }, { m.open(Route.Statement(top.id, top.name)) }, later)
+                                    is Route.Parties -> PartiesScreen(m.server, top.bal, { m.back() }, { p -> m.open(Route.Party(p.id, p.name)) }, { m.open(Route.PartyForm(null)) })
+                                    is Route.Party -> PartyScreen(m.server, top.id, top.name, shop, { m.back() }, { m.open(Route.Statement(top.id, top.name)) }, { m.open(Route.PartyForm(top.id)) }, later)
+                                    is Route.PartyForm -> PartyFormScreen(
+                                        m.server, top.id, { m.back() },
+                                        onSaved = { id, name -> m.replace(Route.Party(id, name)); m.loadHome() },
+                                        onGone = { top.id?.let(m::leaveParty); m.loadHome() },
+                                    )
                                     is Route.Statement -> StatementScreen(m.server, top.id, top.name, { m.back() }, later)
                                 }
                                 }
@@ -183,7 +189,8 @@ class MainActivity : AppCompatActivity() {
                             }
                             if (createOpen) {
                                 BackHandler { createOpen = false }
-                                CreateNewSheet({ createOpen = false }) { createOpen = false; later() }
+                                // the New Party tile (10th) opens the form; the others come in later steps
+                                CreateNewSheet({ createOpen = false }) { i -> createOpen = false; if (i == 9) m.open(Route.PartyForm(null)) else later() }
                             }
                             if (signOutOpen) {
                                 BackHandler { signOutOpen = false }

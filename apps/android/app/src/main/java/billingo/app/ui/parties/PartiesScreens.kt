@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -76,6 +77,8 @@ import billingo.app.ui.start.words
 import billingo.app.ui.theme.Colours
 import billingo.app.ui.theme.Size
 import java.math.BigDecimal
+import kotlinx.coroutines.launch
+import kotlinx.serialization.json.put
 
 @Composable
 private fun hindi() = LocalConfiguration.current.locales[0].language == "hi"
@@ -116,7 +119,12 @@ private fun BalanceEnd(b: BigDecimal) = when {
  * show only those), search by name or phone, a balance filter, and Show Inactive at the end.
  */
 @Composable
-fun PartiesScreen(api: Api, startBal: String, onBack: () -> Unit, onParty: (PartyFull) -> Unit, onLater: () -> Unit) {
+fun PartiesScreen(api: Api, startBal: String, onBack: () -> Unit, onParty: (PartyFull) -> Unit, onAdd: () -> Unit) {
+    val ctx = LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var importOpen by rememberSaveable { mutableStateOf(false) }
+    var importing by remember { mutableStateOf(false) }
+    val askContacts = rememberContactsAccess { importOpen = true }
     val list = load { api.partiesFull() }
     var inactiveOpen by rememberSaveable { mutableStateOf(false) }
     val inactive = load { api.partiesFull(archived = true) }
@@ -128,8 +136,8 @@ fun PartiesScreen(api: Api, startBal: String, onBack: () -> Unit, onParty: (Part
 
     Box(Modifier.fillMaxSize()) {
         Frame(stringResource(R.string.m_parties), onBack = onBack, foot = {
-            Btn(stringResource(R.string.p_import), onLater, Modifier.weight(1f), Kind.Soft, Icons.Book)
-            Btn(stringResource(R.string.p_add), onLater, Modifier.weight(1f), Kind.Blue, Icons.Plus)
+            Btn(stringResource(R.string.p_import), askContacts, Modifier.weight(1f), Kind.Soft, Icons.Book)
+            Btn(stringResource(R.string.p_add), onAdd, Modifier.weight(1f), Kind.Blue, Icons.Plus)
         }) {
             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item { Tabs(listOf(stringResource(R.string.p_all), stringResource(R.string.p_customers), stringResource(R.string.p_suppliers)), kind) { kind = it } }
@@ -151,7 +159,7 @@ fun PartiesScreen(api: Api, startBal: String, onBack: () -> Unit, onParty: (Part
                 val k = PartyMaths.Kind.entries[kind]
                 val b = PartyMaths.Bal.entries[bal]
                 val shown = all.filter { PartyMaths.matches(it, k, b, query) }.sortedBy { it.name.lowercase() }
-                if (shown.isEmpty()) item { EmptyState(Icons.Search, stringResource(R.string.p_none), stringResource(R.string.p_none_sub), stringResource(R.string.p_add), onLater) }
+                if (shown.isEmpty()) item { EmptyState(Icons.Search, stringResource(R.string.p_none), stringResource(R.string.p_none_sub), stringResource(R.string.p_add), onAdd) }
                 items(shown, key = { it.id }) { p -> ListRow(p.name, PartyMaths.detail(p), { onParty(p) }) { BalanceEnd(p.balance) } }
                 // Show Inactive (n): only when some parties were made inactive
                 val gone = inactive.data.orEmpty()
@@ -163,8 +171,32 @@ fun PartiesScreen(api: Api, startBal: String, onBack: () -> Unit, onParty: (Part
                 if (inactiveOpen) items(inactive.data ?: emptyList(), key = { "x" + it.id }) { p ->
                     ListRow(p.name, PartyMaths.detail(p), null) {
                         Badge(stringResource(R.string.p_inactive), BadgeKind.Grey)
-                        LinkButton(stringResource(R.string.p_make_active), onLater)
+                        LinkButton(stringResource(R.string.p_make_active), {
+                            scope.launch {
+                                try { api.archiveParty(p.id, false); Toast.makeText(ctx, ctx.getString(R.string.active_done, p.name), Toast.LENGTH_SHORT).show(); list.reload(); inactive.reload() }
+                                catch (e: billingo.app.data.ApiError) { Toast.makeText(ctx, e.message, Toast.LENGTH_SHORT).show() }
+                            }
+                        })
                     }
+                }
+            }
+        }
+        if (importOpen) {
+            BackHandler { importOpen = false }
+            ContactsSheet(multi = true, busy = importing, onClose = { importOpen = false }) { picked ->
+                importing = true
+                scope.launch {
+                    // each contact becomes a customer in General; ones the server refuses are named
+                    val failed = mutableListOf<String>()
+                    var added = 0
+                    for (c in picked) {
+                        try { api.createParty(kotlinx.serialization.json.buildJsonObject { put("name", c.name); put("phone", c.mobile); put("kind", "customer"); put("group", "General") }); added++ }
+                        catch (e: billingo.app.data.ApiError) { failed += c.name }
+                    }
+                    importing = false; importOpen = false; list.reload()
+                    var msg = if (added == 1) ctx.getString(R.string.ct_added_1) else ctx.getString(R.string.ct_added, added)
+                    if (failed.isNotEmpty()) msg += " " + ctx.getString(R.string.ct_not_added, failed.joinToString(", "))
+                    Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -178,7 +210,7 @@ fun PartiesScreen(api: Api, startBal: String, onBack: () -> Unit, onParty: (Part
  * Reminder (WhatsApp), Call and Statement, then the transactions with All / Unpaid / Overdue / Paid.
  */
 @Composable
-fun PartyScreen(api: Api, id: String, name: String, shop: String, onBack: () -> Unit, onStatement: () -> Unit, onLater: () -> Unit) {
+fun PartyScreen(api: Api, id: String, name: String, shop: String, onBack: () -> Unit, onStatement: () -> Unit, onEdit: () -> Unit, onLater: () -> Unit) {
     val ctx = LocalContext.current
     val hi = hindi()
     val party = load(id) { api.party(id) }
@@ -195,7 +227,7 @@ fun PartyScreen(api: Api, id: String, name: String, shop: String, onBack: () -> 
             p?.name ?: name,
             if (p != null) kindWord + (if (p.group.isNotBlank()) " · ${p.group}" else "") else null,
             onBack,
-            right = { IconBtn(Icons.Edit, stringResource(R.string.later_step), onLater) },
+            right = { IconBtn(Icons.Edit, stringResource(R.string.pf_edit), onEdit) },
             foot = if (p == null) null else ({
                 if (sup) {
                     Btn(stringResource(R.string.pp_pay_supplier), onLater, Modifier.weight(1f), Kind.Soft, Icons.Rupee)

@@ -200,7 +200,7 @@ private fun SmallPill(text: String, colour: androidx.compose.ui.graphics.Color, 
 
 /** Create New (+): twelve tiles (design 7.4a). */
 @Composable
-fun CreateNewSheet(onClose: () -> Unit, onTile: () -> Unit) {
+fun CreateNewSheet(onClose: () -> Unit, onTile: (Int) -> Unit) {
     Dim(onClose) {
         Sheet(stringResource(R.string.create_new), close = { IconBtn(Icons.Close, stringResource(R.string.close), onClose) }) {
             TileGrid(
@@ -218,7 +218,7 @@ fun CreateNewSheet(onClose: () -> Unit, onTile: () -> Unit) {
                     Icons.Box to stringResource(R.string.t_new_item),
                     Icons.Next to stringResource(R.string.t_debit_note),
                 ),
-            ) { onTile() }
+            ) { onTile(it) }
         }
     }
 }
