@@ -141,19 +141,21 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .ban.wake{background:var(--orange-l);color:var(--orange)}
 .ban .mid b{display:block}
 .vtag{font-size:12px;color:var(--text3);text-align:center;font-variant-numeric:tabular-nums}
-.vbox{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:10px 0 4px}
+.vbox{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;padding:10px 0 4px}
 .vbox .vt{font-size:13px;color:var(--text2);font-variant-numeric:tabular-nums}
 .vbox .vs{font-size:13px;color:var(--text2)}
 .vbox .vs.up{color:var(--orange);font-weight:600}
 .vbox .vs.ok{color:var(--green)}
-.pill2{font:inherit;font-size:15px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--tap);padding:0 20px;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer}
-.fx .pill2{box-shadow:var(--sh1)}
-.pill2.b{background:var(--blue);border-color:var(--blue);color:var(--on)}
-.pill2.g{background:var(--green);border-color:var(--green);color:var(--on)}
+.pill2{position:relative;z-index:0;font:inherit;font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:var(--tap);padding:0 12px;border:0;background:transparent;color:var(--text);cursor:pointer}
+.pill2::before{content:"";position:absolute;inset:9px 0;border-radius:999px;border:1px solid var(--border);background:var(--card);z-index:-1}
+.fx .pill2::before{box-shadow:var(--sh1)}
+.pill2.b,.pill2.g{color:var(--on)}
+.pill2.b::before{background:var(--blue);border-color:var(--blue)}
+.pill2.g::before{background:var(--green);border-color:var(--green)}
 .pill2[disabled]{color:var(--text3);cursor:default}
 .vbox .pbar{width:min(240px,80%);height:6px;border-radius:3px;background:var(--slate-l);overflow:hidden}
 .vbox .pbar i{display:block;height:100%;background:var(--blue);border-radius:3px;transition:width .3s ease}
-.vbox .spin{width:14px;height:14px;border-color:rgba(29,78,216,.25);border-top-color:var(--blue)}
+.vbox .spin{width:11px;height:11px;border-width:1.5px;border-color:rgba(29,78,216,.25);border-top-color:var(--blue)}
 .ban.view{background:var(--blue-l);color:var(--blue)}
 .ban.staff{background:var(--slate-l);color:var(--text2)}
 .ban .mid{flex:1;min-width:0}
@@ -3624,13 +3626,13 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     document.querySelectorAll('[data-jump10]').forEach(function(x){x.setAttribute('aria-current',x===b)})});
   /* ---------- owner, 18 Nov 2026: version, update, tap outside ---------- */
   var VER={cur:['1.0.0','2026-11-17','6:48 pm','शाम 6:48'],nw:['1.0.1','2026-11-18','9:15 am','सुबह 9:15'],st:'idle',pct:0},vT=null;
-  function vline(v){return '<span class="vt">'+L('BillinGo '+v[0]+' · updated '+fd(v[1],0)+', '+v[2],'BillinGo '+v[0]+' · अपडेट '+fd(v[1],1)+', '+v[3])+'</span>'}
-  function renderVer(){var si=document.getElementById('ver-si');if(si)si.innerHTML=vline(VER.cur);var b=document.getElementById('ver-st');if(!b)return;
+  function vline(v){return '<span class="vt">'+L('BillinGo v'+v[0]+' · '+fd(v[1],0)+', '+v[2],'BillinGo v'+v[0]+' · '+fd(v[1],1)+', '+v[3])+'</span>'}
+  function renderVer(){var si=document.getElementById('ver-si');if(si)si.innerHTML='<span class="vt">BillinGo v'+VER.cur[0]+'</span>';var b=document.getElementById('ver-st');if(!b)return;
     var h=vline(VER.cur);
     if(VER.st==='idle')h+='<button type="button" class="pill2" data-vchk>'+L('Check For Update','अपडेट देखें')+'</button>';
     if(VER.st==='checking')h+='<button type="button" class="pill2" disabled><span class="spin"></span>'+L('Checking…','देख रहे हैं…')+'</button>';
     if(VER.st==='latest')h+='<button type="button" class="pill2" data-vchk>'+L('Check For Update','अपडेट देखें')+'</button><span class="vs">'+L('You have the latest version.','आपके पास सबसे नया वर्शन है।')+'</span>';
-    if(VER.st==='avail')h+='<button type="button" class="pill2 b" data-vdl>'+L('Download Update','अपडेट डाउनलोड करें')+'</button><span class="vs up">'+L('BillinGo '+VER.nw[0]+' is available · 8.4 MB','BillinGo '+VER.nw[0]+' आया है · 8.4 MB')+'</span>';
+    if(VER.st==='avail')h+='<button type="button" class="pill2 b" data-vdl>'+L('Download Update','अपडेट डाउनलोड करें')+'</button><span class="vs up">'+L('BillinGo v'+VER.nw[0]+' is available · 8.4 MB','BillinGo v'+VER.nw[0]+' आया है · 8.4 MB')+'</span>';
     if(VER.st==='dl')h+='<button type="button" class="pill2" data-vcancel>'+L('Cancel','रोकें')+'</button><div class="pbar"><i style="width:'+VER.pct+'%"></i></div><span class="vs">'+L('Downloading… '+VER.pct+'%','डाउनलोड हो रहा है… '+VER.pct+'%')+'</span>';
     if(VER.st==='ready')h+='<button type="button" class="pill2 g" data-vinst>'+L('Install Update','अपडेट इंस्टॉल करें')+'</button><span class="vs ok">'+L('Downloaded. Ready to install.','डाउनलोड हो गया। इंस्टॉल के लिए तैयार।')+'</span>';
     b.innerHTML=h}
@@ -3644,7 +3646,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(t.hasAttribute('data-vdl')){vDl();return}
     if(t.hasAttribute('data-vcancel')){clearInterval(vT);VER.st='avail';renderVer();toast('Download stopped.','डाउनलोड रोका।');return}
     if(t.hasAttribute('data-vinst')){gd('<div class="row" style="gap:10px"><div class="logo" aria-hidden="true" style="width:40px;height:40px;font-size:18px">B</div><b class="t-h" style="font-size:17px">BillinGo</b></div><div class="t-s">'+L('Do you want to install an update to this app? Your bills and data stay as they are.','क्या आप इस ऐप का अपडेट इंस्टॉल करना चाहते हैं? आपके बिल और डेटा वैसे ही रहेंगे।')+'</div><div class="t-x">'+L('This is Android’s own question. The first time, Android also asks you to allow installs from BillinGo.','यह Android का अपना सवाल है। पहली बार Android यह भी पूछता है कि BillinGo से इंस्टॉल की अनुमति दें।')+'</div><div class="row"><button class="btn line grow" data-close>'+L('Cancel','रद्द')+'</button><button class="btn blue grow" data-vinstok>'+L('Install','इंस्टॉल')+'</button></div>');return}
-    if(t.hasAttribute('data-vinstok')){closeOv();VER.cur=VER.nw.slice();VER.st='idle';root('lock');toast('Updated to BillinGo '+VER.cur[0]+'. Your data is safe.','BillinGo '+VER.cur[0]+' में अपडेट हुआ। आपका डेटा सुरक्षित है।');return}});
+    if(t.hasAttribute('data-vinstok')){closeOv();VER.cur=VER.nw.slice();VER.st='idle';root('lock');toast('Updated to BillinGo v'+VER.cur[0]+'. Your data is safe.','BillinGo v'+VER.cur[0]+' में अपडेट हुआ। आपका डेटा सुरक्षित है।');return}});
   document.addEventListener('click',function(e){var b=e.target.closest('[data-jump11]');if(!b)return;var j=b.dataset.jump11;MODE={off:false,view:false,staff:false,err:false};clearInterval(vT);
     if(j==='vsi'){root('signin')}
     else if(j==='vset'){VER.cur=['1.0.0','2026-11-17','6:48 pm','शाम 6:48'];VER.st='idle';stack=['home'];show('home');go('settings')}
