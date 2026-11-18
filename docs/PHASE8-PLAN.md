@@ -1,6 +1,6 @@
 # Phase 8: the Android app, step by step
 
-_Written 18 Nov 2026, after the phone design (Phase 7) was approved. **The owner decided on 18 Nov 2026 that Phase 8 starts now**; the rest of the Windows trial (sections D, F, F2, G and the shop trial I) comes after the phone app is launched._
+_Written and **approved by the owner on 18 Nov 2026**, after the phone design (Phase 7) was approved. **The owner decided on 18 Nov 2026 that Phase 8 starts now**; the rest of the Windows trial (sections D, F, F2, G and the shop trial I) comes after the phone app is launched._
 
 This plan turns the approved design, `reference/design/mobile.html`, into a real Android app that the owner installs on a phone. It follows `docs/MOBILE-PLAN.md` (the owner's decisions, the 20 colours, the wording rules and the fit checks). This file adds the detail: what is built in each step, what is tested, and what the owner checks.
 

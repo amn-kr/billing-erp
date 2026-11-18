@@ -140,7 +140,7 @@ Each part is a page the owner can open on their own phone.
 **Phase 7 gate:** every item in section 3 that is on the phone has a screen in the design, and the owner has approved every part. ✅ **Passed on 17 Nov 2026:** all parts (7.1 to 7.4j) are approved and merged; the full fit check passed for every step.
 
 ## 7. Phase 8: Android app (APK), about 8–10 weeks
-The detailed step-by-step plan is in [`docs/PHASE8-PLAN.md`](PHASE8-PLAN.md) (proposed 18 Nov 2026, waiting for the owner's approval).
+The detailed step-by-step plan is in [`docs/PHASE8-PLAN.md`](PHASE8-PLAN.md) (approved by the owner on 18 Nov 2026).
 
 | Step | What | Gate |
 |---|---|---|
