@@ -40,6 +40,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -49,7 +50,8 @@ import billingo.app.ui.parts.Field
 import billingo.app.ui.parts.Icons
 import billingo.app.ui.parts.LinkButton
 import billingo.app.ui.parts.Logo
-import billingo.app.ui.parts.MainButton
+import billingo.app.ui.parts.Btn
+import billingo.app.ui.parts.T
 import billingo.app.ui.parts.RaisedCard
 import billingo.app.ui.theme.Colours
 import billingo.app.ui.theme.Colours.see
@@ -57,14 +59,24 @@ import billingo.app.ui.theme.LocalFont
 import billingo.app.ui.theme.Size
 
 /**
- * Sign In (design 7.4a, approved 16 Nov 2026). In step 8.2a only the look: signing in itself
- * arrives in 8.2c, so the buttons say so for now.
+ * Sign In (design 7.4a, approved 16 Nov 2026), with its "Create Account" mode. Forgot Password
+ * opens in a later step (the web has it today).
  */
 @Composable
-fun SignInScreen(version: String, onSecret: (() -> Unit)? = null) {
+fun SignInScreen(
+    version: String,
+    busy: Boolean,
+    problem: String?,
+    onSignIn: (email: String, password: String) -> Unit,
+    onRegister: (name: String, email: String, password: String) -> Unit,
+    onLanguage: () -> Unit,
+    onSecret: (() -> Unit)? = null,
+) {
     val ctx = LocalContext.current
     val later = stringResource(R.string.coming_next)
     val soon = { Toast.makeText(ctx, later, Toast.LENGTH_SHORT).show() }
+    var up by rememberSaveable { mutableStateOf(false) }
+    var name by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var shown by rememberSaveable { mutableStateOf(false) }
@@ -100,10 +112,16 @@ fun SignInScreen(version: String, onSecret: (() -> Unit)? = null) {
             Logo(size = 72.dp, corner = 22.dp, letter = 32f)
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(stringResource(R.string.app_name), fontSize = 26.sp, fontWeight = FontWeight.Bold, lineHeight = 31.sp, color = Colours.Text, fontFamily = font)
-                Text(stringResource(R.string.signin_sub), fontSize = 13.sp, color = Colours.Text2, fontFamily = font, textAlign = TextAlign.Center)
+                Text(stringResource(if (up) R.string.signup_sub else R.string.signin_sub), fontSize = 13.sp, color = Colours.Text2, fontFamily = font, textAlign = TextAlign.Center)
             }
             RaisedCard(Modifier.fillMaxWidth().widthIn(max = 480.dp)) {
                 Column(Modifier.padding(horizontal = 14.dp, vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (up) Field(
+                        label = stringResource(R.string.your_name),
+                        value = name,
+                        onChange = { name = it },
+                        keyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
+                    )
                     Field(
                         label = stringResource(R.string.email),
                         value = email,
@@ -121,13 +139,20 @@ fun SignInScreen(version: String, onSecret: (() -> Unit)? = null) {
                         showLabel = stringResource(R.string.show_password),
                         hideLabel = stringResource(R.string.hide_password),
                     )
-                    LinkButton(stringResource(R.string.forgot_password), soon)
-                    MainButton(stringResource(R.string.sign_in), soon, Modifier.fillMaxWidth(), pill = true)
+                    if (!up) LinkButton(stringResource(R.string.forgot_password), soon)
+                    if (problem != null) T(problem, colour = Colours.Red, size = 13.sp)
+                    Btn(
+                        stringResource(if (busy) R.string.signing_in else if (up) R.string.create_account else R.string.sign_in),
+                        { if (up) onRegister(name, email, password) else onSignIn(email, password) },
+                        Modifier.fillMaxWidth(),
+                        pill = true,
+                        busy = busy,
+                    )
                 }
             }
             OrLine(stringResource(R.string.or))
-            LinkButton(stringResource(R.string.new_here), soon)
-            LanguageChip(stringResource(R.string.language_name), soon)
+            LinkButton(stringResource(if (up) R.string.have_account else R.string.new_here), { up = !up })
+            LanguageChip(stringResource(R.string.language_name), onLanguage)
             Text(stringResource(R.string.fingerprint_next_time), fontSize = 12.sp, color = Colours.Text3, fontFamily = font, textAlign = TextAlign.Center)
             // test builds: five taps on the version line open the Building Blocks page
             var taps by rememberSaveable { mutableStateOf(0) }

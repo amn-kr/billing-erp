@@ -2,6 +2,8 @@ package billingo.app.ui.parts
 
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.util.Calendar
+import java.util.TimeZone
 
 /**
  * Money and numbers as the design shows them, Indian grouping (1,60,119.40). Amounts come from the
@@ -36,5 +38,20 @@ object Format {
         val rest = digits.dropLast(3)
         val pairs = rest.reversed().chunked(2).joinToString(",") { it }.reversed()
         return "$pairs,$last"
+    }
+
+    private val MONTHS = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    private val MONTHS_HI = listOf("जन॰", "फ़र॰", "मार्च", "अप्रैल", "मई", "जून", "जुल॰", "अग॰", "सित॰", "अक्टू॰", "नव॰", "दिस॰")
+
+    /** "2026-11-16" → "16 Nov 2026" (one date style everywhere, owner 15 Nov 2026); Hindi "16 नव॰ 2026". */
+    fun date(iso: String, hindi: Boolean = false): String {
+        val (y, m, d) = iso.take(10).split("-").map { it.toInt() }
+        return "$d ${(if (hindi) MONTHS_HI else MONTHS)[m - 1]} $y"
+    }
+
+    /** Today in India (the business timezone is Asia/Kolkata), as "2026-11-16". */
+    fun todayIso(): String {
+        val c = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kolkata"))
+        return "%04d-%02d-%02d".format(c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH))
     }
 }

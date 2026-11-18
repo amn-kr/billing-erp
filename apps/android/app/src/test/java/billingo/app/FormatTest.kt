@@ -30,4 +30,12 @@ class FormatTest {
         assertEquals("0.01", Format.inr("0.005"))
         assertEquals("100.00", Format.inr("99.995"))
     }
+
+    @Test
+    fun `dates look the same everywhere`() {
+        assertEquals("16 Nov 2026", Format.date("2026-11-16"))
+        assertEquals("1 Oct 2026", Format.date("2026-10-01"))
+        assertEquals("16 नव॰ 2026", Format.date("2026-11-16", hindi = true))
+        assertEquals("25 सित॰ 2026", Format.date("2026-09-25T10:00:00Z", hindi = true))
+    }
 }
