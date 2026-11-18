@@ -3,6 +3,7 @@ package billingo.app
 import billingo.app.data.Api
 import billingo.app.data.ApiError
 import billingo.app.data.MemoryStore
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -102,5 +103,21 @@ class ApiTest {
         assertEquals("/api/businesses/switch", r.path)
         assertEquals("""{"businessId":"b2"}""", r.body.readUtf8())
         assertEquals("R2", store.refreshToken)
+    }
+
+    @Test fun `a slow answer counts as "Server Is Waking Up" until it comes`() = kotlinx.coroutines.runBlocking {
+        server.enqueue(json(200, """{"latest":null,"notes":""}""").setBodyDelay(Api.SLOW_MS + 1500, java.util.concurrent.TimeUnit.MILLISECONDS))
+        var seen = 0
+        val watch = launch { while (true) { seen = maxOf(seen, api.slow.value); kotlinx.coroutines.delay(100) } }
+        api.appVersion()
+        watch.cancel()
+        assertEquals(1, seen)
+        assertEquals(0, api.slow.value)
+    }
+
+    @Test fun `a quick answer never shows it`() = runTest {
+        server.enqueue(json(200, """{"latest":null,"notes":""}"""))
+        api.appVersion()
+        assertEquals(0, api.slow.value)
     }
 }

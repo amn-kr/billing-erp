@@ -38,4 +38,15 @@ class FormatTest {
         assertEquals("16 नव॰ 2026", Format.date("2026-11-16", hindi = true))
         assertEquals("25 सित॰ 2026", Format.date("2026-09-25T10:00:00Z", hindi = true))
     }
+
+    @Test
+    fun `days and quantities`() {
+        assertEquals(15, Format.daysBetween("2026-11-01", "2026-11-16"))
+        assertEquals(1, Format.daysBetween("2026-02-28", "2026-03-01"))
+        assertEquals(-3, Format.daysBetween("2026-11-16", "2026-11-13"))
+        assertEquals("120", Format.qty("120.000"))
+        assertEquals("2.5", Format.qty("2.500"))
+        assertEquals("1,200", Format.qty("1200"))
+        assertEquals("0", Format.qty(null))
+    }
 }

@@ -54,4 +54,27 @@ object Format {
         val c = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kolkata"))
         return "%04d-%02d-%02d".format(c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH))
     }
+
+    /** Days from [from] to [to] ("2026-11-01" → "2026-11-16" is 15), counted on the calendar. */
+    fun daysBetween(from: String, to: String): Int {
+        fun day(iso: String): Long {
+            val (y, m, d) = iso.take(10).split("-").map { it.toInt() }
+            val c = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+            c.clear(); c.set(y, m - 1, d)
+            return c.timeInMillis / 86_400_000L
+        }
+        return (day(to) - day(from)).toInt()
+    }
+
+    /** "120.000" → "120", "2.500" → "2.5": a quantity without needless zeros, Indian grouping. */
+    fun qty(v: String?): String {
+        if (v.isNullOrBlank()) return "0"
+        val b = BigDecimal(v).stripTrailingZeros()
+        val plain = if (b.scale() < 0) b.setScale(0).toPlainString() else b.toPlainString()
+        val neg = plain.startsWith("-")
+        val body = plain.removePrefix("-")
+        val whole = body.substringBefore('.')
+        val frac = body.substringAfter('.', "")
+        return (if (neg) "-" else "") + group(whole) + (if (frac.isNotEmpty()) ".$frac" else "")
+    }
 }
