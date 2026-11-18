@@ -1,7 +1,7 @@
 <title>BillinGo Mobile Design</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap">
 <style>
 /* Mobile design, Phase 7 — steps 7.1 (colours) and 7.2 (building blocks).
    Layout: a guide column beside one phone column whose width you can drag from 320 to 480 px.
@@ -16,7 +16,7 @@
   --orange:#B45309; --orange-l:#FFFBEB;
   --slate-l:#F3F4F6;
   --green-nv:#4ADE80; --red-nv:#FCA5A5;
-  --font:'Plus Jakarta Sans','Noto Sans Devanagari',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font:'Inter','Noto Sans Devanagari',system-ui,-apple-system,'Segoe UI',sans-serif;
   --r-sm:8px; --r:12px; --r-lg:16px;
   --tap:44px;
   color-scheme:light;
@@ -265,6 +265,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .sh{padding:6px 8px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:4px;min-width:0;flex:none}
 .sh .mid{flex:1;min-width:0}
 .sh .t{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sh .t>span{display:block;overflow:hidden;text-overflow:ellipsis}
 .sh .btn.ico{background:transparent;color:var(--text);box-shadow:none}
 .sb{flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
 .sb>*{flex-shrink:0}
@@ -685,7 +686,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     </div>
     <div class="gsec">
       <h2 data-hi="3. अक्षर">3. Lettering</h2>
-      <p data-hi="English के लिए Plus Jakarta Sans (कंप्यूटर ऐप वाला), हिंदी के लिए Noto Sans Devanagari। अंक हमेशा 0–9, रक़म भारतीय ढंग से: ₹1,25,000.00।">Plus Jakarta Sans for English (the same as the computer app), Noto Sans Devanagari for Hindi. Digits are always 0–9, and amounts use the Indian format: ₹1,25,000.00.</p>
+      <p data-hi="English के लिए Inter (मालिक, 18 नव॰ 2026), हिंदी के लिए Noto Sans Devanagari। अंक हमेशा 0–9, रक़म भारतीय ढंग से: ₹1,25,000.00।">Inter for English (owner, 18 Nov 2026), Noto Sans Devanagari for Hindi. Digits are always 0–9, and amounts use the Indian format: ₹1,25,000.00.</p>
     </div>
     <div class="gsec">
       <h2 data-hi="4. आपसे क्या चाहिए">4. What We Need From You</h2>
@@ -2328,7 +2329,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     var kv=[[L('Sale Price','बिक्री दाम'),r0(i.sp)]];
     if(i.k==='p'){kv.push([L('Purchase Price','ख़रीद दाम'),r0(i.pp)]);if(i.mrp)kv.push(['MRP',r0(i.mrp)]);
       var m=i.sp-i.pp;kv.push([L('Margin','मुनाफ़ा'),r0(m)+' ('+(i.pp?(m/i.pp*100).toFixed(1):'0')+'%)']);
-      if(i.wp)kv.push([L('Wholesale','थोक'),L(r0(i.wp)+' From '+i.wq+' '+un(i.u,2),r0(i.wp)+', '+i.wq+' '+un(i.u,2)+' से')]);}
+      if(i.wp)kv.push([L('Wholesale','थोक'),L(r0(i.wp)+' · '+i.wq+'+ '+un(i.u,2),r0(i.wp)+' · '+i.wq+'+ '+un(i.u,2))]);}
     kv.push(['GST',i.gst+'%'+(i.hsn?' · HSN '+i.hsn:'')]);
     document.getElementById('ip-kv').innerHTML=kv.map(function(x){return '<div><span>'+x[0]+'</span><b>'+x[1]+'</b></div>'}).join('');
     var hb=!(i.k==='p'&&i.bt.length);document.getElementById('ip-bt-h').hidden=hb;document.getElementById('ip-bt').hidden=hb;
@@ -2854,7 +2855,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
       bar=d.st==='x'?'':'<button class="btn green grow" data-toast="Opens WhatsApp with the receipt (on the real phone)." data-toast-hi="रसीद के साथ WhatsApp खुलेगा (असली फ़ोन पर)।"><svg class="ic"><use href="#chat"/></svg>'+L('Send Receipt On WhatsApp','रसीद WhatsApp पर भेजें')+'</button>'}
     if(k==='cn'){t=d.no;s=LD(d.d);var base=d.lines.reduce(function(a,l){return a+Math.round(l.q*l.r)},0);
       h+='<div class="vhd"><div><small>'+L('Credit Note Total','क्रेडिट नोट का जोड़')+'</small><b>'+R(d.total)+'</b></div>'+badge(d.st==='x'?['gray','Cancelled','रद्द']:d.settle==='adj'?['info','Adjusted','समायोजित']:['cr','Refunded','पैसे लौटाए'])+'</div>';
-      h+=partyCard(d)+'<div class="box" style="gap:6px">'+kvr(L('Against Bills','किन बिलों पर'),esc(d.inv.join(', ')))+kvr(L('Reason','कारण'),esc(d.reason))+kvr(L('Settled As','कैसे निपटाया'),d.settle==='adj'?L('Adjusted In Balance','बैलेंस में घटाया'):L('↑ Refunded By ','↑ पैसे लौटाए: ')+modeL(d.settle))+'</div>';
+      h+=partyCard(d)+'<div class="box" style="gap:6px">'+kvr(L('Against Bills','किन बिलों पर'),esc(d.inv.join(', ')))+kvr(L('Reason','कारण'),esc(d.reason))+kvr(L('Settled As','कैसे निपटाया'),d.settle==='adj'?L('Adjusted In Balance','बैलेंस में घटाया'):L('↑ Refund: ','↑ वापसी: ')+modeL(d.settle))+'</div>';
       h+='<div class="sec">'+L('Items Returned','वापस आए आइटम')+'</div>'+lineRows(d.lines,true)+'<div class="box" style="gap:6px">'+kvr(L('Items','आइटम'),'₹'+inr(base))+kvr('GST','₹'+inr(d.total-base))+'<div class="tl tt"><span>'+L('Total','कुल')+'</span><b>₹'+inr(d.total)+'</b></div></div>';
       bar=''}
     if(k==='el'){var e=d,sm=elSum(e);t=e.n;s=e.ph?'+91 '+esc(e.ph):'';
@@ -3141,7 +3142,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
       h+='<div class="sec">'+L('Settled Against','किन बिलों में लगा')+'</div>'+(d.alloc.length?'<div class="grp">'+d.alloc.map(function(a){var b=findDoc('pb',a[0]);return '<button type="button" class="srow cpr" data-dopen="pb:'+a[0]+'"><div class="mid"><div class="nm">'+esc(a[0])+'</div><div class="t-x">'+(b?LD(b.d)+' · '+L('Bill ','बिल ')+m2(b.total):'')+'</div></div><b>₹'+m2(a[1])+'</b></button>'}).join('')+'</div>':'')+(d.amt-used>0?'<div class="okb">'+L('₹'+inr(d.amt-used)+' kept as advance with this supplier.','₹'+inr(d.amt-used)+' इस सप्लायर के पास एडवांस में रहा।')+'</div>':'')}
     if(k==='dn'){var base=d.lines.reduce(function(a,l){return a+Math.round(l.q*l.r)},0);
       h+='<div class="vhd"><div><small>'+L('Debit Note Total','डेबिट नोट का जोड़')+'</small><b>'+R(d.total)+'</b></div>'+badge(d.st==='x'?['gray','Cancelled','रद्द']:d.settle==='adj'?['info','Adjusted','समायोजित']:['paid','Refund Received','पैसे वापस मिले'])+'</div>';
-      h+=partyCard(d)+'<div class="box" style="gap:6px">'+kvr(L('Against Bills','किन बिलों पर'),esc(d.pb.join(', ')))+kvr(L('Reason','कारण'),esc(d.reason))+kvr(L('Settled As','कैसे निपटाया'),d.settle==='adj'?L('Adjusted In Balance','बैलेंस में घटाया'):L('↓ Refund Received By ','↓ पैसे वापस मिले: ')+modeL(d.settle))+'</div>';
+      h+=partyCard(d)+'<div class="box" style="gap:6px">'+kvr(L('Against Bills','किन बिलों पर'),esc(d.pb.join(', ')))+kvr(L('Reason','कारण'),esc(d.reason))+kvr(L('Settled As','कैसे निपटाया'),d.settle==='adj'?L('Adjusted In Balance','बैलेंस में घटाया'):L('↓ Refund: ','↓ वापसी: ')+modeL(d.settle))+'</div>';
       h+='<div class="sec">'+L('Items Returned','लौटाए आइटम')+'</div>'+pLines(d.lines)+'<div class="box" style="gap:6px">'+kvr(L('Items','आइटम'),'₹'+inr(base))+kvr('GST','₹'+inr(d.total-base))+'<div class="tl tt"><span>'+L('Total','कुल')+'</span><b>₹'+inr(d.total)+'</b></div></div>'}
     document.getElementById('dv-t').innerHTML=esc(t);document.getElementById('dv-s').innerHTML=s;document.getElementById('dv-body').innerHTML=h;var bb=document.getElementById('dv-bar');bb.innerHTML=bar;bb.hidden=!bar;
     document.querySelector('[data-s=dview] [data-dvmore]').hidden=!dvMenu().length};
