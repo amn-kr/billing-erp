@@ -48,7 +48,7 @@ _Last updated: 18 Nov 2026. Details: [`docs/STATUS.md`](docs/STATUS.md)._
 | **Latest Windows release** | **v0.1.1** (13 Nov 2026): adds *Bring online books to this PC*. Installers are on the [releases page](https://github.com/amn-kr/billing-erp-releases/releases). |
 | **Live web app** | https://billing-erp-ynqf.onrender.com (free plans; the first open after 15 idle minutes can take about a minute). |
 | **Needs attention** | Nightly database backups have not run since 9 Nov 2026. The fix is merged (PR #105) and in the backup repository, but GitHub's Actions budget stops every run. On hold until 1 Dec 2026, when the free minutes return; a reminder will run one backup and check the restore test that day. |
-| **Next** | Android app (Phase 8) in **Kotlin** (owner, 18 Nov 2026): step 8.1, the server groundwork, comes first. Part 8.1a (in review): document numbers come only from the app, never typed, and open screens show the next number live. Plan: [`docs/PHASE8-PLAN.md`](docs/PHASE8-PLAN.md). The phone design (Phase 7) is complete. The rest of the Windows trial comes after the phone app is launched (owner, 18 Nov 2026). Selling (Phase 5) starts only when the owner asks. |
+| **Next** | Android app (Phase 8) in **Kotlin** (owner, 18 Nov 2026): step 8.1, the server groundwork, comes first. Part 8.1a is merged: document numbers come only from the app, never typed, and open screens show the next number live. Part 8.1b (in review): one-time keys, so a bill sent twice is saved once. Plan: [`docs/PHASE8-PLAN.md`](docs/PHASE8-PLAN.md). The phone design (Phase 7) is complete. The rest of the Windows trial comes after the phone app is launched (owner, 18 Nov 2026). Selling (Phase 5) starts only when the owner asks. |
 
 ---
 

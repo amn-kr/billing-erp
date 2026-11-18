@@ -73,7 +73,7 @@ Nothing in Phase 8 costs money unless the owner later chooses the Play Store (â‚
 
 **Changes on the server (step 8.1):**
 1. **Phone sign-in.** Today "stay signed in" lives in a browser cookie. The phone keeps the same sign-in token in Android's safe store and sends it in a header. The web keeps its cookie, unchanged.
-2. **No double bills.** Every new bill, payment or note from the phone carries a one-time key, so if it is sent twice (weak internet), the server saves it once. The server does not have this yet; it comes with its own tests.
+2. **No double bills.** Every new bill, payment or note from the phone carries a one-time key (the `Idempotency-Key` header), so if it is sent twice (weak internet), the server saves it once and the repeat gets the first answer back. Two copies arriving together make one bill; a save that fails can be sent again; the same key for a different save is refused; keys are kept 7 days and are not part of backups. Done in 8.1b (18 Nov 2026).
 3. **The server's exact description** (OpenAPI), produced from the server's own code on every build.
 4. **A small "latest version" answer** for Check For Update, read from the releases page.
 
