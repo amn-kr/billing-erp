@@ -372,6 +372,8 @@ Each phase has a gate that must pass before the next starts. Full plan: [`docs/A
 | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Running and testing locally |
 | [`docs/DEPLOY.md`](docs/DEPLOY.md) | Live app, backups, Windows releases, free-plan limits |
 | [`docs/WINDOWS-TRIAL.md`](docs/WINDOWS-TRIAL.md) | Checklist for testing the Windows app on real PCs |
+| [`docs/MOBILE-PLAN.md`](docs/MOBILE-PLAN.md) | The phone app: owner's decisions, colours, design and checks |
+| [`docs/PHASE8-PLAN.md`](docs/PHASE8-PLAN.md) | Phase 8 step by step: building the Android app (proposed) |
 | [`docs/RENAME.md`](docs/RENAME.md) | Changing the app's name |
 | [`docs/PHASE3-SALES.md`](docs/PHASE3-SALES.md) | How sales work, as read from the prototype |
 | [`docs/prototype-data.md`](docs/prototype-data.md) | The old backup file's structure, for the importer |
