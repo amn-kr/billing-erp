@@ -85,7 +85,7 @@ private fun hindi() = LocalConfiguration.current.locales[0].language == "hi"
 
 /** A screen's frame: header with Back, the body, and an optional bar at the bottom. */
 @Composable
-private fun Frame(title: String, sub: String? = null, onBack: () -> Unit, right: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {}, foot: (@Composable androidx.compose.foundation.layout.RowScope.() -> Unit)? = null, body: @Composable () -> Unit) {
+internal fun Frame(title: String, sub: String? = null, onBack: () -> Unit, right: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {}, foot: (@Composable androidx.compose.foundation.layout.RowScope.() -> Unit)? = null, body: @Composable () -> Unit) {
     Column(Modifier.fillMaxSize().background(Colours.Page)) {
         Box(Modifier.background(Colours.Card).statusBarsPadding()) {
             Header(title, sub, left = { IconBtn(Icons.Back, stringResource(R.string.back), onBack) }, right = right)
@@ -97,7 +97,7 @@ private fun Frame(title: String, sub: String? = null, onBack: () -> Unit, right:
 
 /** While loading: grey bars; refused: why, with Try Again. */
 @Composable
-private fun <T> Waiting(l: Loaded<T>) {
+internal fun <T> Waiting(l: Loaded<T>) {
     Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (l.problem != null) {
             T(words(l.problem) ?: "", colour = Colours.Red)
