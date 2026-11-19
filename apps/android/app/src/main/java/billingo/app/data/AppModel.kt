@@ -27,6 +27,9 @@ sealed interface Route {
     data class Statement(val id: String, val name: String) : Route
     /** New Party ([id] null) or Edit Party */
     data class PartyForm(val id: String?) : Route
+    data object Items : Route
+    data class Item(val id: String, val name: String) : Route
+    data class Adjust(val id: String) : Route
 }
 
 /** Home's lists; null when the server refused one (no permission) or it hasn't come yet. */

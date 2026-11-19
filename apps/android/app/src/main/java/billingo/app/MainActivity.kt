@@ -40,6 +40,9 @@ import billingo.app.ui.parties.PartyScreen
 import billingo.app.ui.parties.StatementScreen
 import billingo.app.ui.blocks.BlocksScreen
 import billingo.app.ui.home.CreateNewSheet
+import billingo.app.ui.items.AdjustScreen
+import billingo.app.ui.items.ItemScreen
+import billingo.app.ui.items.ItemsScreen
 import billingo.app.ui.home.HomeScreen
 import billingo.app.ui.home.LanguageSheet
 import billingo.app.ui.home.SideMenu
@@ -144,6 +147,9 @@ class MainActivity : AppCompatActivity() {
                                 when (top) {
                                     is Route.Parties -> PartiesScreen(m.server, top.bal, { m.back() }, { p -> m.open(Route.Party(p.id, p.name)) }, { m.open(Route.PartyForm(null)) })
                                     is Route.Party -> PartyScreen(m.server, top.id, top.name, shop, { m.back() }, { m.open(Route.Statement(top.id, top.name)) }, { m.open(Route.PartyForm(top.id)) }, later)
+                                    Route.Items -> ItemsScreen(m.server, { m.back() }, { i -> m.open(Route.Item(i.id, i.name)) }, later)
+                                    is Route.Item -> ItemScreen(m.server, top.id, top.name, { m.back() }, { m.open(Route.Adjust(top.id)) }, later)
+                                    is Route.Adjust -> AdjustScreen(m.server, top.id) { m.back(); m.loadHome() }
                                     is Route.PartyForm -> PartyFormScreen(
                                         m.server, top.id, { m.back() },
                                         onSaved = { id, name -> m.replace(Route.Party(id, name)); m.loadHome() },
@@ -166,6 +172,7 @@ class MainActivity : AppCompatActivity() {
                                 onLater = later,
                                 onParties = { bal -> m.open(Route.Parties(bal)) },
                                 onParty = { p -> m.open(Route.Party(p.id, p.name)) },
+                                onItem = { i -> m.open(Route.Item(i.id, i.name)) },
                             )
                             if (menuOpen) {
                                 BackHandler { menuOpen = false }
@@ -178,6 +185,7 @@ class MainActivity : AppCompatActivity() {
                                     onChangeCompany = { menuOpen = false; m.switchCompany() },
                                     onLater = later,
                                     onParties = { menuOpen = false; m.open(Route.Parties()) },
+                                    onItems = { menuOpen = false; m.open(Route.Items) },
                                     onGst = gst,
                                     onSignOut = { menuOpen = false; signOutOpen = true },
                                     onCheckUpdate = { m.checkUpdate(BuildConfig.VERSION_NAME) },

@@ -85,12 +85,12 @@ private fun MenuLine(icon: ImageVector?, text: String, onClick: () -> Unit, on: 
 
 /** A menu group that opens to show its lines (Items & Stock, Sales, Purchases, Banking & Cash). */
 @Composable
-private fun MenuGroup(icon: ImageVector, text: String, lines: List<String>, onLine: () -> Unit) {
+private fun MenuGroup(icon: ImageVector, text: String, lines: List<String>, onLine: () -> Unit, actions: Map<Int, () -> Unit> = emptyMap()) {
     var open by rememberSaveable(text) { mutableStateOf(false) }
     MenuLine(icon, text, { open = !open }) {
         Icon(Icons.Next, contentDescription = null, tint = Colours.Text3, modifier = Modifier.size(20.dp).rotate(if (open) 90f else 0f))
     }
-    if (open) lines.forEach { MenuLine(null, it, onLine, sub = true) }
+    if (open) lines.forEachIndexed { i, l -> MenuLine(null, l, actions[i] ?: onLine, sub = true) }
 }
 
 /**
@@ -108,6 +108,7 @@ fun SideMenu(
     onChangeCompany: () -> Unit,
     onLater: () -> Unit,
     onParties: () -> Unit,
+    onItems: () -> Unit,
     onGst: () -> Unit,
     onSignOut: () -> Unit,
     onCheckUpdate: () -> Unit,
@@ -145,7 +146,7 @@ fun SideMenu(
             }
             MenuLine(Icons.Bill, stringResource(R.string.m_home), onClose, on = true)
             MenuLine(Icons.User, stringResource(R.string.m_parties), onParties)
-            MenuGroup(Icons.Box, stringResource(R.string.m_items_stock), listOf(stringResource(R.string.m_items), stringResource(R.string.m_prices), stringResource(R.string.m_adjust), stringResource(R.string.m_godowns)), onLater)
+            MenuGroup(Icons.Box, stringResource(R.string.m_items_stock), listOf(stringResource(R.string.m_items), stringResource(R.string.m_prices), stringResource(R.string.m_adjust), stringResource(R.string.m_godowns)), onLater, mapOf(0 to onItems))
             MenuGroup(Icons.Bill, stringResource(R.string.m_sales), listOf(stringResource(R.string.m_quotations), stringResource(R.string.m_sale_bills), stringResource(R.string.m_challans), stringResource(R.string.m_paid_in), stringResource(R.string.m_credit_notes), stringResource(R.string.m_commission)), onLater)
             MenuGroup(Icons.Cart, stringResource(R.string.m_purchases), listOf(stringResource(R.string.m_orders), stringResource(R.string.m_purchase_bills), stringResource(R.string.m_paid_out), stringResource(R.string.m_debit_notes)), onLater)
             MenuLine(Icons.Wallet, stringResource(R.string.m_expenses), onLater)

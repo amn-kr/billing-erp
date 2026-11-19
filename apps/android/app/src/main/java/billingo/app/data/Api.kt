@@ -125,6 +125,10 @@ class Api(private val base: String, private val store: Store, private val client
     suspend fun partyGroups(): List<PartyGroup> = send("GET", "/party-groups", null, ListSerializer(PartyGroup.serializer()))
     suspend fun addPartyGroup(name: String): PartyGroup = send("POST", "/party-groups", buildJsonObject { put("name", name) }, PartyGroup.serializer())
 
+    suspend fun itemsFull(): List<ItemFull> = send("GET", "/items", null, ListSerializer(ItemFull.serializer()))
+    suspend fun item(id: String): ItemDetail = send("GET", "/items/$id", null, ItemDetail.serializer())
+    suspend fun adjustStock(body: JsonObject) { send<Unit>("POST", "/stock-adjustments", body, null) }
+
     /** Check For Update: the newest phone version on the releases page (no sign-in needed). */
     suspend fun appVersion(): AppVersion = send("GET", "/app-version?app=android", null, AppVersion.serializer(), auth = false)
 
