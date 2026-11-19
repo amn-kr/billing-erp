@@ -109,8 +109,8 @@ test('bills are numbered on this computer, carry on after a restart, and nothing
   expect(await bill(first.win, 2)).toEqual(['INV-0001', 'INV-0002']);
   // the screens' own fonts, kept with the app (scripts/offline-fonts.mjs), so they look the same offline
   await first.win.evaluate(() => document.fonts.ready);
-  expect(await first.win.evaluate(() => document.fonts.check('600 14px "Plus Jakarta Sans"'))).toBe(true);
-  expect(await first.win.evaluate(() => [...document.fonts].some((f) => f.family.includes('Plus Jakarta Sans') && f.status === 'loaded'))).toBe(true);
+  expect(await first.win.evaluate(() => document.fonts.check('600 14px "Inter"'))).toBe(true);
+  expect(await first.win.evaluate(() => [...document.fonts].some((f) => f.family.includes('Inter') && f.status === 'loaded'))).toBe(true);
   await first.app.close();
   const outside = asked.filter((u) => !u.startsWith(origin + '/') && !u.startsWith('data:') && !u.startsWith('blob:') && !u.startsWith('file:'));
   expect(outside, 'single-PC mode must not need the internet').toEqual([]);

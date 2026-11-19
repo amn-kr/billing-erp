@@ -6,7 +6,7 @@
   --green:#10b981;--amber:#d97706;--red:#ef4444;--blue:#3b82f6;--violet:#8b5cf6;
   --sb:#1f2435;--sb0:#181c2a;--sbt:#d5dae6;--sbm:#8b93a9;--sbh:rgba(255,255,255,.06);--sbl:rgba(255,255,255,.08);
   --shade:rgba(10,14,25,.55);
-  --font:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0b1312;--sf:#121c1b;--sf2:#172422;--bd:#243532;--t1:#e9eff0;--t2:#97a6a8;--ac:#2dd4bf;--acs:#113532;--ac2:#14b8a6;--on-ac:#06201d;

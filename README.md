@@ -40,11 +40,11 @@ Web · Windows (works offline) · Android and iPhone (coming)
 
 ## Latest
 
-_Last updated: 18 Nov 2026. Details: [`docs/STATUS.md`](docs/STATUS.md)._
+_Last updated: 19 Nov 2026. Details: [`docs/STATUS.md`](docs/STATUS.md)._
 
 | | |
 |---|---|
-| **Where we are** | Phases 0 to 4 are done. The Windows app (Phase 6) is built. Real-PC checks are under way: install (Windows 10 and 11), This PC only, printing, restore and update passed (18 Nov 2026). Left: backups, cloud move, connect to cloud and uninstall, then a two-week trial in the owner's shop, after the phone app is launched. |
+| **Where we are** | Phases 0 to 4 are done. The Windows app (Phase 6) is built. Real-PC checks are under way: install (Windows 10 and 11), This PC only, printing, restore and update passed (18 Nov 2026). Left: backups, cloud move, connect to cloud and uninstall, then a two-week trial in the owner's shop, after the phone app is launched. Web and Windows now use the **Inter** font, like the phone app (owner, 19 Nov 2026); installed Windows apps get it with the next release. |
 | **Latest Windows release** | **v0.1.1** (13 Nov 2026): adds *Bring online books to this PC*. Installers are on the [releases page](https://github.com/amn-kr/billing-erp-releases/releases). |
 | **Live web app** | https://billing-erp-ynqf.onrender.com (free plans; the first open after 15 idle minutes can take about a minute). |
 | **Needs attention** | Nightly database backups have not run since 9 Nov 2026. The fix is merged (PR #105) and in the backup repository, but GitHub's Actions budget stops every run. On hold until 1 Dec 2026, when the free minutes return; a reminder will run one backup and check the restore test that day. |
