@@ -264,7 +264,7 @@ fun PartyFormScreen(api: Api, id: String?, onBack: () -> Unit, onSaved: (id: Str
                 val names = (groups.data?.map { it.name } ?: listOf("General")).let { if (f.group in it) it else it + f.group }
                 ChoiceSheet(stringResource(R.string.pf_group), names, names.indexOf(f.group), { sheet = "" }) { f = f.copy(group = names[it]); sheet = "" }
             }
-            "newGroup" -> NewGroupSheet({ sheet = "" }) { name ->
+            "newGroup" -> NewGroupSheet({ sheet = "" }) { name: String ->
                 scope.launch {
                     try { val g = api.addPartyGroup(name); groups.reload(); f = f.copy(group = g.name); sheet = "" } catch (e: ApiError) { toast(ctx, if (e.status == 0) ctx.getString(R.string.no_internet) else e.message) }
                 }
@@ -297,7 +297,7 @@ fun PartyFormScreen(api: Api, id: String?, onBack: () -> Unit, onSaved: (id: Str
 
 /** A section that opens and closes (.acc + .accb). */
 @Composable
-private fun Section(title: String, isOpen: Boolean, onToggle: () -> Unit, content: @Composable () -> Unit) {
+internal fun Section(title: String, isOpen: Boolean, onToggle: () -> Unit, content: @Composable () -> Unit) {
     val top = if (isOpen) RoundedCornerShape(topStart = Size.Radius, topEnd = Size.Radius) else RoundedCornerShape(Size.Radius)
     Column(Modifier.fillMaxWidth().raised(RoundedCornerShape(Size.Radius))) {
         Row(
@@ -320,7 +320,7 @@ private fun Section(title: String, isOpen: Boolean, onToggle: () -> Unit, conten
 
 /** Two choices side by side (.seg2), each with an optional small line under it. */
 @Composable
-private fun Seg2(a: Pair<String, String?>, b: Pair<String, String?>, selected: Int, onSelect: (Int) -> Unit) {
+internal fun Seg2(a: Pair<String, String?>, b: Pair<String, String?>, selected: Int, onSelect: (Int) -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         listOf(a, b).forEachIndexed { i, (title, sub) ->
             val on = i == selected
@@ -341,7 +341,7 @@ private fun Seg2(a: Pair<String, String?>, b: Pair<String, String?>, selected: I
 
 /** A date chosen with Android's calendar; shown as "16 Nov 2026". */
 @Composable
-private fun DateField(label: String, iso: String, hindi: Boolean, empty: String, onPick: (String) -> Unit) {
+internal fun DateField(label: String, iso: String, hindi: Boolean, empty: String, onPick: (String) -> Unit) {
     val ctx = LocalContext.current
     val today = Format.todayIso()
     Box {
@@ -354,11 +354,11 @@ private fun DateField(label: String, iso: String, hindi: Boolean, empty: String,
 }
 
 @Composable
-private fun NewGroupSheet(onClose: () -> Unit, onAdd: (String) -> Unit) {
+internal fun NewGroupSheet(onClose: () -> Unit, title: String? = null, label: String? = null, placeholder: String = "Plumbers", onAdd: (String) -> Unit) {
     var name by remember { mutableStateOf("") }
     Dim(onClose) {
-        Sheet(stringResource(R.string.pf_new_group).removePrefix("+ "), close = { IconBtn(Icons.Close, stringResource(R.string.close), onClose) }) {
-            Field(stringResource(R.string.pf_group_name), name, { name = it }, placeholder = "Plumbers", keyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Words))
+        Sheet(title ?: stringResource(R.string.pf_new_group).removePrefix("+ "), close = { IconBtn(Icons.Close, stringResource(R.string.close), onClose) }) {
+            Field(label ?: stringResource(R.string.pf_group_name), name, { name = it }, placeholder = placeholder, keyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Words))
             Btn(stringResource(R.string.pf_add), { if (name.isNotBlank()) onAdd(name.trim()) }, Modifier.fillMaxWidth(), Kind.Blue, Icons.Plus)
         }
     }

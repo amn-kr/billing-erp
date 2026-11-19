@@ -30,6 +30,8 @@ sealed interface Route {
     data object Items : Route
     data class Item(val id: String, val name: String) : Route
     data class Adjust(val id: String) : Route
+    /** New Item ([id] null, maybe with a scanned [code]) or Edit Item */
+    data class ItemForm(val id: String?, val code: String = "") : Route
 }
 
 /** Home's lists; null when the server refused one (no permission) or it hasn't come yet. */
@@ -78,6 +80,14 @@ class AppModel(private val api: Api, private val store: Store, private val finge
 
     /** the top screen replaced by another (a new party, once saved, opens its page) */
     fun replace(r: Route) { if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex); stack.add(r) }
+
+    /** after deleting an item or making it inactive: its form and its page both close */
+    fun leaveItem(id: String) {
+        while (stack.isNotEmpty()) {
+            val t = stack.last()
+            if ((t is Route.ItemForm && t.id == id) || (t is Route.Item && t.id == id) || (t is Route.Adjust && t.id == id)) stack.removeAt(stack.lastIndex) else break
+        }
+    }
 
     /** after deleting or closing a party: its form and its page both close */
     fun leaveParty(id: String) {

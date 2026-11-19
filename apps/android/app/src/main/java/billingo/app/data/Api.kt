@@ -38,7 +38,7 @@ data class Tokens(val accessToken: String, val expiresIn: Int = 900, val refresh
 data class MeUser(val id: String, val name: String = "", val email: String, val mustChangePassword: Boolean = false)
 
 @Serializable
-data class MeBusiness(val id: String, val name: String, val short: String? = null, val city: String? = null, val gstin: String? = null, val gstEnabled: Boolean = false, val plan: String = "trial")
+data class MeBusiness(val id: String, val name: String, val short: String? = null, val city: String? = null, val gstin: String? = null, val gstEnabled: Boolean = false, val plan: String = "trial", val features: List<String> = emptyList())
 
 @Serializable
 data class Membership(val businessId: String, val businessName: String, val businessShort: String? = null, val city: String? = null, val gstin: String? = null, val role: String)
@@ -128,6 +128,15 @@ class Api(private val base: String, private val store: Store, private val client
     suspend fun itemsFull(): List<ItemFull> = send("GET", "/items", null, ListSerializer(ItemFull.serializer()))
     suspend fun item(id: String): ItemDetail = send("GET", "/items/$id", null, ItemDetail.serializer())
     suspend fun adjustStock(body: JsonObject) { send<Unit>("POST", "/stock-adjustments", body, null) }
+    suspend fun catalogue(): Catalogue = send("GET", "/catalogue", null, Catalogue.serializer())
+    suspend fun nextItemCode(): NextCode = send("GET", "/items/next-code", null, NextCode.serializer())
+    suspend fun addBrand(name: String): Named = send("POST", "/catalogue/brands", buildJsonObject { put("name", name) }, Named.serializer())
+    suspend fun addCategory(name: String): Named = send("POST", "/catalogue/categories", buildJsonObject { put("name", name) }, Named.serializer())
+    suspend fun createItem(body: JsonObject): Saved = send("POST", "/items", body, Saved.serializer())
+    suspend fun updateItem(id: String, body: JsonObject): Saved = send("PATCH", "/items/$id", body, Saved.serializer())
+    suspend fun itemUsage(id: String): Usage = send("GET", "/items/$id/usage", null, Usage.serializer())
+    suspend fun deleteItem(id: String) { send<Unit>("POST", "/items/$id/delete", null, null) }
+    suspend fun archiveItem(id: String) { send<Unit>("POST", "/items/$id/archive", null, null) }
 
     /** Check For Update: the newest phone version on the releases page (no sign-in needed). */
     suspend fun appVersion(): AppVersion = send("GET", "/app-version?app=android", null, AppVersion.serializer(), auth = false)

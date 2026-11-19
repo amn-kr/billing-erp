@@ -44,6 +44,9 @@ android {
     buildTypes {
         release {
             if (keystore != null) signingConfig = signingConfigs.getByName("release")
+            // real phones are ARM (new 64-bit and older cheap 32-bit); the x86 parts of the barcode
+            // reader are only for computer emulators and would add about 12 MB
+            ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -80,6 +83,11 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.appcompat)
+    // camera barcode scan (step 8.4b): Google's camera parts and barcode reader, inside the app
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.mlkit.barcode)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     testImplementation(libs.junit)
