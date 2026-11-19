@@ -1,5 +1,6 @@
 import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { BRAND } from '@billing/shared';
 import { Public } from '../../common/decorators';
 import { config } from '../../config';
 
@@ -43,30 +44,60 @@ export const newer = (a: string, b: string): boolean => {
 /** Tests: forget the remembered answer. */
 export const forgetAppVersion = () => (cache = null);
 
+/** The phone APK's download address: the release workflow names it "<app name>-<version>.apk". */
+export const apkUrl = (web: string, repo: string, version: string) => `${web}/${repo}/releases/download/android-v${version}/${BRAND.name}-${version}.apk`;
+
+const unescape = (s: string) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+
+/**
+ * The phone releases in the releases page's public feed (releases.atom): newest first, drafts never
+ * appear in it. Read instead of GitHub's API, which allows only 60 questions an hour per internet
+ * address without a key, and a free server shares its address with many others (found 19 Nov 2026:
+ * the live server kept answering "no phone version" after 1.0.1 was published).
+ */
+export function phoneReleasesInFeed(xml: string, web: string, repo: string): Omit<AppVersion, 'minimum'>[] {
+  const out: Omit<AppVersion, 'minimum'>[] = [];
+  for (const e of xml.split('<entry>').slice(1)) {
+    const tag = /\/releases\/tag\/([^"<\s]+)"/.exec(e)?.[1] ?? '';
+    const m = TAG.exec(decodeURIComponent(tag));
+    if (!m) continue;
+    const html = unescape(/<content[^>]*>([\s\S]*?)<\/content>/.exec(e)?.[1] ?? '');
+    const notes = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().replace(/^No content\.$/, '');
+    out.push({ app: 'android', latest: m[1]!, date: /<updated>([^<]+)<\/updated>/.exec(e)?.[1] ?? null, download: apkUrl(web, repo, m[1]!), notes: unescape(notes) });
+  }
+  return out;
+}
+
 async function readReleases(): Promise<Omit<AppVersion, 'minimum'>> {
   const c = config();
-  const key = `${c.RELEASES_API_URL}|${c.RELEASES_REPO}`;
+  const key = `${c.RELEASES_WEB_URL}|${c.RELEASES_API_URL}|${c.RELEASES_REPO}`;
   if (cache && cache.key === key && Date.now() - cache.at < TTL_MS) return cache.v;
   const none = { app: 'android' as const, latest: null, date: null, download: null, notes: '' };
   try {
-    const r = await fetch(`${c.RELEASES_API_URL}/repos/${c.RELEASES_REPO}/releases?per_page=50`, {
-      headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'billing-app-server' },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!r.ok) throw new Error(String(r.status));
-    const list = (await r.json()) as GhRelease[];
-    let best: Omit<AppVersion, 'minimum'> = none;
-    for (const g of list) {
-      const m = TAG.exec(g.tag_name);
-      const apk = g.assets.find((a) => a.name.toLowerCase().endsWith('.apk'));
-      if (!m || g.draft || g.prerelease || !apk) continue;
-      if (!best.latest || newer(m[1]!, best.latest)) best = { app: 'android', latest: m[1]!, date: g.published_at, download: apk.browser_download_url, notes: (g.body ?? '').trim() };
+    let found: Omit<AppVersion, 'minimum'>[];
+    if (c.RELEASES_READ_TOKEN) {
+      // with a key, GitHub's API (5,000 questions an hour); it also says which releases have an .apk
+      const r = await fetch(`${c.RELEASES_API_URL}/repos/${c.RELEASES_REPO}/releases?per_page=50`, {
+        headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'billing-app-server', Authorization: `Bearer ${c.RELEASES_READ_TOKEN}` },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!r.ok) throw new Error(String(r.status));
+      found = ((await r.json()) as GhRelease[]).flatMap((g) => {
+        const m = TAG.exec(g.tag_name);
+        const apk = g.assets.find((a) => a.name.toLowerCase().endsWith('.apk'));
+        return m && !g.draft && !g.prerelease && apk ? [{ app: 'android' as const, latest: m[1]!, date: g.published_at, download: apk.browser_download_url, notes: (g.body ?? '').trim() }] : [];
+      });
+    } else {
+      const r = await fetch(`${c.RELEASES_WEB_URL}/${c.RELEASES_REPO}/releases.atom`, { headers: { 'User-Agent': 'billing-app-server' }, signal: AbortSignal.timeout(8000) });
+      if (!r.ok) throw new Error(String(r.status));
+      found = phoneReleasesInFeed(await r.text(), c.RELEASES_WEB_URL, c.RELEASES_REPO);
     }
+    const best = found.reduce<Omit<AppVersion, 'minimum'>>((b, x) => (!b.latest || newer(x.latest!, b.latest) ? x : b), none);
     cache = { at: Date.now(), key, v: best };
     return best;
   } catch {
-    // GitHub unreachable: keep the last answer (a phone must not see "no update" by mistake for long)
-    if (cache && cache.key === key) return cache.v;
+    // GitHub unreachable: keep the last answer for now, and ask again in a minute (not 10)
+    if (cache && cache.key === key) { cache.at = Date.now() - TTL_MS + 60_000; return cache.v; }
     return none;
   }
 }
