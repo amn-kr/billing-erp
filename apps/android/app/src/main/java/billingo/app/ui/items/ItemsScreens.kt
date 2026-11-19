@@ -105,7 +105,7 @@ private fun StockBadge(i: ItemFull) = when (ItemMaths.status(i)) {
  * show only those), search, brand and stock filters; items of one group under one line.
  */
 @Composable
-fun ItemsScreen(api: Api, onBack: () -> Unit, onItem: (ItemFull) -> Unit, onLater: () -> Unit) {
+fun ItemsScreen(api: Api, onBack: () -> Unit, onItem: (ItemFull) -> Unit, onAdd: (code: String) -> Unit, onLater: () -> Unit) {
     val list = load { api.itemsFull() }
     var kind by rememberSaveable { mutableIntStateOf(0) }
     var st by rememberSaveable { mutableIntStateOf(0) }
@@ -113,12 +113,13 @@ fun ItemsScreen(api: Api, onBack: () -> Unit, onItem: (ItemFull) -> Unit, onLate
     var query by rememberSaveable { mutableStateOf("") }
     var sheet by rememberSaveable { mutableStateOf("") }
     var open by rememberSaveable { mutableStateOf(setOf<String>()) }
+    var missingCode by rememberSaveable { mutableStateOf("") }
     val stNames = listOf(stringResource(R.string.i_all), stringResource(R.string.i_in), stringResource(R.string.i_low_s), stringResource(R.string.i_out_s))
 
     Box(Modifier.fillMaxSize()) {
-        Frame(stringResource(R.string.i_title), onBack = onBack, right = { IconBtn(Icons.Scan, stringResource(R.string.i_scan), onLater) }, foot = {
+        Frame(stringResource(R.string.i_title), onBack = onBack, right = { IconBtn(Icons.Scan, stringResource(R.string.i_scan), { sheet = "scan" }) }, foot = {
             Btn(stringResource(R.string.i_more), onLater, Modifier.weight(1f), Kind.Soft, Icons.Dots)
-            Btn(stringResource(R.string.i_add), onLater, Modifier.weight(1f), Kind.Blue, Icons.Plus)
+            Btn(stringResource(R.string.i_add), { onAdd("") }, Modifier.weight(1f), Kind.Blue, Icons.Plus)
         }) {
             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item { Tabs(listOf(stringResource(R.string.i_all), stringResource(R.string.i_products), stringResource(R.string.i_services)), kind) { kind = it } }
@@ -145,7 +146,7 @@ fun ItemsScreen(api: Api, onBack: () -> Unit, onItem: (ItemFull) -> Unit, onLate
                 val s = ItemMaths.Status.entries[st]
                 val shown = all.filter { ItemMaths.matches(it, k, s, brand, query) }.sortedBy { it.name.lowercase() }
                 val entries = ItemMaths.entries(shown, all)
-                if (entries.isEmpty()) item { EmptyState(Icons.Box, stringResource(R.string.i_none), stringResource(R.string.p_none_sub), stringResource(R.string.i_add), onLater) }
+                if (entries.isEmpty()) item { EmptyState(Icons.Box, stringResource(R.string.i_none), stringResource(R.string.p_none_sub), stringResource(R.string.i_add)) { onAdd("") } }
                 // a group open by itself while searching or filtering
                 val filtering = query.isNotBlank() || brand.isNotEmpty() || st != 0
                 items(entries, key = { e -> if (e is ItemMaths.Entry.One) e.item.id else "g:" + (e as ItemMaths.Entry.Group).name }) { e ->
@@ -162,6 +163,17 @@ fun ItemsScreen(api: Api, onBack: () -> Unit, onItem: (ItemFull) -> Unit, onLate
             "brand" -> {
                 val brands = listOf(stringResource(R.string.i_all_brands)) + (list.data.orEmpty().map { it.brand }.filter { it.isNotBlank() }.distinctBy { it.lowercase() }.sortedBy { it.lowercase() })
                 ChoiceSheet(stringResource(R.string.i_brand), brands, if (brand.isEmpty()) 0 else brands.indexOfFirst { it.equals(brand, true) }, { sheet = "" }) { brand = if (it == 0) "" else brands[it]; sheet = "" }
+            }
+            // Scan Barcode: the item with that code opens; none → offer to add it with the code filled in
+            "scan" -> ScanScreen({ sheet = "" }) { code ->
+                val hit = list.data.orEmpty().firstOrNull { it.code.equals(code, ignoreCase = true) }
+                if (hit != null) { sheet = ""; onItem(hit) } else { missingCode = code; sheet = "missing" }
+            }
+            "missing" -> billingo.app.ui.parts.Dim({ sheet = "" }, centre = true) {
+                billingo.app.ui.parts.ConfirmBox(
+                    stringResource(R.string.sc_no_item), stringResource(R.string.sc_not_found, missingCode), stringResource(R.string.close), stringResource(R.string.i_add),
+                    { sheet = "" }, { sheet = ""; onAdd(missingCode) }, danger = false,
+                )
             }
         }
     }
@@ -229,7 +241,7 @@ private fun GroupRow(g: ItemMaths.Entry.Group, isOpen: Boolean, onToggle: () -> 
  * margin, stock by batch and by godown, and every movement with All / Sale / Buy / Adjust.
  */
 @Composable
-fun ItemScreen(api: Api, id: String, name: String, onBack: () -> Unit, onAdjust: () -> Unit, onLater: () -> Unit) {
+fun ItemScreen(api: Api, id: String, name: String, onBack: () -> Unit, onAdjust: () -> Unit, onEdit: () -> Unit, onLater: () -> Unit) {
     val hi = hindi()
     val it = load(id) { api.item(id) }
     var filter by rememberSaveable { mutableIntStateOf(0) }
@@ -239,7 +251,7 @@ fun ItemScreen(api: Api, id: String, name: String, onBack: () -> Unit, onAdjust:
         d?.name ?: name,
         d?.let { listOf("${it.brand} ${it.series}".trim(), it.category, it.code).filter { s -> s.isNotBlank() }.joinToString(" · ") },
         onBack,
-        right = { IconBtn(Icons.Edit, stringResource(R.string.later_step), onLater) },
+        right = { IconBtn(Icons.Edit, stringResource(R.string.if_edit), onEdit) },
         foot = if (d == null || !goods) null else ({
             Btn(stringResource(R.string.ip_adjust_stock), onAdjust, Modifier.weight(1f), Kind.Soft)
             Btn(stringResource(R.string.ip_sell), onLater, Modifier.weight(1f), Kind.Blue, Icons.Plus)

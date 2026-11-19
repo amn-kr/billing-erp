@@ -91,4 +91,25 @@ data class ItemDetail(
     val movements: List<Movement> = emptyList(),
     val batches: Batches? = null,
     val rateTable: RateTable? = null,
+    val packUnit: String = "",
+    @Serializable(with = Exact::class) val packSize: BigDecimal = BigDecimal.ZERO,
+    val location: String = "",
 )
+
+@Serializable
+data class Named(val id: String, val name: String)
+
+@Serializable
+data class UnitRow(val id: String, val code: String, val name: String = "")
+
+/** The shop's lists for the item form (GET /catalogue). */
+@Serializable
+data class Catalogue(
+    val units: List<UnitRow> = emptyList(),
+    val categories: List<Named> = emptyList(),
+    val brands: List<Named> = emptyList(),
+    val groups: List<Named> = emptyList(),
+)
+
+@Serializable
+data class NextCode(val code: String)

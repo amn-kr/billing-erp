@@ -7,6 +7,10 @@ import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -23,6 +27,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
@@ -41,6 +47,7 @@ import billingo.app.ui.parties.StatementScreen
 import billingo.app.ui.blocks.BlocksScreen
 import billingo.app.ui.home.CreateNewSheet
 import billingo.app.ui.items.AdjustScreen
+import billingo.app.ui.items.ItemFormScreen
 import billingo.app.ui.items.ItemScreen
 import billingo.app.ui.items.ItemsScreen
 import billingo.app.ui.home.HomeScreen
@@ -98,6 +105,7 @@ class MainActivity : AppCompatActivity() {
     /** English or Hindi for the whole app; Android keeps the choice (also on Android 7 to 12). */
     private fun setLanguage(code: String) = AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(code))
 
+    @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -116,6 +124,7 @@ class MainActivity : AppCompatActivity() {
                 var signOutOpen by rememberSaveable { mutableStateOf(false) }
                 val waking by api.slow.collectAsState()
                 val holder = rememberSaveableStateHolder()
+                val kept = remember { mutableSetOf<String>() }
                 val hindi = resources.configuration.locales[0].language == "hi"
                 if (blocks) { BlocksScreen(onBack = { blocks = false }); return@BillinGoTheme }
                 val problem = words(m.problem)
@@ -140,15 +149,27 @@ class MainActivity : AppCompatActivity() {
                             val shop = s.me.business?.name ?: ""
                             // a screen opened above Home; the phone's Back closes it
                             val top = m.stack.lastOrNull()
+                            // a closed screen forgets what it kept, so a second New Item opens empty
+                            val live = m.stack.mapIndexed { i, r -> "${i + 1}:$r" }.toSet()
+                            SideEffect { kept.filter { it !in live }.forEach { holder.removeState(it); kept.remove(it) }; kept.addAll(live) }
                             if (top != null) {
-                                BackHandler { m.back() }
+                                // with the keyboard open, Back only closes the keyboard (what was typed stays)
+                                val imeOpen = WindowInsets.isImeVisible
+                                val keyboard = LocalSoftwareKeyboardController.current
+                                val focus = LocalFocusManager.current
+                                BackHandler { if (imeOpen) { focus.clearFocus(); keyboard?.hide() } else m.back() }
                                 // each open screen keeps its own choices (tab, filter, search) while another is on top
                                 holder.SaveableStateProvider("${m.stack.size}:$top") {
                                 when (top) {
                                     is Route.Parties -> PartiesScreen(m.server, top.bal, { m.back() }, { p -> m.open(Route.Party(p.id, p.name)) }, { m.open(Route.PartyForm(null)) })
                                     is Route.Party -> PartyScreen(m.server, top.id, top.name, shop, { m.back() }, { m.open(Route.Statement(top.id, top.name)) }, { m.open(Route.PartyForm(top.id)) }, later)
-                                    Route.Items -> ItemsScreen(m.server, { m.back() }, { i -> m.open(Route.Item(i.id, i.name)) }, later)
-                                    is Route.Item -> ItemScreen(m.server, top.id, top.name, { m.back() }, { m.open(Route.Adjust(top.id)) }, later)
+                                    Route.Items -> ItemsScreen(m.server, { m.back() }, { i -> m.open(Route.Item(i.id, i.name)) }, { code -> m.open(Route.ItemForm(null, code)) }, later)
+                                    is Route.Item -> ItemScreen(m.server, top.id, top.name, { m.back() }, { m.open(Route.Adjust(top.id)) }, { m.open(Route.ItemForm(top.id)) }, later)
+                                    is Route.ItemForm -> ItemFormScreen(
+                                        m.server, top.id, top.code, s.me.business?.features.orEmpty(), { m.back() },
+                                        onSaved = { id, name -> m.replace(Route.Item(id, name)); m.loadHome() },
+                                        onGone = { top.id?.let(m::leaveItem); m.loadHome() },
+                                    )
                                     is Route.Adjust -> AdjustScreen(m.server, top.id) { m.back(); m.loadHome() }
                                     is Route.PartyForm -> PartyFormScreen(
                                         m.server, top.id, { m.back() },
@@ -198,7 +219,7 @@ class MainActivity : AppCompatActivity() {
                             if (createOpen) {
                                 BackHandler { createOpen = false }
                                 // the New Party tile (10th) opens the form; the others come in later steps
-                                CreateNewSheet({ createOpen = false }) { i -> createOpen = false; if (i == 9) m.open(Route.PartyForm(null)) else later() }
+                                CreateNewSheet({ createOpen = false }) { i -> createOpen = false; when (i) { 9 -> m.open(Route.PartyForm(null)); 10 -> m.open(Route.ItemForm(null)); else -> later() } }
                             }
                             if (signOutOpen) {
                                 BackHandler { signOutOpen = false }

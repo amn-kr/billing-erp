@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Pick From Contacts / Import Contacts (design 7.4b); the phone asks the person first -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <!-- Scan Barcode (design 7.4c); the phone asks the person first. Phones without a camera can still use the app. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
 
     <application
         android:allowBackup="false"
