@@ -101,9 +101,12 @@ test('Settings preview, Sales preview, print and PDF show the same invoice, and 
   const doc = await pdfjs.getDocument({ data: new Uint8Array(pdf) }).promise;
   let text = '';
   for (let i = 1; i <= doc.numPages; i++) text += (await (await doc.getPage(i)).getTextContent()).items.map((x) => ('str' in x ? x.str : '')).join(' ') + '\n';
-  expect(text).toContain('Rough Invoice');
-  expect(text).toContain(no);
-  for (const behind of ['Sales invoices', 'Payment link', 'Share on WhatsApp', 'New invoice', 'Dashboard']) expect(text).not.toContain(behind);
+  // the PDF's text comes out in pieces whose spacing depends on the font (with Inter: "INV -0106"),
+  // so it is compared with all spaces taken out
+  const flat = (s: string) => s.replace(/\s+/g, '');
+  expect(flat(text)).toContain(flat('Rough Invoice'));
+  expect(flat(text)).toContain(flat(no));
+  for (const behind of ['Sales invoices', 'Payment link', 'Share on WhatsApp', 'New invoice', 'Dashboard']) expect(flat(text)).not.toContain(flat(behind));
   // page.pdf() prints with the page's current media: it stayed "print" (as a real print) until here
   await page.emulateMedia({ media: 'screen' });
 
