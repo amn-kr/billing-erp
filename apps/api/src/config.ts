@@ -61,6 +61,10 @@ const schema = z.object({
    * tagged android-v<version> with an .apk file. Tests point RELEASES_API_URL at a pretend GitHub.
    */
   RELEASES_API_URL: z.string().url().default('https://api.github.com'),
+  /** the releases page's site; its public feed (releases.atom) is read when there is no key */
+  RELEASES_WEB_URL: z.string().url().default('https://github.com'),
+  /** optional GitHub key (read-only) for the releases; without it the public feed is read */
+  RELEASES_READ_TOKEN: z.preprocess((v) => (v === '' ? undefined : v), z.string().optional()),
   RELEASES_REPO: z.string().regex(/^[\w.-]+\/[\w.-]+$/).default('amn-kr/billing-erp-releases'),
   /** The oldest phone version still allowed; older phones see "Update Needed". Empty: any version. */
   ANDROID_MIN_VERSION: z.preprocess((v) => (v === '' ? undefined : v), z.string().regex(/^\d+\.\d+\.\d+$/).optional()),
