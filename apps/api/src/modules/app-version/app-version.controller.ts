@@ -1,5 +1,6 @@
 import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { BRAND } from '@billing/shared';
 import { Public } from '../../common/decorators';
 import { config } from '../../config';
 
@@ -43,8 +44,8 @@ export const newer = (a: string, b: string): boolean => {
 /** Tests: forget the remembered answer. */
 export const forgetAppVersion = () => (cache = null);
 
-/** The phone APK's download address: the release workflow always names it BillinGo-<version>.apk. */
-export const apkUrl = (web: string, repo: string, version: string) => `${web}/${repo}/releases/download/android-v${version}/BillinGo-${version}.apk`;
+/** The phone APK's download address: the release workflow names it "<app name>-<version>.apk". */
+export const apkUrl = (web: string, repo: string, version: string) => `${web}/${repo}/releases/download/android-v${version}/${BRAND.name}-${version}.apk`;
 
 const unescape = (s: string) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
 

@@ -4,6 +4,7 @@ import type { AddressInfo } from 'node:net';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { forgetAppVersion, newer, phoneReleasesInFeed } from '../src/modules/app-version/app-version.controller';
+import { BRAND } from '@billing/shared';
 import { startApp } from './helpers';
 
 /**
@@ -64,17 +65,17 @@ describe('GET /api/app-version', () => {
   it('the newest phone release in the feed, with its APK address and notes; Windows releases skipped', async () => {
     feed = atom(
       entry('v0.1.2', 'v0.1.2', 'Windows'),
-      entry('android-v1.0.10', 'BillinGo phone app 1.0.10', '&lt;p&gt;Faster &amp;amp; safer&lt;/p&gt;', '2026-12-05T08:00:00Z'),
-      entry('android-v1.0.9', 'BillinGo phone app 1.0.9', 'Older'),
+      entry('android-v1.0.10', `${BRAND.name} phone app 1.0.10`, '&lt;p&gt;Faster &amp;amp; safer&lt;/p&gt;', '2026-12-05T08:00:00Z'),
+      entry('android-v1.0.9', `${BRAND.name} phone app 1.0.9`, 'Older'),
     );
     expect((await http().get('/api/app-version?app=android').expect(200)).body).toEqual({
       app: 'android', latest: '1.0.10', date: '2026-12-05T08:00:00Z', minimum: '1.0.0', notes: 'Faster & safer',
-      download: `${base}/amn-kr/billing-erp-releases/releases/download/android-v1.0.10/BillinGo-1.0.10.apk`,
+      download: `${base}/amn-kr/billing-erp-releases/releases/download/android-v1.0.10/${BRAND.name}-1.0.10.apk`,
     });
   });
 
   it('asks at most every 10 minutes, and keeps the last answer when GitHub is down', async () => {
-    feed = atom(entry('android-v1.0.1', 'BillinGo phone app 1.0.1', 'x'));
+    feed = atom(entry('android-v1.0.1', `${BRAND.name} phone app 1.0.1`, 'x'));
     await http().get('/api/app-version?app=android').expect(200);
     await http().get('/api/app-version?app=android').expect(200);
     expect(feedCalls).toBe(1);
@@ -92,7 +93,7 @@ describe('GET /api/app-version', () => {
     const { resetConfig } = await import('../src/config');
     resetConfig();
     try {
-      const rel = (tag: string, more: object = {}) => ({ tag_name: tag, draft: false, prerelease: false, published_at: '2026-12-01T10:00:00Z', body: 'notes', assets: [{ name: `BillinGo-${tag}.apk`, browser_download_url: `https://example.com/${tag}.apk` }], ...more });
+      const rel = (tag: string, more: object = {}) => ({ tag_name: tag, draft: false, prerelease: false, published_at: '2026-12-01T10:00:00Z', body: 'notes', assets: [{ name: `${BRAND.name}-${tag}.apk`, browser_download_url: `https://example.com/${tag}.apk` }], ...more });
       apiList = [rel('android-v1.2.0', { draft: true }), rel('android-v1.1.0', { prerelease: true }), rel('android-v1.0.11', { assets: [] }), rel('android-v1.0.10')];
       const b = (await http().get('/api/app-version?app=android').expect(200)).body;
       expect(b).toMatchObject({ latest: '1.0.10', download: 'https://example.com/android-v1.0.10.apk' });
@@ -113,10 +114,10 @@ describe('GET /api/app-version', () => {
   it('reads the real feed shape and compares versions as numbers', () => {
     const real = `<feed><entry><id>tag:github.com,2008:Repository/1453079490/android-v1.0.1</id><updated>2026-11-19T13:51:01Z</updated>
       <link rel="alternate" type="text/html" href="https://github.com/amn-kr/billing-erp-releases/releases/tag/android-v1.0.1"/>
-      <title>BillinGo phone app 1.0.1</title><content type="html">&lt;p&gt;Phone app (Android 7.0 and newer).&lt;/p&gt;</content></entry>
+      <title>${BRAND.name} phone app 1.0.1</title><content type="html">&lt;p&gt;Phone app (Android 7.0 and newer).&lt;/p&gt;</content></entry>
       <entry><link rel="alternate" type="text/html" href="https://github.com/amn-kr/billing-erp-releases/releases/tag/v0.1.0"/><content>No content.</content></entry></feed>`;
     expect(phoneReleasesInFeed(real, 'https://github.com', 'amn-kr/billing-erp-releases')).toEqual([
-      { app: 'android', latest: '1.0.1', date: '2026-11-19T13:51:01Z', notes: 'Phone app (Android 7.0 and newer).', download: 'https://github.com/amn-kr/billing-erp-releases/releases/download/android-v1.0.1/BillinGo-1.0.1.apk' },
+      { app: 'android', latest: '1.0.1', date: '2026-11-19T13:51:01Z', notes: 'Phone app (Android 7.0 and newer).', download: `https://github.com/amn-kr/billing-erp-releases/releases/download/android-v1.0.1/${BRAND.name}-1.0.1.apk` },
     ]);
     expect(newer('1.0.10', '1.0.9')).toBe(true);
     expect(newer('1.10.0', '1.9.9')).toBe(true);
