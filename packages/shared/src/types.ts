@@ -64,6 +64,10 @@ export interface AuthTokens {
   accessToken: string;
   /** Seconds until the access token expires. */
   expiresIn: number;
+  /** Phone app only (step 8.1c): the "stay signed in" token, kept in Android's safe store. The web gets a cookie instead. */
+  refreshToken?: string;
+  /** Phone app only: when `refreshToken` stops working (ISO time). */
+  refreshExpires?: string;
 }
 
 /** Settings › General › Team: one person in the shop. */

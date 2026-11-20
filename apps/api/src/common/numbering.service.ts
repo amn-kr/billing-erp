@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { counterOf, formatNumber, prefixPattern } from '@billing/shared';
-import type { Tx } from './db.service';
+import { afterCommit, type Tx } from './db.service';
+import { numbersChanged } from './live';
 import { SERIES } from '../modules/businesses/businesses.service';
 
 /** Where each document type keeps its numbers (fixed names, never from the request). */
@@ -86,7 +87,7 @@ export class NumberingService {
   }
 
   /**
-   * A number typed by hand (or brought in by an import). The prefix it was made with moves past
+   * A number brought in by an import (or kept by a restore). The prefix it was made with moves past
    * it, so that prefix never gives the same number again — also when it is made active later.
    */
   async claim(tx: Tx, businessId: string, userId: string, docType: string, _date: string, number: string): Promise<void> {
@@ -96,7 +97,10 @@ export class NumberingService {
     const s = rows.filter((r) => counterOf(number, r.prefix) !== null).sort((a, b) => b.prefix.length - a.prefix.length)[0];
     if (!s) return;
     const n = counterOf(number, s.prefix)!;
-    if (n >= s.nextNumber) await tx.documentSeries.update({ where: { id: s.id }, data: { nextNumber: n + 1 } });
+    if (n >= s.nextNumber) {
+      await tx.documentSeries.update({ where: { id: s.id }, data: { nextNumber: n + 1 } });
+      afterCommit(tx, () => numbersChanged(businessId, docType));
+    }
   }
 
   async next(tx: Tx, businessId: string, userId: string, docType: string, _date?: string): Promise<string> {
@@ -109,7 +113,11 @@ export class NumberingService {
       const r = rows[0]!;
       const number = formatNumber(r.prefix, r.n, r.padding);
       // a number typed by hand earlier may already sit on a document: skip it
-      if (!(await this.taken(tx, docType, number))) return number;
+      if (!(await this.taken(tx, docType, number))) {
+        // once saved, open screens of this shop show the next number at once (owner, 18 Nov 2026)
+        afterCommit(tx, () => numbersChanged(businessId, docType));
+        return number;
+      }
     }
   }
 }

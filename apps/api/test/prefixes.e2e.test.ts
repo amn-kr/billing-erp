@@ -2,6 +2,8 @@ import type { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { DbService } from '../src/common/db.service';
+import { NumberingService } from '../src/common/numbering.service';
 import { TEST_DB } from './env';
 import { auth, owner, startApp } from './helpers';
 
@@ -108,18 +110,21 @@ describe('numbering with prefixes', () => {
     expect((await sale().expect(201)).body.number).toBe('JE/INV/0002');
   });
 
-  it('a number typed by hand moves its own prefix past it, and is skipped later', async () => {
+  // owner, 18 Nov 2026: numbers are never typed; a number of its own now comes only with old data brought in
+  it('a number brought in by an import moves its own prefix past it, and is skipped later', async () => {
     const { o, sale } = await shop();
     const l = (await add(o, { docType: 'invoice', prefix: 'JE/' }).expect(201)).body as List;
-    await sale({ number: 'INV-0005' }).expect(201); // typed while JE/ is active
+    const sub = (JSON.parse(Buffer.from(o.token.split('.')[1]!, 'base64url').toString()) as { sub: string }).sub;
+    const nums = app.get(NumberingService);
+    await app.get(DbService).scoped({ businessId: o.businessId, userId: sub }, (tx) => nums.claim(tx, o.businessId, sub, 'invoice', D, 'INV-0005')); // brought in while JE/ is active
     await patch(o, px(l, 'invoice', 'INV-').id, { active: true }).expect(200);
     expect((await sale().expect(201)).body.number).toBe('INV-0006');
-    expect((await sale({ number: 'INV-0006' }).expect(400)).body.message).toBe('Invoice number INV-0006 is already used.');
   });
 
   it('a new prefix with documents already numbered with it starts after the highest one', async () => {
     const { o, sale } = await shop();
-    await sale({ number: 'JE/0041' }).expect(201);
+    const r = (await sale().expect(201)).body;
+    await app.get(DbService).scoped({ businessId: o.businessId }, (tx) => tx.salesDocument.update({ where: { id: r.id }, data: { number: 'JE/0041' } })); // as an import would have kept it
     const l = (await add(o, { docType: 'invoice', prefix: 'JE/' }).expect(201)).body as List;
     expect(px(l, 'invoice', 'JE/')).toMatchObject({ used: 1, next: 'JE/0042' });
   });

@@ -84,6 +84,7 @@ model Business {
   settings              BusinessSettings?
   priceLock             PriceLock?
   txnPasscode           TxnPasscode?
+  requestKeys           RequestKey[]
   cashBankAccounts      CashBankAccount[]
   salesDocuments        SalesDocument[]
   salesDocumentLines    SalesDocumentLine[]
@@ -421,6 +422,25 @@ model TxnPasscode {
   business Business @relation(fields: [businessId], references: [id])
 
   @@map("txn_passcodes")
+}
+
+/// One-time keys against double bills (step 8.1b): a repeated save gets the first answer back. Kept 7 days.
+model RequestKey {
+  businessId  String   @map("business_id") @db.Uuid
+  key         String
+  userId      String   @map("user_id") @db.Uuid
+  /// what was sent (method, address, body); the same key with something else is refused
+  fingerprint String
+  /// empty while the first save is still running
+  status      Int?
+  response    Json?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@id([businessId, key])
+  @@index([businessId, createdAt])
+  @@map("request_keys")
 }
 
 model FinancialYear {

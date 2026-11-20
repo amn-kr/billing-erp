@@ -68,14 +68,14 @@ Tables by area:
 
 **Technology**
 - **Windows/Mac:** Electron, because it has Node built in, so the existing NestJS API runs inside the app in single-PC mode. A bundled PostgreSQL 16 runs locally, so Prisma, raw-SQL reports and RLS work unchanged. In online mode the same app talks to the cloud API.
-- **Android/iPhone:** Capacitor with React (`apps/mobile`). The data layer (`api.ts`, `hooks.ts`, Zod schemas) is shared with the web app. Only the screens are new.
+- **Android:** Kotlin with Jetpack Compose (`apps/android`), chosen by the owner on 18 Nov 2026. The screens are rebuilt from the approved phone design; the code that talks to the server is generated from the server's OpenAPI description; the on-phone preview maths is checked against the web's with one shared list of examples. **iPhone:** decided later. Detailed plan: `docs/PHASE8-PLAN.md`.
 - **Printing:** the Windows app prints directly to thermal receipt printers and to A4 printers. Paper sizes come from Settings.
 
 | # | Phase | Gate to move on |
 |---|---|---|
 | 6 | Windows app + single-PC offline mode: Electron shell, local API + bundled PostgreSQL, local numbering, direct thermal/A4 printing, automatic cloud backup when online + backup to pen drive, Move to cloud, installer with auto-update | All flow tests pass in the Windows app with the internet off. Move to cloud test passes. A restore drill from both backup types passes. Screens match the prototype at 1280, 1366 and 1920 px |
 | 7 | Mobile design (`reference/design/mobile.html`): colours, building blocks, app map, then every phone screen in 10 parts. **May run during the Windows trial** (owner, 13 Nov 2026) | Every phone item in `docs/MOBILE-PLAN.md` section 3 has a screen, and the owner approves every part |
-| 8 | Android app (APK): Capacitor, online only, English and Hindi, Android 7.0 and newer, portrait only, invoice PDF shared on WhatsApp, camera barcode scan, phone contacts, fingerprint, in-app "update available" check. The APK is shared directly at first; Play Store comes later. Starts after the Windows trial passes | Flow tests pass on an Android emulator; fit checks pass from 320 to 480 px; one picture per screen matches the approved design; trial checklist passes |
+| 8 | Android app (APK): Kotlin + Jetpack Compose, online only, English and Hindi, Android 7.0 and newer, portrait only, invoice PDF shared on WhatsApp, camera barcode scan, phone contacts, fingerprint, in-app "update available" check. The APK is shared directly at first; Play Store comes later. Starts now; the rest of the Windows trial comes after the phone app is launched (owner, 18 Nov 2026). Detailed plan: `docs/PHASE8-PLAN.md` | Flow tests pass on an Android emulator; fit checks pass from 320 to 480 px; one picture per screen matches the approved design; trial checklist passes |
 | 9 | iPhone + Mac builds from the same code | Same tests pass on iPhone simulator and Mac. Apple developer account (about ₹8,500 a year) approved by owner |
 
 **Mobile plan (owner's decisions, 13–15 Nov 2026):** the full plan is in `docs/MOBILE-PLAN.md`. In short:

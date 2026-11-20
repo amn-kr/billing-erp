@@ -12,6 +12,7 @@
 - **Colours:** only the 20 colours in `docs/MOBILE-PLAN.md` section 2, kept in one shared file. A test fails on any other colour. Every money amount also shows an arrow or a word, never colour alone. Shadows and shine use only these colours made see-through (owner, 16 Nov 2026: the phone app is not flat).
 - **One design for every phone:** no fixed widths. Each screen has one approved picture at 390 px, and automatic fit checks run at every width from 320 to 480 px (nothing outside the screen, no overlaps, no cut text or amounts, buttons at least 44 px). Portrait only.
 - **English and Hindi** for all phone text. Lowest Android version: 7.0.
+- **Android app (owner, 18 Nov 2026):** Kotlin with Jetpack Compose in `apps/android`, App ID `in.billingo.app` (permanent). Fonts: Inter for English, Noto Sans Devanagari for Hindi. The on-phone preview maths must pass the shared list of examples in `packages/shared`, the same as the web. Detailed plan: `docs/PHASE8-PLAN.md`.
 - **Wording:** every word of a button, field, tab, badge or heading starts with a capital letter (Purchase Bill). Dates look the same everywhere: 16 Nov 2026 (day, short month, year). A transaction row shows its name, then "INV-0107 | 14 Nov 2026" under it. Names stay on one line and end with "…" when they don't fit.
 - **Order:** Phase 7 (mobile design) may run during the Windows trial. **Phase 8 (the app) starts now; the rest of the Windows trial (sections D, F, F2, G and the shop trial I) comes after the phone app is launched (owner, 18 Nov 2026).**
 - **Later, after the Windows trial (owner's decision):** the web and Windows apps move to the same 20 colours and the same test method (one picture plus fit checks instead of 1280, 1366 and 1920). Until then, the rule above stays as it is.
@@ -42,6 +43,7 @@ The rebuild needs npm packages. If `npm view react version` fails with 403, this
 - **Dates:** ISO `date`. The business timezone is Asia/Kolkata. The financial year runs April to March.
 - **Tenancy:** every shop-owned table has `business_id`. Set the RLS context per request in the API.
 - **Documents:** never deleted, only cancelled. Write audit-log entries for create, update and cancel.
+- **Document numbers (owner, 18 Nov 2026):** always assigned by the server, never typed or edited by anyone, in every app (web, Windows, phone). Open screens show the next number live and update it when another device saves the same kind of document.
 - **Tests:** unit tests for maths, API tests per endpoint, Playwright for flows. Port `reference/tests/flows.js` checks to the new app.
 - **Commits:** small, with descriptive messages. Never commit secrets; use `.env.example`.
 

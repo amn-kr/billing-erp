@@ -1,0 +1,1305 @@
+{
+  "about": "Bills with their exact totals and amounts in words. The web, the server and the phone app must all give these answers. Made by packages/shared/scripts/maths-examples.mjs; do not edit by hand.",
+  "bills": [
+    {
+      "name": "One item, GST 18%, same state",
+      "kind": "sale",
+      "bill": {
+        "mode": "gst",
+        "incl": false,
+        "inter": false,
+        "roundOff": true,
+        "lines": [
+          {
+            "qty": "1",
+            "price": "1890",
+            "gst": "18",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "1890.00",
+            "tax": "340.20",
+            "amount": "2230.20"
+          }
+        ],
+        "items": "2230.20",
+        "billDiscount": "0.00",
+        "taxable": "1890.00",
+        "tax": "340.20",
+        "cgst": "170.10",
+        "sgst": "170.10",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "-0.20",
+        "total": "2230.00",
+        "byRate": {
+          "18": {
+            "taxable": "1890.00",
+            "tax": "340.20"
+          }
+        }
+      }
+    },
+    {
+      "name": "Two items, two GST rates, line discount",
+      "kind": "sale",
+      "bill": {
+        "mode": "gst",
+        "incl": false,
+        "inter": false,
+        "roundOff": true,
+        "lines": [
+          {
+            "qty": "3",
+            "price": "1890",
+            "gst": "18",
+            "disc": "5"
+          },
+          {
+            "qty": "12",
+            "price": "95",
+            "gst": "12",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "5386.50",
+            "tax": "969.57",
+            "amount": "6356.07"
+          },
+          {
+            "taxable": "1140.00",
+            "tax": "136.80",
+            "amount": "1276.80"
+          }
+        ],
+        "items": "7632.87",
+        "billDiscount": "0.00",
+        "taxable": "6526.50",
+        "tax": "1106.37",
+        "cgst": "553.19",
+        "sgst": "553.18",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "0.13",
+        "total": "7633.00",
+        "byRate": {
+          "12": {
+            "taxable": "1140.00",
+            "tax": "136.80"
+          },
+          "18": {
+            "taxable": "5386.50",
+            "tax": "969.57"
+          }
+        }
+      }
+    },
+    {
+      "name": "Other state: IGST instead of CGST and SGST",
+      "kind": "sale",
+      "bill": {
+        "mode": "gst",
+        "incl": false,
+        "inter": true,
+        "roundOff": true,
+        "lines": [
+          {
+            "qty": "2",
+            "price": "1890",
+            "gst": "18",
+            "disc": "0"
+          },
+          {
+            "qty": "5",
+            "price": "62.5",
+            "gst": "5",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "3780.00",
+            "tax": "680.40",
+            "amount": "4460.40"
+          },
+          {
+            "taxable": "312.50",
+            "tax": "15.63",
+            "amount": "328.13"
+          }
+        ],
+        "items": "4788.53",
+        "billDiscount": "0.00",
+        "taxable": "4092.50",
+        "tax": "696.03",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "696.03",
+        "tcs": "0.00",
+        "roundOff": "0.47",
+        "total": "4789.00",
+        "byRate": {
+          "5": {
+            "taxable": "312.50",
+            "tax": "15.63"
+          },
+          "18": {
+            "taxable": "3780.00",
+            "tax": "680.40"
+          }
+        }
+      }
+    },
+    {
+      "name": "Prices include GST",
+      "kind": "sale",
+      "bill": {
+        "mode": "gst",
+        "incl": true,
+        "inter": false,
+        "roundOff": true,
+        "lines": [
+          {
+            "qty": "1",
+            "price": "2230.20",
+            "gst": "18",
+            "disc": "0"
+          },
+          {
+            "qty": "4",
+            "price": "112.10",
+            "gst": "18",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "1890.00",
+            "tax": "340.20",
+            "amount": "2230.20"
+          },
+          {
+            "taxable": "380.00",
+            "tax": "68.40",
+            "amount": "448.40"
+          }
+        ],
+        "items": "2678.60",
+        "billDiscount": "0.00",
+        "taxable": "2270.00",
+        "tax": "408.60",
+        "cgst": "204.30",
+        "sgst": "204.30",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "0.40",
+        "total": "2679.00",
+        "byRate": {
+          "18": {
+            "taxable": "2270.00",
+            "tax": "408.60"
+          }
+        }
+      }
+    },
+    {
+      "name": "Bill discount in %",
+      "kind": "sale",
+      "bill": {
+        "mode": "gst",
+        "incl": false,
+        "inter": false,
+        "roundOff": true,
+        "bdiscP": "5",
+        "lines": [
+          {
+            "qty": "3",
+            "price": "1890",
+            "gst": "18",
+            "disc": "0"
+          },
+          {
+            "qty": "2",
+            "price": "95",
+            "gst": "18",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "5670.00",
+            "tax": "1020.60",
+            "amount": "6690.60"
+          },
+          {
+            "taxable": "190.00",
+            "tax": "34.20",
+            "amount": "224.20"
+          }
+        ],
+        "items": "6914.80",
+        "billDiscount": "345.74",
+        "taxable": "5567.00",
+        "tax": "1002.06",
+        "cgst": "501.03",
+        "sgst": "501.03",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "-0.06",
+        "total": "6569.00",
+        "byRate": {
+          "18": {
+            "taxable": "5567.00",
+            "tax": "1002.06"
+          }
+        }
+      }
+    },
+    {
+      "name": "Bill discount as an amount",
+      "kind": "sale",
+      "bill": {
+        "mode": "gst",
+        "incl": false,
+        "inter": false,
+        "roundOff": true,
+        "bdisc": "293",
+        "lines": [
+          {
+            "qty": "3",
+            "price": "1890",
+            "gst": "18",
+            "disc": "0"
+          },
+          {
+            "qty": "2",
+            "price": "95",
+            "gst": "18",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "5670.00",
+            "tax": "1020.60",
+            "amount": "6690.60"
+          },
+          {
+            "taxable": "190.00",
+            "tax": "34.20",
+            "amount": "224.20"
+          }
+        ],
+        "items": "6914.80",
+        "billDiscount": "293.00",
+        "taxable": "5611.69",
+        "tax": "1010.11",
+        "cgst": "505.06",
+        "sgst": "505.05",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "0.20",
+        "total": "6622.00",
+        "byRate": {
+          "18": {
+            "taxable": "5611.69",
+            "tax": "1010.11"
+          }
+        }
+      }
+    },
+    {
+      "name": "Bill discount larger than the bill stops at the bill",
+      "kind": "sale",
+      "bill": {
+        "mode": "gst",
+        "incl": false,
+        "inter": false,
+        "roundOff": true,
+        "bdisc": "99999",
+        "lines": [
+          {
+            "qty": "1",
+            "price": "100",
+            "gst": "18",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "100.00",
+            "tax": "18.00",
+            "amount": "118.00"
+          }
+        ],
+        "items": "118.00",
+        "billDiscount": "118.00",
+        "taxable": "0.00",
+        "tax": "0.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "0.00",
+        "total": "0.00",
+        "byRate": {
+          "18": {
+            "taxable": "0.00",
+            "tax": "0.00"
+          }
+        }
+      }
+    },
+    {
+      "name": "Transport, labour and bank charges",
+      "kind": "sale",
+      "bill": {
+        "mode": "gst",
+        "incl": false,
+        "inter": false,
+        "roundOff": true,
+        "chTr": "150",
+        "chLab": "75.50",
+        "chBank": "20",
+        "lines": [
+          {
+            "qty": "3",
+            "price": "1890",
+            "gst": "18",
+            "disc": "0"
+          },
+          {
+            "qty": "2",
+            "price": "95",
+            "gst": "18",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "5670.00",
+            "tax": "1020.60",
+            "amount": "6690.60"
+          },
+          {
+            "taxable": "190.00",
+            "tax": "34.20",
+            "amount": "224.20"
+          }
+        ],
+        "items": "6914.80",
+        "billDiscount": "0.00",
+        "taxable": "5860.00",
+        "tax": "1054.80",
+        "cgst": "527.40",
+        "sgst": "527.40",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "-0.30",
+        "total": "7160.00",
+        "byRate": {
+          "18": {
+            "taxable": "5860.00",
+            "tax": "1054.80"
+          }
+        }
+      }
+    },
+    {
+      "name": "TCS 0.1%",
+      "kind": "sale",
+      "bill": {
+        "mode": "gst",
+        "incl": false,
+        "inter": false,
+        "roundOff": true,
+        "tcsRate": "0.1",
+        "lines": [
+          {
+            "qty": "40",
+            "price": "13999",
+            "gst": "18",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "559960.00",
+            "tax": "100792.80",
+            "amount": "660752.80"
+          }
+        ],
+        "items": "660752.80",
+        "billDiscount": "0.00",
+        "taxable": "559960.00",
+        "tax": "100792.80",
+        "cgst": "50396.40",
+        "sgst": "50396.40",
+        "igst": "0.00",
+        "tcs": "660.75",
+        "roundOff": "0.45",
+        "total": "661414.00",
+        "byRate": {
+          "18": {
+            "taxable": "559960.00",
+            "tax": "100792.80"
+          }
+        }
+      }
+    },
+    {
+      "name": "Round off off: paise kept",
+      "kind": "sale",
+      "bill": {
+        "mode": "gst",
+        "incl": false,
+        "inter": false,
+        "roundOff": false,
+        "lines": [
+          {
+            "qty": "3",
+            "price": "33.33",
+            "gst": "18",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "99.99",
+            "tax": "18.00",
+            "amount": "117.99"
+          }
+        ],
+        "items": "117.99",
+        "billDiscount": "0.00",
+        "taxable": "99.99",
+        "tax": "18.00",
+        "cgst": "9.00",
+        "sgst": "9.00",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "0.00",
+        "total": "117.99",
+        "byRate": {
+          "18": {
+            "taxable": "99.99",
+            "tax": "18.00"
+          }
+        }
+      }
+    },
+    {
+      "name": "Round off: 50 paise goes up",
+      "kind": "sale",
+      "bill": {
+        "mode": "gst",
+        "incl": false,
+        "inter": false,
+        "roundOff": true,
+        "lines": [
+          {
+            "qty": "1",
+            "price": "100.4237288135593220339",
+            "gst": "18",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "100.42",
+            "tax": "18.08",
+            "amount": "118.50"
+          }
+        ],
+        "items": "118.50",
+        "billDiscount": "0.00",
+        "taxable": "100.42",
+        "tax": "18.08",
+        "cgst": "9.04",
+        "sgst": "9.04",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "0.50",
+        "total": "119.00",
+        "byRate": {
+          "18": {
+            "taxable": "100.42",
+            "tax": "18.08"
+          }
+        }
+      }
+    },
+    {
+      "name": "Half paisa in CGST: SGST takes the rest",
+      "kind": "sale",
+      "bill": {
+        "mode": "gst",
+        "incl": false,
+        "inter": false,
+        "roundOff": true,
+        "lines": [
+          {
+            "qty": "1",
+            "price": "0.05",
+            "gst": "18",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "0.05",
+            "tax": "0.01",
+            "amount": "0.06"
+          }
+        ],
+        "items": "0.06",
+        "billDiscount": "0.00",
+        "taxable": "0.05",
+        "tax": "0.01",
+        "cgst": "0.01",
+        "sgst": "0.00",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "-0.06",
+        "total": "0.00",
+        "byRate": {
+          "18": {
+            "taxable": "0.05",
+            "tax": "0.01"
+          }
+        }
+      }
+    },
+    {
+      "name": "Quantity with decimals (metres, kg)",
+      "kind": "sale",
+      "bill": {
+        "mode": "gst",
+        "incl": false,
+        "inter": false,
+        "roundOff": true,
+        "lines": [
+          {
+            "qty": "2.75",
+            "price": "48.40",
+            "gst": "18",
+            "disc": "0"
+          },
+          {
+            "qty": "0.5",
+            "price": "312",
+            "gst": "18",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "133.10",
+            "tax": "23.96",
+            "amount": "157.06"
+          },
+          {
+            "taxable": "156.00",
+            "tax": "28.08",
+            "amount": "184.08"
+          }
+        ],
+        "items": "341.14",
+        "billDiscount": "0.00",
+        "taxable": "289.10",
+        "tax": "52.04",
+        "cgst": "26.02",
+        "sgst": "26.02",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "-0.14",
+        "total": "341.00",
+        "byRate": {
+          "18": {
+            "taxable": "289.10",
+            "tax": "52.04"
+          }
+        }
+      }
+    },
+    {
+      "name": "GST 0%, 5%, 12%, 18% and 28% together",
+      "kind": "sale",
+      "bill": {
+        "mode": "gst",
+        "incl": false,
+        "inter": false,
+        "roundOff": true,
+        "lines": [
+          {
+            "qty": "1",
+            "price": "100",
+            "gst": "0",
+            "disc": "0"
+          },
+          {
+            "qty": "1",
+            "price": "100",
+            "gst": "5",
+            "disc": "0"
+          },
+          {
+            "qty": "1",
+            "price": "100",
+            "gst": "12",
+            "disc": "0"
+          },
+          {
+            "qty": "1",
+            "price": "100",
+            "gst": "18",
+            "disc": "0"
+          },
+          {
+            "qty": "1",
+            "price": "100",
+            "gst": "28",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "100.00",
+            "tax": "0.00",
+            "amount": "100.00"
+          },
+          {
+            "taxable": "100.00",
+            "tax": "5.00",
+            "amount": "105.00"
+          },
+          {
+            "taxable": "100.00",
+            "tax": "12.00",
+            "amount": "112.00"
+          },
+          {
+            "taxable": "100.00",
+            "tax": "18.00",
+            "amount": "118.00"
+          },
+          {
+            "taxable": "100.00",
+            "tax": "28.00",
+            "amount": "128.00"
+          }
+        ],
+        "items": "563.00",
+        "billDiscount": "0.00",
+        "taxable": "500.00",
+        "tax": "63.00",
+        "cgst": "31.50",
+        "sgst": "31.50",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "0.00",
+        "total": "563.00",
+        "byRate": {
+          "0": {
+            "taxable": "100.00",
+            "tax": "0.00"
+          },
+          "5": {
+            "taxable": "100.00",
+            "tax": "5.00"
+          },
+          "12": {
+            "taxable": "100.00",
+            "tax": "12.00"
+          },
+          "18": {
+            "taxable": "100.00",
+            "tax": "18.00"
+          },
+          "28": {
+            "taxable": "100.00",
+            "tax": "28.00"
+          }
+        }
+      }
+    },
+    {
+      "name": "Blank row does not count",
+      "kind": "sale",
+      "bill": {
+        "mode": "gst",
+        "incl": false,
+        "inter": false,
+        "roundOff": true,
+        "lines": [
+          {
+            "qty": "2",
+            "price": "1890",
+            "gst": "18",
+            "disc": "0"
+          },
+          {
+            "qty": "0",
+            "price": "0",
+            "gst": "18",
+            "counted": false
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "3780.00",
+            "tax": "680.40",
+            "amount": "4460.40"
+          },
+          {
+            "taxable": "0.00",
+            "tax": "0.00",
+            "amount": "0.00"
+          }
+        ],
+        "items": "4460.40",
+        "billDiscount": "0.00",
+        "taxable": "3780.00",
+        "tax": "680.40",
+        "cgst": "340.20",
+        "sgst": "340.20",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "-0.40",
+        "total": "4460.00",
+        "byRate": {
+          "18": {
+            "taxable": "3780.00",
+            "tax": "680.40"
+          }
+        }
+      }
+    },
+    {
+      "name": "Bill of supply (composition dealer): no GST",
+      "kind": "sale",
+      "bill": {
+        "mode": "bos",
+        "incl": false,
+        "inter": false,
+        "roundOff": true,
+        "lines": [
+          {
+            "qty": "3",
+            "price": "1890",
+            "gst": "18",
+            "disc": "0"
+          },
+          {
+            "qty": "2",
+            "price": "95",
+            "gst": "18",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "5670.00",
+            "tax": "0.00",
+            "amount": "5670.00"
+          },
+          {
+            "taxable": "190.00",
+            "tax": "0.00",
+            "amount": "190.00"
+          }
+        ],
+        "items": "5860.00",
+        "billDiscount": "0.00",
+        "taxable": "5860.00",
+        "tax": "0.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "0.00",
+        "total": "5860.00",
+        "byRate": {}
+      }
+    },
+    {
+      "name": "GST switched off",
+      "kind": "sale",
+      "bill": {
+        "mode": "none",
+        "incl": false,
+        "inter": false,
+        "roundOff": true,
+        "lines": [
+          {
+            "qty": "3",
+            "price": "1890",
+            "gst": "18",
+            "disc": "10"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "5103.00",
+            "tax": "0.00",
+            "amount": "5103.00"
+          }
+        ],
+        "items": "5103.00",
+        "billDiscount": "0.00",
+        "taxable": "5103.00",
+        "tax": "0.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "0.00",
+        "total": "5103.00",
+        "byRate": {}
+      }
+    },
+    {
+      "name": "Large bill (lakhs)",
+      "kind": "sale",
+      "bill": {
+        "mode": "gst",
+        "incl": false,
+        "inter": false,
+        "roundOff": true,
+        "lines": [
+          {
+            "qty": "250",
+            "price": "4599.99",
+            "gst": "28",
+            "disc": "2.5"
+          },
+          {
+            "qty": "1000",
+            "price": "89.90",
+            "gst": "18",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "1121247.56",
+            "tax": "313949.32",
+            "amount": "1435196.88"
+          },
+          {
+            "taxable": "89900.00",
+            "tax": "16182.00",
+            "amount": "106082.00"
+          }
+        ],
+        "items": "1541278.88",
+        "billDiscount": "0.00",
+        "taxable": "1211147.56",
+        "tax": "330131.32",
+        "cgst": "165065.66",
+        "sgst": "165065.66",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "0.12",
+        "total": "1541279.00",
+        "byRate": {
+          "18": {
+            "taxable": "89900.00",
+            "tax": "16182.00"
+          },
+          "28": {
+            "taxable": "1121247.56",
+            "tax": "313949.32"
+          }
+        }
+      }
+    },
+    {
+      "name": "Purchase: one item, GST 18%",
+      "kind": "purchase",
+      "bill": {
+        "mode": "gst",
+        "incl": false,
+        "inter": false,
+        "roundOff": true,
+        "lines": [
+          {
+            "qty": "10",
+            "price": "58",
+            "gst": "18",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "580.00",
+            "tax": "104.40",
+            "amount": "684.40"
+          }
+        ],
+        "items": "684.40",
+        "billDiscount": "0.00",
+        "taxable": "580.00",
+        "tax": "104.40",
+        "cgst": "52.20",
+        "sgst": "52.20",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "-0.40",
+        "total": "684.00",
+        "byRate": {
+          "18": {
+            "taxable": "580.00",
+            "tax": "104.40"
+          }
+        }
+      }
+    },
+    {
+      "name": "Purchase: other state, line discount",
+      "kind": "purchase",
+      "bill": {
+        "mode": "gst",
+        "incl": false,
+        "inter": true,
+        "roundOff": true,
+        "lines": [
+          {
+            "qty": "24",
+            "price": "1560",
+            "gst": "18",
+            "disc": "7.5"
+          },
+          {
+            "qty": "100",
+            "price": "41.25",
+            "gst": "12",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "34632.00",
+            "tax": "6233.76",
+            "amount": "40865.76"
+          },
+          {
+            "taxable": "4125.00",
+            "tax": "495.00",
+            "amount": "4620.00"
+          }
+        ],
+        "items": "45485.76",
+        "billDiscount": "0.00",
+        "taxable": "38757.00",
+        "tax": "6728.76",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "6728.76",
+        "tcs": "0.00",
+        "roundOff": "0.24",
+        "total": "45486.00",
+        "byRate": {
+          "12": {
+            "taxable": "4125.00",
+            "tax": "495.00"
+          },
+          "18": {
+            "taxable": "34632.00",
+            "tax": "6233.76"
+          }
+        }
+      }
+    },
+    {
+      "name": "Purchase: rates include GST",
+      "kind": "purchase",
+      "bill": {
+        "mode": "gst",
+        "incl": true,
+        "inter": false,
+        "roundOff": true,
+        "lines": [
+          {
+            "qty": "6",
+            "price": "1840.80",
+            "gst": "18",
+            "disc": "0"
+          },
+          {
+            "qty": "10",
+            "price": "105",
+            "gst": "5",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "9360.00",
+            "tax": "1684.80",
+            "amount": "11044.80"
+          },
+          {
+            "taxable": "1000.00",
+            "tax": "50.00",
+            "amount": "1050.00"
+          }
+        ],
+        "items": "12094.80",
+        "billDiscount": "0.00",
+        "taxable": "10360.00",
+        "tax": "1734.80",
+        "cgst": "867.40",
+        "sgst": "867.40",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "0.20",
+        "total": "12095.00",
+        "byRate": {
+          "5": {
+            "taxable": "1000.00",
+            "tax": "50.00"
+          },
+          "18": {
+            "taxable": "9360.00",
+            "tax": "1684.80"
+          }
+        }
+      }
+    },
+    {
+      "name": "Purchase: bill discount and charges",
+      "kind": "purchase",
+      "bill": {
+        "mode": "gst",
+        "incl": false,
+        "inter": false,
+        "roundOff": true,
+        "bdiscP": "2",
+        "chTr": "250",
+        "chLab": "40",
+        "lines": [
+          {
+            "qty": "10",
+            "price": "58",
+            "gst": "18",
+            "disc": "0"
+          },
+          {
+            "qty": "5",
+            "price": "1560",
+            "gst": "18",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "580.00",
+            "tax": "104.40",
+            "amount": "684.40"
+          },
+          {
+            "taxable": "7800.00",
+            "tax": "1404.00",
+            "amount": "9204.00"
+          }
+        ],
+        "items": "9888.40",
+        "billDiscount": "197.77",
+        "taxable": "8212.40",
+        "tax": "1478.23",
+        "cgst": "739.12",
+        "sgst": "739.11",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "0.37",
+        "total": "9981.00",
+        "byRate": {
+          "18": {
+            "taxable": "8212.40",
+            "tax": "1478.23"
+          }
+        }
+      }
+    },
+    {
+      "name": "Purchase: round off off",
+      "kind": "purchase",
+      "bill": {
+        "mode": "gst",
+        "incl": false,
+        "inter": false,
+        "roundOff": false,
+        "lines": [
+          {
+            "qty": "7",
+            "price": "13.37",
+            "gst": "18",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "93.59",
+            "tax": "16.85",
+            "amount": "110.44"
+          }
+        ],
+        "items": "110.44",
+        "billDiscount": "0.00",
+        "taxable": "93.59",
+        "tax": "16.85",
+        "cgst": "8.43",
+        "sgst": "8.42",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "0.00",
+        "total": "110.44",
+        "byRate": {
+          "18": {
+            "taxable": "93.59",
+            "tax": "16.85"
+          }
+        }
+      }
+    },
+    {
+      "name": "Purchase: GST switched off",
+      "kind": "purchase",
+      "bill": {
+        "mode": "none",
+        "incl": false,
+        "inter": false,
+        "roundOff": true,
+        "lines": [
+          {
+            "qty": "10",
+            "price": "58",
+            "gst": "18",
+            "disc": "0"
+          }
+        ]
+      },
+      "expect": {
+        "rows": [
+          {
+            "taxable": "580.00",
+            "tax": "0.00",
+            "amount": "580.00"
+          }
+        ],
+        "items": "580.00",
+        "billDiscount": "0.00",
+        "taxable": "580.00",
+        "tax": "0.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "0.00",
+        "tcs": "0.00",
+        "roundOff": "0.00",
+        "total": "580.00",
+        "byRate": {}
+      }
+    }
+  ],
+  "words": [
+    {
+      "amount": "0",
+      "expect": "Rupees Zero Only"
+    },
+    {
+      "amount": "1",
+      "expect": "Rupees One Only"
+    },
+    {
+      "amount": "15",
+      "expect": "Rupees Fifteen Only"
+    },
+    {
+      "amount": "100",
+      "expect": "Rupees One Hundred Only"
+    },
+    {
+      "amount": "105.50",
+      "expect": "Rupees One Hundred Five and Fifty Paise Only"
+    },
+    {
+      "amount": "1000",
+      "expect": "Rupees One Thousand Only"
+    },
+    {
+      "amount": "5717",
+      "expect": "Rupees Five Thousand Seven Hundred Seventeen Only"
+    },
+    {
+      "amount": "19999.99",
+      "expect": "Rupees Nineteen Thousand Nine Hundred Ninety Nine and Ninety Nine Paise Only"
+    },
+    {
+      "amount": "100000",
+      "expect": "Rupees One Lakh Only"
+    },
+    {
+      "amount": "1234567.89",
+      "expect": "Rupees Twelve Lakh Thirty Four Thousand Five Hundred Sixty Seven and Eighty Nine Paise Only"
+    },
+    {
+      "amount": "10000000",
+      "expect": "Rupees One Crore Only"
+    },
+    {
+      "amount": "999999999.99",
+      "expect": "Rupees Ninety Nine Crore Ninety Nine Lakh Ninety Nine Thousand Nine Hundred Ninety Nine and Ninety Nine Paise Only"
+    }
+  ]
+}

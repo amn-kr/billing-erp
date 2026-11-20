@@ -40,7 +40,7 @@ Web · Windows (works offline) · Android and iPhone (coming)
 
 ## Latest
 
-_Last updated: 19 Nov 2026. Details: [`docs/STATUS.md`](docs/STATUS.md)._
+_Last updated: 20 Nov 2026. Details: [`docs/STATUS.md`](docs/STATUS.md)._
 
 | | |
 |---|---|
@@ -48,7 +48,8 @@ _Last updated: 19 Nov 2026. Details: [`docs/STATUS.md`](docs/STATUS.md)._
 | **Latest Windows release** | **v0.1.1** (13 Nov 2026): adds *Bring online books to this PC*. Installers are on the [releases page](https://github.com/amn-kr/billing-erp-releases/releases). |
 | **Live web app** | https://billing-erp-ynqf.onrender.com (free plans; the first open after 15 idle minutes can take about a minute). |
 | **Needs attention** | Nightly database backups have not run since 9 Nov 2026. The fix is merged (PR #105) and in the backup repository, but GitHub's Actions budget stops every run. On hold until 1 Dec 2026, when the free minutes return; a reminder will run one backup and check the restore test that day. |
-| **Next** | Android app (Phase 8). The phone design (Phase 7) is complete. The rest of the Windows trial comes after the phone app is launched (owner, 18 Nov 2026). Selling (Phase 5) starts only when the owner asks. |
+| **Latest phone release** | **Android app 1.0.2** (20 Nov 2026): adds New Item, Edit Item and barcode scan. On the [releases page](https://github.com/amn-kr/billing-erp-releases/releases); *Check For Update* in the app finds it. |
+| **Next** | Android app (Phase 8) in **Kotlin**. Done and merged: 8.1 (server groundwork), 8.2 (app frame, sign-in, Home, signed APK), 8.3 (Parties), 8.4a (items list, item page, Adjust Stock) and 8.4b (add and edit items, variants, new brand and category, barcode scan). Next: 8.4c: godowns and transfers, brands, Price Manager with PIN. Plan: [`docs/PHASE8-PLAN.md`](docs/PHASE8-PLAN.md). The rest of the Windows trial comes after the phone app is launched (owner, 18 Nov 2026). Selling (Phase 5) starts only when the owner asks. |
 
 ---
 
@@ -130,7 +131,7 @@ There is no two-way sync. A shop can *Move to cloud* once, or *Bring online book
 | Database | PostgreSQL 16 with row-level security per shop |
 | Login | argon2id passwords, JWT access token plus refresh token in an httpOnly cookie |
 | Windows app | Electron 44, bundled PostgreSQL 16, electron-builder installer, updates from GitHub Releases |
-| Phone app | Capacitor + React (planned, `apps/mobile`) |
+| Phone app | Kotlin + Jetpack Compose (planned, `apps/android`) |
 | Quality | Vitest, Supertest-style API tests, Playwright (flows and pixel comparison), GitHub Actions, Dependabot |
 | Repo | pnpm 10 workspaces + Turborepo 2, TypeScript 5.7 strict |
 | Live hosting (free plans) | Render (screens and server), Neon (database), GitHub Actions (nightly backup) |
@@ -175,7 +176,7 @@ apps/api/            Server (NestJS)
                      src/common/ = database scoping, ledger, numbering, audit, auth guard
                      prisma/ = schema, migrations, demo seed · scripts/ · test/
 apps/desktop/        Windows app (Electron): window and link rules, local server, installer
-apps/mobile/         Phone app (not created yet)
+apps/android/        Phone app, Kotlin (not created yet)
 packages/shared/     Money, GST and rounding maths, dates, roles, form rules, app name
 packages/importer/   Brings the old prototype's backup file into the new database
 infra/db/            Database roles and test databases, backup and restore-check scripts
@@ -354,7 +355,7 @@ node saas.js      # website version (needs: cd ../firebase-site/public && python
 | 5 | SaaS and launch: Razorpay, admin console, onboarding, beta | ⏸ On hold until the owner asks |
 | 6 | Windows app and single-PC offline mode | 🔄 Built; real-PC checks half done (18 Nov), trial pending |
 | 7 | Mobile design | ✅ Done (17 Nov 2026): colours, building blocks, app map and every screen (7.4a to 7.4j) approved |
-| 8 | Android app | ⏳ Next |
+| 8 | Android app | 🔄 In progress: 8.1–8.4b merged; phone app 1.0.2 released (20 Nov 2026) |
 | 9 | iPhone and Mac builds | ⏳ Later |
 
 Each phase has a gate that must pass before the next starts. Full plan: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
@@ -372,6 +373,8 @@ Each phase has a gate that must pass before the next starts. Full plan: [`docs/A
 | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Running and testing locally |
 | [`docs/DEPLOY.md`](docs/DEPLOY.md) | Live app, backups, Windows releases, free-plan limits |
 | [`docs/WINDOWS-TRIAL.md`](docs/WINDOWS-TRIAL.md) | Checklist for testing the Windows app on real PCs |
+| [`docs/MOBILE-PLAN.md`](docs/MOBILE-PLAN.md) | The phone app: owner's decisions, colours, design and checks |
+| [`docs/PHASE8-PLAN.md`](docs/PHASE8-PLAN.md) | Phase 8 step by step: building the Android app in Kotlin |
 | [`docs/RENAME.md`](docs/RENAME.md) | Changing the app's name |
 | [`docs/PHASE3-SALES.md`](docs/PHASE3-SALES.md) | How sales work, as read from the prototype |
 | [`docs/prototype-data.md`](docs/prototype-data.md) | The old backup file's structure, for the importer |

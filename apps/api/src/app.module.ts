@@ -18,6 +18,8 @@ import { AuditController } from './modules/audit/audit.controller';
 import { HistoryController } from './modules/audit/history.controller';
 import { HistoryService } from './modules/audit/history.service';
 import { HealthController } from './modules/health/health.controller';
+import { LiveController } from './modules/live/live.controller';
+import { AppVersionController } from './modules/app-version/app-version.controller';
 import { ImportsController } from './modules/imports/imports.controller';
 import { ImportsService } from './modules/imports/imports.service';
 import { NumberingService } from './common/numbering.service';
@@ -63,6 +65,8 @@ import { DriveController, DriveSender } from './modules/backup/drive';
 import { FolderController, FolderSender } from './modules/backup/folder';
 import { CloudController, CloudService } from './modules/backup/cloud';
 import { OWNER_CONTROLLERS, OWNER_PROVIDERS } from './owner';
+import { RequestKeyInterceptor } from './common/request-key.interceptor';
+import { PhoneTokenInterceptor } from './modules/auth/cookies';
 
 @Module({
   imports: [
@@ -73,7 +77,7 @@ import { OWNER_CONTROLLERS, OWNER_PROVIDERS } from './owner';
       skipIf: () => config().NODE_ENV === 'test' && process.env.TEST_THROTTLE !== '1',
     }),
   ],
-  controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HistoryController, HealthController, ImportsController,
+  controllers: [AuthController, MeController, BusinessesController, MembersController, AuditController, HistoryController, HealthController, LiveController, AppVersionController, ImportsController,
     PartiesController, ItemsController, BrandsController, StockController, BatchesController, PricingController, SettingsController, PrefixesController, PasscodeController, FeaturesController, CommissionController, SalesController, QuotesController, PurchasesController, BankingController, ExpensesController, ReportsController, BackupController, DriveController, FolderController, CloudController, ...OWNER_CONTROLLERS],
   providers: [
     DbService,
@@ -111,6 +115,8 @@ import { OWNER_CONTROLLERS, OWNER_PROVIDERS } from './owner';
     PasscodeService,
     ...OWNER_PROVIDERS,
     { provide: APP_INTERCEPTOR, useClass: PasscodeInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: RequestKeyInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: PhoneTokenInterceptor },
   ],
 })
 export class AppModule {}
