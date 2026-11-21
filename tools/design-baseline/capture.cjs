@@ -114,7 +114,7 @@ async function run(width) {
 
   await p.goto(APP);
   await p.waitForTimeout(900);
-  report.fontLoaded = await p.evaluate(() => document.fonts.ready.then(() => [...document.fonts].some((f) => /Jakarta/.test(f.family) && f.status === 'loaded')));
+  report.fontLoaded = await p.evaluate(() => document.fonts.ready.then(() => [...document.fonts].some((f) => /Inter/.test(f.family) && f.status === 'loaded')));
 
   for (const [id, section] of SCREENS) {
     await closeAll(p);

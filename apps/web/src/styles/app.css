@@ -6,7 +6,7 @@
   --blue:#3b82f6;--green:#10b981;--amber:#f59e0b;--violet:#8b5cf6;--pink:#ec4899;--red:#ef4444;--slate:#94a3b8;
   --sh:0 1px 2px rgba(20,27,46,.04),0 6px 20px rgba(20,27,46,.04);
   --shade:rgba(10,14,25,.55);
-  --font:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0e1120;--sf:#161a2b;--sf2:#1c2135;--bd:#2a3049;--t1:#e9ebf4;--t2:#9aa2bb;

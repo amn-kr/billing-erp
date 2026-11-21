@@ -462,7 +462,10 @@ for (const width of WIDTHS) {
       await app.locator('#plkPin').pressSequentially('2468');
       await app.locator('#plkPin2').pressSequentially('2468');
       await app.waitForSelector('#plm:not([hidden]) #plGroups label');
-      await proto.evaluate("PLK.locked=false;rerenderPriceViews();$('plNew').click()");
+      // the example line uses the LED bulb's purchase price. The rebuild keeps it automatic (owner's rule, Oct 2026:
+      // the newest purchase bill's rate, else the opening stock's), and the sample brings its opening stock at 56 but not
+      // the prototype's bill at 58, so the prototype is given the same 56 here
+      await proto.evaluate("IT.find(i=>i.id==='i2').purch=56;PLK.locked=false;rerenderPriceViews();$('plNew').click()");
       await both((p) => p.waitForFunction(() => !document.getElementById('toast')?.classList.contains('on'), null, { timeout: 10_000 }));
       await settle();
       await sameShot(`plm-${width}`, proto, app, '#plm .mdl');

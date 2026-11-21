@@ -54,7 +54,7 @@ export const APPROVED = path.resolve(path.dirname(fileURLToPath(import.meta.url)
 /**
  * Compare an element of the rebuild with its owner-approved picture (e2e/approved/<name>.png), with the
  * same rules as sameShot. Used only where the owner approved a look change from the prototype. A
- * missing picture fails the test and leaves the candidate in test-results/visual/<name>-actual.png;
+ * missing or different picture fails the test and leaves the candidate in test-results/visual/<name>-actual.png;
  * it is never saved here — a person copies it into e2e/approved/ after the owner says OK.
  * The pictures are taken on CI's Linux machine, so they are compared there.
  */
@@ -68,10 +68,18 @@ export async function approvedShot(name: string, app: Page, sel: string): Promis
     return;
   }
   const want = fs.readFileSync(file);
-  let d = compare(name, want, await shot(app, sel));
+  let got = await shot(app, sel);
+  let d = compare(name, want, got);
   for (let n = 0; n < 2 && !(d.sizeMatches && d.ratio <= MAX_RATIO); n++) {
     await app.waitForTimeout(700);
-    d = compare(name, want, await shot(app, sel));
+    got = await shot(app, sel);
+    d = compare(name, want, got);
+  }
+  if (!(d.sizeMatches && d.ratio <= MAX_RATIO)) {
+    // the new look, so a person can show it to the owner and copy it into e2e/approved/ after an OK
+    const out = path.resolve(APPROVED, '../../test-results/visual');
+    fs.mkdirSync(out, { recursive: true });
+    fs.writeFileSync(path.join(out, `${name}-actual.png`), got);
   }
   expect.soft(d.sizeMatches, `${name}: size ${d.width}×${d.height} must match the approved picture`).toBe(true);
   expect.soft(d.ratio, `${name}: ${d.diffPixels} pixels differ from the approved picture (see test-results/visual/${name}-diff.png)`).toBeLessThanOrEqual(MAX_RATIO);
