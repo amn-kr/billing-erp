@@ -12,6 +12,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -167,6 +168,16 @@ class Api(private val base: String, private val store: Store, private val client
     suspend fun nextSaleNumber(date: String): NextNumber = send("GET", "/sales/next-number?kind=invoice&date=$date", null, NextNumber.serializer())
     /** Save a bill. [key] stays the same for the same bill, so sending it twice (weak internet) makes one bill. */
     suspend fun saveSale(body: JsonObject, key: String): SaleSaved = send("POST", "/sales", body, SaleSaved.serializer(), key = key)
+
+    // 8.5c
+    suspend fun referrers(): List<Referrer> = send("GET", "/referrers", null, ListSerializer(Referrer.serializer()))
+    suspend fun addReferrer(body: JsonObject): Referrer = send("POST", "/referrers", body, Referrer.serializer())
+    suspend fun commissionRules(): List<CommissionRule> = send("GET", "/commission-rules", null, ListSerializer(CommissionRule.serializer()))
+    suspend fun batches(): Map<String, List<StockBatch>> = send("GET", "/batches", null, kotlinx.serialization.builtins.MapSerializer(String.serializer(), ListSerializer(StockBatch.serializer())))
+    suspend fun pastPrices(itemId: String, partyId: String): List<PastPrice> = send("GET", "/sales/price-history?item=$itemId&party=$partyId", null, ListSerializer(PastPrice.serializer()))
+    suspend fun quotations(): List<QuoteRow> = send("GET", "/sales?kind=quotation", null, ListSerializer(QuoteRow.serializer()))
+    suspend fun saleDoc(id: String): SaleDoc = send("GET", "/sales/$id", null, SaleDoc.serializer())
+    suspend fun saleCost(body: JsonObject): SaleCost = send("POST", "/sales/cost", body, SaleCost.serializer())
 
     /** Check For Update: the newest phone version on the releases page (no sign-in needed). */
     suspend fun appVersion(): AppVersion = send("GET", "/app-version?app=android", null, AppVersion.serializer(), auth = false)

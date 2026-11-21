@@ -6,7 +6,13 @@ import billingo.app.data.PartyFull
 import billingo.app.data.PriceList
 import billingo.app.data.PricedItem
 import billingo.app.data.Prices
+import billingo.app.data.CommissionRule
+import billingo.app.data.DocLine
+import billingo.app.data.DocParty
+import billingo.app.data.Referrer
+import billingo.app.data.SaleDoc
 import billingo.app.data.ShopSettings
+import billingo.app.data.StockBatch
 import billingo.app.data.TaxRate
 import billingo.app.ui.sale.BillMaths
 import billingo.app.ui.sale.SaleMaths
@@ -146,5 +152,97 @@ class SaleMathsTest {
         assertEquals(JsonNull, cash["partyId"])
         val total = SaleMaths.totals(c, SaleMaths.Draft(date = "2026-11-21", cash = true, lines = d.lines)).total
         assertEquals(0, total.compareTo(BigDecimal(cash["payments"]!!.jsonArray[0].jsonObject["amount"]!!.jsonPrimitive.content)))
+    }
+
+    /* ───────── 8.5c ───────── */
+
+    private val ledC = led.copy(category = "Lighting")
+    private val boxC = box.copy(category = "Switches")
+    private fun ctx2(features: List<String> = listOf("pack_loose")) = SaleMaths.ctx(
+        ShopSettings(gstEnabled = true), "09",
+        listOf(PriceList("def", "Retail", isDefault = true)), Prices(emptyList()), features, listOf(ledC, boxC), listOf(mehta, delhi),
+        rules = listOf(CommissionRule("Lighting", "percent", "5"), CommissionRule("Switches", "fixed", "20")),
+        referrers = listOf(Referrer("r1", "Raju Electrician")),
+        batches = mapOf("led" to listOf(
+            StockBatch("b-late", "B2", "2027-06-30", "40"), StockBatch("b-old", "B0", "2026-01-31", "5"),
+            StockBatch("b-soon", "B1", "2027-01-31", "0"), StockBatch(null, "", null, "10"),
+        )),
+    )
+
+    @Test fun `referral loads each category's rule on the rate and comes off again`() {
+        val c = ctx2()
+        var d = SaleMaths.Draft(date = "2026-11-21", cash = true)
+        d = d.copy(lines = listOf(SaleMaths.newLine(c, d, ledC), SaleMaths.newLine(c, d, boxC)))
+        assertNull(d.lines[0].bp)
+        d = SaleMaths.withReferrer(c, d, "r1")
+        // 5% on ₹85 = ₹89.25; ₹20 per box on ₹950 = ₹970
+        assertEquals(BigDecimal("89.25"), d.lines[0].price)
+        assertEquals(BigDecimal("85"), d.lines[0].bp)
+        assertEquals(BigDecimal("970.00"), d.lines[1].price)
+        d = SaleMaths.withReferrer(c, d, null)
+        assertEquals(BigDecimal("85"), d.lines[0].price)
+        assertNull(d.lines[0].bp)
+    }
+
+    @Test fun `a rule for this bill replaces the saved ones, and a fixed amount is per pack`() {
+        val c = ctx2()
+        var d = SaleMaths.withReferrer(c, SaleMaths.Draft(date = "2026-11-21", cash = true), "r1")
+        d = d.copy(lines = listOf(SaleMaths.newLine(c, d, ledC), SaleMaths.newLine(c, d, boxC).copy(unit = "PCS", price = BigDecimal("95.00"), bp = null)))
+        d = SaleMaths.withBillRule(c, d, SaleMaths.Rule('f', BigDecimal("10")))
+        assertEquals(BigDecimal("95.00"), d.lines[0].price)
+        // a loose piece of a box of 10 carries ₹1 of the ₹10
+        assertEquals(BigDecimal("96.00"), d.lines[1].price)
+    }
+
+    @Test fun `commission is quantity times the difference, without GST`() {
+        val c = ctx2()
+        var d = SaleMaths.withReferrer(c, SaleMaths.Draft(date = "2026-11-21", cash = true), "r1")
+        d = d.copy(lines = listOf(SaleMaths.newLine(c, d, ledC).copy(qty = "10")))
+        // 10 × ₹4.25 = ₹42.50 including 12% GST → ₹37.95
+        assertEquals(BigDecimal("37.95"), SaleMaths.lineCommission(c, d.lines[0]))
+    }
+
+    @Test fun `batches show expired first, and automatic skips expired and empty ones`() {
+        val c = ctx2()
+        assertEquals(listOf("b-old", null, "b-soon", "b-late"), SaleMaths.sortedBatches(c, "led", "2026-11-21").map { it.id })
+        // No batch is the oldest stock, so it goes first
+        assertNull(SaleMaths.autoBatch(c, "led", "2026-11-21")!!.id)
+        val noLoose = c.copy(batches = mapOf("led" to c.batches["led"]!!.filter { it.id != null }))
+        assertEquals("b-late", SaleMaths.autoBatch(noLoose, "led", "2026-11-21")!!.id)
+    }
+
+    @Test fun `a quotation's items keep their quoted rates and bring the customer and referral`() {
+        val c = ctx2()
+        val q = SaleDoc("q1", "QT-0033", "2026-11-10", "Mehta", DocParty("m", "Mehta"), "r1",
+            listOf(DocLine("led", "LED Bulb 9W", "4", "PCS", "82", "0", "12"), DocLine("gone", "Old Item", "1", "PCS", "10")))
+        val (d, n) = SaleMaths.withQuote(c, SaleMaths.Draft(date = "2026-11-21"), q)
+        assertEquals(1, n)
+        assertEquals("m", d.partyId)
+        assertEquals("r1", d.referrerId)
+        assertEquals(BigDecimal("82"), d.lines[0].price)
+        assertEquals("QT-0033", d.lines[0].fromQ)
+        // another customer: the quoted rate stays
+        assertEquals(BigDecimal("82"), SaleMaths.withParty(c, d, delhi).lines[0].price)
+        val b = SaleMaths.body(c, d)
+        assertEquals("q1", b["fromQuotationIds"]!!.jsonArray[0].jsonPrimitive.content)
+        assertEquals("QT-0033", b["extra"]!!.jsonObject["quoteRefs"]!!.jsonArray[0].jsonObject["no"]!!.jsonPrimitive.content)
+        assertEquals("r1", b["referrerId"]!!.jsonPrimitive.content)
+    }
+
+    @Test fun `the body carries the base rate, this bill's rule per category, details and a chosen batch`() {
+        val c = ctx2()
+        var d = SaleMaths.withReferrer(c, SaleMaths.Draft(date = "2026-11-21", cash = true), "r1")
+        d = d.copy(lines = listOf(SaleMaths.newLine(c, d, ledC).copy(qty = "2", batchId = "b-late"), SaleMaths.newLine(c, d, boxC)))
+        d = SaleMaths.withBillRule(c, d, SaleMaths.Rule('p', BigDecimal("3"))).copy(transport = "Gupta Roadways", vehicle = "UP78 AB 1234")
+        val b = SaleMaths.body(c, d)
+        val line = b["lines"]!!.jsonArray[0].jsonObject
+        assertEquals("85", line["basePrice"]!!.jsonPrimitive.content)
+        assertEquals("b-late", line["batches"]!!.jsonArray[0].jsonObject["batchId"]!!.jsonPrimitive.content)
+        // the box line is in packs: 1 box of 10 moves 10 pieces of stock
+        assertEquals(BigDecimal("10"), SaleMaths.stockQty(c, d.lines[1]))
+        val ex = b["extra"]!!.jsonObject
+        assertEquals("Gupta Roadways", ex["transport"]!!.jsonPrimitive.content)
+        assertEquals(setOf("Lighting", "Switches"), ex["commByCategory"]!!.jsonObject.keys)
+        assertEquals("p", ex["commByCategory"]!!.jsonObject["Lighting"]!!.jsonObject["t"]!!.jsonPrimitive.content)
     }
 }

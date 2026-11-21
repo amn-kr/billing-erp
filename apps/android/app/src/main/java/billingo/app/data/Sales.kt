@@ -41,3 +41,54 @@ data class SaleSaved(
     val advance: String = "0",
     val settledOld: String = "0",
 )
+
+// 8.5c: referral, batches, last prices, quotation import, profit
+
+/** An electrician or contractor who sends customers (GET /referrers). */
+@Serializable
+data class Referrer(val id: String, val name: String, val phone: String? = null, val city: String? = null)
+
+/** A saved commission rule for an item category (GET /commission-rules): kind none / percent / fixed. */
+@Serializable
+data class CommissionRule(val category: String, val kind: String = "none", val value: String = "0")
+
+/** One batch of an item and what is left in it (GET /batches → item id → its batches). */
+@Serializable
+data class StockBatch(val id: String? = null, val no: String = "", val expiry: String? = null, val qty: String = "0")
+
+/** A price this customer got before (GET /sales/price-history). */
+@Serializable
+data class PastPrice(val date: String, val number: String, val qty: String = "0", val price: String = "0", val discPct: String = "0")
+
+@Serializable
+data class DocParty(val id: String, val name: String = "")
+
+/** A quotation in the list (GET /sales?kind=quotation). */
+@Serializable
+data class QuoteRow(
+    val id: String,
+    val number: String,
+    val date: String,
+    val party: DocParty? = null,
+    val partyName: String = "",
+    val total: String = "0",
+    val items: Int = 0,
+    val status: String = "",
+    val cancelled: Boolean = false,
+    val qtype: String = "items",
+    val referrerId: String? = null,
+)
+
+@Serializable
+data class DocLine(val itemId: String? = null, val name: String = "", val qty: String = "0", val unit: String = "", val price: String = "0", val discPct: String = "0", val gstRate: String = "0")
+
+/** One saved document with its lines (GET /sales/:id). */
+@Serializable
+data class SaleDoc(val id: String, val number: String, val date: String = "", val partyName: String = "", val party: DocParty? = null, val referrerId: String? = null, val lines: List<DocLine> = emptyList())
+
+@Serializable
+data class LineCost(val cost: String = "0")
+
+/** What the goods on a bill cost (POST /sales/cost), one per line. */
+@Serializable
+data class SaleCost(val lines: List<LineCost?> = emptyList())
