@@ -105,7 +105,7 @@ private fun StockBadge(i: ItemFull) = when (ItemMaths.status(i)) {
  * show only those), search, brand and stock filters; items of one group under one line.
  */
 @Composable
-fun ItemsScreen(api: Api, onBack: () -> Unit, onItem: (ItemFull) -> Unit, onAdd: (code: String) -> Unit, onLater: () -> Unit) {
+fun ItemsScreen(api: Api, onBack: () -> Unit, onItem: (ItemFull) -> Unit, onAdd: (code: String) -> Unit, onMore: (Int) -> Unit) {
     val list = load { api.itemsFull() }
     var kind by rememberSaveable { mutableIntStateOf(0) }
     var st by rememberSaveable { mutableIntStateOf(0) }
@@ -118,7 +118,7 @@ fun ItemsScreen(api: Api, onBack: () -> Unit, onItem: (ItemFull) -> Unit, onAdd:
 
     Box(Modifier.fillMaxSize()) {
         Frame(stringResource(R.string.i_title), onBack = onBack, right = { IconBtn(Icons.Scan, stringResource(R.string.i_scan), { sheet = "scan" }) }, foot = {
-            Btn(stringResource(R.string.i_more), onLater, Modifier.weight(1f), Kind.Soft, Icons.Dots)
+            Btn(stringResource(R.string.i_more), { sheet = "more" }, Modifier.weight(1f), Kind.Soft, Icons.Dots)
             Btn(stringResource(R.string.i_add), { onAdd("") }, Modifier.weight(1f), Kind.Blue, Icons.Plus)
         }) {
             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -160,6 +160,7 @@ fun ItemsScreen(api: Api, onBack: () -> Unit, onItem: (ItemFull) -> Unit, onAdd:
         if (sheet.isNotEmpty()) BackHandler { sheet = "" }
         when (sheet) {
             "status" -> ChoiceSheet(stringResource(R.string.i_status), stNames, st, { sheet = "" }) { st = it; sheet = "" }
+            "more" -> ItemsMoreSheet({ sheet = "" }) { sheet = ""; onMore(it) }
             "brand" -> {
                 val brands = listOf(stringResource(R.string.i_all_brands)) + (list.data.orEmpty().map { it.brand }.filter { it.isNotBlank() }.distinctBy { it.lowercase() }.sortedBy { it.lowercase() })
                 ChoiceSheet(stringResource(R.string.i_brand), brands, if (brand.isEmpty()) 0 else brands.indexOfFirst { it.equals(brand, true) }, { sheet = "" }) { brand = if (it == 0) "" else brands[it]; sheet = "" }
@@ -245,8 +246,10 @@ fun ItemScreen(api: Api, id: String, name: String, onBack: () -> Unit, onAdjust:
     val hi = hindi()
     val it = load(id) { api.item(id) }
     var filter by rememberSaveable { mutableIntStateOf(0) }
+    var history by rememberSaveable { mutableStateOf(false) }
     val d = it.data
     val goods = d?.kind != "service"
+    Box(Modifier.fillMaxSize()) {
     Frame(
         d?.name ?: name,
         d?.let { listOf("${it.brand} ${it.series}".trim(), it.category, it.code).filter { s -> s.isNotBlank() }.joinToString(" · ") },
@@ -259,7 +262,7 @@ fun ItemScreen(api: Api, id: String, name: String, onBack: () -> Unit, onAdjust:
     ) {
         if (d == null) { Waiting(it); return@Frame }
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (goods) item { StockCard(d, onAdjust, onLater) }
+            if (goods) item { StockCard(d, onAdjust, { history = true }, onLater) }
             item { SectionTitle(stringResource(R.string.ip_prices)) }
             item { PriceTable(d) }
             val batches = d.batches?.rows.orEmpty()
@@ -286,10 +289,15 @@ fun ItemScreen(api: Api, id: String, name: String, onBack: () -> Unit, onAdjust:
             }
         }
     }
+    if (history) {
+        BackHandler { history = false }
+        PriceHistorySheet(api, id) { history = false }
+    }
+    }
 }
 
 @Composable
-private fun StockCard(d: ItemDetail, onAdjust: () -> Unit, onLater: () -> Unit) {
+private fun StockCard(d: ItemDetail, onAdjust: () -> Unit, onPrices: () -> Unit, onLater: () -> Unit) {
     val shape = RoundedCornerShape(Size.Radius)
     val c = when { d.stock.signum() <= 0 || d.level == "out" -> Colours.Red; d.level == "low" -> Colours.Orange; else -> Colours.Text }
     Column(
@@ -311,7 +319,7 @@ private fun StockCard(d: ItemDetail, onAdjust: () -> Unit, onLater: () -> Unit) 
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Btn(stringResource(R.string.ip_adjust), onAdjust, Modifier.weight(1f), Kind.Soft, small = true)
-            Btn(stringResource(R.string.ip_prices_btn), onLater, Modifier.weight(1f), Kind.Soft, small = true)
+            Btn(stringResource(R.string.ip_prices_btn), onPrices, Modifier.weight(1f), Kind.Soft, small = true)
             Btn(stringResource(R.string.ip_barcode), onLater, Modifier.weight(1f), Kind.Soft, small = true)
         }
     }
@@ -374,7 +382,7 @@ private fun MoveRow(m: Movement, unit: String, hi: Boolean) {
 }
 
 /** The reasons for adjusting stock (design 7.4c); saved in English, as on the web. */
-private val REASONS = listOf(
+internal val ADJUST_REASONS = listOf(
     R.string.r_count to "Physical count correction", R.string.r_damaged to "Damaged", R.string.r_expired to "Expired",
     R.string.r_lost to "Lost or stolen", R.string.r_free to "Free sample / gift", R.string.r_own to "Own use", R.string.r_other to "Other",
 )
@@ -400,7 +408,7 @@ fun AdjustScreen(api: Api, id: String, onBack: () -> Unit) {
     var busy by remember { mutableStateOf(false) }
     val d = it.data
     val needQty = stringResource(R.string.aj_err)
-    val reasons = REASONS.map { r -> stringResource(r.first) }
+    val reasons = ADJUST_REASONS.map { r -> stringResource(r.first) }
 
     Box(Modifier.fillMaxSize()) {
         Frame(stringResource(R.string.aj_title), d?.name, onBack, foot = if (d == null) null else ({
@@ -413,7 +421,7 @@ fun AdjustScreen(api: Api, id: String, onBack: () -> Unit) {
                         api.adjustStock(buildJsonObject {
                             put("itemId", d.id); put("mode", if (add) "add" else "reduce"); put("qty", q.toPlainString())
                             put("rate", (rate ?: d.purchase.toPlainString()).replace(",", "").ifBlank { "0" }); put("date", date)
-                            put("reason", REASONS[reason].second); if (batch.isNotBlank()) put("batchNo", batch.trim())
+                            put("reason", ADJUST_REASONS[reason].second); if (batch.isNotBlank()) put("batchNo", batch.trim())
                         })
                         Toast.makeText(ctx, ctx.getString(R.string.aj_saved, (if (add) "+" else "−") + qtyUnit(q, d.unit)), Toast.LENGTH_SHORT).show()
                         onBack()

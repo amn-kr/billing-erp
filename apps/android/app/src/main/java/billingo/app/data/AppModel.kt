@@ -32,6 +32,13 @@ sealed interface Route {
     data class Adjust(val id: String) : Route
     /** New Item ([id] null, maybe with a scanned [code]) or Edit Item */
     data class ItemForm(val id: String?, val code: String = "") : Route
+    // 8.4c
+    data object Prices : Route
+    data object BulkActive : Route
+    data object Brands : Route
+    data object Adjustments : Route
+    data object Godowns : Route
+    data object Transfer : Route
 }
 
 /** Home's lists; null when the server refused one (no permission) or it hasn't come yet. */

@@ -47,6 +47,12 @@ import billingo.app.ui.parties.StatementScreen
 import billingo.app.ui.blocks.BlocksScreen
 import billingo.app.ui.home.CreateNewSheet
 import billingo.app.ui.items.AdjustScreen
+import billingo.app.ui.items.AdjustmentsScreen
+import billingo.app.ui.items.BrandsScreen
+import billingo.app.ui.items.BulkActiveScreen
+import billingo.app.ui.items.GodownsScreen
+import billingo.app.ui.items.PriceManagerScreen
+import billingo.app.ui.items.TransferScreen
 import billingo.app.ui.items.ItemFormScreen
 import billingo.app.ui.items.ItemScreen
 import billingo.app.ui.items.ItemsScreen
@@ -163,7 +169,16 @@ class MainActivity : AppCompatActivity() {
                                 when (top) {
                                     is Route.Parties -> PartiesScreen(m.server, top.bal, { m.back() }, { p -> m.open(Route.Party(p.id, p.name)) }, { m.open(Route.PartyForm(null)) })
                                     is Route.Party -> PartyScreen(m.server, top.id, top.name, shop, { m.back() }, { m.open(Route.Statement(top.id, top.name)) }, { m.open(Route.PartyForm(top.id)) }, later)
-                                    Route.Items -> ItemsScreen(m.server, { m.back() }, { i -> m.open(Route.Item(i.id, i.name)) }, { code -> m.open(Route.ItemForm(null, code)) }, later)
+                                    Route.Items -> ItemsScreen(m.server, { m.back() }, { i -> m.open(Route.Item(i.id, i.name)) }, { code -> m.open(Route.ItemForm(null, code)) }) { n ->
+                                        // Items › More: Price Manager, Bulk Active / Inactive, Brands And Series, Stock Adjustments, Godowns; the rate list comes with the PDF (8.5)
+                                        when (n) { 0 -> m.open(Route.Prices); 1 -> m.open(Route.BulkActive); 2 -> m.open(Route.Brands); 3 -> m.open(Route.Adjustments); 4 -> m.open(Route.Godowns); else -> later() }
+                                    }
+                                    Route.Prices -> PriceManagerScreen(m.server, { m.back() }, later)
+                                    Route.BulkActive -> BulkActiveScreen(m.server, { m.back() }) { m.loadHome() }
+                                    Route.Brands -> BrandsScreen(m.server) { m.back() }
+                                    Route.Adjustments -> AdjustmentsScreen(m.server, { m.back() }, { id, name -> m.open(Route.Item(id, name)) }) { id -> m.open(Route.Adjust(id)) }
+                                    Route.Godowns -> GodownsScreen(m.server, { m.back() }) { m.open(Route.Transfer) }
+                                    Route.Transfer -> TransferScreen(m.server, { m.back() }) { m.back(); m.loadHome() }
                                     is Route.Item -> ItemScreen(m.server, top.id, top.name, { m.back() }, { m.open(Route.Adjust(top.id)) }, { m.open(Route.ItemForm(top.id)) }, later)
                                     is Route.ItemForm -> ItemFormScreen(
                                         m.server, top.id, top.code, s.me.business?.features.orEmpty(), { m.back() },
@@ -207,6 +222,7 @@ class MainActivity : AppCompatActivity() {
                                     onLater = later,
                                     onParties = { menuOpen = false; m.open(Route.Parties()) },
                                     onItems = { menuOpen = false; m.open(Route.Items) },
+                                    onStockLine = { n -> menuOpen = false; m.open(when (n) { 1 -> Route.Prices; 2 -> Route.Adjustments; else -> Route.Godowns }) },
                                     onGst = gst,
                                     onSignOut = { menuOpen = false; signOutOpen = true },
                                     onCheckUpdate = { m.checkUpdate(BuildConfig.VERSION_NAME) },
