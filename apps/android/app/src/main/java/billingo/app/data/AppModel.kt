@@ -26,7 +26,7 @@ sealed interface Route {
     data class Party(val id: String, val name: String) : Route
     data class Statement(val id: String, val name: String) : Route
     /** New Party ([id] null) or Edit Party */
-    data class PartyForm(val id: String?) : Route
+    data class PartyForm(val id: String?, val forSale: Boolean = false) : Route
     data object Items : Route
     data class Item(val id: String, val name: String) : Route
     data class Adjust(val id: String) : Route
@@ -39,6 +39,12 @@ sealed interface Route {
     data object Adjustments : Route
     data object Godowns : Route
     data object Transfer : Route
+    // 8.5b: New Sale
+    data object Sale : Route
+    data object SaleCustomer : Route
+    /** one line of the bill: [index] −1 = a new one, maybe with a scanned [itemId] */
+    data class SaleLine(val index: Int, val itemId: String? = null) : Route
+    data object SaleSaved : Route
 }
 
 /** Home's lists; null when the server refused one (no permission) or it hasn't come yet. */
@@ -106,6 +112,21 @@ class AppModel(private val api: Api, private val store: Store, private val finge
 
     /** the server, for screens that load their own data */
     val server: Api get() = api
+
+    /** the bill being made (8.5b) */
+    val sale = billingo.app.ui.sale.SaleSession(api)
+
+    /** New Sale: a fresh bill, maybe for a customer or with an item already on it. */
+    fun newSale(features: List<String>, partyId: String? = null, itemId: String? = null) {
+        sale.start(viewModelScope, features, partyId, itemId)
+        open(Route.Sale)
+    }
+
+    /** a bill saved with Save & New: an empty one in its place */
+    fun saleAgain(features: List<String>) { sale.start(viewModelScope, features) }
+
+    /** a party just added from Choose Customer goes on the bill */
+    fun saleParty(features: List<String>, id: String) { sale.addParty(viewModelScope, features, id) }
 
     init { open() }
 

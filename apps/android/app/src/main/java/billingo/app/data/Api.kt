@@ -159,6 +159,15 @@ class Api(private val base: String, private val store: Store, private val client
     suspend fun unlockPrices(pin: String) { send<Unit>("POST", "/prices/unlock", buildJsonObject { put("pin", pin) }, null) }
     suspend fun changePrices(body: JsonObject) { send<Unit>("POST", "/prices/changes", body, null) }
 
+    // 8.5b: New Sale
+    suspend fun priceLists(): List<PriceList> = send("GET", "/price-lists", null, ListSerializer(PriceList.serializer()))
+    suspend fun prices(): Prices = send("GET", "/prices", null, Prices.serializer())
+    suspend fun settings(): ShopSettings = send("GET", "/settings", null, ShopSettings.serializer())
+    suspend fun shop(): Shop = send("GET", "/businesses/current", null, Shop.serializer())
+    suspend fun nextSaleNumber(date: String): NextNumber = send("GET", "/sales/next-number?kind=invoice&date=$date", null, NextNumber.serializer())
+    /** Save a bill. [key] stays the same for the same bill, so sending it twice (weak internet) makes one bill. */
+    suspend fun saveSale(body: JsonObject, key: String): SaleSaved = send("POST", "/sales", body, SaleSaved.serializer(), key = key)
+
     /** Check For Update: the newest phone version on the releases page (no sign-in needed). */
     suspend fun appVersion(): AppVersion = send("GET", "/app-version?app=android", null, AppVersion.serializer(), auth = false)
 
@@ -209,6 +218,8 @@ class Api(private val base: String, private val store: Store, private val client
         auth: Boolean = true,
         refresh: String? = null,
         again: Boolean = true,
+        /** one-time key against double saves (step 8.1b): the same key when the same save is sent again */
+        key: String? = null,
     ): T {
         val r = withSlowWatch { withContext(Dispatchers.IO) {
             val b = Request.Builder().url(base.trimEnd('/') + "/api" + path)
@@ -216,6 +227,7 @@ class Api(private val base: String, private val store: Store, private val client
                 .header("Accept", "application/json")
             if (auth) access?.let { b.header("Authorization", "Bearer $it") }
             if (refresh != null) b.header("x-refresh-token", refresh)
+            if (key != null) b.header("Idempotency-Key", key)
             val rb = (body?.toString() ?: if (method == "GET") null else "{}")?.toRequestBody(JSON_TYPE)
             b.method(method, rb)
             try {
@@ -225,7 +237,7 @@ class Api(private val base: String, private val store: Store, private val client
             }
         } }
         val (code, text) = r
-        if (code == 401 && auth && again && store.refreshToken != null && renew()) return send(method, path, body, answer, auth, refresh, again = false)
+        if (code == 401 && auth && again && store.refreshToken != null && renew()) return send(method, path, body, answer, auth, refresh, again = false, key = key)
         if (code !in 200..299) throw problem(code, text)
         @Suppress("UNCHECKED_CAST")
         return if (answer == null || text.isBlank()) Unit as T else JSON.decodeFromString(answer, text)

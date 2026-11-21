@@ -53,6 +53,10 @@ import billingo.app.ui.items.BulkActiveScreen
 import billingo.app.ui.items.GodownsScreen
 import billingo.app.ui.items.PriceManagerScreen
 import billingo.app.ui.items.TransferScreen
+import billingo.app.ui.sale.CustomerScreen
+import billingo.app.ui.sale.SaleLineScreen
+import billingo.app.ui.sale.SaleScreen
+import billingo.app.ui.sale.SavedScreen
 import billingo.app.ui.items.ItemFormScreen
 import billingo.app.ui.items.ItemScreen
 import billingo.app.ui.items.ItemsScreen
@@ -153,6 +157,7 @@ class MainActivity : AppCompatActivity() {
                         }
                         is Screen.Home -> {
                             val shop = s.me.business?.name ?: ""
+                            val features = s.me.business?.features.orEmpty()
                             // a screen opened above Home; the phone's Back closes it
                             val top = m.stack.lastOrNull()
                             // a closed screen forgets what it kept, so a second New Item opens empty
@@ -179,7 +184,7 @@ class MainActivity : AppCompatActivity() {
                                     Route.Adjustments -> AdjustmentsScreen(m.server, { m.back() }, { id, name -> m.open(Route.Item(id, name)) }) { id -> m.open(Route.Adjust(id)) }
                                     Route.Godowns -> GodownsScreen(m.server, { m.back() }) { m.open(Route.Transfer) }
                                     Route.Transfer -> TransferScreen(m.server, { m.back() }) { m.back(); m.loadHome() }
-                                    is Route.Item -> ItemScreen(m.server, top.id, top.name, { m.back() }, { m.open(Route.Adjust(top.id)) }, { m.open(Route.ItemForm(top.id)) }, later)
+                                    is Route.Item -> ItemScreen(m.server, top.id, top.name, { m.back() }, { m.open(Route.Adjust(top.id)) }, { m.open(Route.ItemForm(top.id)) }, later) { m.newSale(features, itemId = top.id) }
                                     is Route.ItemForm -> ItemFormScreen(
                                         m.server, top.id, top.code, s.me.business?.features.orEmpty(), { m.back() },
                                         onSaved = { id, name -> m.replace(Route.Item(id, name)); m.loadHome() },
@@ -188,10 +193,21 @@ class MainActivity : AppCompatActivity() {
                                     is Route.Adjust -> AdjustScreen(m.server, top.id) { m.back(); m.loadHome() }
                                     is Route.PartyForm -> PartyFormScreen(
                                         m.server, top.id, { m.back() },
-                                        onSaved = { id, name -> m.replace(Route.Party(id, name)); m.loadHome() },
+                                        // from Choose Customer: back to the bill, with the new party on it
+                                        onSaved = { id, name -> if (top.forSale) { m.back(); m.back(); m.saleParty(features, id) } else m.replace(Route.Party(id, name)); m.loadHome() },
                                         onGone = { top.id?.let(m::leaveParty); m.loadHome() },
                                     )
                                     is Route.Statement -> StatementScreen(m.server, top.id, top.name, { m.back() }, later)
+                                    Route.Sale -> SaleScreen(
+                                        m.sale, { m.back() }, { m.open(Route.SaleCustomer) }, { k, item -> m.open(Route.SaleLine(k, item)) },
+                                        onSaved = { m.replace(Route.SaleSaved); m.loadHome() },
+                                        onNew = { m.saleAgain(features); m.loadHome() },
+                                        onTryAgain = { m.saleAgain(features) },
+                                        onLater = later,
+                                    )
+                                    Route.SaleCustomer -> CustomerScreen(m.sale, { m.back() }) { m.open(Route.PartyForm(null, forSale = true)) }
+                                    is Route.SaleLine -> SaleLineScreen(m.sale, top.index, top.itemId) { m.back() }
+                                    Route.SaleSaved -> SavedScreen(m.sale, onNew = { m.saleAgain(features); m.replace(Route.Sale) }, onDone = { m.back() }, onLater = later)
                                 }
                                 }
                                 return@Box
@@ -209,6 +225,7 @@ class MainActivity : AppCompatActivity() {
                                 onParties = { bal -> m.open(Route.Parties(bal)) },
                                 onParty = { p -> m.open(Route.Party(p.id, p.name)) },
                                 onItem = { i -> m.open(Route.Item(i.id, i.name)) },
+                                onNewBill = { m.newSale(features) },
                             )
                             if (menuOpen) {
                                 BackHandler { menuOpen = false }
@@ -234,8 +251,8 @@ class MainActivity : AppCompatActivity() {
                             }
                             if (createOpen) {
                                 BackHandler { createOpen = false }
-                                // the New Party tile (10th) opens the form; the others come in later steps
-                                CreateNewSheet({ createOpen = false }) { i -> createOpen = false; when (i) { 9 -> m.open(Route.PartyForm(null)); 10 -> m.open(Route.ItemForm(null)); else -> later() } }
+                                // Sale Bill (1st), New Party (10th) and New Item (11th) open; the others come in later steps
+                                CreateNewSheet({ createOpen = false }) { i -> createOpen = false; when (i) { 0 -> m.newSale(features); 9 -> m.open(Route.PartyForm(null)); 10 -> m.open(Route.ItemForm(null)); else -> later() } }
                             }
                             if (signOutOpen) {
                                 BackHandler { signOutOpen = false }

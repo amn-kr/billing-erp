@@ -242,7 +242,7 @@ private fun GroupRow(g: ItemMaths.Entry.Group, isOpen: Boolean, onToggle: () -> 
  * margin, stock by batch and by godown, and every movement with All / Sale / Buy / Adjust.
  */
 @Composable
-fun ItemScreen(api: Api, id: String, name: String, onBack: () -> Unit, onAdjust: () -> Unit, onEdit: () -> Unit, onLater: () -> Unit) {
+fun ItemScreen(api: Api, id: String, name: String, onBack: () -> Unit, onAdjust: () -> Unit, onEdit: () -> Unit, onLater: () -> Unit, onSell: () -> Unit = onLater) {
     val hi = hindi()
     val it = load(id) { api.item(id) }
     var filter by rememberSaveable { mutableIntStateOf(0) }
@@ -257,7 +257,7 @@ fun ItemScreen(api: Api, id: String, name: String, onBack: () -> Unit, onAdjust:
         right = { IconBtn(Icons.Edit, stringResource(R.string.if_edit), onEdit) },
         foot = if (d == null || !goods) null else ({
             Btn(stringResource(R.string.ip_adjust_stock), onAdjust, Modifier.weight(1f), Kind.Soft)
-            Btn(stringResource(R.string.ip_sell), onLater, Modifier.weight(1f), Kind.Blue, Icons.Plus)
+            Btn(stringResource(R.string.ip_sell), onSell, Modifier.weight(1f), Kind.Blue, Icons.Plus)
         }),
     ) {
         if (d == null) { Waiting(it); return@Frame }
