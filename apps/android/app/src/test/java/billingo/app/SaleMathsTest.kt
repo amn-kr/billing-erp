@@ -80,10 +80,14 @@ class SaleMathsTest {
         assertEquals(0, BigDecimal("5").compareTo(down.disc))
         assertEquals(BigDecimal("80.75"), SaleMaths.finalRate(down))
         assertTrue(SaleMaths.withFinal(l, BigDecimal("100")).disc.signum() < 0)
-        // more than 100 × the list rate becomes the price itself
+        // however large, the sale price stays the list rate (owner, 21 Nov 2026)
         val huge = SaleMaths.withFinal(l, BigDecimal("9000"))
-        assertEquals(BigDecimal("9000"), huge.price)
-        assertEquals(0, huge.disc.signum())
+        assertEquals(BigDecimal("85"), huge.price)
+        assertEquals(BigDecimal("9000.00"), SaleMaths.finalRate(huge))
+        // no list rate: the typed rate becomes the price
+        val free = SaleMaths.withFinal(l.copy(price = BigDecimal.ZERO), BigDecimal("50"))
+        assertEquals(BigDecimal("50"), free.price)
+        assertEquals(0, free.disc.signum())
     }
 
     @Test fun `a cash bill is fully received, a credit bill not until changed`() {

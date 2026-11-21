@@ -149,17 +149,15 @@ object SaleMaths {
     fun finalRate(l: Line): BigDecimal = BillMaths.round2(l.price.multiply(BigDecimal.ONE - l.disc.movePointLeft(2)))
 
     /**
-     * A typed final rate → the discount % from the list rate (web frSet). Any final rate is allowed
-     * (owner, 21 Nov 2026): above the list rate it becomes a minus discount; over 100 × the list
-     * rate, or with no list rate, it becomes the price itself.
+     * A typed final rate → the discount % from the list rate (web frSet). Any final rate is allowed,
+     * and however large it is the sale price is never changed (owner, 21 Nov 2026): above the list
+     * rate it is a minus discount. Only with no list rate does the typed rate become the price.
      */
     fun withFinal(l: Line, typed: BigDecimal): Line {
         val v = typed.max(BigDecimal.ZERO)
         val p = l.price
         if (p.signum() <= 0) return l.copy(price = v, disc = BigDecimal.ZERO)
-        val d = (p - v).divide(p, 20, RoundingMode.HALF_UP).movePointRight(2).setScale(8, RoundingMode.HALF_UP).stripTrailingZeros()
-        if (d < BigDecimal(-9900)) return l.copy(price = v, disc = BigDecimal.ZERO)
-        return l.copy(disc = d)
+        return l.copy(disc = (p - v).divide(p, 20, RoundingMode.HALF_UP).movePointRight(2).setScale(8, RoundingMode.HALF_UP).stripTrailingZeros())
     }
 
     fun bill(c: Ctx, d: Draft): BillMaths.Bill = BillMaths.Bill(
