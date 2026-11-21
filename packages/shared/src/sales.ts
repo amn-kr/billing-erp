@@ -26,6 +26,21 @@ const num = (msg = 'Enter a number.') =>
       }
       return s;
     });
+/** a line discount %: at most 100, and down to −9,900 (a final rate up to 100 × the price-list rate) */
+const signedPct = (msg: string) =>
+  z
+    .union([z.string(), z.number(), z.null()])
+    .optional()
+    .transform((v, ctx) => {
+      const s = v === null || v === undefined ? '' : String(v).replace(/[,%\s]/g, '');
+      if (s === '') return '0';
+      const n = Number(s);
+      if (!Number.isFinite(n) || n > 100 || n < -9900) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: msg });
+        return z.NEVER;
+      }
+      return s;
+    });
 const optNum = z
   .union([z.string(), z.number(), z.null()])
   .optional()
@@ -54,7 +69,8 @@ export const saleLineSchema = z.object({
   unit: opt(20),
   /** price-list rate (with any referral commission loaded on it) */
   price: num('Enter the rate.'),
-  discPct: num('Enter the discount.'),
+  /** minus when the final rate is above the price-list rate (owner, 21 Nov 2026: any final rate is allowed) */
+  discPct: signedPct('Enter the discount.'),
   gstRate: num('Choose the GST rate.'),
   /** referral: the rate before commission, and a rule set for this line only */
   basePrice: optNum,
