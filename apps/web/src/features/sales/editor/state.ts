@@ -147,15 +147,23 @@ export function lineFor(c: Ctx, si: SI, it: EItem): Line {
   return L;
 }
 
-/** Typed final rate → discount % from the price-list rate (prototype frSet). False when above the list rate. */
-export function frSet(l: Line, v: number): boolean {
+/**
+ * Typed final rate → discount % from the price-list rate (prototype frSet).
+ * Owner, 21 Nov 2026: any final rate is allowed, 0 or above the price-list rate too.
+ * Above the list rate it is kept as a minus discount, which the screen and the bill never show;
+ * the sale price stays as the price list has it.
+ */
+export function frSet(l: Line, v: number): void {
   const p = l.price || 0;
   if (!(v >= 0)) v = 0;
-  if (p <= 0) { l.price = v; l.disc = 0; return true; }
-  if (v > p) { l.disc = 0; return false; }
-  l.disc = Math.round(((p - v) / p) * 100 * 1e6 * 100) / 100 / 1e6;
-  return true;
+  if (p <= 0) { l.price = v; l.disc = 0; return; }
+  const d = Math.round(((p - v) / p) * 100 * 1e6 * 100) / 100 / 1e6;
+  // the saved discount holds up to −9,999.99%: a rate over 100 × the list rate becomes the price itself
+  if (d < -9900) { l.price = v; l.disc = 0; return; }
+  l.disc = d;
 }
+/** A discount worth showing: a final rate above the list rate is not a discount. */
+export const shownDisc = (v: number | undefined) => (v && v > 0 ? String(r2(v)) : '');
 export const finalRate = (l: Line) => r2((l.price || 0) * (1 - (l.disc || 0) / 100));
 
 export interface Calc {

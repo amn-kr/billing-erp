@@ -98,7 +98,8 @@ const ORDER: ColKey[] = ['sl', 'name', 'code', 'brand', 'series', 'cat', 'grp', 
 export interface Col { key: ColKey; label: string; n: boolean; v: (l: PLine, i: number) => string }
 export function columns(d: PDoc, o: PrintOpts, m: (v: string | number) => string): Col[] {
   const g = d.taxMode === 'gst';
-  const anyDisc = d.lines.some((l) => Number(l.discPct));
+  // a final rate above the sale price is saved as a minus discount: never printed as a discount
+  const anyDisc = d.lines.some((l) => Number(l.discPct) > 0);
   const unitOn = o.cols.unit.on;
   const def = new Map(COLDEF.map(([, k, , , x]) => [k, x ?? {}]));
   const val = (k: ColKey) => (l: PLine, i: number): string => {
@@ -108,7 +109,7 @@ export function columns(d: PDoc, o: PrintOpts, m: (v: string | number) => string
       case 'mrp': return Number(l.mrp) ? m(l.mrp!) : ''; case 'list': return Number(l.list) ? m(l.list!) : ''; case 'whole': return Number(l.whole) ? m(l.whole!) : '';
       // no Unit column: the unit goes with the quantity, as on the prototype's invoice ("66 PCS")
       case 'qty': return unitOn ? qfmt(l.qty) : `${qfmt(l.qty)} ${l.unit}`; case 'unit': return l.unit; case 'price': return m(l.price);
-      case 'discAmt': return Number(l.discPct) ? m(r2((Number(l.qty) * Number(l.price) * Number(l.discPct)) / 100)) : ''; case 'discPct': return Number(l.discPct) ? r2(Number(l.discPct)) + '%' : '';
+      case 'discAmt': return Number(l.discPct) > 0 ? m(r2((Number(l.qty) * Number(l.price) * Number(l.discPct)) / 100)) : ''; case 'discPct': return Number(l.discPct) > 0 ? r2(Number(l.discPct)) + '%' : '';
       case 'txPrice': return m(r2(Number(l.taxable) / q)); case 'taxable': return m(l.taxable); case 'taxPct': return pct(l.gst); case 'taxAmt': return m(l.tax);
       case 'rate': return m(r2(Number(l.amount) / q)); case 'amount': return m(l.amount);
     }
