@@ -157,10 +157,8 @@ export function frSet(l: Line, v: number): void {
   const p = l.price || 0;
   if (!(v >= 0)) v = 0;
   if (p <= 0) { l.price = v; l.disc = 0; return; }
-  const d = Math.round(((p - v) / p) * 100 * 1e6 * 100) / 100 / 1e6;
-  // the saved discount holds up to −9,999.99%: a rate over 100 × the list rate becomes the price itself
-  if (d < -9900) { l.price = v; l.disc = 0; return; }
-  l.disc = d;
+  // any rate, however far above the list rate: the sale price is never changed (owner, 21 Nov 2026)
+  l.disc = Math.round(((p - v) / p) * 100 * 1e6 * 100) / 100 / 1e6;
 }
 /** A discount worth showing: a final rate above the list rate is not a discount. */
 export const shownDisc = (v: number | undefined) => (v && v > 0 ? String(r2(v)) : '');

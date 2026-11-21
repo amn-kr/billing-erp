@@ -1207,7 +1207,7 @@ model SalesDocumentLine {
   packSize     Decimal? @map("pack_size") @db.Decimal(14, 3)
   /// price-list rate before the line discount
   price        Decimal  @db.Decimal(14, 2)
-  discPct      Decimal  @default(0) @map("disc_pct") @db.Decimal(12, 8)
+  discPct      Decimal  @default(0) @map("disc_pct") @db.Decimal(24, 8)
   gstRate      Decimal  @default(0) @map("gst_rate") @db.Decimal(5, 2)
   taxable      Decimal  @default(0) @db.Decimal(14, 2)
   tax          Decimal  @default(0) @db.Decimal(14, 2)
