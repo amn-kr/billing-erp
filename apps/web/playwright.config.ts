@@ -18,7 +18,7 @@ export default defineConfig({
   workers: 1,
   timeout: 60_000,
   // on GitHub a failed test gets two more tries; one that passes on a retry is listed as flaky
-  retries: 0, // TEMPORARY while the Inter pictures are retaken (retries change the sample data); back to 2 before merge
+  retries: process.env.CI ? 2 : 0,
   // summary-reporter: the flaky list (and failed pictures after a merge) on the GitHub summary page
   reporter: [['list'], ['./e2e/summary-reporter.ts']],
   use: { baseURL: 'http://localhost:5174', trace: 'retain-on-failure' },
