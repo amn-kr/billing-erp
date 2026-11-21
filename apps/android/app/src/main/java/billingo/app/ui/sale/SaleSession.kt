@@ -17,6 +17,10 @@ import kotlinx.coroutines.launch
  * change the same bill, and it is kept while the phone turns or another screen is on top.
  */
 class SaleSession(private val api: Api) {
+    /** the server, for the sheets that ask it something (quotations, last prices, profit) */
+    val server: Api get() = api
+    /** the shop's features when this bill started (batches, pack and loose) */
+    private var features: List<String> = emptyList()
     var ctx by mutableStateOf<SaleMaths.Ctx?>(null)
         private set
     var problem by mutableStateOf<ApiError?>(null)
@@ -35,6 +39,7 @@ class SaleSession(private val api: Api) {
 
     /** A new, empty bill; the shop's lists are loaded again so prices and stock are fresh. */
     fun start(scope: CoroutineScope, features: List<String>, partyId: String? = null, itemId: String? = null) {
+        this.features = features
         draft = SaleMaths.Draft(date = Format.todayIso())
         ask = null
         load(scope, features) { c ->
@@ -61,7 +66,11 @@ class SaleSession(private val api: Api) {
                 val c = coroutineScope {
                     val s = async { api.settings() }; val b = async { api.shop() }; val l = async { api.priceLists() }
                     val p = async { api.prices() }; val i = async { api.itemsFull() }; val pa = async { api.partiesFull() }
-                    SaleMaths.ctx(s.await(), b.await().stateCode, l.await(), p.await(), features, i.await(), pa.await())
+                    // referral and batches are extras: without them (no access, an older server) the bill still works
+                    suspend fun <T> extra(get: suspend () -> T, none: T): T = try { get() } catch (e: ApiError) { if (e.status == 0) throw e; none }
+                    val r = async { extra({ api.commissionRules() }, emptyList()) }; val rf = async { extra({ api.referrers() }, emptyList()) }
+                    val bt = async { if ("batch_no" in features) extra({ api.batches() }, emptyMap()) else emptyMap() }
+                    SaleMaths.ctx(s.await(), b.await().stateCode, l.await(), p.await(), features, i.await(), pa.await(), r.await(), rf.await(), bt.await())
                 }
                 ctx = c
                 then(c)
@@ -95,6 +104,9 @@ class SaleSession(private val api: Api) {
             return e
         } finally { busy = false }
     }
+
+    /** A new electrician, added from Referral: the lists are loaded again so it is there, then it is chosen. */
+    fun addReferrer(scope: CoroutineScope, id: String) = load(scope, features) { c -> change { SaleMaths.withReferrer(c, it, id) } }
 
     /** "Save anyway": the same bill again with that answer; a fresh key, because the bill sent is different. */
     fun confirm(code: String) { change { it.copy(confirmed = it.confirmed + code, key = java.util.UUID.randomUUID().toString()) }; ask = null }
