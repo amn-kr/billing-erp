@@ -66,6 +66,8 @@ android {
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
+    // the shared maths examples (packages/shared/examples/maths.json): the phone's bill maths must give the same answers as the web
+    sourceSets.getByName("test").resources.srcDir("../../../packages/shared/examples")
 }
 
 dependencies {
