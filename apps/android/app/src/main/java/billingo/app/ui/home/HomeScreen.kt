@@ -118,6 +118,7 @@ fun HomeScreen(
     onParties: (bal: String) -> Unit = { onLater() },
     onParty: (Party) -> Unit = { onLater() },
     onItem: (Item) -> Unit = { onLater() },
+    onNewBill: () -> Unit = onLater,
 ) {
     val hi = LocalConfiguration.current.locales[0].language == "hi"
     var tab by rememberSaveable { mutableIntStateOf(0) }
@@ -152,7 +153,7 @@ fun HomeScreen(
                         items(HomeMaths.ordered(list).take(50), key = { it.id }) { PartyRow(it) { onParty(it) } }
                     }
                     1 -> rows(data.sales, loading) { list ->
-                        if (list.isEmpty()) item { EmptyState(Icons.Bill, stringResource(R.string.no_bills), stringResource(R.string.no_bills_sub), stringResource(R.string.new_bill), onLater) }
+                        if (list.isEmpty()) item { EmptyState(Icons.Bill, stringResource(R.string.no_bills), stringResource(R.string.no_bills_sub), stringResource(R.string.new_bill), onNewBill) }
                         items(HomeMaths.latest(list).take(50), key = { it.id }) { BillRow(it, today, hi, onLater) }
                     }
                     else -> rows(data.items, loading) { list ->
@@ -165,7 +166,7 @@ fun HomeScreen(
         FootBar {
             Btn(stringResource(R.string.take_payment), onLater, Modifier.weight(1f), Kind.Soft, Icons.Rupee)
             IconBtn(Icons.Plus, stringResource(R.string.create_new), onCreate, Kind.Blue)
-            Btn(stringResource(R.string.new_bill), onLater, Modifier.weight(1f), Kind.Blue)
+            Btn(stringResource(R.string.new_bill), onNewBill, Modifier.weight(1f), Kind.Blue)
         }
     }
 }

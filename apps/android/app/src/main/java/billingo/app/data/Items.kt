@@ -29,6 +29,9 @@ data class ItemFull(
     val trackBatch: Boolean = false,
     /** made inactive (only in GET /items?archived=all) */
     val archived: Boolean = false,
+    /** Settings › Items › MRP and Pack: sold by the pack (e.g. BOX of 10) */
+    val packUnit: String? = null,
+    val packSize: String? = null,
 )
 
 @Serializable
