@@ -3,7 +3,9 @@ package billingo.app.ui.print
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.Shader
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
@@ -47,10 +49,16 @@ object InvoicePdf {
 
     private class Fonts(ctx: Context) {
         val regular: Typeface = ResourcesCompat.getFont(ctx, R.font.inter_regular) ?: Typeface.DEFAULT
+        val medium: Typeface = ResourcesCompat.getFont(ctx, R.font.inter_medium) ?: regular
+        val semibold: Typeface = ResourcesCompat.getFont(ctx, R.font.inter_semibold) ?: regular
         val bold: Typeface = ResourcesCompat.getFont(ctx, R.font.inter_bold) ?: Typeface.DEFAULT_BOLD
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { fontFeatureSettings = "tnum" }
 
-        fun paint(px: Float, bold: Boolean): Paint = paint.apply { typeface = if (bold) this@Fonts.bold else regular; textSize = px; letterSpacing = 0f }
+        /** Inter in 4 weights inside the app: 800 prints as bold */
+        fun paint(px: Float, w: Int): Paint = paint.apply {
+            typeface = when { w >= 700 -> bold; w >= 600 -> semibold; w >= 500 -> medium; else -> regular }
+            textSize = px; letterSpacing = 0f
+        }
         val ink = Ink { s, px, b -> paint(px, b).measureText(s) }
     }
 
@@ -75,6 +83,7 @@ object InvoicePdf {
                 showNo = flag("txnInvNo") != false, time = flag("txnTime") == true, billName = flag("txnBillName") == true,
                 words = labels, expFormat = (itemOptions?.get("expFormat") as? JsonPrimitive)?.contentOrNull ?: "month",
                 hideCols = listOf("category" to "cat", "brand" to "brand", "series" to "series").filter { "no_${it.first}" in features }.map { it.second },
+                showCurrency = flag("showCurrency") == true,
             ),
         )
         val biz = Biz(s.name, s.phone.orEmpty(), s.address.orEmpty(), s.city.orEmpty(), s.pin.orEmpty(), s.stateCode.orEmpty(), s.gstin.orEmpty(), s.email.orEmpty())
@@ -90,6 +99,7 @@ object InvoicePdf {
         val out = File(dir, "$title.pdf")
         val pdf = PdfDocument()
         val line = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
         try {
             pages.forEachIndexed { n, p ->
                 val page = pdf.startPage(PdfDocument.PageInfo.Builder(Math.round(p.w * PT), Math.round(p.h * PT), n + 1).create())
@@ -97,11 +107,16 @@ object InvoicePdf {
                 cv.scale(PT, PT)
                 for (op in p.ops) when (op) {
                     is TextOp -> {
-                        val paint = f.paint(op.px, op.bold).apply { color = op.argb; letterSpacing = op.spacing / op.px }
+                        val paint = f.paint(op.px, op.w).apply { color = op.argb; letterSpacing = op.spacing / op.px }
                         cv.drawText(op.s, op.x, op.y, paint)
                     }
                     is LineOp -> { line.color = op.argb; line.strokeWidth = op.w; cv.drawLine(op.x1, op.y1, op.x2, op.y2, line) }
                     is FrameOp -> { line.color = op.argb; line.strokeWidth = op.stroke; cv.drawRoundRect(RectF(op.x, op.y, op.x + op.w, op.y + op.h), op.r, op.r, line) }
+                    is FillOp -> {
+                        fill.color = op.argb
+                        fill.shader = op.to?.let { LinearGradient(op.x, op.y, op.x + op.w, op.y + op.h, op.argb, it, Shader.TileMode.CLAMP) }
+                        cv.drawRoundRect(RectF(op.x, op.y, op.x + op.w, op.y + op.h), op.r, op.r, fill)
+                    }
                 }
                 pdf.finishPage(page)
             }

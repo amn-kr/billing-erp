@@ -13,17 +13,21 @@ import java.math.BigDecimal
  * colours (those are for the screens).
  */
 
-/** Measures text: the width of [s] at [px] pixels, regular or bold, in the same pixels. */
+/** Measures text: the width of [s] at [px] pixels in font weight [w] (400 regular … 700 bold), in the same pixels. */
 fun interface Ink {
-    fun width(s: String, px: Float, bold: Boolean): Float
+    fun width(s: String, px: Float, w: Int): Float
 }
+
+fun Ink.width(s: String, px: Float, bold: Boolean) = width(s, px, if (bold) 700 else 400)
 
 sealed interface Op
 /** text with its baseline at [y]; [spacing] is extra space after each letter */
-data class TextOp(val s: String, val x: Float, val y: Float, val px: Float, val bold: Boolean, val argb: Int, val spacing: Float = 0f) : Op
+data class TextOp(val s: String, val x: Float, val y: Float, val px: Float, val w: Int, val argb: Int, val spacing: Float = 0f) : Op
 data class LineOp(val x1: Float, val y1: Float, val x2: Float, val y2: Float, val argb: Int, val w: Float = 1f) : Op
 /** a rounded outline (the CANCELLED stamp) */
 data class FrameOp(val x: Float, val y: Float, val w: Float, val h: Float, val r: Float, val argb: Int, val stroke: Float) : Op
+/** a filled box; with [to], a 135° gradient from [argb] to [to] (the Simple layout's logo) */
+data class FillOp(val x: Float, val y: Float, val w: Float, val h: Float, val r: Float, val argb: Int, val to: Int? = null) : Op
 
 class Page(val w: Float, val h: Float) {
     val ops = mutableListOf<Op>()
@@ -51,10 +55,10 @@ fun argbOf(hex: String): Int {
 /** A laid-out piece of the paper: its height for its width, and how to draw it at a place. */
 private class Blk(val h: Float, val draw: (Page, Float, Float) -> Unit)
 
-private class Lay(val ink: Ink, val fs: Float) {
+private class Lay(val ink: Ink, val fs: Float, val ratio: Float = LH) {
     val sm = fs * 0.92f
 
-    fun lh(px: Float) = px * LH
+    fun lh(px: Float) = px * ratio
 
     /** words wrapped to [w]; a word longer than the line is cut; "\n" starts a new line */
     fun wrap(text: String, px: Float, bold: Boolean, w: Float): List<String> {
@@ -81,10 +85,43 @@ private class Lay(val ink: Ink, val fs: Float) {
     }
 
     /** one line of text in a line box starting at [top] */
-    fun text(p: Page, s: String, x: Float, top: Float, px: Float, bold: Boolean, color: Int = TEXT, spacing: Float = 0f) {
+    fun text(p: Page, s: String, x: Float, top: Float, px: Float, bold: Boolean, color: Int = TEXT, spacing: Float = 0f) =
+        textW(p, s, x, top, px, if (bold) 700 else 400, color, spacing)
+
+    fun textW(p: Page, s: String, x: Float, top: Float, px: Float, w: Int, color: Int = TEXT, spacing: Float = 0f) {
         if (s.isEmpty()) return
-        val base = top + (px * LH - px * (ASC + DESC)) / 2 + px * ASC
-        p.ops += TextOp(s, x, base, px, bold, color, spacing)
+        val base = top + (px * ratio - px * (ASC + DESC)) / 2 + px * ASC
+        p.ops += TextOp(s, x, base, px, w, color, spacing)
+    }
+
+    /** width with letter spacing (CSS adds it after every letter) */
+    fun wd(s: String, px: Float, w: Int, spacing: Float = 0f) = ink.width(s, px, w) + spacing * s.codePointCount(0, s.length)
+
+    /** like [para], with a weight, letter spacing and capitals (the Simple layout's small labels) */
+    fun paraW(s: String, px: Float, w: Int, width: Float, align: Char = 'l', color: Int = TEXT, spacing: Float = 0f, nowrap: Boolean = false): Blk {
+        val ls = if (nowrap) listOf(s) else wrapW(s, px, w, width, spacing)
+        return Blk(ls.size * lh(px)) { p, x, y ->
+            ls.forEachIndexed { i, l ->
+                val lw = wd(l, px, w, spacing)
+                val lx = when (align) { 'c' -> x + (width - lw) / 2; 'r' -> x + width - lw; else -> x }
+                textW(p, l, lx, y + i * lh(px), px, w, color, spacing)
+            }
+        }
+    }
+
+    fun wrapW(text: String, px: Float, w: Int, width: Float, spacing: Float = 0f): List<String> {
+        val out = mutableListOf<String>()
+        for (para in text.split("\n")) {
+            var cur = ""
+            for (word in para.split(" ")) {
+                val next = if (cur.isEmpty()) word else "$cur $word"
+                if (wd(next, px, w, spacing) <= width || cur.isEmpty()) { cur = next; continue }
+                out += cur
+                cur = word
+            }
+            out += cur
+        }
+        return out
     }
 
     /** a paragraph: wrapped lines, left, centred or right in [w] */
@@ -130,7 +167,7 @@ private fun shareWidths(min: List<Float>, max: List<Float>, w: Float): List<Floa
  */
 fun paperPages(d: PDoc, o: PrintOpts, biz: Biz, ink: Ink): List<Page> {
     val list = if (d.kind == "invoice") copiesOf(o) else listOf("")
-    return (list.ifEmpty { listOf("") }).flatMap { classic(d, o, biz, ink, it) }
+    return (list.ifEmpty { listOf("") }).flatMap { if (o.theme == "simple") simple(d, o, biz, ink, it) else classic(d, o, biz, ink, it) }
 }
 
 /** The "Classic" boxed layout (the owner's sample bill, the web's default). */
@@ -471,5 +508,276 @@ private fun classic(d: PDoc, o: PrintOpts, biz: Biz, ink: Ink, copy: String): Li
     sum?.let { section(it) }
     foot?.let { section(it) }
     closeBox()
+    return pages
+}
+
+/* ───────── "Simple": the prototype's invoice (app.css .ivpg / .ivh / .ivg / .ivtab / .ivf / .ivtot), the web's Simple() ───────── */
+
+private val SIMPLE_TEXT = mapOf("s" to 11.5f, "m" to 12.5f, "l" to 13.5f)
+private val SIMPLE_NAME = mapOf("s" to 14f, "m" to 16f, "l" to 20f, "xl" to 24f)
+private const val S_GREY = 0xFF5B6478.toInt()
+private const val S_T2 = 0xFF66708A.toInt()
+private const val S_LINE = 0xFFE3E6EE.toInt()
+private const val S_HEAD = 0xFFF2F4F8.toInt()
+private const val S_DUE = 0xFFB91C1C.toInt()
+/** the logo's gradient is the viewer's colour theme on the web (var(--ac), var(--ac2)); the default theme is "Ledger teal" */
+private const val S_LOGO1 = 0xFF0F766E.toInt()
+private const val S_LOGO2 = 0xFF0D9488.toInt()
+private const val WHITE = 0xFFFFFFFF.toInt()
+/** the page's line height (body: 14px/1.45); inside tables the font's own ("normal") */
+private const val S_LH = 1.45f
+private const val S_TLH = ASC + DESC
+
+private fun simple(d: PDoc, o: PrintOpts, biz: Biz, ink: Ink, copy: String): List<Page> {
+    val (pw, ph) = o.size
+    val pm = Opts.MARGIN_PX[o.margin] ?: 30f
+    val fs = SIMPLE_TEXT[o.textSize] ?: 12.5f
+    val namePx = SIMPLE_NAME[o.nameSize] ?: 16f
+    val c = argbOf(o.color)
+    val L = Lay(ink, fs, S_LH)
+    val small = fs / 1.2f // the browser's "smaller"
+    val m = { v: String? -> PFmt.money(v, o.grouping) }
+    val dec = PFmt::dec
+    val g = d.taxMode == "gst"
+    val q = d.kind == "quotation"
+    val inter = dec(d.igst).signum() > 0
+    val name = biz.name.ifBlank { "My Business" }
+    // Settings › General: with the currency symbol off (the default), the web removes every ₹ (curFix)
+    val cur = if (d.showCurrency) "₹" else ""
+    val padX = pm + 4
+    val W = pw - 2 * padX
+    val x0 = padX
+    fun up(px: Float) = px * 0.05f
+    fun label(t: String, w: Float, px: Float = 11f) = L.paraW(t.uppercase(), px, 400, w, color = S_GREY, spacing = up(px))
+    fun gap(h: Float) = Blk(h) { _, _, _ -> }
+
+    // ---- head: logo and the business on the left, the document's name on the right
+    val title = docTitle(d, o).uppercase()
+    val sub = if (q) (if (!d.dueDate.isNullOrBlank()) "Valid till ${PFmt.dmy(d.dueDate)}" else "") else copy
+    val ivtW = maxOf(L.wd(title, 15f, 700, 15f * 0.08f), ink.width(sub, small, 400))
+    val bs = biz.stateCode.ifBlank { "09" }
+    val line = listOf(
+        listOf(if (o.showAddr) biz.address else "", if (o.showAddr) listOf(biz.city, biz.pin).filter { it.isNotBlank() }.joinToString(" ") else "").filter { it.isNotBlank() }.joinToString(", "),
+        if (o.showPhone) biz.phone else "",
+    ).filter { it.isNotBlank() }.joinToString(" · ")
+    val tw = W - ivtW - 16 - 44 - 12
+    val bizText = L.stack(buildList {
+        if (o.showName) add(0f to L.paraW(name, namePx, 700, tw))
+        add(0f to L.paraW(line, small, 400, tw, color = S_GREY))
+        if (o.showEmail && biz.email.isNotBlank()) add(0f to L.paraW(biz.email, small, 400, tw, color = S_GREY))
+        if (o.firm.isNotBlank()) add(0f to L.paraW(o.firm, small, 400, tw, color = S_GREY))
+        if (g) add(0f to L.paraW("GSTIN ${biz.gstin} · State ${stateName(bs)} ($bs)", small, 400, tw, color = S_GREY))
+    })
+    val ivt = L.stack(listOf(0f to L.paraW(title, 15f, 700, ivtW, 'r', c, 15f * 0.08f, nowrap = true), 0f to L.paraW(sub, small, 400, ivtW, 'r', S_GREY, nowrap = true)))
+    val rowH = maxOf(44f, bizText.h, ivt.h)
+    val head = Blk(rowH + 14 + 2) { p, x, y ->
+        val ly = y + (rowH - 44) / 2
+        p.ops += FillOp(x, ly, 44f, 44f, 9f, S_LOGO1, S_LOGO2)
+        val letter = (name.firstOrNull() ?: 'B').uppercaseChar().toString()
+        L.textW(p, letter, x + (44 - ink.width(letter, 18f, 800)) / 2, ly + (44 - 18f * S_LH) / 2, 18f, 800, WHITE)
+        bizText.draw(p, x + 44 + 12, y + (rowH - bizText.h) / 2)
+        ivt.draw(p, x + W - ivtW, y)
+        p.ops += LineOp(x, y + rowH + 14 + 1, x + W, y + rowH + 14 + 1, c, 2f)
+    }
+
+    // ---- Bill to, number and date, due date and place of supply
+    val avail = W - 32
+    val cw = listOf(avail * 1.4f / 3.4f, avail / 3.4f, avail / 3.4f)
+    fun b13(t: String, w: Float) = L.paraW(t, 13f, 700, w)
+    val col1 = L.stack(buildList {
+        add(0f to label("Bill to", cw[0])); add(0f to b13(d.partyName, cw[0]))
+        if (d.partyCity.isNotBlank()) add(0f to L.paraW(d.partyCity, small, 400, cw[0], color = S_GREY))
+        if (d.partyPhone.isNotBlank()) add(0f to L.paraW("+91 ${d.partyPhone}", small, 400, cw[0], color = S_GREY))
+        if (g && d.partyGstin.isNotBlank()) add(0f to L.paraW("GSTIN ${d.partyGstin}", small, 400, cw[0], color = S_GREY))
+    })
+    val col2 = L.stack(buildList {
+        if (!d.hideNo) { add(0f to label(if (q) "Quotation no." else "Invoice no.", cw[1])); add(0f to b13(d.number, cw[1])) }
+        add((if (d.hideNo) 0f else 6f) to label("Date", cw[1])); add(0f to b13(PFmt.dmy(d.date) + (if (d.time.isNotEmpty()) " · ${d.time}" else ""), cw[1]))
+    })
+    val col3 = L.stack(buildList {
+        if (d.mode == "credit" || q) { add(0f to label(if (q) "Valid till" else "Due date", cw[2])); add(0f to b13(PFmt.dmy(d.dueDate ?: d.date), cw[2])) }
+        else { add(0f to label("Payment", cw[2])); add(0f to b13("Cash sale", cw[2])) }
+        if (g) { add(6f to label("Place of supply", cw[2])); add(0f to b13("${stateName(d.placeOfSupply)} (${d.placeOfSupply})", cw[2])) }
+    })
+    val gh = maxOf(col1.h, col2.h, col3.h)
+    val grid = Blk(14 + gh + 14 + 1) { p, x, y ->
+        col1.draw(p, x, y + 14); col2.draw(p, x + cw[0] + 16, y + 14); col3.draw(p, x + cw[0] + cw[1] + 32, y + 14)
+        L.line(p, x, y + 14 + gh + 14 + 0.5f, x + W, y + 14 + gh + 14 + 0.5f, S_LINE)
+    }
+
+    // ---- references (Challan no., transport, …): side by side, wrapping
+    val refs: Blk? = if (d.refs.isEmpty()) null else {
+        val items = d.refs.map { (k, t) -> Triple(k.uppercase(), t, maxOf(L.wd(k.uppercase(), 10f, 700, 0.5f), ink.width(t, 12f, 400))) }
+        val rows = mutableListOf<MutableList<Triple<String, String, Float>>>()
+        var used = 0f
+        for (it in items) {
+            if (rows.isEmpty() || used + 18 + it.third > W) { rows += mutableListOf(it); used = it.third } else { rows.last() += it; used += 18 + it.third }
+        }
+        val rh = 10f * S_LH + 12f * S_LH
+        Blk(12 + rows.size * rh + (rows.size - 1) * 6 + 4) { p, x, y ->
+            rows.forEachIndexed { r, row ->
+                var xx = x
+                val yy = y + 12 + r * (rh + 6)
+                row.forEach { (k, t, w) ->
+                    L.textW(p, k, xx, yy, 10f, 700, S_GREY, 0.5f)
+                    L.textW(p, t, xx, yy + 10f * S_LH, 12f, 400)
+                    xx += w + 18
+                }
+            }
+        }
+    }
+    val desc = if (o.description && d.description.isNotBlank()) L.stack(listOf(8f to L.paraW(d.description, 12.5f, 400, W))) else null
+
+    // ---- the item table
+    val cols = columns(d, o)
+    val td = 13f
+    val batchPx = td * 0.85f
+    val right = { k: Int -> cols[k].n && cols[k].key != "unit" }
+    val texts = d.lines.mapIndexed { i, l -> cols.map { it.v(l, i) } }
+    fun cellPx(k: Int) = if (cols[k].key == "code") 11f else td
+    val minW = cols.indices.map { k ->
+        val nowrap = right(k)
+        fun need(t: String, px: Float, w: Int) = if (nowrap) ink.width(t, px, w) else t.split(" ").maxOfOrNull { ink.width(it, px, w) } ?: 0f
+        maxOf(ink.width(cols[k].label, 11f, 600), texts.maxOfOrNull { need(it[k], cellPx(k), if (nowrap) 700 else 400) } ?: 0f,
+            if (cols[k].key == "name") d.lines.maxOfOrNull { need(it.batch, batchPx, 400) } ?: 0f else 0f) + 16
+    }
+    val maxW = cols.indices.map { k ->
+        maxOf(ink.width(cols[k].label, 11f, 600), texts.maxOfOrNull { ink.width(it[k], cellPx(k), if (right(k)) 700 else 400) } ?: 0f,
+            if (cols[k].key == "name") d.lines.maxOfOrNull { ink.width(it.batch, batchPx, 400) } ?: 0f else 0f) + 16
+    }
+    val widths = shareWidths(minW, maxW, W)
+    val cx = widths.runningFold(0f) { a, w -> a + w }
+    val T = Lay(ink, td, S_TLH)
+    val thH = 11f * S_TLH + 16
+    val thead = Blk(12 + thH) { p, x, y ->
+        p.ops += FillOp(x, y + 12, W, thH, 0f, S_HEAD)
+        cols.forEachIndexed { k, col ->
+            val w = ink.width(col.label, 11f, 600)
+            T.textW(p, col.label, if (right(k)) x + cx[k + 1] - 8 - w else x + cx[k] + 8, y + 12 + 8, 11f, 600, S_GREY)
+        }
+    }
+    val rows = d.lines.mapIndexed { i, l ->
+        val cells = cols.indices.map { k ->
+            val w = widths[k] - 16
+            val px = cellPx(k)
+            // number cells are bold (app.css td.n)
+            val main = T.paraW(texts[i][k], px, if (right(k)) 700 else 400, w, if (right(k)) 'r' else 'l', if (cols[k].key == "code") S_GREY else TEXT, nowrap = right(k))
+            if (cols[k].key == "name" && l.batch.isNotEmpty()) T.stack(listOf(0f to main, 0f to T.paraW(l.batch, batchPx, 400, w, color = S_T2))) else main
+        }
+        // every row but the first has a 1 px line on top
+        val bw = if (i > 0) 1f else 0f
+        val inner = cells.maxOf { it.h }
+        i to Blk(inner + 16 + bw) { p, x, y ->
+            if (i > 0) L.line(p, x, y + 0.5f, x + W, y + 0.5f, S_LINE)
+            // cells sit in the middle of the row (td: vertical-align middle)
+            cells.forEachIndexed { k, b -> b.draw(p, x + cx[k] + 8, y + bw + 8 + (inner - b.h) / 2) }
+        }
+    }
+
+    // ---- under the table: tax table, words, notes, UPI, terms | the totals and signature
+    val totW = 280f
+    val lw = W - totW - 24
+    val left = mutableListOf<Pair<Float, Blk>>()
+    if (g && o.taxTable) {
+        val sums = linkedMapOf<String, Pair<BigDecimal, BigDecimal>>()
+        for (l in d.lines) {
+            val k = dec(l.gst).stripTrailingZeros().toPlainString()
+            val r = sums[k] ?: (BigDecimal.ZERO to BigDecimal.ZERO)
+            sums[k] = (r.first + dec(l.taxable)) to (r.second + dec(l.tax))
+        }
+        // one rate: the bill's own totals (they include the bill discount)
+        if (sums.size == 1) sums[sums.keys.first()] = dec(d.taxable) to (dec(d.cgst) + dec(d.sgst) + dec(d.igst))
+        val whole = sums.keys.filter { it.all(Char::isDigit) }.sortedBy { it.toLong() }
+        val rates = (whole + sums.keys.filter { it !in whole }).associateWith { sums.getValue(it) }
+        val heads = listOf("GST rate", "Taxable") + if (inter) listOf("IGST") else listOf("CGST", "SGST")
+        val half = { v: BigDecimal -> m(PFmt.r2(v.divide(BigDecimal(2))).toPlainString()) }
+        val data = rates.map { (r, x) -> listOf(PFmt.pct(r), m(PFmt.r2(x.first).toPlainString())) + if (inter) listOf(m(PFmt.r2(x.second).toPlainString())) else listOf(half(x.second), half(x.second)) }
+        val tw0 = heads.indices.map { k -> maxOf(ink.width(heads[k], 11f, 600), data.maxOfOrNull { ink.width(it[k], td, if (k > 0) 700 else 400) } ?: 0f) + 16 }
+        val tws = shareWidths(tw0, tw0, lw)
+        val tx = tws.runningFold(0f) { a, w -> a + w }
+        val rh = td * S_TLH + 16
+        left += 12f to Blk(thH + data.size * (rh + 1) - 1) { p, x, y ->
+            p.ops += FillOp(x, y, lw, thH, 0f, S_HEAD)
+            heads.forEachIndexed { k, h -> val w = ink.width(h, 11f, 600); T.textW(p, h, if (k == 0) x + tx[k] + 8 else x + tx[k + 1] - 8 - w, y + 8, 11f, 600, S_GREY) }
+            data.forEachIndexed { r, row ->
+                val top = y + thH + r * (rh + 1) - (if (r > 0) 1 else 0)
+                if (r > 0) L.line(p, x, top + 0.5f, x + lw, top + 0.5f, S_LINE)
+                row.forEachIndexed { k, t -> val wt = if (k > 0) 700 else 400; val w = ink.width(t, td, wt); T.textW(p, t, if (k == 0) x + tx[k] + 8 else x + tx[k + 1] - 8 - w, top + (if (r > 0) 1 else 0) + 8, td, wt) }
+            }
+        }
+    } else if (d.taxMode == "bos") left += 12f to L.paraW("Composition taxable person, not eligible to collect tax on supplies.", 12f, 400, lw, color = S_GREY)
+    fun words(k: String, body: Blk) { left += 12f to L.stack(listOf(0f to label(k, lw), 0f to body)) }
+    if (o.words) words("Amount in words", L.paraW(d.words, fs, 700, lw))
+    // notes are not pre-wrapped on the web: line breaks read as spaces
+    if (d.notes.isNotBlank()) words("Notes", L.paraW(d.notes.trim().replace(Regex("""\s+"""), " "), 12f, 400, lw))
+    if (upiOk(d.upi) && !q) words("Pay by UPI", L.paraW(d.upi, 12f, 400, lw))
+    if (o.terms.isNotBlank()) words("Terms and conditions", L.paraW(o.terms, 12f, 400, lw))
+    val leftB = L.stack(left)
+
+    class Row(val k: String, val v: String, val kind: Int = 0) // 1 = Total, 2 = Balance due
+    val tr = mutableListOf<Row>()
+    if (dec(d.billDiscount).signum() != 0) tr += Row("Discount", "−" + m(d.billDiscount))
+    tr += Row(if (g) "Taxable value" else "Sub total", m(d.taxable))
+    if (g) { if (inter) tr += Row("IGST", m(d.igst)) else { tr += Row("CGST", m(d.cgst)); tr += Row("SGST", m(d.sgst)) } }
+    if (dec(d.tcs).signum() != 0) tr += Row("TCS", m(d.tcs))
+    if (dec(d.transport).signum() != 0) tr += Row("Transport charge", m(d.transport))
+    if (dec(d.labour).signum() != 0) tr += Row("Labour charge", m(d.labour))
+    if (dec(d.bankCharge).signum() != 0) tr += Row("Bank comm.", m(d.bankCharge))
+    if (dec(d.roundAmount).signum() != 0) tr += Row("Round off", (if (dec(d.roundAmount).signum() > 0) "+" else "−") + m(dec(d.roundAmount).abs().toPlainString()))
+    tr += Row("Total", cur + m(d.total), 1)
+    if (!q) {
+        if (o.received) tr += Row("Received" + (if (o.payMode && d.payMode.isNotEmpty()) " (${d.payMode})" else ""), m(d.received))
+        if (o.balance) tr += Row("Balance due", cur + m(d.balance), 2)
+        if (o.partyBal && d.partyBalance != null) tr += Row("Current balance", cur + m(d.partyBalance))
+    }
+    if (o.saved) {
+        val saved = d.lines.fold(BigDecimal.ZERO) { a, l -> if (dec(l.mrp).signum() != 0) a + dec(l.mrp) * dec(l.qty) - dec(l.amount) else a }
+        if (saved.signum() > 0) tr += Row("You saved", cur + m(saved.toPlainString()))
+    }
+    fun rowH(r: Row) = (if (r.kind == 1) 15f else fs) * S_LH + 12
+    val sigText = listOf("For $name", o.sign.ifBlank { "Authorized Signatory" })
+    val totH = 12 + tr.mapIndexed { i, r -> rowH(r) + (if (i == 0) 0f else if (r.kind == 1) 2f else 1f) }.sum() + 34 + 6 + 1 + 6 + 2 * 11f * S_LH + 6
+    val tot = Blk(totH) { p, x, y ->
+        var yy = y + 12
+        tr.forEachIndexed { i, r ->
+            if (i > 0) { val bw = if (r.kind == 1) 2f else 1f; p.ops += LineOp(x, yy + bw / 2, x + totW, yy + bw / 2, if (r.kind == 1) c else S_LINE, bw); yy += bw }
+            val px = if (r.kind == 1) 15f else fs
+            val kw = if (r.kind == 1) 700 else 400
+            val vw = if (r.kind == 1) 800 else 700
+            L.textW(p, r.k, x, yy + 6, px, kw, if (r.kind == 1) c else S_GREY)
+            L.textW(p, r.v, x + totW - ink.width(r.v, px, vw), yy + 6, px, vw, when (r.kind) { 1 -> c; 2 -> S_DUE; else -> TEXT })
+            yy += rowH(r)
+        }
+        yy += 34 + 6
+        L.line(p, x + 20, yy + 0.5f, x + totW - 20, yy + 0.5f, TEXT)
+        yy += 1 + 6
+        sigText.forEachIndexed { i, t -> L.textW(p, t, x + (totW - ink.width(t, 11f, 400)) / 2, yy + i * 11f * S_LH, 11f, 400, S_GREY) }
+    }
+    val foot = Blk(6 + maxOf(leftB.h, tot.h)) { p, x, y -> leftB.draw(p, x, y + 6); tot.draw(p, x + lw + 24, y + 6) }
+
+    // ---- pages: everything flows down; a long table goes on with its heading on the next page
+    val pages = mutableListOf<Page>()
+    val bottom = o.printHeight - pm
+    var page = Page(pw, ph).also { pages += it }
+    var y = pm
+    fun place(b: Blk) {
+        if (y + b.h > bottom && y > pm) { page = Page(pw, ph).also { pages += it }; y = pm }
+        b.draw(page, x0, y); y += b.h
+    }
+    if (d.cancelled) {
+        val h = fs * S_LH + 12 + 4
+        page.ops += FrameOp(x0 + 1, y + 1, W - 2, h - 2, 8f, RED, 2f)
+        val sp = fs * 0.2f
+        val t = "CANCELLED"
+        L.textW(page, t, x0 + (W - L.wd(t, fs, 800, sp)) / 2, y + 8, fs, 800, RED, sp)
+        y += h + 12
+    }
+    place(head); place(grid); refs?.let(::place); desc?.let(::place)
+    place(thead)
+    for ((_, r) in rows) {
+        if (y + r.h > bottom) { page = Page(pw, ph).also { pages += it }; y = pm; place(Blk(thH) { p, x, yy -> thead.draw(p, x, yy - 12) }) }
+        r.draw(page, x0, y); y += r.h
+    }
+    place(foot)
     return pages
 }

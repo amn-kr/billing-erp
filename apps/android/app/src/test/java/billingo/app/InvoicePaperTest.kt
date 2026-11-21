@@ -5,6 +5,7 @@ import billingo.app.data.DocBatch
 import billingo.app.data.SaleDoc
 import billingo.app.ui.print.Biz
 import billingo.app.ui.print.DocOpts
+import billingo.app.ui.print.FillOp
 import billingo.app.ui.print.FrameOp
 import billingo.app.ui.print.Ink
 import billingo.app.ui.print.LineOp
@@ -80,9 +81,10 @@ class InvoicePaperTest {
     }
 
     private val fonts = File("src/main/res/font")
-    private val regular = Ttf(fonts.resolve("inter_regular.ttf"))
-    private val bold = Ttf(fonts.resolve("inter_bold.ttf"))
-    private val ink = Ink { s, px, b -> (if (b) bold else regular).width(s, px) }
+    private val weights = mapOf(400 to "regular", 500 to "medium", 600 to "semibold", 700 to "bold")
+    private val ttf = weights.mapValues { Ttf(fonts.resolve("inter_${it.value}.ttf")) }
+    private fun face(w: Int) = when { w >= 700 -> 700; w >= 600 -> 600; w >= 500 -> 500; else -> 400 }
+    private val ink = Ink { s, px, w -> ttf.getValue(face(w)).width(s, px) }
 
     private fun hex(argb: Int) = "#%06x".format(argb and 0xFFFFFF)
     private fun esc(s: String) = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
@@ -92,10 +94,11 @@ class InvoicePaperTest {
         val font = fonts.absoluteFile
         pages.forEachIndexed { n, p ->
             val sb = StringBuilder()
-            sb.append("""<svg xmlns="http://www.w3.org/2000/svg" width="${p.w}" height="${p.h}" viewBox="0 0 ${p.w} ${p.h}"><style>@font-face{font-family:I;font-weight:400;src:url(file://$font/inter_regular.ttf)}@font-face{font-family:I;font-weight:700;src:url(file://$font/inter_bold.ttf)}text{font-family:I;font-kerning:none;white-space:pre}</style><rect width="100%" height="100%" fill="#fff"/>""")
+            sb.append("""<svg xmlns="http://www.w3.org/2000/svg" width="${p.w}" height="${p.h}" viewBox="0 0 ${p.w} ${p.h}"><style>${weights.entries.joinToString("") { (w, n) -> "@font-face{font-family:I;font-weight:$w;src:url(file://$font/inter_$n.ttf)}" }}text{font-family:I;font-kerning:none;white-space:pre}</style><rect width="100%" height="100%" fill="#fff"/>""")
             for (op in p.ops) when (op) {
-                is TextOp -> sb.append("""<text x="${op.x}" y="${op.y}" font-size="${op.px}" font-weight="${if (op.bold) 700 else 400}" fill="${hex(op.argb)}"${if (op.spacing > 0) " letter-spacing=\"${op.spacing}\"" else ""}>${esc(op.s)}</text>""")
+                is TextOp -> sb.append("""<text x="${op.x}" y="${op.y}" font-size="${op.px}" font-weight="${face(op.w)}" fill="${hex(op.argb)}"${if (op.spacing > 0) " letter-spacing=\"${op.spacing}\"" else ""}>${esc(op.s)}</text>""")
                 is LineOp -> sb.append("""<line x1="${op.x1}" y1="${op.y1}" x2="${op.x2}" y2="${op.y2}" stroke="${hex(op.argb)}" stroke-width="${op.w}"/>""")
+                is FillOp -> sb.append(if (op.to == null) """<rect x="${op.x}" y="${op.y}" width="${op.w}" height="${op.h}" rx="${op.r}" fill="${hex(op.argb)}"/>""" else """<defs><linearGradient id="g$n" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${hex(op.argb)}"/><stop offset="1" stop-color="${hex(op.to)}"/></linearGradient></defs><rect x="${op.x}" y="${op.y}" width="${op.w}" height="${op.h}" rx="${op.r}" fill="url(#g$n)"/>""")
                 is FrameOp -> sb.append("""<rect x="${op.x}" y="${op.y}" width="${op.w}" height="${op.h}" rx="${op.r}" fill="none" stroke="${hex(op.argb)}" stroke-width="${op.stroke}"/>""")
             }
             sb.append("</svg>")
@@ -170,5 +173,21 @@ class InvoicePaperTest {
     fun `the web's paper stops 1 mm short of the sheet`() {
         assertEquals(1118.74f, PrintOpts().printHeight, 0.01f)
         assertEquals(789.92f, PrintOpts(paper = "A5").printHeight, 0.01f)
+    }
+
+    @Test
+    fun `the Simple layout, with or without the rupee sign`() {
+        val o = PrintOpts.from(Json.parseToJsonElement("""{"theme":"simple","terms":"Goods once sold will not be taken back."}""") as JsonObject)
+        val pages = paperPages(fromSale(doc(gstBill)), o, biz, ink)
+        assertEquals(1, pages.size)
+        val words = pages[0].ops.filterIsInstance<TextOp>().map { it.s }
+        assertTrue(words.containsAll(listOf("TAX INVOICE", "BILL TO", "INVOICE NO.", "PLACE OF SUPPLY", "TRANSPORT", "Shree Logistics", "AMOUNT IN WORDS", "Balance due", "4,377.00", "For Sharma Electricals")))
+        assertTrue(words.none { "₹" in it })
+        assertTrue(pages[0].ops.any { it is FillOp && it.to != null }) // the logo
+        val withSign = paperPages(fromSale(doc(gstBill), DocOpts(showCurrency = true)), o, biz, ink)[0].ops.filterIsInstance<TextOp>().map { it.s }
+        assertTrue(withSign.contains("₹4,377.00"))
+        // a long bill goes on to a second page
+        val lines = (1..40).joinToString(",") { """{"name":"Item $it","qty":"1","unit":"PCS","price":"10","taxable":"10","tax":"0","amount":"10"}""" }
+        assertTrue(paperPages(fromSale(doc("""{"id":"s4","number":"INV-0110","date":"2026-11-21","partyName":"A","total":"400","lines":[$lines]}""")), o, biz, ink).size >= 2)
     }
 }

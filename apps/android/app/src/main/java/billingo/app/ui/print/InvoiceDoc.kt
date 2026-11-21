@@ -31,6 +31,8 @@ data class PDoc(
     val roundAmount: String, val total: String, val words: String,
     val received: String, val payMode: String, val balance: String, val partyBalance: String?, val upi: String,
     val hideNo: Boolean = false, val time: String = "", val mrpWord: String? = null, val hideCols: List<String> = emptyList(),
+    /** Settings › General › Show ₹ symbol */
+    val showCurrency: Boolean = false,
 )
 
 /** What the web's fromSale gets besides the bill: Settings › Items and Transactions, the UPI ID, the party's balance. */
@@ -41,6 +43,7 @@ data class DocOpts(
     val words: Map<String, String> = emptyMap(), val expFormat: String = "month",
     /** columns of boxes turned off in Settings › Items (cat, brand, series) */
     val hideCols: List<String> = emptyList(),
+    val showCurrency: Boolean = false,
 )
 
 /** GST state codes, as the web lists them (packages/shared/src/india.ts). */
@@ -147,7 +150,7 @@ fun fromSale(v: SaleDoc, o: DocOpts = DocOpts()): PDoc {
         "Delivery date" to (if (s("deliveryDate").isNotEmpty()) PFmt.dmy(s("deliveryDate")) else ""),
     ).filter { it.second.isNotEmpty() }
     return PDoc(
-        mrpWord = o.words["mrp"], hideCols = o.hideCols,
+        mrpWord = o.words["mrp"], hideCols = o.hideCols, showCurrency = o.showCurrency,
         kind = v.kind, number = v.number, date = v.date, dueDate = v.dueDate, mode = v.mode, taxMode = v.taxMode, placeOfSupply = v.placeOfSupply, cancelled = v.cancelled,
         partyName = if (billTo) v.billName else v.partyName, partyCity = v.party?.city ?: "", partyPhone = v.party?.phone?.takeIf { it.isNotBlank() } ?: v.cashPhone, partyGstin = v.party?.gstin ?: "",
         refs = refs, description = s("description"), notes = v.notes,
