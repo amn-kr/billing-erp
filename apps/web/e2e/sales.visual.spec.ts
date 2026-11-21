@@ -317,7 +317,7 @@ for (const width of WIDTHS) {
       // the mobile must have 10 digits
       await both(proto, app, async (p) => { await p.fill('#elN', 'Ramesh Kumar'); await p.fill('#elP', '94150'); await p.click('#slmOk'); });
       await sameShot(`referral-add-error-${width}`, proto, app, '#slm .mdl');
-      for (const s of behind) await s.evaluate((el) => el.remove());
+      for (const s of behind) await s.evaluate((el) => (el as Element).remove());
       await both(proto, app, async (p) => { await p.fill('#elP', '9415011111'); await p.fill('#elC', 'Lucknow'); await p.click('#slmOk'); });
       await proto.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
       await app.evaluate(() => document.getElementById('toast')?.classList.remove('on'));
