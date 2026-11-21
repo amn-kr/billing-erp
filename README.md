@@ -48,8 +48,8 @@ _Last updated: 21 Nov 2026. Details: [`docs/STATUS.md`](docs/STATUS.md)._
 | **Latest Windows release** | **v0.1.1** (13 Nov 2026): adds *Bring online books to this PC*. Installers are on the [releases page](https://github.com/amn-kr/billing-erp-releases/releases). |
 | **Live web app** | https://billing-erp-ynqf.onrender.com (free plans; the first open after 15 idle minutes can take about a minute). |
 | **Needs attention** | Nightly database backups have not run since 9 Nov 2026. The fix is merged (PR #105) and in the backup repository, but GitHub's Actions budget stops every run. On hold until 1 Dec 2026, when the free minutes return; a reminder will run one backup and check the restore test that day. |
-| **Latest phone release** | **Android app 1.0.5** (21 Nov 2026): New Sale gets Import From Quotation, Referral (electrician commission), Bill Details (transport, vehicle, profit), Last Prices and batch choice. Share and PDF come in 8.5d. On the [releases page](https://github.com/amn-kr/billing-erp-releases/releases); *Check For Update* in the app finds it. |
-| **Next** | Android app (Phase 8) in **Kotlin**. Done and merged: 8.1 (server groundwork), 8.2 (app frame, sign-in, Home, signed APK), 8.3 (Parties), 8.4a (items list, item page, Adjust Stock) 8.4b (add and edit items, variants, new brand and category, barcode scan) and 8.4c (Price Manager with PIN, brands and series, godowns and transfers, bulk active / inactive, stock adjustments list). Now: 8.5 (new sale and the invoice PDF), in four parts. Merged: 8.5a (the bill maths, matching the web on all shared examples), 8.5b (the New Sale screen) and 8.5c (batches, last prices, referral, quotation import, bill details). Built, waiting for approval: 8.5d (the invoice PDF, Share On WhatsApp, Share and Print). Plan: [`docs/PHASE8-PLAN.md`](docs/PHASE8-PLAN.md). The rest of the Windows trial comes after the phone app is launched (owner, 18 Nov 2026). Selling (Phase 5) starts only when the owner asks. |
+| **Latest phone release** | **Android app 1.0.6** (21 Nov 2026): the invoice PDF, made on the phone in the shop's chosen layout (Classic or Simple), with Share On WhatsApp, Share Or Print PDF, and Share / Print from the ⋮ next to Save. On the [releases page](https://github.com/amn-kr/billing-erp-releases/releases); *Check For Update* in the app finds it. |
+| **Next** | Android app (Phase 8) in **Kotlin**. Done and merged: 8.1 (server groundwork), 8.2 (app frame, sign-in, Home, signed APK), 8.3 (Parties), 8.4a (items list, item page, Adjust Stock) 8.4b (add and edit items, variants, new brand and category, barcode scan) and 8.4c (Price Manager with PIN, brands and series, godowns and transfers, bulk active / inactive, stock adjustments list). 8.5 is merged: 8.5a (the bill maths, matching the web on all shared examples), 8.5b (the New Sale screen), 8.5c (batches, last prices, referral, quotation import, bill details) and 8.5d (the invoice PDF, Share On WhatsApp, Share and Print). Next: 8.6. Plan: [`docs/PHASE8-PLAN.md`](docs/PHASE8-PLAN.md). The rest of the Windows trial comes after the phone app is launched (owner, 18 Nov 2026). Selling (Phase 5) starts only when the owner asks. |
 
 ---
 
@@ -355,7 +355,7 @@ node saas.js      # website version (needs: cd ../firebase-site/public && python
 | 5 | SaaS and launch: Razorpay, admin console, onboarding, beta | ⏸ On hold until the owner asks |
 | 6 | Windows app and single-PC offline mode | 🔄 Built; real-PC checks half done (18 Nov), trial pending |
 | 7 | Mobile design | ✅ Done (17 Nov 2026): colours, building blocks, app map and every screen (7.4a to 7.4j) approved |
-| 8 | Android app | 🔄 In progress: 8.1–8.5c merged; phone app 1.0.5 released (21 Nov 2026) |
+| 8 | Android app | 🔄 In progress: 8.1–8.5 merged; phone app 1.0.6 released (21 Nov 2026) |
 | 9 | iPhone and Mac builds | ⏳ Later |
 
 Each phase has a gate that must pass before the next starts. Full plan: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
