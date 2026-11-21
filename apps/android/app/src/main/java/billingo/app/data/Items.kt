@@ -27,6 +27,8 @@ data class ItemFull(
     @Serializable(with = Exact::class) val value: BigDecimal = BigDecimal.ZERO,
     val level: String = "ok",
     val trackBatch: Boolean = false,
+    /** made inactive (only in GET /items?archived=all) */
+    val archived: Boolean = false,
 )
 
 @Serializable

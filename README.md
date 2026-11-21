@@ -40,7 +40,7 @@ Web · Windows (works offline) · Android and iPhone (coming)
 
 ## Latest
 
-_Last updated: 20 Nov 2026. Details: [`docs/STATUS.md`](docs/STATUS.md)._
+_Last updated: 21 Nov 2026. Details: [`docs/STATUS.md`](docs/STATUS.md)._
 
 | | |
 |---|---|
@@ -49,7 +49,7 @@ _Last updated: 20 Nov 2026. Details: [`docs/STATUS.md`](docs/STATUS.md)._
 | **Live web app** | https://billing-erp-ynqf.onrender.com (free plans; the first open after 15 idle minutes can take about a minute). |
 | **Needs attention** | Nightly database backups have not run since 9 Nov 2026. The fix is merged (PR #105) and in the backup repository, but GitHub's Actions budget stops every run. On hold until 1 Dec 2026, when the free minutes return; a reminder will run one backup and check the restore test that day. |
 | **Latest phone release** | **Android app 1.0.2** (20 Nov 2026): adds New Item, Edit Item and barcode scan. On the [releases page](https://github.com/amn-kr/billing-erp-releases/releases); *Check For Update* in the app finds it. |
-| **Next** | Android app (Phase 8) in **Kotlin**. Done and merged: 8.1 (server groundwork), 8.2 (app frame, sign-in, Home, signed APK), 8.3 (Parties), 8.4a (items list, item page, Adjust Stock) and 8.4b (add and edit items, variants, new brand and category, barcode scan). Next: 8.4c: godowns and transfers, brands, Price Manager with PIN. Plan: [`docs/PHASE8-PLAN.md`](docs/PHASE8-PLAN.md). The rest of the Windows trial comes after the phone app is launched (owner, 18 Nov 2026). Selling (Phase 5) starts only when the owner asks. |
+| **Next** | Android app (Phase 8) in **Kotlin**. Done and merged: 8.1 (server groundwork), 8.2 (app frame, sign-in, Home, signed APK), 8.3 (Parties), 8.4a (items list, item page, Adjust Stock) and 8.4b (add and edit items, variants, new brand and category, barcode scan). Built, waiting for the owner's approval: 8.4c (Price Manager with PIN, brands and series, godowns and transfers, bulk active / inactive, stock adjustments list). Next: 8.5 (new sale and the invoice PDF). Plan: [`docs/PHASE8-PLAN.md`](docs/PHASE8-PLAN.md). The rest of the Windows trial comes after the phone app is launched (owner, 18 Nov 2026). Selling (Phase 5) starts only when the owner asks. |
 
 ---
 

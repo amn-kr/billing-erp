@@ -137,6 +137,27 @@ class Api(private val base: String, private val store: Store, private val client
     suspend fun itemUsage(id: String): Usage = send("GET", "/items/$id/usage", null, Usage.serializer())
     suspend fun deleteItem(id: String) { send<Unit>("POST", "/items/$id/delete", null, null) }
     suspend fun archiveItem(id: String) { send<Unit>("POST", "/items/$id/archive", null, null) }
+    /** Inactive items too (Bulk Active / Inactive). */
+    suspend fun itemsAll(): List<ItemFull> = send("GET", "/items?archived=all", null, ListSerializer(ItemFull.serializer()))
+    suspend fun bulkActive(ids: List<String>, active: Boolean): BulkDone =
+        send("POST", "/items/bulk-active", buildJsonObject { put("ids", JsonArray(ids.map(::JsonPrimitive))); put("active", active) }, BulkDone.serializer())
+
+    // 8.4c: godowns and transfers, brands and series, stock adjustments, Price Manager with PIN
+    suspend fun godowns(): List<Godown> = send("GET", "/godowns", null, ListSerializer(Godown.serializer()))
+    suspend fun addGodown(body: JsonObject) { send<Unit>("POST", "/godowns", body, null) }
+    suspend fun transfers(): List<Transfer> = send("GET", "/stock-transfers", null, ListSerializer(Transfer.serializer()))
+    suspend fun transfer(body: JsonObject) { send<Unit>("POST", "/stock-transfers", body, null) }
+    suspend fun brands(): List<Brand> = send("GET", "/brands", null, ListSerializer(Brand.serializer()))
+    suspend fun series(): List<Series> = send("GET", "/brand-series", null, ListSerializer(Series.serializer()))
+    suspend fun newBrand(name: String) { send<Unit>("POST", "/brands", buildJsonObject { put("name", name) }, null) }
+    suspend fun newSeries(brandId: String, name: String) { send<Unit>("POST", "/brand-series", buildJsonObject { put("brandId", brandId); put("name", name) }, null) }
+    suspend fun adjustments(): List<AdjustmentRow> = send("GET", "/stock-adjustments", null, ListSerializer(AdjustmentRow.serializer()))
+    suspend fun priceHistory(itemId: String): List<PriceChange> = send("GET", "/prices/history?itemId=$itemId", null, ListSerializer(PriceChange.serializer()))
+    suspend fun pinState(): PinState = send("GET", "/prices/pin", null, PinState.serializer())
+    suspend fun setPin(pin: String) { send<Unit>("POST", "/prices/pin", buildJsonObject { put("pin", pin) }, null) }
+    /** Price Setup: the server checks the PIN (5 wrong tries wait 60 seconds) and checks it again on every save. */
+    suspend fun unlockPrices(pin: String) { send<Unit>("POST", "/prices/unlock", buildJsonObject { put("pin", pin) }, null) }
+    suspend fun changePrices(body: JsonObject) { send<Unit>("POST", "/prices/changes", body, null) }
 
     /** Check For Update: the newest phone version on the releases page (no sign-in needed). */
     suspend fun appVersion(): AppVersion = send("GET", "/app-version?app=android", null, AppVersion.serializer(), auth = false)
