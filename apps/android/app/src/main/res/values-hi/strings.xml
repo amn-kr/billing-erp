@@ -704,4 +704,12 @@
     <string name="sx_use">लगाएँ</string>
     <string name="sx_used">आख़िरी रेट ₹%1$s लगा।</string>
     <string name="sx_incl_comm">रेफ़रल कमीशन ₹%1$s प्रति %2$s शामिल।</string>
+    <!-- 8.5d: बिल की PDF -->
+    <string name="pdf_share">शेयर करें</string>
+    <string name="pdf_share_sub">बिल सेव करके PDF भेजें: WhatsApp वग़ैरह</string>
+    <string name="pdf_print">प्रिंट करें</string>
+    <string name="pdf_print_sub">बिल सेव करके PDF छापें</string>
+    <string name="pdf_failed">PDF नहीं बन पाई। फिर से कोशिश करें।</string>
+    <string name="pdf_no_app">इस फ़ोन पर PDF लेने वाला कोई ऐप नहीं है।</string>
+    <string name="pdf_no_wa">इस फ़ोन पर WhatsApp नहीं है। कोई और ऐप चुनें।</string>
 </resources>

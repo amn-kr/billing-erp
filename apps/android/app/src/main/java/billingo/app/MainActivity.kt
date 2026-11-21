@@ -207,7 +207,7 @@ class MainActivity : AppCompatActivity() {
                                     )
                                     Route.SaleCustomer -> CustomerScreen(m.sale, { m.back() }) { m.open(Route.PartyForm(null, forSale = true)) }
                                     is Route.SaleLine -> SaleLineScreen(m.sale, top.index, top.itemId) { m.back() }
-                                    Route.SaleSaved -> SavedScreen(m.sale, onNew = { m.saleAgain(features); m.replace(Route.Sale) }, onDone = { m.back() }, onLater = later)
+                                    Route.SaleSaved -> SavedScreen(m.sale, features, s.me.business?.itemOptions, onNew = { m.saleAgain(features); m.replace(Route.Sale) }, onDone = { m.back() })
                                 }
                                 }
                                 return@Box

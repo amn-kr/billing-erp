@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- the only files the app shares: invoice PDFs in its cache (step 8.5d) -->
+<paths>
+    <cache-path name="pdf" path="pdf/" />
+</paths>

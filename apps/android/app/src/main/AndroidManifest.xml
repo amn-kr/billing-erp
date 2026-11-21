@@ -29,6 +29,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- the invoice PDF, handed to WhatsApp, other apps and the print screen (step 8.5d) -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/files" />
+        </provider>
         <!-- the chosen language (English or Hindi) is kept by Android, also on Android 7 to 12 -->
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
