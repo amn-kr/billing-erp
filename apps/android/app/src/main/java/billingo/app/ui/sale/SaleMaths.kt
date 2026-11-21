@@ -4,7 +4,11 @@ import billingo.app.data.ItemFull
 import billingo.app.data.PartyFull
 import billingo.app.data.PriceList
 import billingo.app.data.Prices
+import billingo.app.data.CommissionRule
+import billingo.app.data.Referrer
+import billingo.app.data.SaleDoc
 import billingo.app.data.ShopSettings
+import billingo.app.data.StockBatch
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -45,9 +49,22 @@ object SaleMaths {
         val cashDefault: Boolean,
         val items: List<ItemFull>,
         val parties: List<PartyFull>,
+        /** saved commission rules: item category → rule */
+        val rules: Map<String, Rule> = emptyMap(),
+        val referrers: List<Referrer> = emptyList(),
+        /** Settings › Items › Batch No.: item id → its batches (empty with the feature off) */
+        val batches: Map<String, List<StockBatch>> = emptyMap(),
     )
 
-    fun ctx(settings: ShopSettings, stateCode: String?, lists: List<PriceList>, prices: Prices, features: List<String>, items: List<ItemFull>, parties: List<PartyFull>): Ctx {
+    /** A commission rule: n = none, p = % of the sale price, f = ₹ per unit (the server's commRule). */
+    data class Rule(val t: Char, val v: BigDecimal) { companion object { val NONE = Rule('n', BigDecimal.ZERO) } }
+
+    fun rule(r: CommissionRule): Rule = Rule(when (r.kind) { "percent" -> 'p'; "fixed" -> 'f'; else -> 'n' }, r.value.toBigDecimalOrNull() ?: BigDecimal.ZERO)
+
+    fun ctx(
+        settings: ShopSettings, stateCode: String?, lists: List<PriceList>, prices: Prices, features: List<String>, items: List<ItemFull>, parties: List<PartyFull>,
+        rules: List<CommissionRule> = emptyList(), referrers: List<Referrer> = emptyList(), batches: Map<String, List<StockBatch>> = emptyMap(),
+    ): Ctx {
         val d = settings.data
         fun str(k: String) = (d[k] as? JsonPrimitive)?.contentOrNull
         fun flag(k: String) = (d[k] as? JsonPrimitive)?.booleanOrNull == true
@@ -61,6 +78,7 @@ object SaleMaths {
             listPrice = prices.items.associate { p -> p.id to p.lists.mapValues { (_, v) -> v.price.toBigDecimalOrNull() ?: BigDecimal.ZERO } },
             packOn = "pack_loose" in features, cashDefault = flag("txnCash"),
             items = items.filter { !it.archived }, parties = parties.filter { !it.archived },
+            rules = rules.associate { it.category to rule(it) }, referrers = referrers, batches = batches,
         )
     }
 
@@ -76,7 +94,17 @@ object SaleMaths {
         /** discount %; minus when the final rate is above the price-list rate (never shown) */
         val disc: BigDecimal,
         val gst: BigDecimal,
+        /** the item's category, for its commission rule */
+        val category: String = "",
+        /** referral: the rate before the commission was loaded on it */
+        val bp: BigDecimal? = null,
+        /** the batch chosen by hand; none = the server picks, earliest expiry first */
+        val batchId: String? = null,
+        /** brought in from this quotation: its rate stays as quoted */
+        val fromQ: String? = null,
     )
+
+    data class QuoteRef(val id: String, val no: String, val date: String, val cust: String)
 
     data class Pay(val mode: String = "Cash", val amount: String = "", val ref: String = "")
 
@@ -101,6 +129,15 @@ object SaleMaths {
         val payTouched: Boolean = false,
         /** the server's "Save anyway" answers given for this bill */
         val confirmed: Set<String> = emptySet(),
+        /** referral: who sent the customer, and a rule for this bill only (null = the saved rules) */
+        val referrerId: String? = null,
+        val billRule: Rule? = null,
+        /** quotations brought into this bill */
+        val quotes: List<QuoteRef> = emptyList(),
+        /** Bill Details */
+        val transport: String = "",
+        val vehicle: String = "",
+        val description: String = "",
     )
 
     fun party(c: Ctx, d: Draft): PartyFull? = d.partyId?.let { id -> c.parties.firstOrNull { it.id == id } }
@@ -134,13 +171,18 @@ object SaleMaths {
     fun newLine(c: Ctx, d: Draft, i: ItemFull): Line {
         val pk = pack(i)
         val unit = if (pk != null && c.packOn) pk.first else i.unit
-        return Line(i.id, i.name, i.hsn, unit, "1", priceFor(c, i, party(c, d), unit), BigDecimal.ZERO, if (c.mode == BillMaths.Mode.Gst) i.gstRate.toBigDecimalOrNull() ?: BigDecimal.ZERO else BigDecimal.ZERO)
+        val l = Line(i.id, i.name, i.hsn, unit, "1", priceFor(c, i, party(c, d), unit), BigDecimal.ZERO, if (c.mode == BillMaths.Mode.Gst) i.gstRate.toBigDecimalOrNull() ?: BigDecimal.ZERO else BigDecimal.ZERO, i.category)
+        return withCommission(c, d, l)
     }
 
     /** Another customer: every line gets that customer's list price again (as on the web). */
     fun withParty(c: Ctx, d: Draft, p: PartyFull?): Draft {
         val nd = d.copy(partyId = p?.id, confirmed = emptySet())
-        return nd.copy(lines = nd.lines.map { l -> item(c, l.itemId)?.let { l.copy(price = priceFor(c, it, p, l.unit)) } ?: l })
+        return nd.copy(lines = nd.lines.map { l ->
+            val i = item(c, l.itemId)
+            if (i == null || l.fromQ != null) l
+            else withCommission(c, nd, if (l.bp != null) l.copy(bp = priceFor(c, i, p, l.unit)) else l.copy(price = priceFor(c, i, p, l.unit)))
+        })
     }
 
     fun num(s: String): BigDecimal = s.replace(",", "").trim().toBigDecimalOrNull() ?: BigDecimal.ZERO
@@ -213,19 +255,117 @@ object SaleMaths {
                 buildJsonObject {
                     put("itemId", l.itemId); put("name", l.name); put("hsn", l.hsn); put("qty", plain(num(l.qty))); put("unit", l.unit)
                     put("price", plain(l.price)); put("discPct", plain(l.disc)); put("gstRate", plain(if (c.mode == BillMaths.Mode.Gst) l.gst else BigDecimal.ZERO))
-                    put("basePrice", JsonNull); put("commOverride", JsonNull)
+                    put("basePrice", l.bp?.let { JsonPrimitive(plain(it)) } ?: JsonNull); put("commOverride", JsonNull)
+                    if (l.batchId != null) put("batches", JsonArray(listOf(buildJsonObject { put("batchId", l.batchId); put("qty", plain(stockQty(c, l))) })))
                 }
             }))
             put("payments", JsonArray(payments(d, t.total).filter { num(it.amount).signum() > 0 }.map { x ->
                 buildJsonObject { put("mode", x.mode); put("amount", plain(num(x.amount))); put("ref", x.ref); put("accountId", JsonNull) }
             }))
             put("notes", NOTES)
-            put("extra", buildJsonObject {})
-            put("referrerId", JsonNull); put("fromQuotationIds", JsonArray(emptyList())); put("fromChallanId", JsonNull)
+            put("extra", buildJsonObject {
+                put("transport", d.transport.trim()); put("vehicle", d.vehicle.trim()); put("description", d.description.trim())
+                put("quoteRefs", JsonArray(d.quotes.map { q -> buildJsonObject { put("no", q.no); put("date", q.date); put("cust", q.cust); put("brand", "Item-wise") } }))
+                // a rule set for this bill: for every category on it (the web keeps it per category)
+                put("commByCategory", buildJsonObject {
+                    val r = d.billRule
+                    if (d.referrerId != null && r != null) d.lines.map { it.category }.distinct().forEach { cat ->
+                        put(cat, buildJsonObject { put("t", r.t.toString()); put("v", plain(r.v)) })
+                    }
+                })
+            })
+            put("referrerId", d.referrerId?.let(::JsonPrimitive) ?: JsonNull)
+            put("fromQuotationIds", JsonArray(d.quotes.map { JsonPrimitive(it.id) })); put("fromChallanId", JsonNull)
             put("confirmOverLimit", "over_credit_limit" in d.confirmed)
             if ("expired_batch" in d.confirmed) put("confirmExpired", true)
             if ("above_mrp" in d.confirmed) put("confirmAboveMrp", true)
         }
+    }
+
+    /* ───────── referral (8.5c), as the web's cmApply / lineCommission ───────── */
+
+    /** The rule for a line: this bill's rule, else its category's saved rule. */
+    fun ruleFor(c: Ctx, d: Draft, l: Line): Rule = d.billRule ?: c.rules[l.category] ?: Rule.NONE
+
+    /**
+     * Loads the referral commission on top of the rate, or takes it off: % of the sale price, or ₹ per
+     * unit (a fixed amount is per pack, so a loose unit carries its share).
+     */
+    fun withCommission(c: Ctx, d: Draft, l: Line): Line {
+        val base = l.bp ?: l.price
+        val r = if (d.referrerId != null) ruleFor(c, d, l) else Rule.NONE
+        if (d.referrerId != null && r.t != 'n' && r.v.signum() > 0) {
+            val i = item(c, l.itemId)
+            val pk = i?.let { pack(it) }
+            val fixed = if (r.t == 'f' && pk != null && l.unit != pk.first) r.v.divide(pk.second, 20, RoundingMode.HALF_UP) else r.v
+            val price = BillMaths.round2(if (r.t == 'p') base.multiply(BigDecimal.ONE + r.v.movePointLeft(2)) else base + fixed)
+            return l.copy(bp = base, price = price)
+        }
+        return if (l.bp != null) l.copy(price = base, bp = null) else l
+    }
+
+    fun withReferrer(c: Ctx, d: Draft, id: String?): Draft {
+        val nd = d.copy(referrerId = id, billRule = if (id == null) null else d.billRule)
+        return nd.copy(lines = nd.lines.map { withCommission(c, nd, it) })
+    }
+
+    fun withBillRule(c: Ctx, d: Draft, r: Rule?): Draft {
+        val nd = d.copy(billRule = r)
+        return nd.copy(lines = nd.lines.map { withCommission(c, nd, it) })
+    }
+
+    /** One line's commission: qty × (1 − disc%) × (rate − base), without GST since rates include it (server lineCommission). */
+    fun lineCommission(c: Ctx, l: Line): BigDecimal {
+        val bp = l.bp ?: return BigDecimal.ZERO
+        val net = num(l.qty).multiply(BigDecimal.ONE - l.disc.movePointLeft(2)).multiply(l.price - bp)
+        val g = if (c.mode == BillMaths.Mode.Gst) l.gst else BigDecimal.ZERO
+        return BillMaths.round2(if (g.signum() != 0) net.divide(BigDecimal.ONE + g.movePointLeft(2), 20, RoundingMode.HALF_UP) else net)
+    }
+
+    /* ───────── batches (8.5c) ───────── */
+
+    /** How much stock a line moves: in packs, the pack size × the quantity. */
+    fun stockQty(c: Ctx, l: Line): BigDecimal {
+        val pk = item(c, l.itemId)?.let { pack(it) }
+        return if (pk != null && l.unit == pk.first) num(l.qty).multiply(pk.second) else num(l.qty)
+    }
+
+    fun expired(b: StockBatch, today: String) = b.expiry != null && b.expiry.take(10) < today
+
+    /** The order batches are shown in (shared sortBatches): expired first so they are seen, then No batch, then earliest expiry. */
+    fun sortedBatches(c: Ctx, itemId: String, today: String): List<StockBatch> {
+        fun rank(b: StockBatch) = when { expired(b, today) -> 0; b.id == null -> 1; b.expiry != null -> 2; else -> 3 }
+        return c.batches[itemId].orEmpty().sortedWith(compareBy<StockBatch>({ rank(it) }, { it.expiry ?: "" }, { it.no }))
+    }
+
+    /** The batch the server will use when none is chosen: the first one in order that isn't expired and has stock. */
+    fun autoBatch(c: Ctx, itemId: String, today: String): StockBatch? =
+        sortedBatches(c, itemId, today).firstOrNull { !expired(it, today) && (it.qty.toBigDecimalOrNull() ?: BigDecimal.ZERO).signum() > 0 }
+
+    /* ───────── quotations (8.5c) ───────── */
+
+    /**
+     * An item-wise quotation into the bill (web ImportQuote): its items at the quoted rates (they stay
+     * as quoted), the quotation remembered on the bill, its customer when the bill has none, and its
+     * referral when the bill has none.
+     */
+    fun withQuote(c: Ctx, d: Draft, q: SaleDoc): Pair<Draft, Int> {
+        val lines = q.lines.mapNotNull { dl ->
+            val i = dl.itemId?.let { item(c, it) } ?: return@mapNotNull null
+            val base = newLine(c, d.copy(referrerId = null), i)
+            base.copy(
+                unit = if (dl.unit == i.unit || dl.unit == pack(i)?.first) dl.unit else base.unit,
+                qty = num(dl.qty).let { plain(it) }, price = num(dl.price), disc = num(dl.discPct),
+                gst = if (c.mode == BillMaths.Mode.Gst) num(dl.gstRate) else BigDecimal.ZERO, fromQ = q.number,
+            )
+        }
+        var nd = d.copy(lines = d.lines + lines, quotes = d.quotes.filter { it.id != q.id } + QuoteRef(q.id, q.number, q.date, q.partyName))
+        if (q.referrerId != null && nd.referrerId == null) nd = nd.copy(referrerId = q.referrerId)
+        if (nd.partyId == null) {
+            val p = q.party?.let { qp -> c.parties.firstOrNull { it.id == qp.id } } ?: c.parties.firstOrNull { q.partyName.isNotBlank() && it.name.trim().equals(q.partyName.trim(), ignoreCase = true) }
+            if (p != null) nd = withParty(c, nd.copy(cash = false), p)
+        }
+        return nd to lines.size
     }
 
     /** "2026-11-21" + 15 → "2026-12-06" */

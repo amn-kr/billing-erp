@@ -213,7 +213,7 @@ fun SaleScreen(
                     left = { IconBtn(Icons.Close, stringResource(R.string.close), close) },
                 ) {
                     if (d != null) Capsule(d.cash) { v -> s.change { x -> if (v) SaleMaths.withParty(c ?: return@change x, x.copy(cash = true), null) else x.copy(cash = false) } }
-                    IconBtn(Icons.Dots, stringResource(R.string.sl_more), onLater)
+                    IconBtn(Icons.Dots, stringResource(R.string.sl_more), { if (c != null && d != null) sheet = "menu" })
                 }
             }
             if (c == null || d == null) {
@@ -257,6 +257,12 @@ fun SaleScreen(
             Box(Modifier.fillMaxWidth().height(1.dp).background(Colours.Border))
             LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 item { CustomerField(party, d.cash, onCustomer) }
+                item {
+                    SaleTags(d, c, { sheet = "ref" }) { id ->
+                        s.change { x -> x.copy(quotes = x.quotes.filter { it.id != id }) }
+                        say(ctx, ctx.getString(R.string.sx_unlinked))
+                    }
+                }
                 if (d.lines.isNotEmpty()) item { SectionTitle(stringResource(R.string.sl_billed, d.lines.size)) }
                 if (d.lines.isEmpty()) item {
                     Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -331,6 +337,11 @@ fun SaleScreen(
                 if (p.isNotEmpty()) doSave(p)
             }
             "pay" -> PaySheet(s, c) { sheet = "" }
+            "menu" -> SaleMenuSheet(c.referrers.firstOrNull { it.id == d.referrerId }?.name, { sheet = "" }) { sheet = it }
+            "quote" -> QuoteSheet(s) { sheet = "" }
+            "ref" -> ReferralSheet(s, { sheet = "" }) { sheet = "elec" }
+            "elec" -> AddElectricianSheet(s) { sheet = "ref" }
+            "extras" -> DetailsSheet(s, { sheet = "" }, onLater)
             "scan" -> ScanScreen({ sheet = "" }) { code ->
                 val hit = c.items.firstOrNull { it.code.equals(code, ignoreCase = true) }
                 sheet = ""
@@ -641,7 +652,7 @@ private fun PartyPick(name: String, sub: String, on: Boolean, bal: BigDecimal?, 
 /**
  * Add Item / Edit Item (design 7.4d): one item on its own page. Search or scan the item, then
  * quantity (− and +), unit, the rate, discount % or final rate (each fills the other), and the
- * line's amount. Edit has Delete; Add has Save & New. Batches, last prices and price lists come in 8.5c.
+ * line's amount, Last Prices and the batch (8.5c). Edit has Delete; Add has Save & New.
  */
 @Composable
 fun SaleLineScreen(s: SaleSession, index: Int, startItem: String?, onBack: () -> Unit) {
@@ -767,6 +778,31 @@ fun SaleLineScreen(s: SaleSession, index: Int, startItem: String?, onBack: () ->
                         line = SaleMaths.withFinal(l, SaleMaths.num(money(v)))
                     }, Modifier.weight(1f), dec, prefix = "₹", bold = true)
                 }
+                LinkButton(stringResource(R.string.sx_last), { sheet = "lhist" })
+                // Settings › Items › Batch No.: the batch this line uses (automatic: earliest expiry first)
+                if (c.batches[item.id].orEmpty().isNotEmpty()) {
+                    val today = Format.todayIso()
+                    val chosen = c.batches[item.id].orEmpty().firstOrNull { it.id == l.batchId && l.batchId != null }
+                    val shown = chosen ?: SaleMaths.autoBatch(c, item.id, today)
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        T(stringResource(R.string.sx_batch_sel), colour = Colours.Text2, weight = FontWeight.SemiBold, size = 13.sp)
+                        val shape = RoundedCornerShape(Size.Radius)
+                        Row(
+                            Modifier.fillMaxWidth().heightIn(min = 56.dp).background(Colours.Card, shape).border(1.dp, Colours.Border, shape)
+                                .clickable(role = Role.Button) { sheet = "batch" }.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                T(if (shown == null) stringResource(R.string.sx_batch_choose) else batchName(shown) + (if (chosen == null) " · " + stringResource(R.string.sx_auto) else ""), weight = FontWeight.SemiBold, oneLine = true)
+                                if (shown != null) {
+                                    val ex = SaleMaths.expired(shown, today)
+                                    T(listOf(batchSub(shown, today, hindi()), "${Format.qty(shown.qty)} ${unitWord(item.unit)}").filter { it.isNotBlank() }.joinToString(" · "), size = 12.sp, colour = if (ex) Colours.Red else Colours.Text3)
+                                }
+                            }
+                            T(stringResource(R.string.sx_change), weight = FontWeight.SemiBold, colour = Colours.Blue)
+                        }
+                    }
+                }
                 // the line's amount (.box): quantity × rate, the discount, and the amount
                 val one = BillMaths.sale(BillMaths.Bill(c.mode, true, false, listOf(BillMaths.Line(SaleMaths.num(l.qty), l.price, l.disc, l.gst)), false)).rows.first()
                 val gross = BillMaths.round2(one.gross)
@@ -775,6 +811,8 @@ fun SaleLineScreen(s: SaleSession, index: Int, startItem: String?, onBack: () ->
                     if (l.disc.signum() > 0) TL(stringResource(R.string.sl_disc_pct, l.disc.setScale(2, java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()), "−₹" + inr(gross - one.amount), Colours.Red)
                     TL(stringResource(R.string.sl_amount), "₹" + inr(one.amount), big = true)
                     if (c.mode == BillMaths.Mode.Gst) T(stringResource(R.string.sl_gst_incl, l.gst.stripTrailingZeros().toPlainString()), size = 12.sp, colour = Colours.Text3)
+                    val bp = l.bp
+                    if (bp != null && l.price > bp) T(stringResource(R.string.sx_incl_comm, inr(l.price - bp), unitWord(l.unit)), size = 12.sp, colour = Colours.Text3)
                 }
                 Spacer(Modifier.height(4.dp))
             }
@@ -796,10 +834,18 @@ fun SaleLineScreen(s: SaleSession, index: Int, startItem: String?, onBack: () ->
                 sheet = ""
                 if (hit != null) pick(hit) else say(ctx, ctx.getString(R.string.sc_not_found_sale, code))
             }
+            "batch" -> if (c != null && l != null && item != null) BatchSheet(c, item.id, item.unit, l.batchId, { sheet = "" }) { id -> line = l.copy(batchId = id); sheet = "" }
+            "lhist" -> if (c != null && d != null && l != null && item != null) {
+                val p = SaleMaths.party(c, d)
+                LastPricesSheet(s, item.id, item.name, l.unit, p?.id, p?.name, { sheet = "" }) { v ->
+                    line = SaleMaths.withFinal(l, v); finalText = null; discText = null; rateText = null; sheet = ""
+                    say(ctx, ctx.getString(R.string.sx_used, inr(v)))
+                }
+            }
             "unit" -> if (c != null && d != null && l != null && item != null) {
                 val units = SaleMaths.units(c, item)
                 ChoiceSheet(stringResource(R.string.sl_unit), units.map(::unitWord), units.indexOf(l.unit), { sheet = "" }) { n ->
-                    line = l.copy(unit = units[n], price = SaleMaths.priceFor(c, item, SaleMaths.party(c, d), units[n]))
+                    line = SaleMaths.withCommission(c, d, l.copy(unit = units[n], price = SaleMaths.priceFor(c, item, SaleMaths.party(c, d), units[n]), bp = null, batchId = null))
                     rateText = null; finalText = null; sheet = ""
                 }
             }
