@@ -57,6 +57,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import billingo.app.R
 import billingo.app.data.ApiError
+import kotlinx.serialization.json.JsonObject
+import billingo.app.ui.print.InvoicePdf
+import androidx.compose.runtime.LaunchedEffect
 import billingo.app.data.ItemFull
 import billingo.app.data.PartyFull
 import billingo.app.ui.home.unitWord
@@ -198,7 +201,11 @@ fun SaleScreen(
                 s.ask != null -> {}
                 else -> {
                     val no = s.saved?.first?.number.orEmpty()
-                    if (after == "new") { say(ctx, ctx.getString(R.string.sl_saved_new, no)); onNew() } else onSaved()
+                    if (after == "new") { say(ctx, ctx.getString(R.string.sl_saved_new, no)); onNew() } else {
+                        // Share / Print from the bottom ⋮: Bill Saved makes the PDF and opens it
+                        s.after = if (after == "share" || after == "print") after else ""
+                        onSaved()
+                    }
                     pending = ""
                 }
             }
@@ -317,7 +324,7 @@ fun SaleScreen(
             FootBar {
                 Btn(stringResource(R.string.sl_save_new), { doSave("new") }, Modifier.weight(1f), Kind.Soft, busy = s.busy && pending == "new")
                 Btn(stringResource(R.string.sl_save), { doSave("save") }, Modifier.weight(1f), Kind.Green, Icons.Check, busy = s.busy && pending == "save")
-                IconBtn(Icons.Dots, stringResource(R.string.sl_share_print), onLater, Kind.Soft)
+                IconBtn(Icons.Dots, stringResource(R.string.sl_share_print), { sheet = "smore" }, Kind.Soft)
             }
         }
         if (c == null || d == null) return@Box
@@ -337,6 +344,7 @@ fun SaleScreen(
                 if (p.isNotEmpty()) doSave(p)
             }
             "pay" -> PaySheet(s, c) { sheet = "" }
+            "smore" -> ShareMoreSheet({ sheet = "" }) { sheet = ""; doSave(it) }
             "menu" -> SaleMenuSheet(c.referrers.firstOrNull { it.id == d.referrerId }?.name, { sheet = "" }) { sheet = it }
             "quote" -> QuoteSheet(s) { sheet = "" }
             "ref" -> ReferralSheet(s, { sheet = "" }) { sheet = "elec" }
@@ -881,8 +889,34 @@ private fun Stepper(value: String, onChange: (String) -> Unit) {
  * credit) Total Dues; Share On WhatsApp and Share Or Print PDF come with the PDF (8.5d); New Bill, Done.
  */
 @Composable
-fun SavedScreen(s: SaleSession, onNew: () -> Unit, onDone: () -> Unit, onLater: () -> Unit) {
+fun SavedScreen(s: SaleSession, features: List<String>, itemOptions: JsonObject?, onNew: () -> Unit, onDone: () -> Unit) {
     val (r, d) = s.saved ?: return
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    // the PDF is made once, the first time it is needed, and kept for the other button
+    var made by remember(r.id) { mutableStateOf<InvoicePdf.Made?>(null) }
+    var busy by remember { mutableStateOf("") }
+    fun pdf(what: String) {
+        if (busy.isNotEmpty()) return
+        busy = what
+        scope.launch {
+            val m = made ?: try {
+                InvoicePdf.make(ctx, s.server, r.id, features, itemOptions).also { made = it }
+            } catch (e: ApiError) {
+                say(ctx, if (e.status == 0) ctx.getString(R.string.no_internet) else e.message); null
+            } catch (e: Exception) {
+                say(ctx, ctx.getString(R.string.pdf_failed)); null
+            }
+            busy = ""
+            if (m != null) when (what) {
+                "wa" -> if (!InvoicePdf.whatsApp(ctx, m)) say(ctx, ctx.getString(R.string.pdf_no_app))
+                "print" -> InvoicePdf.print(ctx, m)
+                else -> if (!InvoicePdf.share(ctx, m)) say(ctx, ctx.getString(R.string.pdf_no_app))
+            }
+        }
+    }
+    // Share or Print chosen before saving: done as soon as the bill is saved
+    LaunchedEffect(r.id) { val a = s.after; if (a.isNotEmpty()) { s.after = ""; pdf(a) } }
     val c = s.ctx
     val party = c?.let { SaleMaths.party(it, d) }
     val total = r.total.toBigDecimalOrNull() ?: BigDecimal.ZERO
@@ -903,8 +937,8 @@ fun SavedScreen(s: SaleSession, onNew: () -> Unit, onDone: () -> Unit, onLater: 
                     TL(stringResource(R.string.sl_total_dues), (if (now.signum() < 0) "−" else "") + "₹" + inr(now.abs()), if (now.signum() > 0) Colours.Red else Colours.Text)
                 }
             }
-            Btn(stringResource(R.string.sl_share_wa), onLater, Modifier.fillMaxWidth(), Kind.Green, Icons.Chat)
-            Btn(stringResource(R.string.sl_share_pdf), onLater, Modifier.fillMaxWidth(), Kind.Soft, Icons.Share)
+            Btn(stringResource(R.string.sl_share_wa), { pdf("wa") }, Modifier.fillMaxWidth(), Kind.Green, Icons.Chat, busy = busy == "wa")
+            Btn(stringResource(R.string.sl_share_pdf), { pdf("share") }, Modifier.fillMaxWidth(), Kind.Soft, Icons.Share, busy = busy == "share" || busy == "print")
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Btn(stringResource(R.string.new_bill), onNew, Modifier.weight(1f), Kind.Line, Icons.Plus)
                 Btn(stringResource(R.string.sl_done), onDone, Modifier.weight(1f), Kind.Line)

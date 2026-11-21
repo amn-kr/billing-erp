@@ -26,7 +26,18 @@ data class ShopSettings(val gstEnabled: Boolean = false, val data: JsonObject = 
 
 /** The shop itself (GET /businesses/current): its state decides CGST + SGST or IGST. */
 @Serializable
-data class Shop(val id: String = "", val name: String = "", val stateCode: String? = null)
+data class Shop(
+    val id: String = "",
+    val name: String = "",
+    val stateCode: String? = null,
+    // 8.5d: printed at the top of the invoice
+    val phone: String? = null,
+    val address: String? = null,
+    val city: String? = null,
+    val pin: String? = null,
+    val gstin: String? = null,
+    val email: String? = null,
+)
 
 @Serializable
 data class NextNumber(val number: String = "")
@@ -61,7 +72,7 @@ data class StockBatch(val id: String? = null, val no: String = "", val expiry: S
 data class PastPrice(val date: String, val number: String, val qty: String = "0", val price: String = "0", val discPct: String = "0")
 
 @Serializable
-data class DocParty(val id: String, val name: String = "")
+data class DocParty(val id: String, val name: String = "", val phone: String? = null, val gstin: String? = null, val city: String? = null)
 
 /** A quotation in the list (GET /sales?kind=quotation). */
 @Serializable
@@ -79,12 +90,79 @@ data class QuoteRow(
     val referrerId: String? = null,
 )
 
+/** A batch a saved line took its stock from (printed under the item's name). */
 @Serializable
-data class DocLine(val itemId: String? = null, val name: String = "", val qty: String = "0", val unit: String = "", val price: String = "0", val discPct: String = "0", val gstRate: String = "0")
+data class DocBatch(val batchId: String? = null, val no: String = "", val expiry: String? = null, val qty: String = "0", val mrp: String? = null)
+
+@Serializable
+data class DocLine(
+    val itemId: String? = null,
+    val name: String = "",
+    val qty: String = "0",
+    val unit: String = "",
+    val price: String = "0",
+    val discPct: String = "0",
+    val gstRate: String = "0",
+    // 8.5d: what the printed invoice shows
+    val hsn: String = "",
+    val taxable: String = "0",
+    val tax: String = "0",
+    val amount: String = "0",
+    val code: String = "",
+    val brand: String = "",
+    val series: String = "",
+    val group: String = "",
+    val category: String = "",
+    val batches: List<DocBatch> = emptyList(),
+    val batchUnit: String = "",
+    val looseOf: String? = null,
+    val mrp: String? = null,
+    val listPrice: String? = null,
+    val wholesalePrice: String? = null,
+)
+
+/** The money taken with the bill. */
+@Serializable
+data class DocPayment(val amount: String = "0", val mode: String = "")
 
 /** One saved document with its lines (GET /sales/:id). */
 @Serializable
-data class SaleDoc(val id: String, val number: String, val date: String = "", val partyName: String = "", val party: DocParty? = null, val referrerId: String? = null, val lines: List<DocLine> = emptyList())
+data class SaleDoc(
+    val id: String,
+    val number: String,
+    val date: String = "",
+    val partyName: String = "",
+    val party: DocParty? = null,
+    val referrerId: String? = null,
+    val lines: List<DocLine> = emptyList(),
+    // 8.5d: the rest, for the invoice PDF
+    val kind: String = "invoice",
+    val dueDate: String? = null,
+    val mode: String = "credit",
+    val cashPhone: String = "",
+    val billName: String = "",
+    val taxMode: String = "none",
+    val placeOfSupply: String = "",
+    val billDiscount: String = "0",
+    val taxable: String = "0",
+    val cgst: String = "0",
+    val sgst: String = "0",
+    val igst: String = "0",
+    val tcs: String = "0",
+    val transport: String = "0",
+    val labour: String = "0",
+    val bankCharge: String = "0",
+    val roundAmount: String = "0",
+    val total: String = "0",
+    val words: String = "",
+    val balance: String = "0",
+    val notes: String = "",
+    val extra: JsonObject? = null,
+    val cancelled: Boolean = false,
+    val legacy: Boolean = false,
+    val savedAt: String? = null,
+    val payment: DocPayment? = null,
+)
 
 @Serializable
 data class LineCost(val cost: String = "0")

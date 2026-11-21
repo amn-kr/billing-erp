@@ -123,6 +123,20 @@ fun SaleMenuSheet(referrer: String?, onClose: () -> Unit, onPick: (String) -> Un
     }
 }
 
+/** The bottom ⋮ (design 7.4d smore): save the bill, then share or print its PDF. */
+@Composable
+fun ShareMoreSheet(onClose: () -> Unit, onPick: (String) -> Unit) {
+    Dim(onClose) {
+        Sheet(stringResource(R.string.sl_share_print)) {
+            Grp {
+                MenuRow(Icons.Share, stringResource(R.string.pdf_share), stringResource(R.string.pdf_share_sub)) { onPick("share") }
+                Line()
+                MenuRow(Icons.Bill, stringResource(R.string.pdf_print), stringResource(R.string.pdf_print_sub)) { onPick("print") }
+            }
+        }
+    }
+}
+
 /** Under the customer: the referral and the quotations this bill came from (.tagrow); a quotation's × removes the link, the items stay. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

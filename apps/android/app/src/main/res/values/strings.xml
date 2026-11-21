@@ -704,4 +704,12 @@
     <string name="sx_use">Use</string>
     <string name="sx_used">Final rate set to ₹%1$s.</string>
     <string name="sx_incl_comm">Includes referral commission ₹%1$s per %2$s.</string>
+    <!-- 8.5d: the invoice PDF -->
+    <string name="pdf_share">Share</string>
+    <string name="pdf_share_sub">Saves the bill and sends the PDF: WhatsApp and others</string>
+    <string name="pdf_print">Print</string>
+    <string name="pdf_print_sub">Saves the bill and prints the PDF</string>
+    <string name="pdf_failed">Couldn’t make the PDF. Try again.</string>
+    <string name="pdf_no_app">No app on this phone can take the PDF.</string>
+    <string name="pdf_no_wa">WhatsApp isn’t on this phone. Choose another app.</string>
 </resources>

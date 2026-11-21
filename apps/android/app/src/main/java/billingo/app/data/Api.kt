@@ -39,7 +39,7 @@ data class Tokens(val accessToken: String, val expiresIn: Int = 900, val refresh
 data class MeUser(val id: String, val name: String = "", val email: String, val mustChangePassword: Boolean = false)
 
 @Serializable
-data class MeBusiness(val id: String, val name: String, val short: String? = null, val city: String? = null, val gstin: String? = null, val gstEnabled: Boolean = false, val plan: String = "trial", val features: List<String> = emptyList())
+data class MeBusiness(val id: String, val name: String, val short: String? = null, val city: String? = null, val gstin: String? = null, val gstEnabled: Boolean = false, val plan: String = "trial", val features: List<String> = emptyList(), val itemOptions: kotlinx.serialization.json.JsonObject? = null)
 
 @Serializable
 data class Membership(val businessId: String, val businessName: String, val businessShort: String? = null, val city: String? = null, val gstin: String? = null, val role: String)

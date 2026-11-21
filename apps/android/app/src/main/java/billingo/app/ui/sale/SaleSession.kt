@@ -37,9 +37,13 @@ class SaleSession(private val api: Api) {
     var saved by mutableStateOf<Pair<SaleSaved, SaleMaths.Draft>?>(null)
         private set
 
+    /** what Bill Saved does by itself once it opens: "share" or "print" (the bottom ⋮), or nothing */
+    var after by mutableStateOf("")
+
     /** A new, empty bill; the shop's lists are loaded again so prices and stock are fresh. */
     fun start(scope: CoroutineScope, features: List<String>, partyId: String? = null, itemId: String? = null) {
         this.features = features
+        after = ""
         draft = SaleMaths.Draft(date = Format.todayIso())
         ask = null
         load(scope, features) { c ->
