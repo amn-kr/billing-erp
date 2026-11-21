@@ -56,7 +56,7 @@ _Last updated: 21 Nov 2026. Details: [`docs/STATUS.md`](docs/STATUS.md)._
 ## Features
 
 ### Sales
-- GST invoices: credit and cash (counter) sales, items grid with rapid entry, any final rate (0, below or above the sale price; owner, 21 Nov 2026), discount and charges, TCS, round off, amount in words
+- GST invoices: credit and cash (counter) sales, items grid with rapid entry, any final rate (0, below or above the sale price, of any size; the sale price itself never changes; owner, 21 Nov 2026), discount and charges, TCS, round off, amount in words
 - Payment taken at the time of sale, split across Cash, UPI, Bank transfer, Cheque and Card; extra money settles the party's older dues
 - Several bills open at once, one tab each; Quick sale (Alt+N)
 - Quotations: brand-wise grid (rows × brand ranges, rates from the price manager) and item-wise; convert to invoice; share by WhatsApp, PDF or Excel
