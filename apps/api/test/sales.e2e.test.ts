@@ -44,6 +44,17 @@ describe('sale invoice', () => {
     expect(list[0]).toMatchObject({ number: 'INV-0001', partyName: 'Verma Traders', total: '5717.00', balance: '5717.00', cancelled: false });
   });
 
+  it('keeps the sale price when the final rate is far above it (owner, 21 Nov 2026)', async () => {
+    const { o, bulb, verma } = await shop();
+    // LED bulb's sale price is 95; sold at 9,600 (over 100 × the price), kept as a minus discount
+    const disc = '-10005.26315789';
+    const r = await sale(o, { partyId: verma.id, lines: [line(bulb, '1', '95', { discPct: disc })] }).expect(201);
+    const inv = (await http().get(`/api/sales/${r.body.id}`).set(auth(o)).expect(200)).body;
+    expect(inv.lines[0]).toMatchObject({ price: '95.00' });
+    expect(Number(inv.lines[0].discPct)).toBeCloseTo(Number(disc), 8);
+    expect(Number(inv.lines[0].amount)).toBeGreaterThan(9599);
+  });
+
   it('refuses a bill the way the old app did', async () => {
     const { o, fan, verma } = await shop();
     const msg = async (body: object) => (await sale(o, body).expect(400)).body.message;

@@ -26,7 +26,10 @@ const num = (msg = 'Enter a number.') =>
       }
       return s;
     });
-/** a line discount %: at most 100, and down to −9,900 (a final rate up to 100 × the price-list rate) */
+/**
+ * a line discount %: at most 100. Below 0 it is a final rate above the price-list rate, which the
+ * owner allows at any size (21 Nov 2026); the only floor is what the saved column holds (16 digits).
+ */
 const signedPct = (msg: string) =>
   z
     .union([z.string(), z.number(), z.null()])
@@ -35,7 +38,7 @@ const signedPct = (msg: string) =>
       const s = v === null || v === undefined ? '' : String(v).replace(/[,%\s]/g, '');
       if (s === '') return '0';
       const n = Number(s);
-      if (!Number.isFinite(n) || n > 100 || n < -9900) {
+      if (!Number.isFinite(n) || n > 100 || n <= -1e16) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: msg });
         return z.NEVER;
       }

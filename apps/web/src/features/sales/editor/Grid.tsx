@@ -304,7 +304,9 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
 /** An input of the rapid-entry row: typed text kept as typed; `shown` fills it in when not focused. */
 function QeIn({ id, val, label, set, onKey, placeholder, cls, shown }: { id: string; val: string; label: string; set: (v: string) => void; onKey: (e: React.KeyboardEvent<HTMLInputElement>) => void; placeholder?: string; cls?: string; shown?: string }) {
   const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => { const el = ref.current; if (el && document.activeElement !== el && shown !== undefined) el.value = shown; });
+  // a box not being typed in always shows what the line uses: what was typed, else the worked-out value, else empty
+  // (it used to keep an old discount, e.g. 89.5 from typing "5", after the final rate went above the sale price)
+  useEffect(() => { const el = ref.current; if (el && document.activeElement !== el) el.value = val !== '' ? val : shown ?? ''; });
   return (
     <td><input className={`qei n${cls ? ' ' + cls : ''}`} id={id} ref={ref} defaultValue={val !== '' ? val : shown ?? ''} placeholder={placeholder} inputMode="decimal" aria-label={label}
       onInput={(e) => { const el = e.target as HTMLInputElement; const v = el.value.replace(/[^\d.]/g, ''); if (el.value !== v) el.value = v; set(v); }}
