@@ -51,7 +51,7 @@ test('Profit & loss on a bill: one row per lot it uses up, oldest first; Party w
   await signInAs(page, who);
   const newBill = async () => {
     await page.goto(APP + '/sales/new');
-    await expect(page.locator('#vNewInv #siRows tr[data-ln]')).toHaveCount(1);
+    await expect(page.locator('#vNewInv #siRows tr[data-ln]')).toHaveCount(0); // rapid entry on: no empty row (owner, 21 Nov 2026)
     await page.fill('#siParty', 'Mehta');
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Enter');

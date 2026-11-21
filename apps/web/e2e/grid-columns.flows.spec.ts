@@ -26,7 +26,8 @@ async function measure(page: Page, sec: string): Promise<Grid> {
     // heading edges: every heading cell's right edge (the two rows together give one per column)
     const head = [...new Set(rgt(H.flatMap((r) => [...r.cells])))].sort((a, b) => a - b);
     const q = t.querySelector('tr.qe'); // purchase has no rapid entry row
-    const line0 = t.tBodies[0]!.querySelector('tr[data-ln]')!;
+    // a new sale bill has no item row while rapid entry is on (owner, 21 Nov 2026): then the rapid entry row stands in
+    const line0 = t.tBodies[0]!.querySelector('tr[data-ln]') ?? q!;
     const qe = rgt([...(q ?? line0).children]);
     const line = rgt([...line0.children]);
     const fr = t.tFoot!.rows[0]!;
@@ -92,6 +93,14 @@ test('item grids: every row lines up and a switched-off column’s width is shar
   // every column on: the CSS alone sizes the table (no widths of ours), as in the prototype
   const all = await checkBoth(page, 'all on');
   for (const sec of ['#vNewInv', '#vPEd']) expect(all[sec]!.cols, `${sec}: every column on sets no widths`).toBe(0);
+  // rapid entry off: the sale bill's empty item row lines up too; then back on
+  await page.goto(APP + '/sales/new');
+  await page.click('#qeSw');
+  await expect(page.locator('#siRows tr[data-ln]')).toHaveCount(1);
+  await checkBoth(page, 'rapid entry off');
+  await page.goto(APP + '/sales/new');
+  await page.click('#qeSw');
+  await expect(page.locator('#qeRow')).toHaveCount(1);
 
   // Brand and Series off (Brand takes Series with it): no gap, the other columns grow
   await openItemSettings(page);

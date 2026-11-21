@@ -25,7 +25,7 @@ import { useEditorData } from '../sales/editor/data';
 import { useElecModal } from '../sales/editor/Referral';
 import { SlModal, type SlModalProps } from '../sales/SlModal';
 import { openHistory } from '../../components/EditHistory';
-import { addDaysIso, blankLine, lineFor, newSI, partyState, useSI, type Line } from '../sales/editor/state';
+import { addDaysIso, lineFor, withBlank, newSI, partyState, useSI, type Line } from '../sales/editor/state';
 import { qComm, qCols, qRanked, qRate, qTotals, type QCtx, type QDraft } from './model';
 import { quoteExcel, quotePdf, quoteWhatsApp, qUsed } from './exports';
 import { AddDialog, ConvertDialog, SavedList, type AddMode } from './QuoteDialogs';
@@ -161,7 +161,7 @@ function Quotation({ d, g, lists, firstNo }: { d: NonNullable<ReturnType<typeof 
     const p = d.PT.find((x) => x.id === party) ?? d.PT.find((x) => cust && x.name.trim().toLowerCase() === cust.trim().toLowerCase());
     if (p) { s.party = p; s.pos = partyState(d.ctx, p); s.due = addDaysIso(s.date, p.days || 0); }
     else if (cust) { s.mode = 'cash'; s.cashName = cust; s.cashPhone = phone; s.pays = []; }
-    s.lines = [...lines, blankLine()];
+    s.lines = withBlank(lines);
     extra(s);
     useSI.getState().open(s);
     navigate(`/sales/new?keep=${Date.now()}`);

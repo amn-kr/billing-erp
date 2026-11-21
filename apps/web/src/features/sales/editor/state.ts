@@ -74,6 +74,21 @@ export function addDaysIso(iso: string, n: number) {
 export const daysDiff = (from: string, to: string) => Math.round((Date.parse(to + 'T00:00:00Z') - Date.parse(from + 'T00:00:00Z')) / 864e5);
 export const blankLine = (): Line => ({ item: null, name: '', hsn: '', qty: 1, unit: '', price: 0, disc: 0, gst: 18 });
 
+/**
+ * Rapid entry on or off (owner, 21 Nov 2026): the ⚡ button in the Total row, remembered on this computer.
+ * On (the default): the rapid entry row shows; items come in only through it, so there is no empty row and no Add row button.
+ * Off: the rapid entry row hides and the bill keeps one empty row at the end, as before.
+ */
+const QE_OFF = 'erp-qe-off';
+export const qeOn = (): boolean => { try { return localStorage.getItem(QE_OFF) !== '1'; } catch { return true; } };
+export const setQeOn = (on: boolean) => { try { if (on) localStorage.removeItem(QE_OFF); else localStorage.setItem(QE_OFF, '1'); } catch { /* private window */ } };
+/** A row nothing was typed or picked in. */
+export const isBlank = (l: Line) => !l.item && !l.name.trim() && !l.price;
+/** Kept when rapid entry is turned on: rows with an item picked, or a rate typed in. */
+export const keptWhenOn = (l: Line) => !!l.item || !!l.price;
+/** The bill's rows, with the empty row to type in at the end only while rapid entry is off. */
+export const withBlank = (lines: Line[], on = qeOn()): Line[] => (on || (lines.length && isBlank(lines[lines.length - 1]!)) ? lines : [...lines, blankLine()]);
+
 /** Shop context the helpers need. */
 export interface Ctx {
   mode: TaxMode; state: string; tcsRate: number | null;
@@ -191,7 +206,7 @@ export function newSI(c: Ctx, o: { no: string; date: string; doc?: 'sale' | 'quo
   return {
     doc: o.doc ?? 'sale', autoNo: true, no: o.no, date: o.date, due: o.date, dueTouched: false, valid: addDaysIso(o.date, 15),
     mode: o.doc !== 'quote' && c.txn?.cashDefault ? 'cash' : 'credit', party: null, cashName: '', cashPhone: '', billName: '', pos: c.state, incl: true,
-    lines: [blankLine()], pays: [], recvTouched: o.doc === 'quote', notes: o.doc === 'quote' ? SI_TT.est : SI_TT.sale, roundOff: true, warnOk: false, err: '', chgOk: false,
+    lines: withBlank([]), pays: [], recvTouched: o.doc === 'quote', notes: o.doc === 'quote' ? SI_TT.est : SI_TT.sale, roundOff: true, warnOk: false, err: '', chgOk: false,
     challan: '', poNo: '', poDate: '', ewb: '', transport: '', vehicle: '', delivDate: '', desc: '', showDesc: false, attach: [],
     bdisc: 0, bdiscP: '', chTr: 0, chLab: 0, chBank: 0, ref: '', crOv: null, qrefs: [], fromChallanId: null, editId: null, editOf: null, editBal: 0, dirty: false,
   };

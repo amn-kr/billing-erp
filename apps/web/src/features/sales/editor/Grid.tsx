@@ -11,7 +11,7 @@ import { inr, inr2f } from '../../../lib/format';
 import { qfmt } from '../../items/ItemsPage';
 import { pct } from '../InvoicePreview';
 import { usePriceHistory } from './PriceHistory';
-import { blankLine, calc, finalRate, frSet, shownDisc, lineFor, linePack, lineStock, r2, setLineUnit, stockText, useTab, type Ctx, type EItem, type EParty, type Line, type SI } from './state';
+import { blankLine, calc, isBlank, keptWhenOn, qeOn, setQeOn, finalRate, frSet, shownDisc, lineFor, linePack, lineStock, r2, setLineUnit, stockText, useTab, type Ctx, type EItem, type EParty, type Line, type SI } from './state';
 import type { EditorData } from './data';
 import { BatchPicker, type PickFor } from './BatchPicker';
 import { batchRowsFor, lineMrp, lineOverMrp, saleAllocs } from './batches';
@@ -101,6 +101,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
   const ctx: Ctx = d.ctx;
   const [qe, setQe] = useState<{ item: EItem | null; qty: string; fr: string; disc: string; q: string }>({ item: null, qty: '1', fr: '', disc: '', q: '' });
   const [qk, setQk] = useState(0);
+  const [qOn, setQOn] = useState(qeOn);
   const [hi, setHi] = useState<number | null>(null);
   // Settings › Items › Batch No.: the line whose batches are being chosen
   const [pickAt, setPickAt] = useState<number | null>(null);
@@ -133,8 +134,8 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
   };
   const up2 = (fn: (s: SI) => void) => up((s) => { fn(s); s.warnOk = false; s.dirty = true; });
   const pickItem = (i: number, v: unknown) => {
-    if (v === '__add') { c.hide(); onAddItem(si.lines[i]?.name ?? '', (it) => { up2((s) => { s.lines[i] = lineFor(ctx, s, it); if (i === s.lines.length - 1) s.lines.push(blankLine()); }); full(); focusRow(i, 'qty'); }); return; }
-    up2((s) => { s.lines[i] = lineFor(ctx, s, v as EItem); if (i === s.lines.length - 1) s.lines.push(blankLine()); });
+    if (v === '__add') { c.hide(); onAddItem(si.lines[i]?.name ?? '', (it) => { up2((s) => { s.lines[i] = lineFor(ctx, s, it); if (!qOn && i === s.lines.length - 1) s.lines.push(blankLine()); }); full(); focusRow(i, 'qty'); }); return; }
+    up2((s) => { s.lines[i] = lineFor(ctx, s, v as EItem); if (!qOn && i === s.lines.length - 1) s.lines.push(blankLine()); });
     c.hide(); full(); focusRow(i, 'qty');
   };
   const priceOf = (it: EItem) => lineFor(ctx, si, it).price;
@@ -152,11 +153,22 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
   const qr = qL ? calc(ctx, { ...si, lines: [...si.lines, qL] }).rows.at(-1)! : null;
   const qeSet = (it: EItem) => { setQe({ item: it, q: '', fr: '', disc: '', qty: Number(qe.qty) > 0 ? qe.qty : '1' }); c.hide(); setQk((k) => k + 1); setTimeout(() => { const q = document.getElementById('qeQty') as HTMLInputElement | null; q?.focus(); q?.select(); }, 0); };
   const qePick = (v: unknown) => { if (v === '__add') { c.hide(); onAddItem((document.getElementById('qeItem') as HTMLInputElement | null)?.value ?? '', (it) => qeSet(it)); return; } qeSet(v as EItem); };
+  /* the ⚡ button in the Total row (owner, 21 Nov 2026): on, the rapid entry row and no empty row; off, the empty row and no rapid entry row */
+  const qeToggle = () => {
+    const on = !qOn;
+    setQeOn(on); setQOn(on);
+    up((s) => {
+      if (on) s.lines = s.lines.filter(keptWhenOn);
+      else if (!s.lines.length || !isBlank(s.lines[s.lines.length - 1]!)) s.lines.push(blankLine());
+    });
+    full();
+    setTimeout(() => (on ? document.getElementById('qeItem') : document.querySelector<HTMLElement>('#siRows tr[data-ln]:last-child [data-f="name"]'))?.focus(), 0);
+  };
   const qeCommit = () => {
     if (!qe.item) { document.getElementById('qeItem')?.focus(); return toast('Choose an item first'); }
     const L = qeLine()!;
     if (!(Number(L.qty) > 0)) { document.getElementById('qeQty')?.focus(); return toast('Enter the quantity'); }
-    up2((s) => { s.lines.unshift(L); if (!s.lines.length || s.lines[s.lines.length - 1]!.item) s.lines.push(blankLine()); });
+    up2((s) => { s.lines.unshift(L); });
     setQe({ item: null, qty: '1', fr: '', disc: '', q: '' }); setQk((k) => k + 1); full();
     setHi(0); setTimeout(() => setHi(null), 1200);
     const w = document.querySelector('#vNewInv .dgw'); if (w) w.scrollTop = 0;
@@ -220,7 +232,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
         <tr><th rowSpan={2} className="c">#</th><th rowSpan={2} className="it">Item</th><th rowSpan={2} className="hic">Item code</th>{show.brand ? <th rowSpan={2} className="hib">Brand</th> : null}{show.series ? <th rowSpan={2} className="his">Series</th> : null}{gstCol ? <th rowSpan={2} className="hs">HSN</th> : null}{co.batch ? <ExtraTh k="bt" label={bv.word('batch', 'Batch')} /> : null}{co.exp ? <ExtraTh k="ex" label={bv.word('exp', 'Expiry')} /> : null}{co.mrp ? <ExtraTh k="mr" label={bv.word('mrp', 'MRP')} /> : null}<th rowSpan={2} className="n qt">Qty</th><th rowSpan={2} className="un">Unit</th>{co.pack ? <ExtraTh k="pk" label="Pack" /> : null}
           <th rowSpan={2} className="n pr">Sale Price{G ? <label className="siincl"><input type="checkbox" id="siIncl" checked={si.incl} onChange={(e) => { up2((s) => { s.incl = e.target.checked; }); full(); }} /> incl. GST</label> : null}</th><th colSpan={2} className="c grp">Discount</th><th rowSpan={2} className="n fr">Final rate</th>{G ? <th colSpan={2} className="c grp">Tax</th> : null}<th rowSpan={2} className="n am">Amount</th><th rowSpan={2} className="x"><span className="sr">Remove</span></th></tr>
         <tr><th className="n sub dp">%</th><th className="n sub da">Amount</th>{G ? <><th className="n sub tp">%</th><th className="n sub ta">Amount</th></> : null}</tr>
-        <tr className="qe" id="qeRow" key={`qe${rk}-${qk}`}>
+        {qOn ? <tr className="qe" id="qeRow" key={`qe${rk}-${qk}`}>
           <td className="c qeb" title="Rapid entry"><svg className="i" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: BOLT }} /></td>
           <td><div className="gic"><div className="combo"><input className="qei" id="qeItem" defaultValue={qe.item ? qe.item.name : qe.q} placeholder="Rapid entry" title="Type item name or code, then Enter" autoComplete="off" aria-label="Rapid entry"
             onInput={(e) => { const v = (e.target as HTMLInputElement).value; setQe({ ...qe, item: null, q: v }); c.show('qe', itemOpts(d, si, v, priceOf), qePick); }}
@@ -236,7 +248,7 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
           <QeIn id="qeFr" cls="fr" val={qe.fr} label="Quick add rate" placeholder="Rate" set={(v) => setQe({ ...qe, fr: v, disc: '' })} onKey={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); qeCommit(); } }} shown={qe.fr === '' && qL ? finalRate(qL).toFixed(2) : undefined} />
           {G ? <><td className="ro">{qL ? pct(qL.gst) : ''}</td><td className="ro" id="qeTx">{qr ? inr2f(qr.tx) : ''}</td></> : null}
           <td className="ro b" id="qeAmt">{qr ? inr2f(qr.amt) : ''}</td>
-          <td className="x"><button type="button" className="qeok" id="qeAdd" aria-label="Add this item" title="Add item (Enter)" disabled={!qe.item} onClick={qeCommit}><Icon name="check" /></button></td></tr>
+          <td className="x"><button type="button" className="qeok" id="qeAdd" aria-label="Add this item" title="Add item (Enter)" disabled={!qe.item} onClick={qeCommit}><Icon name="check" /></button></td></tr> : null}
       </thead>
       <tbody id="siRows" ref={tbody} onInput={onInput} onKeyDown={onKey}
         onFocus={(e) => { const tEl = e.target as unknown as HTMLInputElement; if (tEl.classList.contains('si-item') && !tEl.value) { const i = Number(tEl.closest<HTMLElement>('tr')!.dataset.ln); c.show(`row:${i}`, itemOpts(d, si, '', priceOf), (v) => pickItem(i, v)); } if (tEl.dataset.f === 'fr') setTimeout(() => tEl.select(), 0); }}
@@ -289,7 +301,8 @@ export function Grid({ d, c, rk, full, toast, onAddItem }: Props) {
       {d.batches ? createPortal(<BatchPicker pick={pickAt === null ? null : pickFor(pickAt)} onClose={() => setPickAt(null)} onDone={(a) => { const i = pickAt!; up2((s) => { if (a) s.lines[i]!.batches = a; else delete s.lines[i]!.batches; }); setPickAt(null); full(); }} />, document.body) : null}
       <tfoot id="siFoot">
         <tr>{footCells(co, {
-          it: <td><div className="dgft"><button type="button" className="btn sm" id="siAddRow" onClick={() => { up2((s) => { s.lines.push(blankLine()); }); full(); focusRow(si.lines.length, 'name'); }}><Icon name="plus" />Add row</button>
+          c: <td className="c"><button type="button" className="qesw" id="qeSw" aria-pressed={qOn} aria-label="Rapid entry" title={qOn ? 'Rapid entry is on. Click to turn it off and type items in rows.' : 'Rapid entry is off. Click to turn it on.'} onClick={qeToggle}><svg className="i" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: BOLT }} /></button></td>,
+          it: <td><div className="dgft">{qOn ? null : <button type="button" className="btn sm" id="siAddRow" onClick={() => { up2((s) => { s.lines.push(blankLine()); }); full(); focusRow(si.lines.length, 'name'); }}><Icon name="plus" />Add row</button>}
             {si.doc === 'sale' ? <button type="button" className="btn sm" id="siImpQ" title="Add items from a saved quotation" data-impq><Icon name="doc" />Import quotation</button> : null}<b>Total</b></div></td>,
           qt: <td className="ro" data-t="qty">{qfmt(si.lines.reduce((a, l) => a + (l.item || l.name ? Number(l.qty) || 0 : 0), 0))}</td>,
           da: <td className="ro" data-t="disc">{inr2f(t.rows.reduce((a, r) => a + (r.disc > 0 ? r.disc : 0), 0))}</td>,

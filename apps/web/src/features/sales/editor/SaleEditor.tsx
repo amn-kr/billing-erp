@@ -36,7 +36,7 @@ import { printNow } from '../../print/printer';
 import { bankFor, bankOf, useBankPick } from '../../banking/BankPick';
 import { editAsk, withPasscode } from '../../settings/passcode';
 import {
-  DG_TERMS, SI_MODES, SI_TT, addDaysIso, blankLine, calc, cmApply, daysDiff, hasContent, lineComm, lineFor, lineStock, newSI, partyState, paySum, priceFor, priceListFor, r2, useSI, useTab, TabCtx, isDirty,
+  DG_TERMS, SI_MODES, SI_TT, addDaysIso, calc, qeOn, withBlank, cmApply, daysDiff, hasContent, lineComm, lineFor, lineStock, newSI, partyState, paySum, priceFor, priceListFor, r2, useSI, useTab, TabCtx, isDirty,
   type EItem, type EParty, type Line, type SI,
 } from './state';
 import { ui } from '../../../styles/uiSize';
@@ -207,7 +207,7 @@ function fillFrom(d: EditorData, s: SI, v: SaleDoc, how: 'edit' | 'copy' | 'chal
     if (how === 'edit' && Number(l.qty) > 0) (s.mrpWas ??= {})[it.id] = Math.max(s.mrpWas[it.id] ?? 0, Math.round((Number(l.amount) / lineStock({ item: it, unit: l.unit, qty: l.qty })) * 100) / 100);
     lines.push(L);
   }
-  s.lines = [...lines, blankLine()];
+  s.lines = withBlank(lines);
   const x = v.extra as Record<string, string & unknown>;
   if (how === 'challan') { s.transport = x.transport ?? ''; s.vehicle = x.vehicle ?? ''; s.challan = v.number; s.fromChallanId = v.id; return; }
   s.notes = v.notes || s.notes;
@@ -294,13 +294,15 @@ function Editor({ d, ops }: { d: EditorData; ops: TabOps }) {
   const partyPick = (v: unknown) => {
     if (v === '__add') { c.hide(); setAddParty((document.getElementById('siParty') as HTMLInputElement | null)?.value ?? ''); return; }
     pickParty(v as EParty); c.hide(); full();
-    setTimeout(() => (document.getElementById('qeItem') as HTMLElement | null)?.focus(), 0);
+    setTimeout(() => firstItemBox()?.focus(), 0);
   };
   const toast = (m: string) => showToast(m);
+  /** where items are typed first: the rapid entry, or the first empty row while rapid entry is off */
+  const firstItemBox = () => (qeOn() ? document.getElementById('qeItem') : document.querySelector<HTMLElement>('#siRows tr[data-ln]:last-child [data-f="name"]'));
 
   /* first focus: the party, or the rapid entry when a party is already chosen */
   // (not while a window is open over the editor, e.g. the bill just saved in another tab)
-  useEffect(() => { setTimeout(() => { if ([...document.querySelectorAll<HTMLElement>('.ov')].some((o) => !o.hidden)) return; (document.getElementById(s.party || cash ? 'qeItem' : 'siParty') as HTMLElement | null)?.focus(); }, 60); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { setTimeout(() => { if ([...document.querySelectorAll<HTMLElement>('.ov')].some((o) => !o.hidden)) return; (s.party || cash ? firstItemBox() : document.getElementById('siParty'))?.focus(); }, 60); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   const expOk = useRef(false);
   const [expAsk, setExpAsk] = useState<{ list: ExpiredPick[]; again: boolean; print: boolean } | null>(null);

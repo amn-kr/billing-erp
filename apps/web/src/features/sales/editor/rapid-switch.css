@@ -1,0 +1,5 @@
+/* The rapid entry on/off button in the item grid's Total row, # cell (owner, 21 Nov 2026). Not in the prototype. */
+.qesw{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border-radius:8px;border:1px solid var(--bd);background:var(--sf);color:var(--t2);cursor:pointer}
+.qesw .i{width:16px;height:16px}
+.qesw:hover{border-color:var(--blue,#3b82f6)}
+.qesw[aria-pressed="true"]{color:var(--blue,#3b82f6);border-color:color-mix(in srgb,var(--blue,#3b82f6) 45%,var(--bd));background:color-mix(in srgb,var(--blue,#3b82f6) 9%,var(--sf))}

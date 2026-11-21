@@ -14,7 +14,7 @@ import { useEscape } from '../../../lib/useEscape';
 import { useSales, type SaleDoc } from '../model';
 import type { SlModalProps } from '../SlModal';
 import type { EditorData } from './data';
-import { SI_TT, addDaysIso, blankLine, cmApply, lineFor, partyState, priceFor, type Line, type SI } from './state';
+import { SI_TT, addDaysIso, blankLine, cmApply, qeOn, withBlank, lineFor, partyState, priceFor, type Line, type SI } from './state';
 import { qRanked, qRate, qTotals, type QCtx, type QDraft } from '../../quotations/model';
 import { ui } from '../../../styles/uiSize';
 
@@ -77,7 +77,7 @@ export function ImportQuote({ open, onClose, d, s, up, toast }: { open: boolean;
     up((x) => {
       while (x.lines.length && !x.lines.at(-1)!.item && !x.lines.at(-1)!.name.trim()) x.lines.pop();
       start = x.lines.length;
-      x.lines.push(...lines, blankLine());
+      x.lines = withBlank([...x.lines, ...lines]);
       x.qrefs = [...x.qrefs.filter((r) => r.no !== v.number), { no: v.number, date: v.date, cust: v.partyName || '', brand, id: v.id }];
       // the quotation's referral comes with it; without one, its lines carry the invoice's (prototype iqGo)
       if (v.referrerId && !x.ref) x.ref = v.referrerId;
@@ -142,7 +142,7 @@ export function qrefRemoveModal(s: SI, no: string, o: { up: (fn: (x: SI) => void
       o.up((x) => {
         x.qrefs = x.qrefs.filter((r) => r.no !== no);
         if (/^As per quotation/.test(x.notes)) x.notes = SI_TT.sale;
-        if (rm) { x.lines = x.lines.filter((l) => l.fromQ !== no); const last = x.lines.at(-1); if (!last || last.item || last.name.trim()) x.lines.push(blankLine()); }
+        if (rm) { x.lines = x.lines.filter((l) => l.fromQ !== no); const last = x.lines.at(-1); if (!qeOn() && (!last || last.item || last.name.trim())) x.lines.push(blankLine()); }
         else x.lines.forEach((l) => { if (l.fromQ === no) delete l.fromQ; });
       });
       o.close(); o.full();

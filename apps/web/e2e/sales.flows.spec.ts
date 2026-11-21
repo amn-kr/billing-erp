@@ -51,7 +51,8 @@ test('the home screen’s New invoice button opens the invoice editor', async ({
   await signInAs(page, await freshShop(request, 'sales-shop'));
   await page.click('#heroActs button.p');
   await expect(page).toHaveURL(/\/sales\/new/);
-  await expect(page.locator('#vNewInv #siRows tr[data-ln]')).toHaveCount(1);
+  await expect(page.locator('#vNewInv #qeItem')).toBeVisible(); // rapid entry on: no empty row (owner, 21 Nov 2026)
+  await expect(page.locator('#vNewInv #siRows tr[data-ln]')).toHaveCount(0);
 });
 
 /* ---------- several open bills (tabs): the owner's four rules ---------- */
@@ -60,7 +61,8 @@ const tabs = (page: P) => page.locator('#siTabs .bttab');
 async function openEditor(page: P, request: import('@playwright/test').APIRequestContext) {
   await signInAs(page, await freshShop(request, 'sales-shop'));
   await page.goto(APP + '/sales/new');
-  await expect(page.locator('#vNewInv #siRows tr[data-ln]')).toHaveCount(1);
+  await expect(page.locator('#vNewInv #qeItem')).toBeVisible(); // rapid entry on: no empty row (owner, 21 Nov 2026)
+  await expect(page.locator('#vNewInv #siRows tr[data-ln]')).toHaveCount(0);
 }
 async function fill(page: P, party: string, item: string, qty: string) {
   await page.fill('#siParty', party);
@@ -115,7 +117,7 @@ test('bill tabs, rule 2: closing a tab never changes or overwrites another open 
   await expect(page.locator('#siParty')).toHaveValue('Mehta Electricals');
   await expect(page.locator('#siRows tr[data-ln="0"] [data-f="name"]')).toHaveValue(/LED bulb/);
   await expect(page.locator('#siRows tr[data-ln="0"] [data-f="qty"]')).toHaveValue('10');
-  await expect(page.locator('#siRows tr[data-ln]')).toHaveCount(2); // the item and the empty row
+  await expect(page.locator('#siRows tr[data-ln]')).toHaveCount(1); // the item (rapid entry on: no empty row; owner, 21 Nov 2026)
 });
 
 test('bill tabs, rule 3: a sale number is used only when the bill is saved', async ({ browser, request }) => {
@@ -238,7 +240,7 @@ test('brand-wise quotation: no sample brands; the shop’s own brands and series
   await expect(page).toHaveURL(/\/sales\/new/);
   await expect(page.locator('#siMid .qref')).toContainText('Q-0101');
   await expect(page.locator('#siMid .qref em')).toHaveText('Anchor Roma');
-  await expect(page.locator('#siRows tr[data-ln]')).toHaveCount(3); // two items and the empty row
+  await expect(page.locator('#siRows tr[data-ln]')).toHaveCount(2); // two items (rapid entry on: no empty row; owner, 21 Nov 2026)
   const inv = await page.locator('#siNo').inputValue();
   await page.click('#siSave');
   if (await page.locator('#siChgPop:not([hidden])').count()) await page.click('#siChgDone');

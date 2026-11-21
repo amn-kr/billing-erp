@@ -16,7 +16,7 @@ import { toastSaveFailed, toastSaved } from '../shell/saved';
 import { qfmt } from '../items/ItemsPage';
 import { useEditorData, type EditorData } from './editor/data';
 import { ComboList, comboKey, partyOpts, useCombo, type ComboOpt } from './editor/Grid';
-import { calc, lineFor, newSI, partyState, priceFor, priceListFor, useSI, type EItem, type EParty, type Line } from './editor/state';
+import { calc, lineFor, newSI, partyState, priceFor, priceListFor, useSI, withBlank, type EItem, type EParty, type Line } from './editor/state';
 import { ui } from '../../styles/uiSize';
 
 export const useQuick = create<{ open: boolean; show: () => void; hide: () => void }>((set) => ({ open: false, show: () => set({ open: true }), hide: () => set({ open: false }) }));
@@ -119,7 +119,7 @@ function QuickSaleWindow({ d, close }: { d: EditorData; close: () => void }) {
   const full = () => {
     const s = newSI(ctx, { no: nn.data?.number ?? '', date });
     if (party) { s.party = party; s.pos = partyState(ctx, party); s.due = s.date; }
-    s.lines = [...lines.filter((l) => l.item).map((l) => ({ ...lineFor(ctx, s, l.item!), qty: Number(l.qty) || 1, unit: l.unit, price: l.price, disc: Number(l.disc) || 0 })), { item: null, name: '', hsn: '', qty: 1, unit: '', price: 0, disc: 0, gst: 18 }];
+    s.lines = withBlank([...lines.filter((l) => l.item).map((l) => ({ ...lineFor(ctx, s, l.item!), qty: Number(l.qty) || 1, unit: l.unit, price: l.price, disc: Number(l.disc) || 0 }))]);
     useSI.getState().open(s);
     close();
     navigate(`/sales/new?keep=${Date.now()}`);
