@@ -45,6 +45,9 @@ sealed interface Route {
     /** one line of the bill: [index] −1 = a new one, maybe with a scanned [itemId] */
     data class SaleLine(val index: Int, val itemId: String? = null) : Route
     data object SaleSaved : Route
+    // 8.6a: Sale Bills and a bill's page
+    data object SaleBills : Route
+    data class Bill(val id: String, val number: String) : Route
 }
 
 /** Home's lists; null when the server refused one (no permission) or it hasn't come yet. */

@@ -712,4 +712,40 @@
     <string name="pdf_failed">Couldn’t make the PDF. Try again.</string>
     <string name="pdf_no_app">No app on this phone can take the PDF.</string>
     <string name="pdf_no_wa">WhatsApp isn’t on this phone. Choose another app.</string>
+
+    <!-- 8.6a: Sale Bills, Bill View, Cancel Bill -->
+    <string name="dl_due">Due</string>
+    <string name="dl_month_sales">This Month Sales</string>
+    <string name="dl_to_get">↓ Still To Get</string>
+    <string name="dl_none">Nothing Found</string>
+    <string name="dl_none_sub">Try another search or status.</string>
+    <string name="dl_status">Status</string>
+    <string name="dv_counter_sale">Counter Sale</string>
+    <string name="dv_bill_total">Bill Total</string>
+    <string name="dv_is_cancelled">This bill is cancelled. It stays in the books; stock came back and the dues were removed.</string>
+    <string name="dv_from">From %1$s</string>
+    <string name="dv_referral">Referral: %1$s</string>
+    <string name="dv_items">Items (%1$d)</string>
+    <string name="dv_charges">Charges</string>
+    <string name="dv_received">↓ Received</string>
+    <string name="dv_dues">Dues</string>
+    <string name="dv_payments">Payments</string>
+    <string name="dv_payment_in">Payment In</string>
+    <string name="dv_credit_note">Credit Note</string>
+    <string name="dv_share">Share</string>
+    <string name="dv_edit">Edit Bill</string>
+    <string name="dv_cancel_bill">Cancel Bill</string>
+    <string name="dv_cancel_q">Cancel %1$s?</string>
+    <string name="dv_cancel_text_party">The bill stays in the books marked Cancelled. Its stock comes back and %1$s\'s dues go down by ₹%2$s.</string>
+    <string name="dv_cancel_text">The bill stays in the books marked Cancelled. Its stock comes back.</string>
+    <string name="dv_cancel_adv">The ₹%1$s already received is kept as advance.</string>
+    <string name="dv_cancel_refund">The ₹%1$s taken with it counts as refunded.</string>
+    <string name="dv_never_deleted">Documents are never deleted, only cancelled. This cannot be undone.</string>
+    <string name="dv_yes_cancel">Yes, Cancel</string>
+    <string name="go_back">Go Back</string>
+    <string name="more_options">More Options</string>
+    <string name="dv_cancelled">%1$s cancelled. It stays in the books.</string>
+    <string name="dv_cancelled_adv">%1$s cancelled. ₹%2$s received is kept as advance.</string>
+    <string name="pc_cancel_text">Enter the transaction passcode to cancel.</string>
+    <string name="pc_ok">OK</string>
 </resources>

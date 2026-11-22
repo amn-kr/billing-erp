@@ -487,9 +487,9 @@ fun Loading(widths: List<Float> = listOf(0.6f, 0.9f, 0.4f)) {
     }
 }
 
-/** An empty list (.empty): a ring with an icon, a title, a line of help and one button. */
+/** An empty list (.empty): a ring with an icon, a title, a line of help and one button (none after a search that found nothing). */
 @Composable
-fun EmptyState(icon: ImageVector, title: String, text: String, button: String, onButton: () -> Unit) {
+fun EmptyState(icon: ImageVector, title: String, text: String, button: String?, onButton: (() -> Unit)?) {
     BoxCard {
         Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
@@ -504,7 +504,7 @@ fun EmptyState(icon: ImageVector, title: String, text: String, button: String, o
             }
             T(title, weight = FontWeight.Bold, align = TextAlign.Center)
             T(text, size = 13.sp, colour = Colours.Text2, align = TextAlign.Center)
-            Btn(button, onButton, icon = Icons.Plus)
+            if (button != null && onButton != null) Btn(button, onButton, icon = Icons.Plus)
         }
     }
 }

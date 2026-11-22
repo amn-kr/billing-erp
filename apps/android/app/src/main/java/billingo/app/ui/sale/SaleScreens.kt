@@ -117,7 +117,7 @@ private fun payWord(mode: String) = stringResource(
 
 /** A line of figures (.tl): words on the left, the amount on the right; [big] for the total (.tl.tt). */
 @Composable
-private fun TL(k: String, v: String, colour: Color = Colours.Text, big: Boolean = false) {
+internal fun TL(k: String, v: String, colour: Color = Colours.Text, big: Boolean = false) {
     Column {
         if (big) Box(Modifier.fillMaxWidth().height(1.dp).background(Colours.Border))
         Row(Modifier.fillMaxWidth().padding(top = if (big) 8.dp else 0.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -128,7 +128,7 @@ private fun TL(k: String, v: String, colour: Color = Colours.Text, big: Boolean 
 }
 
 @Composable
-private fun BoxCol(modifier: Modifier = Modifier, gap: Int = 6, content: @Composable ColumnScope.() -> Unit) {
+internal fun BoxCol(modifier: Modifier = Modifier, gap: Int = 6, content: @Composable ColumnScope.() -> Unit) {
     val shape = RoundedCornerShape(Size.Radius)
     Column(modifier.fillMaxWidth().background(Colours.Card, shape).border(1.dp, Colours.Border, shape).padding(12.dp), verticalArrangement = Arrangement.spacedBy(gap.dp), content = content)
 }

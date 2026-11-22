@@ -177,6 +177,11 @@ class Api(private val base: String, private val store: Store, private val client
     suspend fun pastPrices(itemId: String, partyId: String): List<PastPrice> = send("GET", "/sales/price-history?item=$itemId&party=$partyId", null, ListSerializer(PastPrice.serializer()))
     suspend fun quotations(): List<QuoteRow> = send("GET", "/sales?kind=quotation", null, ListSerializer(QuoteRow.serializer()))
     suspend fun saleDoc(id: String): SaleDoc = send("GET", "/sales/$id", null, SaleDoc.serializer())
+    // 8.6a: Sale Bills
+    suspend fun bills(): List<BillRow> = send("GET", "/sales?kind=invoice", null, ListSerializer(BillRow.serializer()))
+    /** Cancel a sale document; with the transaction passcode switched on, [passcode] is sent along (asked every time). */
+    suspend fun cancelSale(id: String, passcode: String? = null): Cancelled =
+        send("POST", "/sales/$id/cancel", buildJsonObject {}, Cancelled.serializer(), passcode = passcode)
     suspend fun saleCost(body: JsonObject): SaleCost = send("POST", "/sales/cost", body, SaleCost.serializer())
 
     /** Check For Update: the newest phone version on the releases page (no sign-in needed). */
@@ -231,6 +236,8 @@ class Api(private val base: String, private val store: Store, private val client
         again: Boolean = true,
         /** one-time key against double saves (step 8.1b): the same key when the same save is sent again */
         key: String? = null,
+        /** the transaction passcode (Settings › Transactions) for an edit or cancel; never kept */
+        passcode: String? = null,
     ): T {
         val r = withSlowWatch { withContext(Dispatchers.IO) {
             val b = Request.Builder().url(base.trimEnd('/') + "/api" + path)
@@ -239,6 +246,7 @@ class Api(private val base: String, private val store: Store, private val client
             if (auth) access?.let { b.header("Authorization", "Bearer $it") }
             if (refresh != null) b.header("x-refresh-token", refresh)
             if (key != null) b.header("Idempotency-Key", key)
+            if (passcode != null) b.header(PASSCODE_HEADER, passcode)
             val rb = (body?.toString() ?: if (method == "GET") null else "{}")?.toRequestBody(JSON_TYPE)
             b.method(method, rb)
             try {
@@ -248,7 +256,7 @@ class Api(private val base: String, private val store: Store, private val client
             }
         } }
         val (code, text) = r
-        if (code == 401 && auth && again && store.refreshToken != null && renew()) return send(method, path, body, answer, auth, refresh, again = false, key = key)
+        if (code == 401 && auth && again && store.refreshToken != null && renew()) return send(method, path, body, answer, auth, refresh, again = false, key = key, passcode = passcode)
         if (code !in 200..299) throw problem(code, text)
         @Suppress("UNCHECKED_CAST")
         return if (answer == null || text.isBlank()) Unit as T else JSON.decodeFromString(answer, text)
@@ -277,6 +285,9 @@ class Api(private val base: String, private val store: Store, private val client
 
     companion object {
         const val NO_INTERNET = "No internet connection."
+        /** packages/shared PASSCODE_HEADER; a refusal for it has code "passcode" */
+        const val PASSCODE_HEADER = "x-txn-passcode"
+        const val PASSCODE = "passcode"
         const val SLOW_MS = 4_000L
         val JSON = Json { ignoreUnknownKeys = true; explicitNulls = false }
         private val JSON_TYPE = "application/json".toMediaType()
