@@ -40,10 +40,49 @@ class SaleSession(private val api: Api) {
     /** what Bill Saved does by itself once it opens: "share" or "print" (the bottom ⋮), or nothing */
     var after by mutableStateOf("")
 
+    /**
+     * Edit Bill (8.6b): the saved bill is loaded into Sale as it was (the web's fillFrom 'edit').
+     * Items no longer in the shop's list stop it with a message, so nothing on the bill is lost.
+     */
+    fun edit(scope: CoroutineScope, features: List<String>, id: String) {
+        this.features = features
+        editing = id
+        after = ""
+        draft = null
+        ask = null
+        pass = null
+        load(scope, features, number = false) { c ->
+            val v = api.saleDoc(id)
+            val (d, missing) = SaleMaths.fromSaved(c, v)
+            if (d == null) throw ApiError(400, missingWords(missing))
+            ctx = SaleMaths.withSavedStock(c, d)
+            number = v.number
+            draft = d
+        }
+    }
+
+    /** the saved bill being opened for Edit Bill (kept for Try Again) */
+    var editing: String? = null
+        private set
+
+    /** Try Again after a refusal: the same saved bill again, or a fresh new one. */
+    fun again(scope: CoroutineScope, features: List<String>) { val e = editing; if (e != null) edit(scope, features, e) else start(scope, features) }
+
+    /** how the "no longer in your items" refusal is worded (set by the screen, in the app's language) */
+    var missingWords: (List<String>) -> String = { "These items are no longer in your items: ${it.joinToString(", ")}. Change this bill on the computer." }
+
+    /** the shop asks for the transaction passcode before a saved bill is changed: null = not asked; the text = why it was refused */
+    var pass by mutableStateOf<String?>(null)
+    /** goes up with each refused passcode, so the dots empty */
+    var passTries by mutableStateOf(0)
+        private set
+
     /** A new, empty bill; the shop's lists are loaded again so prices and stock are fresh. */
     fun start(scope: CoroutineScope, features: List<String>, partyId: String? = null, itemId: String? = null) {
         this.features = features
+        editing = null
         after = ""
+        pass = null
         draft = SaleMaths.Draft(date = Format.todayIso())
         ask = null
         load(scope, features) { c ->
@@ -54,7 +93,7 @@ class SaleSession(private val api: Api) {
         }
     }
 
-    fun reload(scope: CoroutineScope, features: List<String>) = load(scope, features) {}
+    fun reload(scope: CoroutineScope, features: List<String>) { val e = editing; if (e != null) edit(scope, features, e) else load(scope, features) {} }
 
     /** A party added from Choose Customer: the lists are loaded again so it is there, then it goes on the bill. */
     fun addParty(scope: CoroutineScope, features: List<String>, id: String) = load(scope, features) { c ->
@@ -62,7 +101,7 @@ class SaleSession(private val api: Api) {
         if (p != null) change { SaleMaths.withParty(c, it, p) }
     }
 
-    private fun load(scope: CoroutineScope, features: List<String>, then: (SaleMaths.Ctx) -> Unit) {
+    private fun load(scope: CoroutineScope, features: List<String>, number: Boolean = true, then: suspend (SaleMaths.Ctx) -> Unit) {
         problem = null
         scope.launch {
             try {
@@ -78,7 +117,7 @@ class SaleSession(private val api: Api) {
                 }
                 ctx = c
                 then(c)
-                refreshNumber(scope)
+                if (number) refreshNumber(scope)
             } catch (e: ApiError) { problem = e }
         }
     }
@@ -86,6 +125,8 @@ class SaleSession(private val api: Api) {
     /** The next number for the bill's date (it changes with the financial year). */
     fun refreshNumber(scope: CoroutineScope) {
         val d = draft ?: return
+        // a saved bill keeps its number for good
+        if (d.edit != null) return
         scope.launch { try { number = api.nextSaleNumber(d.date).number } catch (_: ApiError) {} }
     }
 
@@ -95,15 +136,19 @@ class SaleSession(private val api: Api) {
      * Send the bill. Its one-time key stays the same for every try, so weak internet can't make two
      * bills. A "Save anyway?" question is kept in [ask]; other refusals are returned.
      */
-    suspend fun save(): ApiError? {
+    suspend fun save(passcode: String? = null): ApiError? {
         val c = ctx ?: return null
         val d = draft ?: return null
         busy = true
         try {
-            val r = api.saveSale(SaleMaths.body(c, d), d.key)
+            val e = d.edit
+            val r = if (e != null) api.updateSale(e.id, SaleMaths.body(c, d), passcode) else api.saveSale(SaleMaths.body(c, d), d.key)
+            pass = null
             saved = r to d
             return null
         } catch (e: ApiError) {
+            // Edit Bill with the passcode on: ask for it, then the same save again
+            if (e.code == billingo.app.data.Api.PASSCODE && d.edit != null) { if (passcode != null) passTries++; pass = if (passcode == null) "" else e.message; return null }
             if (e.code in SaleMaths.ASK_AGAIN && e.code !in d.confirmed) { ask = e; return null }
             return e
         } finally { busy = false }

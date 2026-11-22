@@ -119,11 +119,18 @@ data class DocLine(
     val mrp: String? = null,
     val listPrice: String? = null,
     val wholesalePrice: String? = null,
+    // 8.6b: what Edit Bill keeps
+    val basePrice: String? = null,
+    val commOverride: kotlinx.serialization.json.JsonElement? = null,
 )
+
+/** One part of the money taken with the bill (8.6b: kept as it was when the bill is edited). */
+@Serializable
+data class DocSplit(val mode: String = "Cash", val amount: String = "0", val ref: String = "", val accountId: String? = null)
 
 /** The money taken with the bill. */
 @Serializable
-data class DocPayment(val amount: String = "0", val mode: String = "")
+data class DocPayment(val amount: String = "0", val mode: String = "", val splits: List<DocSplit> = emptyList())
 
 /** One saved document with its lines (GET /sales/:id). */
 @Serializable
@@ -167,6 +174,10 @@ data class SaleDoc(
     val tax: String = "0",
     val received: String = "0",
     val settlements: List<Settlement> = emptyList(),
+    // 8.6b: what Edit Bill keeps
+    val cashName: String = "",
+    val pricesInclTax: Boolean = true,
+    val roundOff: Boolean = true,
 )
 
 /** Money that settled a bill: a payment (with the bill or later) or a credit note. */

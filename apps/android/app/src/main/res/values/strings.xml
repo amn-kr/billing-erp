@@ -748,4 +748,12 @@
     <string name="dv_cancelled_adv">%1$s cancelled. ₹%2$s received is kept as advance.</string>
     <string name="pc_cancel_text">Enter the transaction passcode to cancel.</string>
     <string name="pc_ok">OK</string>
+
+    <!-- 8.6b: Edit Bill -->
+    <string name="eb_leave_q">Leave Without Saving?</string>
+    <string name="eb_leave_t">Your changes to %1$s are not saved. The bill stays as it was.</string>
+    <string name="eb_leave">Leave</string>
+    <string name="eb_pass_t">Save Changes To %1$s?</string>
+    <string name="eb_pass_text">Enter the transaction passcode to change this bill.</string>
+    <string name="eb_missing">Not in your items any more: %1$s. Change this bill on the computer.</string>
 </resources>

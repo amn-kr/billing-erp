@@ -241,14 +241,15 @@ private fun SecTitle(text: String) = billingo.app.ui.parts.SectionTitle(text)
  */
 @Composable
 fun BillScreen(
-    api: Api, id: String, number: String, features: List<String>, itemOptions: JsonObject?,
-    onBack: () -> Unit, onParty: (id: String, name: String) -> Unit, onChanged: () -> Unit, onLater: () -> Unit,
+    api: Api, id: String, number: String, features: List<String>, itemOptions: JsonObject?, version: Int,
+    onBack: () -> Unit, onParty: (id: String, name: String) -> Unit, onChanged: () -> Unit, onEdit: () -> Unit, onLater: () -> Unit,
 ) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val hi = hindi()
     val today = Format.todayIso()
-    val doc = load { api.saleDoc(id) }
+    // loaded again when a bill is saved anywhere in the app (Edit Bill comes back here)
+    val doc = load(version) { api.saleDoc(id) }
     // referral names; without access the bill still shows
     val refs = load { try { api.referrers() } catch (e: ApiError) { if (e.status == 0) throw e; emptyList() } }
     var menu by rememberSaveable { mutableStateOf(false) }
@@ -258,7 +259,7 @@ fun BillScreen(
     // each refused passcode empties the dots for the next try
     var tries by remember { mutableIntStateOf(0) }
     var busy by remember { mutableStateOf("") }
-    var made by remember(id) { mutableStateOf<InvoicePdf.Made?>(null) }
+    var made by remember(id, version) { mutableStateOf<InvoicePdf.Made?>(null) }
     val counter = stringResource(R.string.sl_counter_name)
 
     fun pdf(what: String) {
@@ -363,7 +364,7 @@ fun BillScreen(
             Dim({ menu = false }) {
                 Sheet(stringResource(R.string.more_options)) {
                     Grp {
-                        MenuRow(Icons.Edit, stringResource(R.string.dv_edit), null) { menu = false; onLater() }
+                        MenuRow(Icons.Edit, stringResource(R.string.dv_edit), null) { menu = false; onEdit() }
                         Line()
                         MenuRow(Icons.Bill, stringResource(R.string.pdf_print), null) { menu = false; pdf("print") }
                         Line()
