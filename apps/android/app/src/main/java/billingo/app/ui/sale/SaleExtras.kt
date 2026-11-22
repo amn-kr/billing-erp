@@ -109,12 +109,12 @@ internal fun MenuRow(icon: ImageVector, text: String, sub: String?, onTap: () ->
 
 /** The top ⋮ of Sale (design 7.4d): Import From Quotation, Add Referral, Bill Details. */
 @Composable
-fun SaleMenuSheet(referrer: String?, onClose: () -> Unit, onPick: (String) -> Unit) {
+fun SaleMenuSheet(referrer: String?, onClose: () -> Unit, import: Boolean = true, onPick: (String) -> Unit) {
     Dim(onClose) {
         Sheet(stringResource(R.string.sl_more)) {
             Grp {
-                MenuRow(Icons.Import, stringResource(R.string.sx_import), null) { onPick("quote") }
-                Line()
+                // a quotation can't bring in another quotation
+                if (import) { MenuRow(Icons.Import, stringResource(R.string.sx_import), null) { onPick("quote") }; Line() }
                 MenuRow(Icons.User, stringResource(R.string.sx_add_ref), referrer) { onPick("ref") }
                 Line()
                 MenuRow(Icons.Bill, stringResource(R.string.sx_details), null) { onPick("extras") }

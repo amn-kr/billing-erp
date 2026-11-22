@@ -48,6 +48,9 @@ sealed interface Route {
     // 8.6a: Sale Bills and a bill's page
     data object SaleBills : Route
     data class Bill(val id: String, val number: String) : Route
+    // 8.6c: Quotations; [pick] opens Choose Type first; [after] = "share" / "print" once it opens
+    data class Quotes(val pick: Boolean = false) : Route
+    data class Quote(val id: String, val number: String, val after: String = "") : Route
 }
 
 /** Home's lists; null when the server refused one (no permission) or it hasn't come yet. */
@@ -139,8 +142,15 @@ class AppModel(private val api: Api, private val store: Store, private val finge
     /** Try Again on Sale: the bill being edited, or a fresh one */
     fun saleRetry(features: List<String>) { sale.again(viewModelScope, features) }
 
-    /** a bill saved with Save & New: an empty one in its place */
-    fun saleAgain(features: List<String>) { sale.start(viewModelScope, features) }
+    /** a bill saved with Save & New: an empty one in its place (a quotation: another quotation) */
+    fun saleAgain(features: List<String>) { sale.start(viewModelScope, features, quote = sale.draft?.quote == true) }
+
+    /** New Quotation, item-wise (8.6c): the Sale screen as a quotation */
+    fun newQuote(features: List<String>) { sale.start(viewModelScope, features, quote = true); open(Route.Sale) }
+    /** Copy As New Quotation */
+    fun copyQuote(features: List<String>, id: String) { sale.copyQuote(viewModelScope, features, id); open(Route.Sale) }
+    /** Convert To Bill (item-wise) */
+    fun quoteToBill(features: List<String>, id: String) { sale.fromQuote(viewModelScope, features, id); open(Route.Sale) }
 
     /** a party just added from Choose Customer goes on the bill */
     fun saleParty(features: List<String>, id: String) { sale.addParty(viewModelScope, features, id) }

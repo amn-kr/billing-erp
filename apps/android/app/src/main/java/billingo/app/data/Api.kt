@@ -165,7 +165,7 @@ class Api(private val base: String, private val store: Store, private val client
     suspend fun prices(): Prices = send("GET", "/prices", null, Prices.serializer())
     suspend fun settings(): ShopSettings = send("GET", "/settings", null, ShopSettings.serializer())
     suspend fun shop(): Shop = send("GET", "/businesses/current", null, Shop.serializer())
-    suspend fun nextSaleNumber(date: String): NextNumber = send("GET", "/sales/next-number?kind=invoice&date=$date", null, NextNumber.serializer())
+    suspend fun nextSaleNumber(date: String, kind: String = "invoice"): NextNumber = send("GET", "/sales/next-number?kind=$kind&date=$date", null, NextNumber.serializer())
     /** Save a bill. [key] stays the same for the same bill, so sending it twice (weak internet) makes one bill. */
     suspend fun saveSale(body: JsonObject, key: String): SaleSaved = send("POST", "/sales", body, SaleSaved.serializer(), key = key)
     /** Edit Bill (8.6b): the saved bill changed; it keeps its number. The passcode goes along when the shop asks for it. */

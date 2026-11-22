@@ -756,4 +756,30 @@
     <string name="eb_pass_t">Save Changes To %1$s?</string>
     <string name="eb_pass_text">Enter the transaction passcode to change this bill.</string>
     <string name="eb_missing">Not in your items any more: %1$s. Change this bill on the computer.</string>
+
+    <!-- 8.6c: Quotations -->
+    <string name="qt_open">Open</string>
+    <string name="qt_converted">Converted</string>
+    <string name="qt_new">New Quotation</string>
+    <string name="qt_brand">Brand-Wise</string>
+    <string name="qt_brand_sub">Same items, a total for each brand. The customer picks one.</string>
+    <string name="qt_items">Item-Wise</string>
+    <string name="qt_items_sub">A normal list of items and rates, like a bill.</string>
+    <string name="qt_sum_open">Open Quotations</string>
+    <string name="qt_sum_conv">Turned Into Bills</string>
+    <string name="qt_view_total">Quotation Total</string>
+    <string name="qt_lowest">Lowest Brand Total</string>
+    <string name="qt_turned">Turned into bill %1$s. Tap to open it.</string>
+    <string name="qt_convert">Convert To Bill</string>
+    <string name="qt_edit">Edit Quotation</string>
+    <string name="qt_copy">Copy As New Quotation</string>
+    <string name="qt_cancel">Cancel Quotation</string>
+    <string name="qt_cancel_text">It leaves the open list and stays in the books marked Cancelled.</string>
+    <string name="qt_brand_later">Brand-wise quotations open on the phone in the next update. They work on the computer today.</string>
+    <string name="qt_no">Quotation No.</string>
+    <string name="qt_total">Quotation Total (With GST)</string>
+    <string name="qt_discard_q">Discard This Quotation?</string>
+    <string name="qt_saved_new">%1$s saved. New quotation started.</string>
+    <string name="qt_saved">%1$s saved.</string>
+    <string name="qt_from">%1$d items from %2$s. Check and save the bill.</string>
 </resources>

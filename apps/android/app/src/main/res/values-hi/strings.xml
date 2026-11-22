@@ -756,4 +756,30 @@
     <string name="eb_pass_t">%1$s के बदलाव सेव करें?</string>
     <string name="eb_pass_text">बिल बदलने के लिए लेन-देन का पासकोड डालें।</string>
     <string name="eb_missing">ये अब आपके आइटम में नहीं हैं: %1$s। यह बिल कंप्यूटर पर बदलें।</string>
+
+    <!-- 8.6c: Quotations -->
+    <string name="qt_open">खुली</string>
+    <string name="qt_converted">बिल बनी</string>
+    <string name="qt_new">नई Quotation</string>
+    <string name="qt_brand">ब्रांड के हिसाब से</string>
+    <string name="qt_brand_sub">वही आइटम, हर ब्रांड का अलग जोड़। ग्राहक एक चुनता है।</string>
+    <string name="qt_items">आइटम के हिसाब से</string>
+    <string name="qt_items_sub">आइटम और रेट की सीधी सूची, बिल जैसी।</string>
+    <string name="qt_sum_open">खुली Quotation</string>
+    <string name="qt_sum_conv">बिल बनीं</string>
+    <string name="qt_view_total">Quotation का जोड़</string>
+    <string name="qt_lowest">सबसे कम ब्रांड का जोड़</string>
+    <string name="qt_turned">बिल %1$s बन चुका है। खोलने के लिए दबाएँ।</string>
+    <string name="qt_convert">बिल बनाएँ</string>
+    <string name="qt_edit">Quotation बदलें</string>
+    <string name="qt_copy">नई Quotation में कॉपी करें</string>
+    <string name="qt_cancel">Quotation रद्द करें</string>
+    <string name="qt_cancel_text">यह खुली सूची से हटेगी और किताबों में \"रद्द\" लिखी रहेगी।</string>
+    <string name="qt_brand_later">ब्रांड के हिसाब से Quotation फ़ोन पर अगले अपडेट में खुलेंगी। कंप्यूटर पर ये अभी चलती हैं।</string>
+    <string name="qt_no">Quotation नं.</string>
+    <string name="qt_total">Quotation का जोड़ (GST सहित)</string>
+    <string name="qt_discard_q">यह Quotation छोड़ें?</string>
+    <string name="qt_saved_new">%1$s सेव हुई। नई Quotation शुरू।</string>
+    <string name="qt_saved">%1$s सेव हुई।</string>
+    <string name="qt_from">%2$s से %1$d आइटम आए। देखकर बिल सेव करें।</string>
 </resources>

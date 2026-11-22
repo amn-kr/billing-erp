@@ -47,6 +47,8 @@ import billingo.app.ui.parties.StatementScreen
 import billingo.app.ui.blocks.BlocksScreen
 import billingo.app.ui.home.CreateNewSheet
 import billingo.app.ui.docs.BillScreen
+import billingo.app.ui.docs.QuoteScreen
+import billingo.app.ui.docs.QuotesScreen
 import billingo.app.ui.docs.SaleBillsScreen
 import billingo.app.ui.items.AdjustScreen
 import billingo.app.ui.items.AdjustmentsScreen
@@ -205,7 +207,15 @@ class MainActivity : AppCompatActivity() {
                                     is Route.Statement -> StatementScreen(m.server, top.id, top.name, { m.back() }, later)
                                     Route.Sale -> SaleScreen(
                                         m.sale, { m.back() }, { m.open(Route.SaleCustomer) }, { k, item -> m.open(Route.SaleLine(k, item)) },
-                                        onSaved = { m.replace(Route.SaleSaved); m.loadHome(); m.docsChanged() },
+                                        onSaved = {
+                                            val q = m.sale.saved
+                                            // a quotation opens its own page once saved (design 7.4e); a bill shows Bill Saved
+                                            if (q != null && q.second.quote) {
+                                                if (q.second.edit != null) m.back() else m.replace(Route.Quote(q.first.id, q.first.number, m.sale.after))
+                                                android.widget.Toast.makeText(this@MainActivity, getString(R.string.qt_saved, q.first.number), android.widget.Toast.LENGTH_SHORT).show()
+                                            } else m.replace(Route.SaleSaved)
+                                            m.loadHome(); m.docsChanged()
+                                        },
                                         onNew = { m.saleAgain(features); m.loadHome() },
                                         onTryAgain = { m.saleRetry(features) },
                                         onLater = later,
@@ -218,6 +228,20 @@ class MainActivity : AppCompatActivity() {
                                         onParty = { id, name -> m.open(Route.Party(id, name)) },
                                         onChanged = { m.loadHome(); m.docsChanged() },
                                         onEdit = { m.sale.missingWords = { getString(R.string.eb_missing, it.joinToString(", ")) }; m.editSale(features, top.id) },
+                                        onLater = later,
+                                    )
+                                    is Route.Quotes -> QuotesScreen(
+                                        m.server, top.pick, { m.back() }, { q -> m.open(Route.Quote(q.id, q.number)) },
+                                        onItems = { m.newQuote(features) }, onBrand = later,
+                                    )
+                                    is Route.Quote -> QuoteScreen(
+                                        m.server, top.id, top.number, top.after, features, s.me.business?.itemOptions, m.docsVersion, { m.back() },
+                                        onParty = { id, name -> m.open(Route.Party(id, name)) },
+                                        onBill = { id, no -> m.open(Route.Bill(id, no)) },
+                                        onEdit = { m.sale.missingWords = { getString(R.string.eb_missing, it.joinToString(", ")) }; m.editSale(features, top.id) },
+                                        onCopy = { m.sale.missingWords = { getString(R.string.eb_missing, it.joinToString(", ")) }; m.copyQuote(features, top.id) },
+                                        onConvert = { m.quoteToBill(features, top.id) },
+                                        onChanged = { m.loadHome(); m.docsChanged() },
                                         onLater = later,
                                     )
                                     Route.SaleSaved -> SavedScreen(m.sale, features, s.me.business?.itemOptions, onNew = { m.saleAgain(features); m.replace(Route.Sale) }, onDone = { m.back() })
@@ -255,6 +279,7 @@ class MainActivity : AppCompatActivity() {
                                     onItems = { menuOpen = false; m.open(Route.Items) },
                                     onStockLine = { n -> menuOpen = false; m.open(when (n) { 1 -> Route.Prices; 2 -> Route.Adjustments; else -> Route.Godowns }) },
                                     onSaleBills = { menuOpen = false; m.open(Route.SaleBills) },
+                                    onQuotes = { menuOpen = false; m.open(Route.Quotes()) },
                                     onGst = gst,
                                     onSignOut = { menuOpen = false; signOutOpen = true },
                                     onCheckUpdate = { m.checkUpdate(BuildConfig.VERSION_NAME) },
@@ -267,7 +292,7 @@ class MainActivity : AppCompatActivity() {
                             if (createOpen) {
                                 BackHandler { createOpen = false }
                                 // Sale Bill (1st), New Party (10th) and New Item (11th) open; the others come in later steps
-                                CreateNewSheet({ createOpen = false }) { i -> createOpen = false; when (i) { 0 -> m.newSale(features); 9 -> m.open(Route.PartyForm(null)); 10 -> m.open(Route.ItemForm(null)); else -> later() } }
+                                CreateNewSheet({ createOpen = false }) { i -> createOpen = false; when (i) { 0 -> m.newSale(features); 1 -> m.open(Route.Quotes(pick = true)); 9 -> m.open(Route.PartyForm(null)); 10 -> m.open(Route.ItemForm(null)); else -> later() } }
                             }
                             if (signOutOpen) {
                                 BackHandler { signOutOpen = false }

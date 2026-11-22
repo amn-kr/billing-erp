@@ -166,6 +166,10 @@ object SaleMaths {
         val edit: Edit? = null,
         /** 8.6b: rules set on the saved bill for some categories only (the web's commByCategory) */
         val catRules: Map<String, Rule> = emptyMap(),
+        /** 8.6c: an item-wise quotation (same screen, no payments, valid for 15 days) */
+        val quote: Boolean = false,
+        /** 8.6c: the terms when not the usual ones ("As per quotation QT-0033.") */
+        val notes: String? = null,
     )
 
     fun party(c: Ctx, d: Draft): PartyFull? = d.partyId?.let { id -> c.parties.firstOrNull { it.id == id } }
@@ -284,10 +288,16 @@ object SaleMaths {
         val p = party(c, d)
         val e = d.edit
         // a saved bill keeps its due date while its customer and date are the same
-        val due = if (d.cash) d.date else if (e?.dueDate != null && e.partyId == p?.id && e.dueDate >= d.date) e.dueDate else addDays(d.date, p?.creditDays ?: 0)
+        val due = when {
+            // a quotation's date is the day it is valid till (15 days, as on the web)
+            d.quote -> if (e?.dueDate != null && e.dueDate >= d.date) e.dueDate else addDays(d.date, 15)
+            d.cash -> d.date
+            e?.dueDate != null && e.partyId == p?.id && e.dueDate >= d.date -> e.dueDate
+            else -> addDays(d.date, p?.creditDays ?: 0)
+        }
         return buildJsonObject {
             // a saved bill is sent without a number: the server keeps its own (it can never change)
-            put("kind", "invoice"); put("number", ""); put("date", d.date); put("dueDate", due)
+            put("kind", if (d.quote) "quotation" else "invoice"); put("number", ""); put("date", d.date); put("dueDate", due)
             put("mode", if (d.cash) "cash" else "credit"); put("partyId", p?.id?.let(::JsonPrimitive) ?: JsonNull)
             put("cashName", if (d.cash) e?.cashName.orEmpty() else ""); put("cashPhone", if (d.cash) e?.cashPhone.orEmpty() else ""); put("billName", e?.billName.orEmpty()); put("placeOfSupply", pos(c, d))
             put("pricesInclTax", e?.incl ?: true); put("roundOff", d.roundOff)
@@ -304,14 +314,15 @@ object SaleMaths {
                     if (allocs.isNotEmpty()) put("batches", JsonArray(allocs.map { (b, q) -> buildJsonObject { put("batchId", b?.let(::JsonPrimitive) ?: JsonNull); put("qty", plain(q)) } }))
                 }
             }))
-            put("payments", JsonArray(payments(d, t.total).filter { num(it.amount).signum() > 0 }.map { x ->
+            put("payments", JsonArray(if (d.quote) emptyList() else payments(d, t.total).filter { num(it.amount).signum() > 0 }.map { x ->
                 buildJsonObject { put("mode", x.mode); put("amount", plain(num(x.amount))); put("ref", x.ref); put("accountId", x.acct?.let(::JsonPrimitive) ?: JsonNull) }
             }))
-            put("notes", e?.notes ?: NOTES)
+            put("notes", e?.notes ?: d.notes ?: if (d.quote) EST else NOTES)
             put("extra", buildJsonObject {
                 // a saved bill's other details (challan no., PO, e-way bill, attachments …) go back as they were
                 e?.extra?.forEach { (k, v) -> put(k, v) }
                 put("transport", d.transport.trim()); put("vehicle", d.vehicle.trim()); put("description", d.description.trim())
+                if (d.quote) put("validTill", due)
                 put("quoteRefs", JsonArray(d.quotes.map { q -> buildJsonObject { put("no", q.no); put("date", q.date); put("cust", q.cust); put("brand", "Item-wise") } }))
                 // a rule set for this bill: for every category on it (the web keeps it per category)
                 put("commByCategory", buildJsonObject {
@@ -454,7 +465,8 @@ object SaleMaths {
                 alloc = dl.batches.map { it.batchId to num(it.qty) }, commOv = dl.commOverride?.takeIf { it !is JsonNull },
             )
         }
-        val splits = v.payment?.splits.orEmpty().filter { num(it.amount).signum() > 0 }
+        val quote = v.kind == "quotation"
+        val splits = if (quote) emptyList() else v.payment?.splits.orEmpty().filter { num(it.amount).signum() > 0 }
         val pays = if (splits.isEmpty()) listOf(Pay()) else splits.map { Pay(it.mode, plain(num(it.amount)), it.ref, it.accountId) }
         val rest = JsonObject(x.filterKeys { it !in setOf("transport", "vehicle", "description", "quoteRefs", "commByCategory") })
         val quotes = (x["quoteRefs"] as? JsonArray).orEmpty().mapNotNull { r ->
@@ -469,7 +481,7 @@ object SaleMaths {
             chTr = num(v.transport).takeIf { it.signum() != 0 }?.let(::plain).orEmpty(),
             chLab = num(v.labour).takeIf { it.signum() != 0 }?.let(::plain).orEmpty(),
             chBank = num(v.bankCharge).takeIf { it.signum() != 0 }?.let(::plain).orEmpty(),
-            roundOff = v.roundOff, chgOk = true, pays = pays, payTouched = true,
+            roundOff = v.roundOff, chgOk = true, pays = pays, payTouched = !quote, quote = quote,
             referrerId = ref, catRules = cats, quotes = quotes,
             transport = str("transport"), vehicle = str("vehicle"), description = str("description"),
             edit = Edit(
@@ -478,6 +490,36 @@ object SaleMaths {
             ),
         )
         return draft to emptyList()
+    }
+
+    /**
+     * Copy As New Quotation (design 7.4e): the saved quotation's items, customer and charges in a new
+     * one, dated today, with the next number; nothing of the old one is changed.
+     */
+    fun copyOf(c: Ctx, v: SaleDoc, today: String): Pair<Draft?, List<String>> {
+        val (d, missing) = fromSaved(c, v)
+        if (d == null) return null to missing
+        return d.copy(
+            key = UUID.randomUUID().toString(), number = "", date = today, edit = null, quotes = emptyList(),
+            notes = v.notes.takeIf { it.isNotBlank() }, lines = d.lines.map { it.copy(alloc = emptyList()) },
+        ) to emptyList()
+    }
+
+    /**
+     * Convert To Bill for an item-wise quotation (the web's convertItems): a new bill with its items
+     * at the quoted rates, its customer and referral (withQuote), its discount, charges and details,
+     * and "As per quotation QT-0033." as the terms. Saving the bill marks the quotation converted.
+     */
+    fun billFromQuote(c: Ctx, q: SaleDoc, today: String): Pair<Draft, Int> {
+        val (d, n) = withQuote(c, Draft(date = today), q)
+        val x = q.extra ?: JsonObject(emptyMap())
+        fun str(k: String) = (x[k] as? JsonPrimitive)?.contentOrNull.orEmpty()
+        fun amt(v: String) = num(v).takeIf { it.signum() != 0 }?.let(::plain).orEmpty()
+        return d.copy(
+            bdisc = amt(q.billDiscount), chTr = amt(q.transport), chLab = amt(q.labour), chBank = amt(q.bankCharge),
+            transport = str("transport"), vehicle = str("vehicle"), description = str("description"),
+            notes = "As per quotation ${q.number}.",
+        ) to n
     }
 
     /** While a saved bill is changed, the stock it took counts as back in its batches (web batchWas). */
@@ -507,6 +549,9 @@ object SaleMaths {
 
     /** The bill's terms, the same words the web starts a bill with (state.ts SI_TT.sale). */
     const val NOTES = "Thank you for your business.\nGoods once sold will not be taken back or exchanged.\nSubject to Lucknow jurisdiction."
+
+    /** A quotation's terms, as the web starts one (state.ts SI_TT.est). */
+    const val EST = "This is not a tax invoice.\nThis estimate is valid for 15 days."
 
     /** The server's "Save anyway" questions, by their code. */
     val ASK_AGAIN = setOf("over_credit_limit", "expired_batch", "above_mrp")

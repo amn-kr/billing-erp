@@ -65,6 +65,31 @@ object DocMaths {
         return sales to dues
     }
 
+    /* ───────── quotations (8.6c) ───────── */
+
+    enum class QState { Open, Converted, Cancelled }
+
+    fun qState(cancelled: Boolean, status: String): QState = when { cancelled -> QState.Cancelled; status == "converted" -> QState.Converted; else -> QState.Open }
+    fun qState(q: billingo.app.data.QuoteRow): QState = qState(q.cancelled, q.status)
+
+    /** Quotations' status choice (design KD.qt): All, Open, Converted, Cancelled. */
+    fun qMatches(q: billingo.app.data.QuoteRow, f: Int, query: String, counter: String): Boolean {
+        val st = qState(q)
+        val ok = when (f) { 1 -> st == QState.Open; 2 -> st == QState.Converted; 3 -> st == QState.Cancelled; else -> true }
+        if (!ok) return false
+        val t = query.trim().lowercase()
+        val name = q.party?.name?.takeIf { it.isNotBlank() } ?: q.partyName.ifBlank { counter }
+        return t.isEmpty() || (q.number + " " + name).lowercase().contains(t)
+    }
+
+    /** The two boxes: Open Quotations and Turned Into Bills (counts). */
+    fun qSummary(rows: List<billingo.app.data.QuoteRow>): Pair<Int, Int> =
+        rows.count { qState(it) == QState.Open } to rows.count { qState(it) == QState.Converted }
+
+    /** The bill a quotation turned into (its number is kept with the quotation). */
+    fun invoiceOf(d: SaleDoc): String = ((d.extra?.get("invoiceNo")) as? kotlinx.serialization.json.JsonPrimitive)?.content.orEmpty()
+    fun isBrandWise(d: SaleDoc): Boolean = ((d.extra?.get("type")) as? kotlinx.serialization.json.JsonPrimitive)?.content == "brand"
+
     /** A bill's charges (transport, labour, bank commission) as one figure, as the design shows them. */
     fun charges(d: SaleDoc): BigDecimal = num(d.transport) + num(d.labour) + num(d.bankCharge)
 
