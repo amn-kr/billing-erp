@@ -205,18 +205,19 @@ class MainActivity : AppCompatActivity() {
                                     is Route.Statement -> StatementScreen(m.server, top.id, top.name, { m.back() }, later)
                                     Route.Sale -> SaleScreen(
                                         m.sale, { m.back() }, { m.open(Route.SaleCustomer) }, { k, item -> m.open(Route.SaleLine(k, item)) },
-                                        onSaved = { m.replace(Route.SaleSaved); m.loadHome() },
+                                        onSaved = { m.replace(Route.SaleSaved); m.loadHome(); m.docsChanged() },
                                         onNew = { m.saleAgain(features); m.loadHome() },
-                                        onTryAgain = { m.saleAgain(features) },
+                                        onTryAgain = { m.saleRetry(features) },
                                         onLater = later,
                                     )
                                     Route.SaleCustomer -> CustomerScreen(m.sale, { m.back() }) { m.open(Route.PartyForm(null, forSale = true)) }
                                     is Route.SaleLine -> SaleLineScreen(m.sale, top.index, top.itemId) { m.back() }
                                     Route.SaleBills -> SaleBillsScreen(m.server, { m.back() }, { b -> m.open(Route.Bill(b.id, b.number)) }) { m.newSale(features) }
                                     is Route.Bill -> BillScreen(
-                                        m.server, top.id, top.number, features, s.me.business?.itemOptions, { m.back() },
+                                        m.server, top.id, top.number, features, s.me.business?.itemOptions, m.docsVersion, { m.back() },
                                         onParty = { id, name -> m.open(Route.Party(id, name)) },
-                                        onChanged = { m.loadHome() },
+                                        onChanged = { m.loadHome(); m.docsChanged() },
+                                        onEdit = { m.sale.missingWords = { getString(R.string.eb_missing, it.joinToString(", ")) }; m.editSale(features, top.id) },
                                         onLater = later,
                                     )
                                     Route.SaleSaved -> SavedScreen(m.sale, features, s.me.business?.itemOptions, onNew = { m.saleAgain(features); m.replace(Route.Sale) }, onDone = { m.back() })

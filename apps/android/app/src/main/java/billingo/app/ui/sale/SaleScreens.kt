@@ -183,7 +183,7 @@ fun SaleScreen(
     // closing a bill with items asks first, so it isn't lost by a stray tap (as on the web)
     val close = { if (d != null && d.lines.isNotEmpty()) discard = true else onClose() }
 
-    fun doSave(after: String) {
+    fun doSave(after: String, passcode: String? = null) {
         if (c == null) return
         val dd = s.draft ?: return
         when (SaleMaths.problem(dd)) {
@@ -195,10 +195,10 @@ fun SaleScreen(
         if (!dd.chgOk) { pending = after; sheet = "chg"; return }
         pending = after
         scope.launch {
-            val e = s.save()
+            val e = s.save(passcode)
             when {
                 e != null -> say(ctx, if (e.status == 0) ctx.getString(R.string.no_internet) else e.message)
-                s.ask != null -> {}
+                s.ask != null || s.pass != null -> {}
                 else -> {
                     val no = s.saved?.first?.number.orEmpty()
                     if (after == "new") { say(ctx, ctx.getString(R.string.sl_saved_new, no)); onNew() } else {
@@ -216,10 +216,11 @@ fun SaleScreen(
         Column(Modifier.fillMaxSize().background(Colours.Page)) {
             Box(Modifier.background(Colours.Card).statusBarsPadding()) {
                 Header(
-                    stringResource(R.string.sl_title), null,
+                    // Edit Bill (8.6b): the same screen, titled so, without Credit / Cash (design 7.4e)
+                    stringResource(if (d?.edit != null) R.string.dv_edit else R.string.sl_title), null,
                     left = { IconBtn(Icons.Close, stringResource(R.string.close), close) },
                 ) {
-                    if (d != null) Capsule(d.cash) { v -> s.change { x -> if (v) SaleMaths.withParty(c ?: return@change x, x.copy(cash = true), null) else x.copy(cash = false) } }
+                    if (d != null && d.edit == null) Capsule(d.cash) { v -> s.change { x -> if (v) SaleMaths.withParty(c ?: return@change x, x.copy(cash = true), null) else x.copy(cash = false) } }
                     IconBtn(Icons.Dots, stringResource(R.string.sl_more), { if (c != null && d != null) sheet = "menu" })
                 }
             }
@@ -263,7 +264,7 @@ fun SaleScreen(
             }
             Box(Modifier.fillMaxWidth().height(1.dp).background(Colours.Border))
             LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                item { CustomerField(party, d.cash, onCustomer) }
+                item { CustomerField(party, party?.let { SaleMaths.before(d, it) } ?: BigDecimal.ZERO, d.cash, onCustomer) }
                 item {
                     SaleTags(d, c, { sheet = "ref" }) { id ->
                         s.change { x -> x.copy(quotes = x.quotes.filter { it.id != id }) }
@@ -333,8 +334,19 @@ fun SaleScreen(
         if (discard) {
             BackHandler { discard = false }
             Dim({ discard = false }, centre = true) {
-                ConfirmBox(stringResource(R.string.sl_discard_q), stringResource(R.string.sl_discard_t), stringResource(R.string.keep), stringResource(R.string.sl_discard), { discard = false }, { discard = false; onClose() })
+                // a saved bill stays as it was: leaving only drops the changes
+                if (d.edit != null) ConfirmBox(stringResource(R.string.eb_leave_q), stringResource(R.string.eb_leave_t, d.edit.number), stringResource(R.string.keep), stringResource(R.string.eb_leave), { discard = false }, { discard = false; onClose() })
+                else ConfirmBox(stringResource(R.string.sl_discard_q), stringResource(R.string.sl_discard_t), stringResource(R.string.keep), stringResource(R.string.sl_discard), { discard = false }, { discard = false; onClose() })
             }
+        }
+        // Edit Bill with the transaction passcode on (Settings › Transactions): asked after editing, every time
+        val pass = s.pass
+        if (pass != null) {
+            BackHandler { s.pass = null }
+            billingo.app.ui.docs.PasscodeSheet(
+                stringResource(R.string.eb_pass_t, d.edit?.number.orEmpty()), stringResource(R.string.eb_pass_text), pass.ifBlank { null }, s.passTries, s.busy,
+                { s.pass = null; pending = "" },
+            ) { code -> doSave(pending.ifBlank { "save" }, code) }
         }
         when (sheet) {
             "chg" -> ChargesSheet(s, c, pending.isNotEmpty(), { sheet = ""; pending = "" }) {
@@ -373,7 +385,7 @@ fun SaleScreen(
 
 /** The customer on the bill (.pfield): their name and dues, or Choose Customer (required on credit). */
 @Composable
-private fun CustomerField(p: PartyFull?, cash: Boolean, onTap: () -> Unit) {
+private fun CustomerField(p: PartyFull?, b: BigDecimal, cash: Boolean, onTap: () -> Unit) {
     val shape = RoundedCornerShape(Size.RadiusSmall)
     Row(
         Modifier.fillMaxWidth().heightIn(min = Size.Tap).background(Colours.Card, shape).border(1.dp, Colours.Border, shape)
@@ -384,7 +396,6 @@ private fun CustomerField(p: PartyFull?, cash: Boolean, onTap: () -> Unit) {
         Icon(Icons.User, contentDescription = null, tint = Colours.Text3, modifier = Modifier.size(18.dp))
         if (p != null) {
             T(p.name, Modifier.weight(1f), oneLine = true)
-            val b = p.balance
             T(
                 when { b.signum() > 0 -> stringResource(R.string.sl_dues, m2(b)); b.signum() < 0 -> stringResource(R.string.sl_advance, m2(b.negate())); else -> stringResource(R.string.sl_no_dues) },
                 size = 12.sp, weight = FontWeight.SemiBold, colour = Colours.Text2, numbers = true,
@@ -491,7 +502,7 @@ private fun ChargesSheet(s: SaleSession, c: SaleMaths.Ctx, saving: Boolean, onCl
                     }
                     if (!d.cash && p != null) {
                         val limit = p.creditLimit?.toBigDecimalOrNull() ?: BigDecimal.ZERO
-                        val after = p.balance + SaleMaths.dues(d, t.total)
+                        val after = SaleMaths.before(d, p) + SaleMaths.dues(d, t.total)
                         if (limit.signum() > 0 && after > limit) {
                             Row(Modifier.fillMaxWidth().background(Colours.LightRed, RoundedCornerShape(Size.RadiusSmall)).padding(horizontal = 12.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Icon(Icons.Clock, contentDescription = null, tint = Colours.Red, modifier = Modifier.size(18.dp))
@@ -562,15 +573,16 @@ private fun PaySheet(s: SaleSession, c: SaleMaths.Ctx, onClose: () -> Unit) {
                         val dues = SaleMaths.dues(d, t.total)
                         TL(stringResource(R.string.sl_bill_dues), "₹" + inr(dues), if (dues.signum() > 0) Colours.Red else Colours.Text)
                         if (!d.cash && p != null) {
-                            TL(stringResource(R.string.sl_prev_dues), "₹" + inr(p.balance), if (p.balance.signum() > 0) Colours.Red else Colours.Text)
-                            val total = p.balance + t.total - rec
+                            val prev = SaleMaths.before(d, p)
+                            TL(stringResource(R.string.sl_prev_dues), "₹" + inr(prev), if (prev.signum() > 0) Colours.Red else Colours.Text)
+                            val total = prev + t.total - rec
                             TL(stringResource(R.string.sl_total_dues), (if (total.signum() < 0) "−" else "") + "₹" + inr(total.abs()), if (total.signum() > 0) Colours.Red else Colours.Green, big = true)
                         }
                     }
                     val extra = rec - t.total
                     if (extra.signum() > 0 && !d.cash) {
                         Box(Modifier.fillMaxWidth().background(Colours.LightGreen, RoundedCornerShape(Size.RadiusSmall)).padding(horizontal = 12.dp, vertical = 10.dp)) {
-                            T(stringResource(if (p != null && p.balance.signum() > 0) R.string.sl_clears_old else R.string.sl_advance_note, inr(extra)), size = 13.sp, colour = Colours.Green)
+                            T(stringResource(if (p != null && SaleMaths.before(d, p).signum() > 0) R.string.sl_clears_old else R.string.sl_advance_note, inr(extra)), size = 13.sp, colour = Colours.Green)
                         }
                     }
                     Btn(stringResource(R.string.pm_done), onClose, Modifier.fillMaxWidth(), Kind.Blue)
@@ -933,7 +945,7 @@ fun SavedScreen(s: SaleSession, features: List<String>, itemOptions: JsonObject?
                 TL(stringResource(R.string.sl_bill_dues), "₹" + inr(due), if (due.signum() > 0) Colours.Red else Colours.Text)
                 if (!d.cash && party != null) {
                     // what the customer owes now: before + this bill − everything received
-                    val now = party.balance + total - paid
+                    val now = SaleMaths.before(d, party) + total - paid
                     TL(stringResource(R.string.sl_total_dues), (if (now.signum() < 0) "−" else "") + "₹" + inr(now.abs()), if (now.signum() > 0) Colours.Red else Colours.Text)
                 }
             }

@@ -102,11 +102,35 @@ object SaleMaths {
         val batchId: String? = null,
         /** brought in from this quotation: its rate stays as quoted */
         val fromQ: String? = null,
+        /** 8.6b, a saved line: the batches it took stock from (kept while its stock quantity is the same) */
+        val alloc: List<Pair<String?, BigDecimal>> = emptyList(),
+        /** 8.6b, a saved line: its own commission rule from the web (sent back unchanged) */
+        val commOv: kotlinx.serialization.json.JsonElement? = null,
     )
 
     data class QuoteRef(val id: String, val no: String, val date: String, val cust: String)
 
-    data class Pay(val mode: String = "Cash", val amount: String = "", val ref: String = "")
+    data class Pay(val mode: String = "Cash", val amount: String = "", val ref: String = "", val acct: String? = null)
+
+    /**
+     * Edit Bill (8.6b): the saved bill and what the phone doesn't change on it, sent back as it was
+     * (the web's fillFrom 'edit'). The bill keeps its number; [bal] is what it still owed, so the
+     * customer's dues are counted without it while it is changed.
+     */
+    data class Edit(
+        val id: String,
+        val number: String,
+        val partyId: String?,
+        val dueDate: String?,
+        val cashName: String,
+        val cashPhone: String,
+        val billName: String,
+        val pos: String,
+        val incl: Boolean,
+        val notes: String,
+        val extra: JsonObject,
+        val bal: BigDecimal,
+    )
 
     data class Draft(
         /** one-time key: the same for every try of this bill, so it is saved once */
@@ -138,6 +162,10 @@ object SaleMaths {
         val transport: String = "",
         val vehicle: String = "",
         val description: String = "",
+        /** 8.6b: the saved bill being changed (null = a new bill) */
+        val edit: Edit? = null,
+        /** 8.6b: rules set on the saved bill for some categories only (the web's commByCategory) */
+        val catRules: Map<String, Rule> = emptyMap(),
     )
 
     fun party(c: Ctx, d: Draft): PartyFull? = d.partyId?.let { id -> c.parties.firstOrNull { it.id == id } }
@@ -202,8 +230,20 @@ object SaleMaths {
         return l.copy(disc = (p - v).divide(p, 20, RoundingMode.HALF_UP).movePointRight(2).setScale(8, RoundingMode.HALF_UP).stripTrailingZeros())
     }
 
+    /** The place of supply: a saved bill keeps its own while its customer is the same. */
+    fun pos(c: Ctx, d: Draft): String {
+        val e = d.edit
+        return if (e != null && e.pos.isNotBlank() && e.partyId == d.partyId && !d.cash == (e.partyId != null)) e.pos else partyState(c, party(c, d))
+    }
+
+    /** What the customer owed before this bill: a saved bill's own dues are taken out while it is changed (web editBal). */
+    fun before(d: Draft, p: PartyFull): BigDecimal {
+        val e = d.edit ?: return p.balance
+        return if (e.partyId == p.id) p.balance - e.bal else p.balance
+    }
+
     fun bill(c: Ctx, d: Draft): BillMaths.Bill = BillMaths.Bill(
-        mode = c.mode, incl = true, inter = partyState(c, party(c, d)) != c.state, roundOff = d.roundOff,
+        mode = c.mode, incl = d.edit?.incl ?: true, inter = pos(c, d) != c.state, roundOff = d.roundOff,
         lines = d.lines.map { BillMaths.Line(num(it.qty), it.price, it.disc, if (c.mode == BillMaths.Mode.Gst) it.gst else BigDecimal.ZERO) },
         bdiscP = d.bdiscP.takeIf { it.isNotBlank() && num(it).signum() != 0 }?.let(::num),
         bdisc = d.bdisc.takeIf { it.isNotBlank() }?.let(::num),
@@ -242,11 +282,15 @@ object SaleMaths {
     fun body(c: Ctx, d: Draft): JsonObject {
         val t = totals(c, d)
         val p = party(c, d)
+        val e = d.edit
+        // a saved bill keeps its due date while its customer and date are the same
+        val due = if (d.cash) d.date else if (e?.dueDate != null && e.partyId == p?.id && e.dueDate >= d.date) e.dueDate else addDays(d.date, p?.creditDays ?: 0)
         return buildJsonObject {
-            put("kind", "invoice"); put("number", ""); put("date", d.date); put("dueDate", if (d.cash) d.date else addDays(d.date, p?.creditDays ?: 0))
+            // a saved bill is sent without a number: the server keeps its own (it can never change)
+            put("kind", "invoice"); put("number", ""); put("date", d.date); put("dueDate", due)
             put("mode", if (d.cash) "cash" else "credit"); put("partyId", p?.id?.let(::JsonPrimitive) ?: JsonNull)
-            put("cashName", ""); put("cashPhone", ""); put("billName", ""); put("placeOfSupply", partyState(c, p))
-            put("pricesInclTax", true); put("roundOff", d.roundOff)
+            put("cashName", if (d.cash) e?.cashName.orEmpty() else ""); put("cashPhone", if (d.cash) e?.cashPhone.orEmpty() else ""); put("billName", e?.billName.orEmpty()); put("placeOfSupply", pos(c, d))
+            put("pricesInclTax", e?.incl ?: true); put("roundOff", d.roundOff)
             val bp = d.bdiscP.takeIf { it.isNotBlank() && num(it).signum() != 0 }
             put("billDiscPct", bp?.let { JsonPrimitive(plain(num(it))) } ?: JsonNull)
             put("billDiscAmt", if (bp == null && num(d.bdisc).signum() != 0) JsonPrimitive(plain(num(d.bdisc))) else JsonNull)
@@ -255,15 +299,18 @@ object SaleMaths {
                 buildJsonObject {
                     put("itemId", l.itemId); put("name", l.name); put("hsn", l.hsn); put("qty", plain(num(l.qty))); put("unit", l.unit)
                     put("price", plain(l.price)); put("discPct", plain(l.disc)); put("gstRate", plain(if (c.mode == BillMaths.Mode.Gst) l.gst else BigDecimal.ZERO))
-                    put("basePrice", l.bp?.let { JsonPrimitive(plain(it)) } ?: JsonNull); put("commOverride", JsonNull)
-                    if (l.batchId != null) put("batches", JsonArray(listOf(buildJsonObject { put("batchId", l.batchId); put("qty", plain(stockQty(c, l))) })))
+                    put("basePrice", l.bp?.let { JsonPrimitive(plain(it)) } ?: JsonNull); put("commOverride", l.commOv ?: JsonNull)
+                    val allocs = allocOf(c, l)
+                    if (allocs.isNotEmpty()) put("batches", JsonArray(allocs.map { (b, q) -> buildJsonObject { put("batchId", b?.let(::JsonPrimitive) ?: JsonNull); put("qty", plain(q)) } }))
                 }
             }))
             put("payments", JsonArray(payments(d, t.total).filter { num(it.amount).signum() > 0 }.map { x ->
-                buildJsonObject { put("mode", x.mode); put("amount", plain(num(x.amount))); put("ref", x.ref); put("accountId", JsonNull) }
+                buildJsonObject { put("mode", x.mode); put("amount", plain(num(x.amount))); put("ref", x.ref); put("accountId", x.acct?.let(::JsonPrimitive) ?: JsonNull) }
             }))
-            put("notes", NOTES)
+            put("notes", e?.notes ?: NOTES)
             put("extra", buildJsonObject {
+                // a saved bill's other details (challan no., PO, e-way bill, attachments …) go back as they were
+                e?.extra?.forEach { (k, v) -> put(k, v) }
                 put("transport", d.transport.trim()); put("vehicle", d.vehicle.trim()); put("description", d.description.trim())
                 put("quoteRefs", JsonArray(d.quotes.map { q -> buildJsonObject { put("no", q.no); put("date", q.date); put("cust", q.cust); put("brand", "Item-wise") } }))
                 // a rule set for this bill: for every category on it (the web keeps it per category)
@@ -271,11 +318,11 @@ object SaleMaths {
                     val r = d.billRule
                     if (d.referrerId != null && r != null) d.lines.map { it.category }.distinct().forEach { cat ->
                         put(cat, buildJsonObject { put("t", r.t.toString()); put("v", plain(r.v)) })
-                    }
+                    } else if (d.referrerId != null) d.catRules.forEach { (cat, x) -> put(cat, buildJsonObject { put("t", x.t.toString()); put("v", plain(x.v)) }) }
                 })
             })
             put("referrerId", d.referrerId?.let(::JsonPrimitive) ?: JsonNull)
-            put("fromQuotationIds", JsonArray(d.quotes.map { JsonPrimitive(it.id) })); put("fromChallanId", JsonNull)
+            put("fromQuotationIds", JsonArray(d.quotes.filter { it.id.isNotBlank() }.map { JsonPrimitive(it.id) })); put("fromChallanId", JsonNull)
             put("confirmOverLimit", "over_credit_limit" in d.confirmed)
             if ("expired_batch" in d.confirmed) put("confirmExpired", true)
             if ("above_mrp" in d.confirmed) put("confirmAboveMrp", true)
@@ -285,7 +332,7 @@ object SaleMaths {
     /* ───────── referral (8.5c), as the web's cmApply / lineCommission ───────── */
 
     /** The rule for a line: this bill's rule, else its category's saved rule. */
-    fun ruleFor(c: Ctx, d: Draft, l: Line): Rule = d.billRule ?: c.rules[l.category] ?: Rule.NONE
+    fun ruleFor(c: Ctx, d: Draft, l: Line): Rule = d.billRule ?: d.catRules[l.category] ?: c.rules[l.category] ?: Rule.NONE
 
     /**
      * Loads the referral commission on top of the rate, or takes it off: % of the sale price, or ₹ per
@@ -366,6 +413,88 @@ object SaleMaths {
             if (p != null) nd = withParty(c, nd.copy(cash = false), p)
         }
         return nd to lines.size
+    }
+
+    /**
+     * The batches a line is sent with: the one chosen by hand; else, on a saved bill, the batches it
+     * already took while its stock quantity is unchanged; else none (the server picks, earliest expiry first).
+     */
+    fun allocOf(c: Ctx, l: Line): List<Pair<String?, BigDecimal>> {
+        if (l.batchId != null) return listOf(l.batchId to stockQty(c, l))
+        if (l.alloc.isNotEmpty() && l.alloc.fold(BigDecimal.ZERO) { a, x -> a + x.second }.compareTo(stockQty(c, l)) == 0) return l.alloc
+        return emptyList()
+    }
+
+    /* ───────── Edit Bill (8.6b) ───────── */
+
+    /** A rule as the server keeps it ({"t": "p", "v": 5}). */
+    private fun ruleOf(o: kotlinx.serialization.json.JsonElement?): Rule? {
+        val j = o as? JsonObject ?: return null
+        val t = (j["t"] as? JsonPrimitive)?.contentOrNull?.firstOrNull() ?: return null
+        return Rule(t, (j["v"] as? JsonPrimitive)?.contentOrNull?.toBigDecimalOrNull() ?: BigDecimal.ZERO)
+    }
+
+    /** A saved bill as a draft (the web's fillFrom 'edit'), or the names of its items that are no longer in the shop's list. */
+    fun fromSaved(c: Ctx, v: SaleDoc): Pair<Draft?, List<String>> {
+        val missing = v.lines.filter { l -> l.itemId == null || item(c, l.itemId) == null }.map { it.name }
+        if (missing.isNotEmpty()) return null to missing
+        val pId = v.party?.id?.takeIf { id -> c.parties.any { it.id == id } }
+        val cash = v.mode == "cash" || v.party == null
+        val x = v.extra ?: JsonObject(emptyMap())
+        fun str(k: String) = (x[k] as? JsonPrimitive)?.contentOrNull.orEmpty()
+        val cats = (x["commByCategory"] as? JsonObject).orEmpty().mapNotNull { (k, r) -> ruleOf(r)?.let { k to it } }.toMap()
+        val ref = v.referrerId
+        val lines = v.lines.map { dl ->
+            val i = item(c, dl.itemId!!)!!
+            Line(
+                itemId = i.id, name = dl.name.ifBlank { i.name }, hsn = dl.hsn.ifBlank { i.hsn },
+                unit = dl.unit.ifBlank { i.unit }, qty = plain(num(dl.qty)), price = num(dl.price), disc = num(dl.discPct),
+                gst = if (c.mode == BillMaths.Mode.Gst) num(dl.gstRate) else BigDecimal.ZERO, category = i.category,
+                bp = if (ref != null) dl.basePrice?.toBigDecimalOrNull() else null,
+                alloc = dl.batches.map { it.batchId to num(it.qty) }, commOv = dl.commOverride?.takeIf { it !is JsonNull },
+            )
+        }
+        val splits = v.payment?.splits.orEmpty().filter { num(it.amount).signum() > 0 }
+        val pays = if (splits.isEmpty()) listOf(Pay()) else splits.map { Pay(it.mode, plain(num(it.amount)), it.ref, it.accountId) }
+        val rest = JsonObject(x.filterKeys { it !in setOf("transport", "vehicle", "description", "quoteRefs", "commByCategory") })
+        val quotes = (x["quoteRefs"] as? JsonArray).orEmpty().mapNotNull { r ->
+            val o = r as? JsonObject ?: return@mapNotNull null
+            fun f(k: String) = (o[k] as? JsonPrimitive)?.contentOrNull.orEmpty()
+            // already joined to this bill on the server: kept on the bill, nothing to convert again
+            f("no").takeIf { it.isNotBlank() }?.let { QuoteRef(id = "", no = it, date = f("date"), cust = f("cust")) }
+        }
+        val draft = Draft(
+            cash = cash, number = v.number, date = v.date, partyId = if (cash) null else pId, lines = lines,
+            bdisc = num(v.billDiscount).takeIf { it.signum() != 0 }?.let(::plain).orEmpty(),
+            chTr = num(v.transport).takeIf { it.signum() != 0 }?.let(::plain).orEmpty(),
+            chLab = num(v.labour).takeIf { it.signum() != 0 }?.let(::plain).orEmpty(),
+            chBank = num(v.bankCharge).takeIf { it.signum() != 0 }?.let(::plain).orEmpty(),
+            roundOff = v.roundOff, chgOk = true, pays = pays, payTouched = true,
+            referrerId = ref, catRules = cats, quotes = quotes,
+            transport = str("transport"), vehicle = str("vehicle"), description = str("description"),
+            edit = Edit(
+                id = v.id, number = v.number, partyId = if (cash) null else pId, dueDate = v.dueDate, cashName = v.cashName, cashPhone = v.cashPhone,
+                billName = v.billName, pos = v.placeOfSupply, incl = v.pricesInclTax, notes = v.notes, extra = rest, bal = num(v.balance),
+            ),
+        )
+        return draft to emptyList()
+    }
+
+    /** While a saved bill is changed, the stock it took counts as back in its batches (web batchWas). */
+    fun withSavedStock(c: Ctx, d: Draft): Ctx {
+        if (d.edit == null || d.lines.none { it.alloc.isNotEmpty() }) return c
+        val back = mutableMapOf<String, MutableMap<String?, BigDecimal>>()
+        for (l in d.lines) for ((b, q) in l.alloc) back.getOrPut(l.itemId) { mutableMapOf() }.merge(b, q, BigDecimal::add)
+        val batches = c.batches.toMutableMap()
+        for ((itemId, m) in back) {
+            val have = batches[itemId].orEmpty().toMutableList()
+            for ((b, q) in m) {
+                val k = have.indexOfFirst { it.id == b }
+                if (k >= 0) have[k] = have[k].copy(qty = plain((have[k].qty.toBigDecimalOrNull() ?: BigDecimal.ZERO) + q))
+            }
+            batches[itemId] = have
+        }
+        return c.copy(batches = batches)
     }
 
     /** "2026-11-21" + 15 → "2026-12-06" */

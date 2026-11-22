@@ -125,6 +125,20 @@ class AppModel(private val api: Api, private val store: Store, private val finge
         open(Route.Sale)
     }
 
+    /** Edit Bill (8.6b): the saved bill opens in Sale, keeping its number. */
+    fun editSale(features: List<String>, id: String) {
+        sale.edit(viewModelScope, features, id)
+        open(Route.Sale)
+    }
+
+    /** goes up whenever a bill is saved, so an open Bill View loads it again */
+    var docsVersion by mutableStateOf(0)
+        private set
+    fun docsChanged() { docsVersion++ }
+
+    /** Try Again on Sale: the bill being edited, or a fresh one */
+    fun saleRetry(features: List<String>) { sale.again(viewModelScope, features) }
+
     /** a bill saved with Save & New: an empty one in its place */
     fun saleAgain(features: List<String>) { sale.start(viewModelScope, features) }
 

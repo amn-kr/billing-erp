@@ -748,4 +748,12 @@
     <string name="dv_cancelled_adv">%1$s रद्द हुआ। मिले ₹%2$s एडवांस में रखे।</string>
     <string name="pc_cancel_text">रद्द करने के लिए लेन-देन का पासकोड डालें।</string>
     <string name="pc_ok">ठीक है</string>
+
+    <!-- 8.6b: Edit Bill -->
+    <string name="eb_leave_q">बिना सेव किए छोड़ें?</string>
+    <string name="eb_leave_t">%1$s में किए बदलाव सेव नहीं होंगे। बिल पहले जैसा रहेगा।</string>
+    <string name="eb_leave">छोड़ें</string>
+    <string name="eb_pass_t">%1$s के बदलाव सेव करें?</string>
+    <string name="eb_pass_text">बिल बदलने के लिए लेन-देन का पासकोड डालें।</string>
+    <string name="eb_missing">ये अब आपके आइटम में नहीं हैं: %1$s। यह बिल कंप्यूटर पर बदलें।</string>
 </resources>
