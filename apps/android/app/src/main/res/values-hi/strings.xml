@@ -808,4 +808,33 @@
     <string name="bq_none_in">इस ब्रांड में इनमें से कोई आइटम नहीं है।</string>
     <string name="bq_items_qty">आइटम और मात्रा</string>
     <string name="bq_pcs">%1$s नग</string>
+
+    <!-- 8.6d: Delivery challans -->
+    <string name="ch_open">बिल नहीं बना</string>
+    <string name="ch_invoiced">बिल बना</string>
+    <string name="ch_new">नया चालान</string>
+    <string name="ch_new_title">नया डिलीवरी चालान</string>
+    <string name="ch_sum_open">खुले चालान</string>
+    <string name="ch_sum_out">बाहर गया (बिल नहीं)</string>
+    <string name="ch_qty">%1$s नग</string>
+    <string name="ch_sent">भेजा गया माल</string>
+    <string name="ch_sent_v1">%1$s नग · %2$d आइटम</string>
+    <string name="ch_sent_v">%1$s नग · %2$d आइटम</string>
+    <string name="ch_billed_in">बिल %1$s में जुड़ चुका है। खोलने के लिए दबाएँ।</string>
+    <string name="ch_items">आइटम</string>
+    <string name="ch_vehicle">गाड़ी नं.</string>
+    <string name="ch_note">नोट</string>
+    <string name="ch_edit">चालान बदलें</string>
+    <string name="ch_cancel">चालान रद्द करें</string>
+    <string name="ch_cancel_text">माल दुकान में वापस गिना जाएगा। चालान किताबों में \"रद्द\" लिखा रहेगा।</string>
+    <string name="ch_no">चालान नं.</string>
+    <string name="ch_name">ग्राहक का नाम</string>
+    <string name="ch_hint">बिल से पहले भेजा गया माल। चालान पर पैसा नहीं होता।</string>
+    <string name="ch_tr_ph">ट्रांसपोर्टर / ख़ुद</string>
+    <string name="ch_note_ph">जैसे: साइट का पता</string>
+    <string name="ch_save">चालान सेव करें</string>
+    <string name="ch_need_cust">ग्राहक चुनें, या नाम लिखें।</string>
+    <string name="ch_discard_q">यह चालान छोड़ें?</string>
+    <string name="ch_pass_text">चालान बदलने के लिए लेन-देन का पासकोड डालें।</string>
+    <string name="ch_from">%2$s से %1$d आइटम आए। रेट देखकर बिल सेव करें।</string>
 </resources>

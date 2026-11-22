@@ -181,9 +181,11 @@ fun SaleScreen(
     val c = s.ctx
     val d = s.draft
     // Convert To Bill (8.6c): how many items came from the quotation, said once
-    LaunchedEffect(s.imported, d?.quotes?.firstOrNull()?.no) {
+    LaunchedEffect(s.imported, d?.quotes?.firstOrNull()?.no, d?.fromChallan?.second) {
         val q = d?.quotes?.firstOrNull()
-        if (s.imported > 0 && q != null) { say(ctx, ctx.getString(R.string.qt_from, s.imported, q.no)); s.imported = 0 }
+        val ch = d?.fromChallan
+        if (s.imported > 0 && ch != null) { say(ctx, ctx.getString(R.string.ch_from, s.imported, ch.second)); s.imported = 0 }
+        else if (s.imported > 0 && q != null) { say(ctx, ctx.getString(R.string.qt_from, s.imported, q.no)); s.imported = 0 }
     }
     // closing a bill with items asks first, so it isn't lost by a stray tap (as on the web)
     val close = { if (d != null && d.lines.isNotEmpty()) discard = true else onClose() }
@@ -273,7 +275,7 @@ fun SaleScreen(
                 item { CustomerField(party, party?.let { SaleMaths.before(d, it) } ?: BigDecimal.ZERO, d.cash, onCustomer) }
                 item {
                     SaleTags(d, c, { sheet = "ref" }) { id ->
-                        s.change { x -> x.copy(quotes = x.quotes.filter { it.id != id }) }
+                        s.change { x -> if (id.startsWith("dc:")) x.copy(fromChallan = null) else x.copy(quotes = x.quotes.filter { it.id != id }) }
                         say(ctx, ctx.getString(R.string.sx_unlinked))
                     }
                 }
@@ -768,7 +770,7 @@ fun SaleLineScreen(s: SaleSession, index: Int, startItem: String?, onBack: () ->
                             ) {
                                 Column(Modifier.weight(1f)) {
                                     T(i.name, weight = FontWeight.SemiBold, oneLine = true)
-                                    T(listOfNotNull("₹" + m2(SaleMaths.priceFor(c, i, SaleMaths.party(c, d), i.unit)),
+                                    T(listOfNotNull(if (d.challan) null else "₹" + m2(SaleMaths.priceFor(c, i, SaleMaths.party(c, d), i.unit)),
                                         if (ItemMaths.isService(i)) stringResource(R.string.i_service) else stringResource(R.string.sl_stock, qtyUnit(i.stock, i.unit)),
                                         i.code.takeIf { it.isNotBlank() }).joinToString(" · "), size = 12.sp, colour = Colours.Text3)
                                 }
@@ -789,6 +791,8 @@ fun SaleLineScreen(s: SaleSession, index: Int, startItem: String?, onBack: () ->
                         ChoiceField(stringResource(R.string.sl_unit), unitWord(l.unit)) { if (units.size > 1) sheet = "unit" }
                     }
                 }
+                // a challan (8.6d) has no money: only the item, quantity and unit (design 7.4e)
+                if (d.challan) { Spacer(Modifier.height(4.dp)); return@Column }
                 val dec = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                 Field(stringResource(R.string.sl_rate_per, unitWord(l.unit)), rateText ?: plain(l.price), { v ->
                     rateText = money(v); finalText = null

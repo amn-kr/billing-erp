@@ -142,10 +142,12 @@ fun ShareMoreSheet(onClose: () -> Unit, onPick: (String) -> Unit) {
 @Composable
 fun SaleTags(d: SaleMaths.Draft, c: SaleMaths.Ctx, onReferral: () -> Unit, onUnlink: (String) -> Unit) {
     val ref = d.referrerId?.let { id -> c.referrers.firstOrNull { it.id == id }?.name }
-    if (ref == null && d.quotes.isEmpty()) return
+    if (ref == null && d.quotes.isEmpty() && d.fromChallan == null) return
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (ref != null) Tag(stringResource(R.string.sx_ref_tag, ref), Icons.User, null, onReferral)
         d.quotes.forEach { q -> Tag(stringResource(R.string.sx_from, q.no), null, Icons.Close) { onUnlink(q.id) } }
+        // 8.6d: the challan this bill is made from; × keeps the items but no longer marks the challan invoiced
+        d.fromChallan?.let { ch -> Tag(stringResource(R.string.sx_from, ch.second), null, Icons.Close) { onUnlink("dc:" + ch.first) } }
     }
 }
 
