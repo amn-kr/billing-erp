@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The required check `test`: green only when every part of the check passed. After a merge whose
-# exact files already passed on the PR, the quick checks are skipped on purpose and only What changed
-# and the picture tests at 1280/1920 px must pass. Any part that failed, was cancelled or was skipped
+# exact files already passed on the PR, nothing is run again on purpose (the browser-test job only
+# reports that), and What changed and that job must pass. Any part that failed, was cancelled or was skipped
 # for another reason makes it red.
 # Reads (results of the jobs it waits for: success, failure, cancelled or skipped):
 #   ALREADY_TESTED_RUN, ALREADY_TESTED_URL  outputs of the already-tested job
@@ -17,7 +17,7 @@ if [ -n "${ALREADY_TESTED_RUN:-}" ]; then
   echo "Quick checks and flow tests skipped: these exact files already passed on the PR: ${ALREADY_TESTED_URL:-}" | tee -a "$summary"
   {
     check "What changed" "${CHANGES:-missing}"
-    check "Picture tests after the merge (all 4 parts)" "${E2E:-missing}"
+    check "Browser and picture tests (nothing to run after the merge)" "${E2E:-missing}"
   } | tee -a "$summary"
   required=("${CHANGES:-}" "${E2E:-}")
 else

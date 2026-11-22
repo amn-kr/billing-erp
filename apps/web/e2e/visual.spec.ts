@@ -4,12 +4,10 @@
  * and compares them pixel by pixel, at 1280, 1366 and 1920 px.
  */
 import { expect, test, type Browser, type Page } from '@playwright/test';
-import { compare } from './compare';
-import { approvedShot, shot } from './shots';
+import { approvedShot, shot, samePicture } from './shots';
 import { APP, PROTOTYPE_LOGIN, WIDTHS, newPage, prototypeFresh, signIn } from './setup';
 
 /** Allowed share of differing pixels. Both pages render on the same machine, so the target is an exact match. */
-const MAX_RATIO = 0;
 
 async function pair(browser: Browser, width: number) {
   const proto = await newPage(browser, width);
@@ -17,10 +15,9 @@ async function pair(browser: Browser, width: number) {
   return { proto, app };
 }
 
+/** Approved picture, or (until it exists) the prototype: see samePicture in shots.ts. */
 async function same(name: string, a: Buffer, b: Buffer) {
-  const d = compare(name, a, b);
-  expect.soft(d.sizeMatches, `${name}: size ${d.width}×${d.height} must match`).toBe(true);
-  expect.soft(d.ratio, `${name}: ${d.diffPixels} pixels differ (see test-results/visual/${name}-diff.png)`).toBeLessThanOrEqual(MAX_RATIO);
+  samePicture(name, a, b);
 }
 
 

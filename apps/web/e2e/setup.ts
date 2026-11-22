@@ -12,16 +12,16 @@ const common = createRequire(import.meta.url)('../../../tools/design-baseline/co
 };
 
 /**
- * The picture widths: all three, or only those in PICTURE_WIDTHS (e.g. "1366" on pull requests,
- * "1280,1920" after the merge; see ci.yml). A width that is not one of the three stops the run.
+ * The picture width (owner, 22 Nov 2026): one approved picture per screen at 1366 px; the other
+ * widths are covered by the fit checks (fit.ts). PICTURE_WIDTHS may only name 1366.
  */
-export const WIDTHS = pictureWidths(common.WIDTHS, process.env.PICTURE_WIDTHS);
+export const WIDTHS = pictureWidths([1366], process.env.PICTURE_WIDTHS);
 
 function pictureWidths(all: number[], wanted: string | undefined): number[] {
   if (!wanted?.trim()) return all;
   const widths = wanted.split(',').map((w) => Number(w.trim()));
   const bad = widths.filter((w) => !all.includes(w));
-  if (bad.length) throw new Error(`PICTURE_WIDTHS="${wanted}": each width must be one of ${all.join(', ')}`);
+  if (bad.length) throw new Error(`PICTURE_WIDTHS="${wanted}": the only picture width is ${all.join(', ')}`);
   return all.filter((w) => widths.includes(w));
 }
 

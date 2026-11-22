@@ -10,8 +10,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import type { OwnerCustomer, OwnerPayment } from '@billing/shared';
-import { compare } from './compare';
-import { approvedShot, shot } from './shots';
+import { approvedShot, shot, samePicture } from './shots';
 import { APP, PROTOTYPE_OWNER, WIDTHS, newPage, panelAccount, signInPanel } from './setup';
 
 const TODAY = '2026-10-01';
@@ -79,10 +78,9 @@ async function panelWith(app: Page, { customers, payments }: { customers: OwnerC
   await app.waitForSelector('#rows tr[data-id="BE-1012"]');
 }
 
+/** Approved picture, or (until it exists) the prototype: see samePicture in shots.ts. */
 async function same(name: string, a: Buffer, b: Buffer) {
-  const d = compare(name, a, b);
-  expect.soft(d.sizeMatches, `${name}: size ${d.width}×${d.height} must match`).toBe(true);
-  expect.soft(d.ratio, `${name}: ${d.diffPixels} pixels differ (see test-results/visual/${name}-diff.png)`).toBeLessThanOrEqual(0);
+  samePicture(name, a, b);
 }
 
 const quiet = (p: Page) => p.addStyleTag({ content: '#toast{visibility:hidden!important}' });

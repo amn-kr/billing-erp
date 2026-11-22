@@ -20,9 +20,9 @@ permissions:
 # Every job stays on Ubuntu 24.04: "ubuntu-latest" moved to 26.04 (Oct 2026), where Playwright 1.56 can't
 # install its browser, and the approved pictures were all taken on 24.04.
 jobs:
-  # After a merge: did a green PR run already test exactly these files? A clear yes skips the quick
-  # checks and the flow tests, and runs only the picture tests at 1280 and 1920 px (the PR checked
-  # 1366 px); anything missing or unclear runs the full check (see .github/scripts/already-tested.sh).
+  # After a merge: did a green PR run already test exactly these files? A clear yes runs nothing again
+  # (the PR already ran every check, with pictures at 1366 px, the only width since 22 Nov 2026);
+  # anything missing or unclear runs the full check (see .github/scripts/already-tested.sh).
   already-tested:
     name: Same files already tested on the PR?
     if: github.event_name == 'push'
@@ -193,9 +193,9 @@ jobs:
         run: pnpm --filter @billing/web exec playwright install --with-deps chromium
       - name: Build
         run: pnpm build
-      # Which tests and widths: see the What changed job (empty widths = all three).
+      # Which tests: see the What changed job (pictures are at 1366 px only since 22 Nov 2026).
       # --pass-with-no-tests: a part left with no test (e.g. pictures skipped) is not a failure.
-      - name: End-to-end and screenshot tests, part ${{ matrix.part }} of 4 (rebuild vs prototype at ${{ needs.changes.outputs.widths || '1280/1366/1920' }})
+      - name: End-to-end and screenshot tests, part ${{ matrix.part }} of 4 (pictures at 1366 px, fit checks at six widths)
         if: needs.changes.outputs.run_e2e == 'true'
         env:
           PICTURE_WIDTHS: ${{ needs.changes.outputs.widths }}
@@ -207,6 +207,17 @@ jobs:
       - name: Browser and picture tests skipped (the reason is on the What changed job)
         if: needs.changes.outputs.run_e2e != 'true'
         run: echo "Browser and picture tests skipped - see What changed for the reason"
+      # pictures of screens that have no approved picture yet (or whose look changed): only these, so they
+      # are small to download; a person copies them into e2e/approved/ after the owner says OK
+      - name: Upload new pictures waiting for approval (this part)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: new-pictures-part-${{ matrix.part }}
+          path: apps/web/test-results/visual/*-actual.png
+          if-no-files-found: ignore
+          retention-days: 7
+          overwrite: true
       # each part saves its own pictures; the test job also puts all parts together in visual-diffs
       - name: Upload screenshot differences (this part)
         if: failure()
