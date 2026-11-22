@@ -31,6 +31,12 @@ export async function fitCheck(page: Page, sel: string, name: string): Promise<v
   if (await page.locator(CLOSES_ON_RESIZE).count()) return;
   const start = page.viewportSize();
   if (!start) return;
+  // changing the window's size moves lists that scroll; note where each one was, to put it back after
+  await page.evaluate(() => {
+    const w = window as unknown as { __fitScroll?: [Element, number, number][]; __fitWin?: [number, number] };
+    w.__fitWin = [scrollX, scrollY];
+    w.__fitScroll = [...document.querySelectorAll('*')].filter((e) => e.scrollTop || e.scrollLeft).map((e) => [e, e.scrollTop, e.scrollLeft]);
+  });
   try {
     for (const width of FIT_WIDTHS) {
       await page.setViewportSize({ width, height: HEIGHT[width]! });
@@ -40,6 +46,16 @@ export async function fitCheck(page: Page, sel: string, name: string): Promise<v
     }
   } finally {
     await page.setViewportSize(start);
+    await settle(page);
+    await page.evaluate(async () => {
+      const w = window as unknown as { __fitScroll?: [Element, number, number][]; __fitWin?: [number, number] };
+      // lists that were at the top go back to the top too
+      for (const e of document.querySelectorAll('*')) if (e.scrollTop || e.scrollLeft) { e.scrollTop = 0; e.scrollLeft = 0; }
+      for (const [e, top, left] of w.__fitScroll ?? []) { e.scrollTop = top; e.scrollLeft = left; }
+      if (w.__fitWin) scrollTo(w.__fitWin[0], w.__fitWin[1]);
+      delete w.__fitScroll; delete w.__fitWin;
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    });
     await settle(page);
   }
 }

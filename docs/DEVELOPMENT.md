@@ -24,7 +24,7 @@ pnpm --filter @billing/web dev                 # http://localhost:5173  (sign-in
 ```bash
 pnpm typecheck
 pnpm test                         # unit tests (shared, web) + API tests against billing_erp_test
-pnpm --filter @billing/web e2e    # Playwright: flows + pixel comparison with the prototype
+pnpm --filter @billing/web e2e    # Playwright: flows, approved pictures (1366 px) and fit checks
 pnpm baseline                     # Phase 0 screenshots of the prototype → reference/baseline/
 pnpm --filter @billing/desktop e2e  # the Windows app (Electron) on the e2e copy of the app
 ```
