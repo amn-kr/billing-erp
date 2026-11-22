@@ -61,9 +61,9 @@ The look of the web and Windows apps now comes from **the app's own theme** (its
 |---|---|---|
 | 1. The rule | New rule written in `CLAUDE.md`, README, `docs/ARCHITECTURE.md`, `docs/MOBILE-PLAN.md` and here. Documents only | done (PR #155, 22 Nov 2026) |
 | 2. Colour and font guard | The style test no longer compares the stylesheets with the prototype. `apps/web/src/styles/theme-list.ts` lists every colour (176) and font (10) the web and Windows apps use today, and `look-guard.test.ts` fails on anything else: stylesheets, screens, the printed invoice, PDF and Excel files, the Windows app's own pages | in review |
-| 3. Pictures and fit checks | One picture per screen at 1366 px (the 211 the owner already approved; 1280 and 1920 pictures retired, kept in git history), plus fit checks at 1280, 1366, 1440, 1536, 1600 and 1920 px (nothing outside the screen, no overlaps, no cut text or amounts, buttons not too small); Windows app too. First tried on a few screens and the time compared with today's checks | planned |
+| 3. Pictures and fit checks | One picture per screen at 1366 px: the 211 the owner already approved, plus 143 new pictures of the screens that were still compared with the prototype, taken on GitHub only where the app and the prototype were exactly the same on every try (the look approved in Phase 0): 354 pictures in all. The 422 pictures at 1280 and 1920 px are retired (kept in git history). Fit checks (`apps/web/e2e/fit.ts`) after every picture at 1280, 1366, 1440, 1536, 1600 and 1920 px: nothing outside the window, no control on top of another, no text cut off without "…", no button under 20 px. After a merge nothing runs again (the PR ran every check). The Windows app shows the same screens; its own test still compares its sign-in page and frame with the prototype inside the app, now at 1366 px only | in review (PR #157) |
 
-Until part 3 is merged, every screen is still pictured at 1280, 1366 and 1920 px.
+The prototype still decides how things work: the flow tests compare the app's results with it.
 
 ## On hold (waiting for a later phase or an owner decision)
 | Item | Waiting for |
@@ -232,7 +232,7 @@ six free GitHub machines at the same time instead of one (same tests, same pictu
 |---|---|
 | What changed | Lists the changed files. If only `docs/` or `.md` files changed, the browser and picture tests are skipped (everything else still runs). |
 | Quick checks (brand, typecheck, unit and API tests, build) | The fast checks, about 4 minutes, so a mistake there shows early. |
-| Browser and picture tests (part 1 of 4) … (part 4 of 4) | All Playwright tests (flows and pictures at 1280, 1366 and 1920 px), split into 4 parts by test file (`--shard`). Each part has its own machine and its own fresh database. A failing part does not stop the others. |
+| Browser and picture tests (part 1 of 4) … (part 4 of 4) | All Playwright tests (flows, pictures at 1366 px and fit checks at six widths), split into 4 parts by test file (`--shard`). Each part has its own machine and its own fresh database. A failing part does not stop the others. |
 | **test** | The required check of the `protect main` ruleset. It always runs, waits for all the jobs above and is green only when every one of them passed. Anything failed, cancelled or skipped by mistake makes it red (`.github/scripts/gate.sh`). |
 | Same files already tested on the PR? / Full check skipped … | After a merge to main only: if a green PR run already tested exactly these files, the other jobs are skipped and `test` is green at once. |
 

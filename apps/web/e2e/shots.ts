@@ -1,9 +1,14 @@
-/** Side-by-side screenshots of the prototype and the rebuild, compared pixel for pixel. */
+/**
+ * Picture tests (owner, 22 Nov 2026; CLAUDE.md "The one hard rule"): every screen is compared with its
+ * owner-approved picture at 1366 px (e2e/approved/<name>.png), then fit-checked at six widths (fit.ts).
+ * The prototype is no longer the measure of the look.
+ */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, type Page } from '@playwright/test';
 import { compare } from './compare';
+import { fitCheck } from './fit';
 import { settle } from './setup';
 
 /** Both pages render on the same machine, so the target is an exact match (apart from text-edge shading, see compare.ts). */
@@ -83,21 +88,59 @@ export async function approvedShot(name: string, app: Page, sel: string): Promis
   }
   expect.soft(d.sizeMatches, `${name}: size ${d.width}×${d.height} must match the approved picture`).toBe(true);
   expect.soft(d.ratio, `${name}: ${d.diffPixels} pixels differ from the approved picture (see test-results/visual/${name}-diff.png)`).toBeLessThanOrEqual(MAX_RATIO);
+  await fitCheck(app, sel, name);
 }
 
 /**
- * Screenshot the same element in both pages and compare. Each try first waits for
- * both pages to be still (see settle); a real difference shows on every try.
+ * A screen that used to be compared with the prototype. With its approved picture it is an approvedShot.
+ * Until that picture exists (the switch of 22 Nov 2026), the screen is still compared with the prototype,
+ * and only when both are exactly the same is the app's picture left as the candidate in
+ * test-results/visual/<name>-actual.png (so the new picture is the look the owner approved in Phase 0);
+ * the test then fails with "no approved picture yet" until a person copies it into e2e/approved/.
  */
 export async function sameShot(name: string, proto: Page, app: Page, sel: string): Promise<void> {
   await withRowHeight(proto);
-  let d = compare(name, await shot(proto, sel), await shot(app, sel));
+  if (fs.existsSync(path.join(APPROVED, `${name}.png`))) {
+    await approvedShot(name, app, sel);
+    return;
+  }
+  let got = await shot(app, sel);
+  let d = compare(name, await shot(proto, sel), got);
   for (let n = 0; n < 2 && !(d.sizeMatches && d.ratio <= MAX_RATIO); n++) {
     await proto.waitForTimeout(700);
-    d = compare(name, await shot(proto, sel), await shot(app, sel));
+    got = await shot(app, sel);
+    d = compare(name, await shot(proto, sel), got);
   }
   expect.soft(d.sizeMatches, `${name}: size ${d.width}×${d.height} must match`).toBe(true);
   expect.soft(d.ratio, `${name}: ${d.diffPixels} pixels differ (see test-results/visual/${name}-diff.png)`).toBeLessThanOrEqual(MAX_RATIO);
+  if (d.sizeMatches && d.ratio <= MAX_RATIO) {
+    const out = path.resolve(APPROVED, '../../test-results/visual');
+    fs.mkdirSync(out, { recursive: true });
+    fs.writeFileSync(path.join(out, `${name}-actual.png`), got);
+    expect.soft(false, `${name}: no approved picture yet; the candidate is the same as the prototype (test-results/visual/${name}-actual.png)`).toBe(true);
+  }
+  await fitCheck(app, sel, name);
+}
+
+/**
+ * The same as sameShot, for tests that take their own pictures (whole pages): with an approved picture the
+ * app's picture is compared with it; until then with the prototype's, and when they are exactly the same
+ * the app's picture is left as the candidate (see sameShot).
+ */
+export function samePicture(name: string, proto: Buffer, app: Buffer): void {
+  const file = path.join(APPROVED, `${name}.png`);
+  const approved = fs.existsSync(file);
+  const d = compare(name, approved ? fs.readFileSync(file) : proto, app);
+  const what = approved ? ' from the approved picture' : '';
+  expect.soft(d.sizeMatches, `${name}: size ${d.width}×${d.height} must match${what}`).toBe(true);
+  expect.soft(d.ratio, `${name}: ${d.diffPixels} pixels differ${what} (see test-results/visual/${name}-diff.png)`).toBeLessThanOrEqual(MAX_RATIO);
+  if (!(d.sizeMatches && d.ratio <= MAX_RATIO) && !approved) return;
+  if (!approved || !(d.sizeMatches && d.ratio <= MAX_RATIO)) {
+    const out = path.resolve(APPROVED, '../../test-results/visual');
+    fs.mkdirSync(out, { recursive: true });
+    fs.writeFileSync(path.join(out, `${name}-actual.png`), app);
+  }
+  if (!approved) expect.soft(false, `${name}: no approved picture yet; the candidate is the same as the prototype (test-results/visual/${name}-actual.png)`).toBe(true);
 }
 
 /**
