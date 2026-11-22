@@ -215,7 +215,7 @@
     <string name="pf_new">New Party</string>
     <string name="pf_edit">Edit Party</string>
     <string name="pf_name">Party Name *</string>
-    <string name="pf_name_ph">e.g. Mehta Electricals</string>
+    <string name="pf_name_ph">e.g. Mehta Traders</string>
     <string name="pf_name_err">Enter the party name.</string>
     <string name="pf_phone">Phone Number</string>
     <string name="pf_group">Party Group</string>
@@ -367,11 +367,12 @@
     <string name="if_new_parent">+ New Parent Item</string>
     <string name="if_parent_name">Parent Item Name</string>
     <string name="if_series">Series / Model *</string>
-    <string name="if_series_ph">e.g. Coral</string>
+    <string name="if_series_ph">e.g. Gold</string>
     <string name="if_series_err">Enter the series or model.</string>
     <string name="if_parent_err">Choose the parent item.</string>
     <string name="if_name">Item Name *</string>
-    <string name="if_name_ph">e.g. LED Bulb 9W Cool Day Light</string>
+    <string name="if_name_ph">e.g. Steel Bottle 1 L</string>
+    <string name="if_hsn_ph">8 Digits</string>
     <string name="if_name_err">Enter the item name.</string>
     <string name="if_will_be">Saved as: %1$s</string>
     <string name="if_brand">Brand</string>
@@ -482,7 +483,7 @@
     <string name="br_add_series">Add Series</string>
     <string name="br_add_brand">Add Brand</string>
     <string name="br_none">No Brands Yet</string>
-    <string name="br_none_sub">Add a brand, for example Havells.</string>
+    <string name="br_none_sub">Add a brand, for example Tata.</string>
     <string name="br_brand">Brand</string>
     <string name="br_brand_name">Brand Name</string>
     <string name="br_series_name">Series Name</string>
@@ -661,8 +662,8 @@
     <string name="sx_ref_title">Referral</string>
     <string name="sx_ref_sub">Added to the rates · not printed on the bill</string>
     <string name="sx_ref_by">Referred By</string>
-    <string name="sx_no_elec">No Electrician</string>
-    <string name="sx_add_elec">+ Add Electrician</string>
+    <string name="sx_no_elec">No Agent</string>
+    <string name="sx_add_elec">+ Add Agent</string>
     <string name="sx_no_comm">No commission on this bill.</string>
     <string name="sx_rule">Rule For This Bill</string>
     <string name="sx_pct" formatted="false">% Of Sale Price</string>

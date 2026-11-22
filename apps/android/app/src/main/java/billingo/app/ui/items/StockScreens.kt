@@ -481,7 +481,7 @@ fun BrandsScreen(api: Api, onBack: () -> Unit) {
         }
         if (sheet.isNotEmpty()) BackHandler { sheet = if (sheet == "seriesBrand") "series" else "" }
         when (sheet) {
-            "brand" -> NewGroupSheet({ sheet = "" }, stringResource(R.string.br_add_brand), stringResource(R.string.br_brand_name), "Polycab") { n ->
+            "brand" -> NewGroupSheet({ sheet = "" }, stringResource(R.string.br_add_brand), stringResource(R.string.br_brand_name), "Tata") { n ->
                 scope.launch { try { api.newBrand(n); say(ctx, ctx.getString(R.string.added_x, n)); sheet = ""; brands.reload() } catch (e: ApiError) { say(ctx, why(ctx, e)) } }
             }
             "series", "seriesBrand" -> {
@@ -495,7 +495,7 @@ fun BrandsScreen(api: Api, onBack: () -> Unit) {
                     Box(Modifier.imePadding()) {
                         Sheet(stringResource(R.string.br_add_series), close = { IconBtn(Icons.Close, stringResource(R.string.close), { sheet = "" }) }) {
                             ChoiceField(stringResource(R.string.br_brand), chosen?.name ?: needBrand) { sheet = "seriesBrand" }
-                            Field(stringResource(R.string.br_series_name), name, { name = it; err = null }, placeholder = "Coral", error = err, keyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Words))
+                            Field(stringResource(R.string.br_series_name), name, { name = it; err = null }, placeholder = "Gold", error = err, keyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Words))
                             Btn(stringResource(R.string.pf_add), {
                                 if (chosen == null) { err = needBrand; return@Btn }
                                 if (name.isBlank() || busy) return@Btn

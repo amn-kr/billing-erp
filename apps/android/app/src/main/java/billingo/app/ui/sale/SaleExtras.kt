@@ -301,7 +301,7 @@ fun ReferralSheet(s: SaleSession, onClose: () -> Unit, onAddElectrician: () -> U
     }
 }
 
-/** + Add Electrician: name, mobile, city. The new one is chosen for this bill. */
+/** + Add Agent: name, mobile, city. The new one is chosen for this bill. */
 @Composable
 fun AddElectricianSheet(s: SaleSession, onClose: () -> Unit) {
     val ctx = LocalContext.current
@@ -315,7 +315,7 @@ fun AddElectricianSheet(s: SaleSession, onClose: () -> Unit) {
     Dim(onClose) {
         Box(Modifier.imePadding()) {
             Sheet(stringResource(R.string.sx_add_elec).removePrefix("+ "), close = { IconBtn(Icons.Close, stringResource(R.string.close), onClose) }) {
-                Field(stringResource(R.string.sx_elec_name), name, { name = it; problem = null }, placeholder = "Raju Electrician", error = err("name"), keyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Words))
+                Field(stringResource(R.string.sx_elec_name), name, { name = it; problem = null }, placeholder = "Raju Kumar", error = err("name"), keyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Words))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Field(stringResource(R.string.gd_phone), phone, { phone = it.filter { ch -> ch.isDigit() }.take(10); problem = null }, Modifier.weight(1f), KeyboardOptions(keyboardType = KeyboardType.Phone), error = err("phone"))
                     Field(stringResource(R.string.sx_city), city, { city = it }, Modifier.weight(1f), KeyboardOptions(capitalization = KeyboardCapitalization.Words))

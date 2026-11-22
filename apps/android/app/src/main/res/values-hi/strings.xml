@@ -215,7 +215,7 @@
     <string name="pf_new">नई पार्टी</string>
     <string name="pf_edit">पार्टी बदलें</string>
     <string name="pf_name">पार्टी का नाम *</string>
-    <string name="pf_name_ph">जैसे Mehta Electricals</string>
+    <string name="pf_name_ph">जैसे Mehta Traders</string>
     <string name="pf_name_err">पार्टी का नाम लिखें।</string>
     <string name="pf_phone">फ़ोन नंबर</string>
     <string name="pf_group">पार्टी ग्रुप</string>
@@ -367,11 +367,12 @@
     <string name="if_new_parent">+ नया मुख्य आइटम</string>
     <string name="if_parent_name">मुख्य आइटम का नाम</string>
     <string name="if_series">सीरीज़ / मॉडल *</string>
-    <string name="if_series_ph">जैसे Coral</string>
+    <string name="if_series_ph">जैसे Gold</string>
     <string name="if_series_err">सीरीज़ या मॉडल लिखें।</string>
     <string name="if_parent_err">मुख्य आइटम चुनें।</string>
     <string name="if_name">आइटम का नाम *</string>
-    <string name="if_name_ph">जैसे LED Bulb 9W Cool Day Light</string>
+    <string name="if_name_ph">जैसे Steel Bottle 1 L</string>
+    <string name="if_hsn_ph">8 अंक</string>
     <string name="if_name_err">आइटम का नाम लिखें।</string>
     <string name="if_will_be">इस नाम से सेव होगा: %1$s</string>
     <string name="if_brand">ब्रांड</string>
@@ -482,7 +483,7 @@
     <string name="br_add_series">नई सीरीज़</string>
     <string name="br_add_brand">नया ब्रांड</string>
     <string name="br_none">अभी कोई ब्रांड नहीं</string>
-    <string name="br_none_sub">ब्रांड जोड़ें, जैसे Havells।</string>
+    <string name="br_none_sub">ब्रांड जोड़ें, जैसे Tata।</string>
     <string name="br_brand">ब्रांड</string>
     <string name="br_brand_name">ब्रांड का नाम</string>
     <string name="br_series_name">सीरीज़ का नाम</string>
@@ -662,7 +663,7 @@
     <string name="sx_ref_sub">रेट में जुड़ता है · बिल पर नहीं छपता</string>
     <string name="sx_ref_by">किसने भेजा</string>
     <string name="sx_no_elec">कोई नहीं</string>
-    <string name="sx_add_elec">+ इलेक्ट्रीशियन जोड़ें</string>
+    <string name="sx_add_elec">+ एजेंट जोड़ें</string>
     <string name="sx_no_comm">इस बिल पर कोई कमीशन नहीं।</string>
     <string name="sx_rule">इस बिल का नियम</string>
     <string name="sx_pct" formatted="false">बिक्री दाम का %</string>
