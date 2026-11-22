@@ -54,6 +54,17 @@ Owner decisions (10 Nov 2026): A4/A5 only for now (thermal later); the printer i
 
 Known: on the free server, the first open after 15 idle minutes shows a white screen for up to a minute while the server wakes (the same happens in a browser).
 
+## Look rule change (owner, 22 Nov 2026)
+The look of the web and Windows apps now comes from **the app's own theme** (its stylesheets, the Inter font, its buttons, tables and forms). **How things work** (calculations, formulas, taxes, stock, numbers, reports, flows, backup, import) **still follows the prototype**, and no part below touches it. The app looks the same after every part. Rule: `CLAUDE.md`.
+
+| Part | What | Status |
+|---|---|---|
+| 1. The rule | New rule written in `CLAUDE.md`, README, `docs/ARCHITECTURE.md`, `docs/MOBILE-PLAN.md` and here. Documents only | in review |
+| 2. Colour and font guard | The test that compares the stylesheets with the prototype is replaced by one that fails on any colour or font outside the theme | planned |
+| 3. Pictures and fit checks | One picture per screen at 1366 px (the 211 the owner already approved; 1280 and 1920 pictures retired, kept in git history), plus fit checks at 1280, 1366, 1440, 1536, 1600 and 1920 px (nothing outside the screen, no overlaps, no cut text or amounts, buttons not too small); Windows app too. First tried on a few screens and the time compared with today's checks | planned |
+
+Until parts 2 and 3 are merged, the old checks keep running.
+
 ## On hold (waiting for a later phase or an owner decision)
 | Item | Waiting for |
 |---|---|

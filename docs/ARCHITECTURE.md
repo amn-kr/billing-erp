@@ -4,13 +4,13 @@ The full plan, with diagrams, is in the Claude doc "Billing ERP — Architecture
 
 ## Decisions
 - **Frontend:** React 18 + TypeScript + Vite, React Router 6, TanStack Query, React Hook Form + Zod, Zustand.
-- **Styling:** the CSS from `reference/design/app.html`, copied unchanged into `apps/web/src/styles/`. Every class name and the DOM structure are kept. There is no Tailwind and no UI kit.
+- **Styling:** the app's own theme in `apps/web/src/styles/`: the CSS from `reference/design/app.html`, copied unchanged. Every class name and the DOM structure are kept. There is no Tailwind and no UI kit. Since 22 Nov 2026 (owner) the theme, not the prototype file, is the design for the look; how things work still follows the prototype (see `CLAUDE.md`).
 - **Backend:** Node 22 + NestJS 10, Prisma ORM (raw SQL for reports), PostgreSQL 16 with row-level security on `business_id`.
 - **Jobs:** Redis + BullMQ. **Files:** S3 (ap-south-1). **Live updates:** Socket.IO room per business.
 - **Auth:** argon2 passwords, JWT access + refresh tokens, MSG91 phone OTP (optional).
 - **Payments:** Razorpay subscriptions and payment links.
 - **Hosting:** AWS Mumbai (ECS Fargate, RDS, ElastiCache). The web app goes on Cloudflare Pages.
-- **Quality:** Vitest, Supertest, Playwright (flows + screenshot comparison against `reference/design/app.html`), GitHub Actions. Errors go to Sentry.
+- **Quality:** Vitest, Supertest, Playwright (flows + owner-approved pictures and fit checks; see `CLAUDE.md`), GitHub Actions. Errors go to Sentry.
 - **Repo:** pnpm workspaces + Turborepo.
 
 ## Structure
@@ -63,8 +63,8 @@ Tables by area:
 - **Bring online books to this PC** (owner, 12 Nov 2026): the other way. An online shop's owner signs in on a "This PC only" PC with their online email and password once, and that shop's whole books are downloaded to the PC. The online shop then becomes view-only, so nobody bills in two places. Still no two-way sync.
 
 **Who uses what**
-- Windows app (Mac later): counter staff and owner. It uses **the prototype screens exactly**, with the same CSS, classes and DOM as the web app.
-- Android app (iPhone later): staff, field salesmen and owner. It is online only. It has **its own mobile screens**, designed separately (the owner's exception to the "look exactly like the prototype" rule). Invoices and quotations are shared as PDFs on WhatsApp through the Android share sheet. No Bluetooth printing.
+- Windows app (Mac later): counter staff and owner. It uses **the same screens as the web app**, with the same theme, classes and DOM.
+- Android app (iPhone later): staff, field salesmen and owner. It is online only. It has **its own mobile screens**, designed separately (the owner's exception to the web app's look rule). Invoices and quotations are shared as PDFs on WhatsApp through the Android share sheet. No Bluetooth printing.
 
 **Technology**
 - **Windows/Mac:** Electron, because it has Node built in, so the existing NestJS API runs inside the app in single-PC mode. A bundled PostgreSQL 16 runs locally, so Prisma, raw-SQL reports and RLS work unchanged. In online mode the same app talks to the cloud API.

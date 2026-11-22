@@ -1,6 +1,7 @@
-# Styles — copied unchanged from the prototype
+# Styles — the app's own theme (copied unchanged from the prototype)
 
-Do not edit these files. They are byte-for-byte copies, and
+These files are the app's own theme (owner, 22 Nov 2026: the look comes from this theme; see `CLAUDE.md`). Change them only when the owner asks for a look change.
+Until part 2 of the look rule change is merged, do not edit them: they are byte-for-byte copies, and
 `src/styles/styles.test.ts` fails if they drift from the prototype.
 
 | File | Source |
