@@ -125,7 +125,7 @@ for (const width of WIDTHS) {
       const { proto, app } = await pages(browser, width, 'sales', '/sales', '#slRows tr[data-sno]');
       await proto.evaluate(() => (window as unknown as { openInvoice: () => void }).openInvoice());
       await app.click('#vSales .pthd .btn.p');
-      await app.waitForSelector('#vNewInv #siRows tr[data-ln]');
+      await app.waitForSelector('#vNewInv #qeItem'); // rapid entry on: a new bill has no empty row (owner, 21 Nov 2026)
       await proto.waitForTimeout(300);
       await withTabs(proto, app);
       await approvedShot(`editor-new-${width}`, app, '#vNewInv');
@@ -161,7 +161,7 @@ for (const width of WIDTHS) {
       const { proto, app } = await pages(browser, width, 'sales', '/sales', '#slRows tr[data-sno]');
       await proto.evaluate(() => (window as unknown as { openInvoice: () => void }).openInvoice());
       await app.click('#vSales .pthd .btn.p');
-      await app.waitForSelector('#vNewInv #siRows tr[data-ln]');
+      await app.waitForSelector('#vNewInv #qeItem'); // rapid entry on: a new bill has no empty row (owner, 21 Nov 2026)
       await both(proto, app, async (p) => { await p.fill('#siParty', 'Mehta'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); });
       for (const [item, qty] of [['LED bulb', '10'], ['Copper wire', '1']] as const) {
         await both(proto, app, async (p) => { await p.locator('#qeItem').fill(item); await p.waitForTimeout(100); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); await p.locator('#qeQty').fill(qty); await p.locator('#qeQty').press('Control+Enter'); });
@@ -199,7 +199,7 @@ for (const width of WIDTHS) {
       const { proto, app } = await pages(browser, width, 'sales', '/sales', '#slRows tr[data-sno]');
       await proto.evaluate(() => (window as unknown as { openInvoice: () => void }).openInvoice());
       await app.click('#vSales .pthd .btn.p');
-      await app.waitForSelector('#vNewInv #siRows tr[data-ln]');
+      await app.waitForSelector('#vNewInv #qeItem'); // rapid entry on: a new bill has no empty row (owner, 21 Nov 2026)
       await withTabs(proto, app);
       await both(proto, app, async (p) => { await p.fill('#siParty', 'Mehta'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); });
       await both(proto, app, async (p) => { await p.locator('#qeItem').fill('LED bulb'); await p.waitForTimeout(100); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); await p.locator('#qeQty').fill('5'); await p.locator('#qeQty').press('Control+Enter'); });
@@ -216,7 +216,7 @@ for (const width of WIDTHS) {
       const { proto, app } = await pages(browser, width, 'sales', '/sales', '#slRows tr[data-sno]');
       await proto.evaluate(() => (window as unknown as { openInvoice: () => void }).openInvoice());
       await app.click('#vSales .pthd .btn.p');
-      await app.waitForSelector('#vNewInv #siRows tr[data-ln]');
+      await app.waitForSelector('#vNewInv #qeItem'); // rapid entry on: a new bill has no empty row (owner, 21 Nov 2026)
       await withTabs(proto, app);
       await both(proto, app, async (p) => { await p.click('#siTitle'); await p.click('#siImpQ'); }); // (the title click closes the party list)
       await app.waitForSelector('#iqm:not([hidden]) .iqr');
@@ -245,7 +245,7 @@ for (const width of WIDTHS) {
       await approvedShot(`import-quote-remove-${width}`, app, '#slm .mdl');
       await behind(false);
       await both(proto, app, (p) => p.click('#slmOk'));
-      await expect(app.locator('#siRows tr[data-ln]')).toHaveCount(1);
+      await expect(app.locator('#siRows tr[data-ln]')).toHaveCount(0); // rapid entry on: no empty row is left
     });
 
     test('Quick sale window: empty, with a customer and items, credit', async ({ browser }) => {
@@ -303,7 +303,7 @@ for (const width of WIDTHS) {
       const { proto, app } = await pages(browser, width, 'sales', '/sales', '#slRows tr[data-sno]', await freshShop(request, 'sales-shop'));
       await proto.evaluate(() => (window as unknown as { openInvoice: () => void }).openInvoice());
       await app.click('#vSales .pthd .btn.p');
-      await app.waitForSelector('#vNewInv #siRows tr[data-ln]');
+      await app.waitForSelector('#vNewInv #qeItem'); // rapid entry on: a new bill has no empty row (owner, 21 Nov 2026)
       await withTabs(proto, app);
       await both(proto, app, async (p) => { await p.fill('#siParty', 'Mehta'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); });
       for (const [item, qty] of [['LED bulb', '10'], ['Copper wire', '1']] as const) {
