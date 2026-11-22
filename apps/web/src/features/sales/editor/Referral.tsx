@@ -103,8 +103,8 @@ export function useElecModal(o: { onSaved: (id: string, name: string) => void })
       const r = await api<{ id: string }>('/referrers', { method: 'POST', body: { name: n, phone: ph, city: v('elC').trim() } });
       setErr(null);
       o.onSaved(r.id, n);
-    } catch (e) { setErr(e instanceof ApiError ? e.message : 'Could not save the electrician.'); }
+    } catch (e) { setErr(e instanceof ApiError ? e.message : 'Could not save the agent.'); }
   };
-  const modal: SlModalProps | null = err === null ? null : { title: 'Add electrician', ok: 'Save', cancel: 'Cancel', body: <ElecForm err={err} />, onOk: () => void save() };
+  const modal: SlModalProps | null = err === null ? null : { title: 'Add agent', ok: 'Save', cancel: 'Cancel', body: <ElecForm err={err} />, onOk: () => void save() };
   return { open: () => setErr(''), close: () => setErr(null), modal };
 }

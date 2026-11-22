@@ -117,7 +117,7 @@ function BrandsScreen() {
                     <td className="n"><button className="ixs" data-bmenu={b.id} aria-label={`Actions for ${b.name}`} title="Actions" aria-haspopup="menu" onClick={openMenu({ k: 'b', b })}><RawIcon d={DOTS} /></button></td>
                   </tr>
                 )) : (
-                  <tr><td colSpan={8} className="ptempty" id="bsEmpty">{B.length ? 'No brands match.' : <>No brands yet. Add your first brand, e.g. Havells, to keep its series and items together.<br /><button className="lnk" onClick={() => setDlg({ k: 'addBrand' })}>+ Add brand</button></>}</td></tr>
+                  <tr><td colSpan={8} className="ptempty" id="bsEmpty">{B.length ? 'No brands match.' : <>No brands yet. Add your first brand, e.g. Tata, to keep its series and items together.<br /><button className="lnk" onClick={() => setDlg({ k: 'addBrand' })}>+ Add brand</button></>}</td></tr>
                 )}
               </tbody>
             </table>
@@ -136,7 +136,7 @@ function BrandsScreen() {
                   <tr><td colSpan={8} className="ptempty" id="bsEmpty">
                     {!B.length ? 'Add a brand first, then its series.'
                       : S.length && (s || brandF === 'all') ? 'No series match.'
-                        : <>{fb ? `${fb.name} has no series yet.` : 'No series yet.'} A series is a brand’s range, e.g. Havells Coral.<br /><button className="lnk" onClick={() => setDlg({ k: 'addSeries', brandId: fb?.active ? fb.id : '' })}>+ Add series</button></>}
+                        : <>{fb ? `${fb.name} has no series yet.` : 'No series yet.'} A series is a brand’s range, e.g. Tata Gold.<br /><button className="lnk" onClick={() => setDlg({ k: 'addSeries', brandId: fb?.active ? fb.id : '' })}>+ Add series</button></>}
                   </td></tr>
                 )}
               </tbody>
@@ -228,11 +228,11 @@ function BrandDialog({ dlg, brands, onClose, onSaved }: { dlg: Dlg | null; brand
           )}
           {k !== 'moveSeries' && (
             <label className="fl" htmlFor="bsfName">{k.includes('Brand') ? 'Brand name' : 'Series name'}
-              <input className="fi" id="bsfName" autoComplete="off" placeholder={k.includes('Brand') ? 'e.g. Havells' : 'e.g. Coral'} value={f.name} onChange={set('name')} ref={k === 'addSeries' ? undefined : first} />
+              <input className="fi" id="bsfName" autoComplete="off" placeholder={k.includes('Brand') ? 'e.g. Tata' : 'e.g. Gold'} value={f.name} onChange={set('name')} ref={k === 'addSeries' ? undefined : first} />
             </label>
           )}
           {(k === 'addSeries' || k === 'renameSeries') && (
-            <label className="fl" htmlFor="bsfSize">Size or variant (optional)<input className="fi" id="bsfSize" autoComplete="off" placeholder="e.g. 6A, 1.5 sq mm, White" value={f.size} onChange={set('size')} /></label>
+            <label className="fl" htmlFor="bsfSize">Size or variant (optional)<input className="fi" id="bsfSize" autoComplete="off" placeholder="e.g. Small, 1 kg, White" value={f.size} onChange={set('size')} /></label>
           )}
           {k !== 'moveSeries' && (
             <label className="fl" htmlFor="bsfNotes">Notes (optional)<input className="fi" id="bsfNotes" autoComplete="off" value={f.notes} onChange={set('notes')} /></label>

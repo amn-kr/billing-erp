@@ -200,13 +200,13 @@ export function AddPartyDialog({ open, onClose, onSaved, edit, onDelete }: { ope
           <button className="ib" type="button" id="apClose" aria-label="Close" onClick={onClose}><RawIcon d={X} /></button>
         </div>
         <div className="apnewg" id="apNewG" hidden={newG === null}>
-          <input className="fi" id="apNewGName" placeholder="New group name, e.g. Electricians" autoComplete="off" value={newG ?? ''} onChange={(e) => setNewG(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addGroup()} />
+          <input className="fi" id="apNewGName" placeholder="New group name, e.g. Agents" autoComplete="off" value={newG ?? ''} onChange={(e) => setNewG(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addGroup()} />
           <button className="btn p" type="button" id="apNewGAdd" onClick={addGroup}>Add group</button>
           <button className="btn" type="button" id="apNewGCancel" onClick={() => setNewG(null)}>Cancel</button>
         </div>
         <div className="apbody" id="apBody">
           <div className="aptop">
-            <label className="apf">Party name <span className="req">*</span><input className={`fi ${bad('name')}`} id="apName" data-f="name" value={f.name} onChange={set('name')} placeholder="e.g. Mehta Electricals" autoComplete="off" ref={nameRef} />{E('name')}</label>
+            <label className="apf">Party name <span className="req">*</span><input className={`fi ${bad('name')}`} id="apName" data-f="name" value={f.name} onChange={set('name')} placeholder="e.g. Mehta Traders" autoComplete="off" ref={nameRef} />{E('name')}</label>
             <label className="apf">Phone number<span className="pre2"><span>+91</span><input className={`fi ${bad('phone')}`} data-f="phone" value={f.phone} onChange={set('phone')} placeholder="98765 43210" inputMode="numeric" autoComplete="off" /></span>{E('phone')}</label>
             {aps.groups && (
               <label className="apf">Party group<select className="fi" data-f="group" id="apGroup" value={f.group} onChange={(e) => (e.target.value === '__new' ? setNewG('') : set('group')(e))}>

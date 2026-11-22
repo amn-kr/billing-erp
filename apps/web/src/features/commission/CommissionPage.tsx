@@ -1,6 +1,6 @@
 /**
  * Electrician commission (#vCom) — the prototype's renderCom with its windows: pay commission
- * (cmPay, including "Adjust against his bills"), the electrician's bills and payments (cmView),
+ * (cmPay, including "Adjust against their bills"), the electrician's bills and payments (cmView),
  * add / edit electrician (elecEdit) and commission rules (cmRulesOpen).
  */
 import { useState } from 'react';
@@ -51,7 +51,7 @@ export function CommissionPage() {
     setModal({
       title: `Pay commission · ${e.name}`, sub: `Payable now ${inr2f(e.due)} (earned ${inr2f(e.earned)} − paid ${inr2f(e.paid)})`, ok: 'Save payment', cancel: 'Cancel',
       body: <><div className="two"><label className="fl" htmlFor="cpA">Amount<input className="fi n" id="cpA" inputMode="decimal" defaultValue={String(Number(e.due))} autoFocus onFocus={(ev) => ev.target.select()} /></label>
-        <label className="fl" htmlFor="cpM">Paid by<select className="fi" id="cpM" defaultValue={e.partyId && owes > 0 ? 'Adjust' : 'Cash'}>{e.partyId ? <option value="Adjust" disabled={!(owes > 0)}>Adjust against his bills{owes > 0 ? ` (owes ${inr2f(owes)})` : ' (no dues)'}</option> : null}<option>Cash</option><option>UPI</option><option>Bank transfer</option></select></label></div>
+        <label className="fl" htmlFor="cpM">Paid by<select className="fi" id="cpM" defaultValue={e.partyId && owes > 0 ? 'Adjust' : 'Cash'}>{e.partyId ? <option value="Adjust" disabled={!(owes > 0)}>Adjust against their bills{owes > 0 ? ` (owes ${inr2f(owes)})` : ' (no dues)'}</option> : null}<option>Cash</option><option>UPI</option><option>Bank transfer</option></select></label></div>
         <label className="fl" htmlFor="cpN">Note<input className="fi" id="cpN" autoComplete="off" placeholder="Optional" /></label><div className="msg bad" id="cpErr"></div></>,
       onOk: async () => {
         const a = Number(val('cpA').replace(/[^\d.]/g, '')) || 0, mode = val('cpM');
@@ -80,7 +80,7 @@ export function CommissionPage() {
   };
 
   const edit = (e: Elec | null) => setModal({
-    title: e ? 'Edit electrician' : 'Add electrician', ok: 'Save', cancel: 'Cancel',
+    title: e ? 'Edit agent' : 'Add agent', ok: 'Save', cancel: 'Cancel',
     body: <><label className="fl" htmlFor="elN">Name<input className="fi" id="elN" defaultValue={e?.name ?? ''} autoComplete="off" autoFocus /></label><div className="two"><label className="fl" htmlFor="elP">Mobile<input className="fi" id="elP" inputMode="numeric" defaultValue={e?.phone ?? ''} autoComplete="off" /></label><label className="fl" htmlFor="elC">City<input className="fi" id="elC" defaultValue={e?.city ?? ''} autoComplete="off" /></label></div><div className="msg bad" id="elErr"></div></>,
     onOk: async () => {
       const n = val('elN').trim(), ph = val('elP').replace(/\D/g, '');
@@ -103,7 +103,7 @@ export function CommissionPage() {
         <div className="cmr" data-cat={c} key={c}><span><b>{c}</b><small className="mu">{items.filter((i) => i.category === c).length} items</small></span>
           <select className="fi sm" data-k="t" defaultValue={t} onChange={(ev) => { const i = ev.target.parentElement!.querySelector<HTMLInputElement>('[data-k="v"]')!; i.disabled = ev.target.value === 'n'; if (ev.target.value === 'n') i.value = ''; else i.focus(); }}><option value="n">No commission</option><option value="p">% of sale price</option><option value="f">Flat ₹ per unit</option></select>
           <input className="fi sm n" data-k="v" inputMode="decimal" defaultValue={t === 'n' ? '' : String(Number(r!.value))} placeholder="0" disabled={t === 'n'} /></div>); })}</div>
-        <p className="hint" style={{ margin: ui.sp('8px 0 0') }}>Example: purchase 300 + margin 10% = sale price 330 → commission 10% → rate on the bill 363. Electrician earns 33.</p></>,
+        <p className="hint" style={{ margin: ui.sp('8px 0 0') }}>Example: purchase 300 + margin 10% = sale price 330 → commission 10% → rate on the bill 363. Agent earns 33.</p></>,
       onOk: async () => {
         const rows = [...document.querySelectorAll<HTMLElement>('#slmBody .cmr')].map((r) => { const t = r.querySelector<HTMLSelectElement>('[data-k="t"]')!.value, v = Number(r.querySelector<HTMLInputElement>('[data-k="v"]')!.value.replace(/[^\d.]/g, '')) || 0; return { category: r.dataset.cat!, kind: t === 'n' || !v ? 'none' : t === 'p' ? 'percent' : 'fixed', value: t === 'n' ? 0 : v }; });
         try { for (const r of rows) await api('/commission-rules', { method: 'PUT', body: r }); close(); await refresh(); showToast('Commission rules saved'); }
@@ -114,10 +114,10 @@ export function CommissionPage() {
 
   return (
     <section id="vCom">
-      <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Electrician commission</h1><span className="pttot">Added on top of your sale price · paid as customers pay</span><div className="sp"></div><button className="btn" id="cmRules" onClick={() => void rules()}><Icon name="pct" />Commission rules</button><button className="btn p" id="cmAdd" onClick={() => edit(null)}><RawIcon d={PLUS} />Add electrician</button></div>
-      <div className="sumrow" id="cmSum"><div><small>Commission on bills{T('ret') ? <> <span className="neg">(−{inr(T('ret').toFixed(2))} returns)</span></> : null}</small><b>{inr(T('comm').toFixed(2))}</b></div><div><small>Earned (customers paid)</small><b>{inr(T('earned').toFixed(2))}</b></div><div><small>Paid to electricians</small><b className="pos">{inr(T('paid').toFixed(2))}</b></div><div><small>Payable now</small><b className={T('due') > 0 ? 'neg' : ''}>{inr(T('due').toFixed(2))}</b></div></div>
-      <div className="card ptxc"><div className="ptfil" style={{ padding: ui.sp('12px 16px') }}><label className="search" htmlFor="cmQ" style={{ maxWidth: 300, height: ui.h(36) }}><RawIcon d={SEARCH} /><input id="cmQ" placeholder="Search electrician" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label></div>
-        <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr><th>Electrician</th><th className="n">Bills</th><th className="n">Business</th><th className="n">Commission</th><th className="n">Returns</th><th className="n">Earned<small className="mu" style={{ display: 'block', fontWeight: 500, textTransform: 'none' }}>on payment received</small></th><th className="n">Paid</th><th className="n">Payable now</th><th className="n"><span className="vh">Actions</span></th></tr></thead>
+      <div className="pthd"><h1 className="ptkind" style={{ cursor: 'default' }}>Agent commission</h1><span className="pttot">Added on top of your sale price · paid as customers pay</span><div className="sp"></div><button className="btn" id="cmRules" onClick={() => void rules()}><Icon name="pct" />Commission rules</button><button className="btn p" id="cmAdd" onClick={() => edit(null)}><RawIcon d={PLUS} />Add agent</button></div>
+      <div className="sumrow" id="cmSum"><div><small>Commission on bills{T('ret') ? <> <span className="neg">(−{inr(T('ret').toFixed(2))} returns)</span></> : null}</small><b>{inr(T('comm').toFixed(2))}</b></div><div><small>Earned (customers paid)</small><b>{inr(T('earned').toFixed(2))}</b></div><div><small>Paid to agents</small><b className="pos">{inr(T('paid').toFixed(2))}</b></div><div><small>Payable now</small><b className={T('due') > 0 ? 'neg' : ''}>{inr(T('due').toFixed(2))}</b></div></div>
+      <div className="card ptxc"><div className="ptfil" style={{ padding: ui.sp('12px 16px') }}><label className="search" htmlFor="cmQ" style={{ maxWidth: 300, height: ui.h(36) }}><RawIcon d={SEARCH} /><input id="cmQ" placeholder="Search agent" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label></div>
+        <div className="tw" style={{ margin: 0 }}><table className="ptt2"><thead><tr><th>Agent</th><th className="n">Bills</th><th className="n">Business</th><th className="n">Commission</th><th className="n">Returns</th><th className="n">Earned<small className="mu" style={{ display: 'block', fontWeight: 500, textTransform: 'none' }}>on payment received</small></th><th className="n">Paid</th><th className="n">Payable now</th><th className="n"><span className="vh">Actions</span></th></tr></thead>
           <tbody id="cmRows" onKeyDown={(ev) => { const tr = (ev.target as HTMLElement).closest<HTMLElement>('tr[data-cme]'); if (tr && ev.key === 'Enter' && ev.target === tr) { ev.preventDefault(); tr.click(); } }}>
             {L.length ? L.map((e) => {
               const ret = Number(e.ret), due = Number(e.due), b = e.partyBalance === null ? null : Number(e.partyBalance);
@@ -129,7 +129,7 @@ export function CommissionPage() {
                   <td className="n"><b className={due > 0 ? 'neg' : ''}>{due < 0 ? 'Recover ' + inr2f(-due) : inr2f(due)}</b></td>
                   <td className="n" style={{ whiteSpace: 'nowrap' }}><button className="btn p sm" data-cmpay={e.id} disabled={!(due > 0)} onClick={() => pay(e)}>Pay</button> <button className="btn sm" data-cmedit={e.id} onClick={() => edit(e)}><Icon name="edit" /></button></td></tr>
               );
-            }) : <tr><td colSpan={9}><div className="ptempty pue"><b>No electricians yet</b><span>Add the electricians who refer customers to you. Pick one in “Referred by” on a sale and the commission is added to the rates.</span></div></td></tr>}
+            }) : <tr><td colSpan={9}><div className="ptempty pue"><b>No agents yet</b><span>Add the agents who refer customers to you. Pick one in “Referred by” on a sale and the commission is added to the rates.</span></div></td></tr>}
           </tbody></table></div></div>
       <SlModal m={modal} onClose={close} />
     </section>
