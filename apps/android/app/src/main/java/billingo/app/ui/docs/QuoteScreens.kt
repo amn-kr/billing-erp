@@ -184,6 +184,7 @@ fun QuoteScreen(
     api: Api, id: String, number: String, after: String, features: List<String>, itemOptions: JsonObject?, version: Int,
     onBack: () -> Unit, onParty: (id: String, name: String) -> Unit, onBill: (id: String, number: String) -> Unit,
     onEdit: () -> Unit, onCopy: () -> Unit, onConvert: () -> Unit, onChanged: () -> Unit, onLater: () -> Unit,
+    onBrandEdit: () -> Unit = onLater, onBrandCopy: () -> Unit = onLater, onBrandBill: (serId: String) -> Unit = { onLater() },
 ) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -243,13 +244,25 @@ fun QuoteScreen(
     val d = doc.data
     val st = d?.let { DocMaths.qState(it.cancelled, it.status) }
     val brand = d != null && DocMaths.isBrandWise(d)
+    // a brand-wise quotation (8.6c-2): the grid and the shop's prices work out every brand's total
+    val bd = load(id, version, brand) { if (brand) brandData(api, features) else null }
+    val bq = bd.data?.let { b -> d?.let { BrandMaths.fromSaved(b.g, it) } }
+    var conv by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
         Frame(
             d?.number ?: number, d?.date?.takeIf { it.isNotBlank() }?.let { Format.date(it, hi) }, onBack,
-            right = { if (d != null && !brand) IconBtn(Icons.Dots, stringResource(R.string.more_options), { menu = true }) },
-            foot = if (d == null || st != DocMaths.QState.Open || brand) null else ({
-                Btn(stringResource(R.string.dv_share), { pdf("wa") }, Modifier.weight(1f), Kind.Soft, Icons.Chat, busy = busy == "wa")
-                Btn(stringResource(R.string.qt_convert), onConvert, Modifier.weight(1f), Kind.Blue)
+            right = { if (d != null && (!brand || bq != null)) IconBtn(Icons.Dots, stringResource(R.string.more_options), { menu = true }) },
+            foot = if (d == null || st != DocMaths.QState.Open || (brand && bq == null)) null else ({
+                if (brand) {
+                    val b = bd.data!!
+                    Btn(stringResource(R.string.dv_share), {
+                        BrandMaths.message(b.c, b.g, bq!!, b.shop, BrandMaths.gstOn(b.c)) { Format.inr(it) }?.let { shareText(ctx, it) }
+                    }, Modifier.weight(1f), Kind.Soft, Icons.Chat)
+                    Btn(stringResource(R.string.qt_convert), { conv = true }, Modifier.weight(1f), Kind.Blue)
+                } else {
+                    Btn(stringResource(R.string.dv_share), { pdf("wa") }, Modifier.weight(1f), Kind.Soft, Icons.Chat, busy = busy == "wa")
+                    Btn(stringResource(R.string.qt_convert), onConvert, Modifier.weight(1f), Kind.Blue)
+                }
             }),
         ) {
             if (d == null || st == null) { Waiting(doc); return@Frame }
@@ -267,7 +280,8 @@ fun QuoteScreen(
                 val p = d.party
                 PartyCard(d.party?.name?.takeIf { it.isNotBlank() } ?: d.partyName.ifBlank { counter }, p?.let { { onParty(it.id, it.name) } })
                 if (brand) {
-                    T(stringResource(R.string.qt_brand_later), size = 13.sp, colour = Colours.Text2)
+                    val b = bd.data
+                    if (b != null && bq != null) BrandBody(b, bq) else Waiting(bd)
                 } else {
                     SectionTitle(stringResource(R.string.dv_items, d.lines.size))
                     LineRows(d.lines, true)
@@ -279,14 +293,24 @@ fun QuoteScreen(
             Dim({ menu = false }) {
                 Sheet(stringResource(R.string.more_options)) {
                     Grp {
-                        if (st == DocMaths.QState.Open) { MenuRow(Icons.Edit, stringResource(R.string.qt_edit), null) { menu = false; onEdit() }; Line() }
-                        MenuRow(Icons.Plus, stringResource(R.string.qt_copy), null) { menu = false; onCopy() }
+                        if (st == DocMaths.QState.Open) { MenuRow(Icons.Edit, stringResource(R.string.qt_edit), null) { menu = false; if (brand) onBrandEdit() else onEdit() }; Line() }
+                        MenuRow(Icons.Plus, stringResource(R.string.qt_copy), null) { menu = false; if (brand) onBrandCopy() else onCopy() }
                         if (st == DocMaths.QState.Open) {
                             Line()
                             DangerRow(Icons.Close, stringResource(R.string.qt_cancel)) { menu = false; ask = true }
                         }
                     }
                 }
+            }
+        }
+        if (conv && bq != null) {
+            BackHandler { conv = false }
+            val b = bd.data!!
+            val ranked = BrandMaths.ranked(BrandMaths.totals(b.c, b.g, bq))
+            BrandConvertSheet(ranked, { conv = false }) { t ->
+                conv = false
+                if (t.miss == b.g.rows.count { (bq.qty[it.id] ?: java.math.BigDecimal.ZERO).signum() > 0 }) say(ctx, ctx.getString(R.string.bq_none_in))
+                else onBrandBill(t.s.id)
             }
         }
         if (ask && d != null) {

@@ -76,6 +76,19 @@ class SaleSession(private val api: Api) {
         }
     }
 
+    /** Convert To Bill for one brand of a brand-wise quotation (8.6c-2): a new bill with that brand's items. */
+    fun fromBrand(scope: CoroutineScope, features: List<String>, quoteId: String, serId: String) {
+        fresh(features, Opened.Brand(quoteId, serId))
+        load(scope, features) { c ->
+            val g = api.quoteGrid()
+            val q = billingo.app.ui.docs.BrandMaths.fromSaved(g, api.saleDoc(quoteId))
+            val ser = g.ser.firstOrNull { it.id == serId } ?: throw ApiError(400, "That brand range is no longer in the quotation list.")
+            val (d, n) = billingo.app.ui.docs.BrandMaths.bill(c, g, q, ser, Format.todayIso())
+            imported = n
+            draft = d
+        }
+    }
+
     /** items brought in by Convert To Bill (shown once in a short message) */
     var imported by mutableStateOf(0)
 
@@ -85,6 +98,7 @@ class SaleSession(private val api: Api) {
         data class Edit(val id: String) : Opened
         data class Copy(val id: String) : Opened
         data class Convert(val id: String) : Opened
+        data class Brand(val id: String, val ser: String) : Opened
     }
     var opened: Opened = Opened.New(false)
         private set
@@ -104,6 +118,7 @@ class SaleSession(private val api: Api) {
         is Opened.Edit -> edit(scope, features, o.id)
         is Opened.Copy -> copyQuote(scope, features, o.id)
         is Opened.Convert -> fromQuote(scope, features, o.id)
+        is Opened.Brand -> fromBrand(scope, features, o.id, o.ser)
         is Opened.New -> start(scope, features, quote = o.quote)
     }
 
@@ -142,16 +157,7 @@ class SaleSession(private val api: Api) {
         problem = null
         scope.launch {
             try {
-                // all six at once; one refusal stops the rest and is shown with Try Again (never closes the app)
-                val c = coroutineScope {
-                    val s = async { api.settings() }; val b = async { api.shop() }; val l = async { api.priceLists() }
-                    val p = async { api.prices() }; val i = async { api.itemsFull() }; val pa = async { api.partiesFull() }
-                    // referral and batches are extras: without them (no access, an older server) the bill still works
-                    suspend fun <T> extra(get: suspend () -> T, none: T): T = try { get() } catch (e: ApiError) { if (e.status == 0) throw e; none }
-                    val r = async { extra({ api.commissionRules() }, emptyList()) }; val rf = async { extra({ api.referrers() }, emptyList()) }
-                    val bt = async { if ("batch_no" in features) extra({ api.batches() }, emptyMap()) else emptyMap() }
-                    SaleMaths.ctx(s.await(), b.await().stateCode, l.await(), p.await(), features, i.await(), pa.await(), r.await(), rf.await(), bt.await())
-                }
+                val c = shopLists(api, features)
                 ctx = c
                 then(c)
                 if (number) refreshNumber(scope)
@@ -196,4 +202,18 @@ class SaleSession(private val api: Api) {
 
     /** "Save anyway": the same bill again with that answer; a fresh key, because the bill sent is different. */
     fun confirm(code: String) { change { it.copy(confirmed = it.confirmed + code, key = java.util.UUID.randomUUID().toString()) }; ask = null }
+}
+
+/**
+ * The shop's lists a bill or quotation needs (settings, prices, items, parties, rules, referrers,
+ * batches), all asked at once; one refusal stops the rest. Referral and batches are extras: without
+ * them (no access, an older server) the bill still works.
+ */
+suspend fun shopLists(api: Api, features: List<String>): SaleMaths.Ctx = coroutineScope {
+    val s = async { api.settings() }; val b = async { api.shop() }; val l = async { api.priceLists() }
+    val p = async { api.prices() }; val i = async { api.itemsFull() }; val pa = async { api.partiesFull() }
+    suspend fun <T> extra(get: suspend () -> T, none: T): T = try { get() } catch (e: ApiError) { if (e.status == 0) throw e; none }
+    val r = async { extra({ api.commissionRules() }, emptyList()) }; val rf = async { extra({ api.referrers() }, emptyList()) }
+    val bt = async { if ("batch_no" in features) extra({ api.batches() }, emptyMap()) else emptyMap() }
+    SaleMaths.ctx(s.await(), b.await().stateCode, l.await(), p.await(), features, i.await(), pa.await(), r.await(), rf.await(), bt.await())
 }

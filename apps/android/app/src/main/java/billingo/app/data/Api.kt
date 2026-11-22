@@ -177,6 +177,11 @@ class Api(private val base: String, private val store: Store, private val client
     suspend fun commissionRules(): List<CommissionRule> = send("GET", "/commission-rules", null, ListSerializer(CommissionRule.serializer()))
     suspend fun batches(): Map<String, List<StockBatch>> = send("GET", "/batches", null, kotlinx.serialization.builtins.MapSerializer(String.serializer(), ListSerializer(StockBatch.serializer())))
     suspend fun pastPrices(itemId: String, partyId: String): List<PastPrice> = send("GET", "/sales/price-history?item=$itemId&party=$partyId", null, ListSerializer(PastPrice.serializer()))
+    // 8.6c-2: brand-wise quotations
+    suspend fun quoteGrid(): QuoteGrid = send("GET", "/quote-grid", null, QuoteGrid.serializer())
+    /** a new brand-wise quotation, or a saved one changed (with the passcode when the shop asks for it) */
+    suspend fun saveBrandQuote(body: JsonObject, id: String? = null, passcode: String? = null): SavedNo =
+        if (id == null) send("POST", "/quotations/brand", body, SavedNo.serializer()) else send("PUT", "/quotations/brand/$id", body, SavedNo.serializer(), passcode = passcode)
     suspend fun quotations(): List<QuoteRow> = send("GET", "/sales?kind=quotation", null, ListSerializer(QuoteRow.serializer()))
     suspend fun saleDoc(id: String): SaleDoc = send("GET", "/sales/$id", null, SaleDoc.serializer())
     // 8.6a: Sale Bills

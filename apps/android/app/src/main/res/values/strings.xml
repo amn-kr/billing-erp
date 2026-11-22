@@ -775,11 +775,37 @@
     <string name="qt_copy">Copy As New Quotation</string>
     <string name="qt_cancel">Cancel Quotation</string>
     <string name="qt_cancel_text">It leaves the open list and stays in the books marked Cancelled.</string>
-    <string name="qt_brand_later">Brand-wise quotations open on the phone in the next update. They work on the computer today.</string>
     <string name="qt_no">Quotation No.</string>
     <string name="qt_total">Quotation Total (With GST)</string>
     <string name="qt_discard_q">Discard This Quotation?</string>
     <string name="qt_saved_new">%1$s saved. New quotation started.</string>
     <string name="qt_saved">%1$s saved.</string>
     <string name="qt_from">%1$d items from %2$s. Check and save the bill.</string>
+
+    <!-- 8.6c-2: Brand-wise quotations -->
+    <string name="bq_title">Brand-Wise Quotation</string>
+    <string name="bq_ranges">Brand Ranges</string>
+    <string name="bq_qty">Quantities</string>
+    <string name="bq_in">In %1$s</string>
+    <string name="bq_in_none">Not in any range</string>
+    <string name="bq_disc">Discount %</string>
+    <string name="bq_totals">Brand Totals</string>
+    <string name="bq_enter_qty">Enter quantities to see each brand’s total.</string>
+    <string name="bq_all">All Items Available</string>
+    <string name="bq_missing">%1$d Not Available</string>
+    <string name="bq_disc_amt">Disc −%1$s</string>
+    <string name="bq_disc_pct">Discount %1$s%%</string>
+    <string name="bq_lowest">Lowest</string>
+    <string name="bq_cust_ph">Customer Name</string>
+    <string name="bq_no_cust">No Customer</string>
+    <string name="bq_use_name">Use This Name</string>
+    <string name="bq_need_qty">Enter at least one quantity first.</string>
+    <string name="bq_leave_t">The quantities you entered are not saved.</string>
+    <string name="bq_pass_text">Enter the transaction passcode to change this quotation.</string>
+    <string name="bq_conv_text">Choose the brand the customer wants. Best first: all items available, then cheapest.</string>
+    <string name="bq_left_1">1 item not available; it is left out</string>
+    <string name="bq_left_n">%1$d items not available; they are left out</string>
+    <string name="bq_none_in">None of these items are available in this brand.</string>
+    <string name="bq_items_qty">Items And Quantities</string>
+    <string name="bq_pcs">%1$s Pcs</string>
 </resources>

@@ -775,11 +775,37 @@
     <string name="qt_copy">नई Quotation में कॉपी करें</string>
     <string name="qt_cancel">Quotation रद्द करें</string>
     <string name="qt_cancel_text">यह खुली सूची से हटेगी और किताबों में \"रद्द\" लिखी रहेगी।</string>
-    <string name="qt_brand_later">ब्रांड के हिसाब से Quotation फ़ोन पर अगले अपडेट में खुलेंगी। कंप्यूटर पर ये अभी चलती हैं।</string>
     <string name="qt_no">Quotation नं.</string>
     <string name="qt_total">Quotation का जोड़ (GST सहित)</string>
     <string name="qt_discard_q">यह Quotation छोड़ें?</string>
     <string name="qt_saved_new">%1$s सेव हुई। नई Quotation शुरू।</string>
     <string name="qt_saved">%1$s सेव हुई।</string>
     <string name="qt_from">%2$s से %1$d आइटम आए। देखकर बिल सेव करें।</string>
+
+    <!-- 8.6c-2: Brand-wise quotations -->
+    <string name="bq_title">ब्रांड के हिसाब से Quotation</string>
+    <string name="bq_ranges">ब्रांड की रेंज</string>
+    <string name="bq_qty">मात्रा</string>
+    <string name="bq_in">इनमें: %1$s</string>
+    <string name="bq_in_none">किसी रेंज में नहीं</string>
+    <string name="bq_disc">छूट %</string>
+    <string name="bq_totals">ब्रांड के हिसाब से जोड़</string>
+    <string name="bq_enter_qty">हर ब्रांड का जोड़ देखने के लिए मात्रा लिखें।</string>
+    <string name="bq_all">सभी आइटम उपलब्ध</string>
+    <string name="bq_missing">%1$d उपलब्ध नहीं</string>
+    <string name="bq_disc_amt">छूट −%1$s</string>
+    <string name="bq_disc_pct">छूट %1$s%%</string>
+    <string name="bq_lowest">सबसे कम</string>
+    <string name="bq_cust_ph">ग्राहक का नाम</string>
+    <string name="bq_no_cust">ग्राहक नहीं</string>
+    <string name="bq_use_name">यह नाम रखें</string>
+    <string name="bq_need_qty">पहले कम से कम एक मात्रा लिखें।</string>
+    <string name="bq_leave_t">लिखी गई मात्रा सेव नहीं होगी।</string>
+    <string name="bq_pass_text">Quotation बदलने के लिए लेन-देन का पासकोड डालें।</string>
+    <string name="bq_conv_text">ग्राहक जो ब्रांड चाहता है वह चुनें। सबसे अच्छा ऊपर: सारे आइटम उपलब्ध, फिर सबसे सस्ता।</string>
+    <string name="bq_left_1">1 आइटम उपलब्ध नहीं; वह छोड़ा जाएगा</string>
+    <string name="bq_left_n">%1$d आइटम उपलब्ध नहीं; वे छोड़े जाएँगे</string>
+    <string name="bq_none_in">इस ब्रांड में इनमें से कोई आइटम नहीं है।</string>
+    <string name="bq_items_qty">आइटम और मात्रा</string>
+    <string name="bq_pcs">%1$s नग</string>
 </resources>
