@@ -59,11 +59,11 @@ The look of the web and Windows apps now comes from **the app's own theme** (its
 
 | Part | What | Status |
 |---|---|---|
-| 1. The rule | New rule written in `CLAUDE.md`, README, `docs/ARCHITECTURE.md`, `docs/MOBILE-PLAN.md` and here. Documents only | in review |
-| 2. Colour and font guard | The test that compares the stylesheets with the prototype is replaced by one that fails on any colour or font outside the theme | planned |
+| 1. The rule | New rule written in `CLAUDE.md`, README, `docs/ARCHITECTURE.md`, `docs/MOBILE-PLAN.md` and here. Documents only | done (PR #155, 22 Nov 2026) |
+| 2. Colour and font guard | The style test no longer compares the stylesheets with the prototype. `apps/web/src/styles/theme-list.ts` lists every colour (176) and font (10) the web and Windows apps use today, and `look-guard.test.ts` fails on anything else: stylesheets, screens, the printed invoice, PDF and Excel files, the Windows app's own pages | in review |
 | 3. Pictures and fit checks | One picture per screen at 1366 px (the 211 the owner already approved; 1280 and 1920 pictures retired, kept in git history), plus fit checks at 1280, 1366, 1440, 1536, 1600 and 1920 px (nothing outside the screen, no overlaps, no cut text or amounts, buttons not too small); Windows app too. First tried on a few screens and the time compared with today's checks | planned |
 
-Until parts 2 and 3 are merged, the old checks keep running.
+Until part 3 is merged, every screen is still pictured at 1280, 1366 and 1920 px.
 
 ## On hold (waiting for a later phase or an owner decision)
 | Item | Waiting for |

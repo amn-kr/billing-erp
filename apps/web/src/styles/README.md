@@ -1,8 +1,9 @@
 # Styles — the app's own theme (copied unchanged from the prototype)
 
 These files are the app's own theme (owner, 22 Nov 2026: the look comes from this theme; see `CLAUDE.md`). Change them only when the owner asks for a look change.
-Until part 2 of the look rule change is merged, do not edit them: they are byte-for-byte copies, and
-`src/styles/styles.test.ts` fails if they drift from the prototype.
+They started as byte-for-byte copies of the prototype; no test compares them with it any more.
+Every colour and font in them (and anywhere else in the web and Windows apps) must be on the list in
+`theme-list.ts`, or `look-guard.test.ts` fails. Adding to that list needs the owner's OK.
 
 | File | Source |
 |---|---|
