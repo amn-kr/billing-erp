@@ -5,7 +5,10 @@
  * - nothing sticks out of the window (the page itself never scrolls sideways),
  * - no button or box sits on top of another,
  * - no text or amount is cut off (text that ends in "…" is allowed),
- * - no button is too small to click.
+ * - no button is too small to click (a button drawn as a box; buttons drawn as plain text links are left out).
+ * Left out on purpose: labels hidden for screen readers (1 px), an icon button inside a box (the search box's
+ * ✕), anything scrolled out of sight inside its list, and what scrolls under a part that stays in place on
+ * purpose (a sticky column or footer, e.g. Bulk entry's remove-row column).
  * A problem fails the test with the screen, the width and the element in plain words.
  */
 import { expect, type Page } from '@playwright/test';
@@ -57,12 +60,32 @@ function measure({ sel, minButton }: { sel: string; minButton: number }): string
   const shown = (el: Element) => {
     if (!el.getClientRects().length) return false;
     const r = el.getBoundingClientRect();
-    if (r.width < 1 || r.height < 1) return false;
+    if (r.width < 2 || r.height < 2) return false; // e.g. .vh, a label only for screen readers
     for (let e: Element | null = el; e; e = e.parentElement) {
       const s = getComputedStyle(e);
       if (s.visibility === 'hidden' || s.opacity === '0' || s.display === 'none') return false;
+      if (s.clip !== 'auto' && s.clip !== '' && s.position === 'absolute') return false;
     }
     return true;
+  };
+  /** the part of the element that can be seen: cut by every box around it that hides what sticks out */
+  const seen = (el: Element) => {
+    const r = el.getBoundingClientRect();
+    let { left, top, right, bottom } = r;
+    for (let e = el.parentElement; e && e !== document.documentElement; e = e.parentElement) {
+      const s = getComputedStyle(e);
+      if (s.overflowX === 'visible' && s.overflowY === 'visible') continue;
+      const c = e.getBoundingClientRect();
+      left = Math.max(left, c.left); top = Math.max(top, c.top); right = Math.min(right, c.right); bottom = Math.min(bottom, c.bottom);
+    }
+    return { left, top, right, bottom };
+  };
+  /** a button drawn as a box (a fill or a border), not as a plain text link */
+  const boxed = (el: Element) => {
+    const s = getComputedStyle(el);
+    const fill = !/rgba\(.*,\s*0\)|transparent/.test(s.backgroundColor);
+    const line = ['Top', 'Right', 'Bottom', 'Left'].some((k) => parseFloat(s.getPropertyValue(`border-${k.toLowerCase()}-width`)) > 0 && s.getPropertyValue(`border-${k.toLowerCase()}-style`) !== 'none');
+    return fill || line;
   };
   /** inside a box that scrolls sideways on purpose (a wide table), or one that clips it */
   const scrollsOrClips = (el: Element) => {
@@ -93,15 +116,27 @@ function measure({ sel, minButton }: { sel: string; minButton: number }): string
   // 4. buttons big enough, 5. no control on top of another
   const controls = all.filter((el) => el.matches('button, [role="button"], a.btn, input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, textarea'));
   for (const el of controls) {
-    if (!el.matches('button, [role="button"], a.btn')) continue;
+    if (!el.matches('button, [role="button"], a.btn') || !boxed(el)) continue;
     const r = el.getBoundingClientRect();
     if (r.width < minButton || r.height < minButton) out.push(`${say(el)} is too small (${Math.round(r.width)}×${Math.round(r.height)}px)`);
   }
+  const sticky = (el: Element) => {
+    for (let e: Element | null = el; e && e !== document.body; e = e.parentElement) if (getComputedStyle(e).position === 'sticky') return true;
+    return false;
+  };
+  const inside = (a: { left: number; top: number; right: number; bottom: number }, b: typeof a) =>
+    a.left >= b.left - 1 && a.top >= b.top - 1 && a.right <= b.right + 1 && a.bottom <= b.bottom + 1;
+  const boxes = controls.map(seen);
   for (let i = 0; i < controls.length; i++) {
-    const a = controls[i]!.getBoundingClientRect();
+    const a = boxes[i]!;
+    if (a.right - a.left < 2 || a.bottom - a.top < 2) continue; // scrolled out of sight
     for (let j = i + 1; j < controls.length; j++) {
       if (controls[i]!.contains(controls[j]!) || controls[j]!.contains(controls[i]!)) continue;
-      const b = controls[j]!.getBoundingClientRect();
+      const b = boxes[j]!;
+      if (b.right - b.left < 2 || b.bottom - b.top < 2) continue;
+      // an icon button inside a box on purpose (the ✕ in a search box, the ▾ of a list)
+      if (inside(a, b) || inside(b, a)) continue;
+      if (sticky(controls[i]!) !== sticky(controls[j]!)) continue;
       const x = Math.min(a.right, b.right) - Math.max(a.left, b.left);
       const y = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
       if (x > 2 && y > 2) out.push(`${say(controls[i]!)} overlaps ${say(controls[j]!)}`);
