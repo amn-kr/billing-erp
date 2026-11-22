@@ -71,6 +71,7 @@ The app is not only for electrical shops. In the web, Windows and phone apps:
 - **The party group "Electricians" is now "Agents"** for new shops. Shops made earlier keep their "Electricians" group and it still counts: its parties still show on the Commission page, and new agents go into it (API test).
 - **Examples in boxes** no longer use electrical goods: e.g. Steel bottle 1 L, Home delivery, Tata, Gold, Gupta Traders, Mehta Traders, Small / 1 kg / White, Dozen (DZN); the Excel sample rows for item import too. The phone's HSN box shows "8 Digits".
 - **Not changed yet, waiting for the owner:** the starting item categories and their commission rules (Wires & cables, Lighting, Switches & MCBs, Fans …) and the Quotation's "Switches & accessories / Plates" sections. Test data and the hidden phone design-check screen keep their sample names.
+- **Pictures:** 38 web and Windows pictures with the new words, made on GitHub, approved by the owner (22 Nov 2026).
 
 ## On hold (waiting for a later phase or an owner decision)
 | Item | Waiting for |
