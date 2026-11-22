@@ -1109,9 +1109,9 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
         <button type="button" data-jump5="cnlist"><span class="no">16</span><span data-hi="क्रेडिट नोट (सूची)">Credit Notes (List)</span></button>
         <button type="button" data-jump5="cnform"><span class="no">17</span><span data-hi="नया क्रेडिट नोट">New Credit Note</span></button>
         <button type="button" data-jump5="cnview"><span class="no">18</span><span data-hi="क्रेडिट नोट देखें">Credit Note View</span></button>
-        <button type="button" data-jump5="cmlist"><span class="no">19</span><span data-hi="इलेक्ट्रीशियन कमीशन">Electrician Commission</span></button>
-        <button type="button" data-jump5="cmpage"><span class="no">20</span><span data-hi="इलेक्ट्रीशियन का हिसाब">Electrician Ledger</span></button>
-        <button type="button" data-jump5="cmpay"><span class="no">21</span><span data-hi="इलेक्ट्रीशियन को भुगतान">Pay Electrician</span></button>
+        <button type="button" data-jump5="cmlist"><span class="no">19</span><span data-hi="एजेंट कमीशन">Agent Commission</span></button>
+        <button type="button" data-jump5="cmpage"><span class="no">20</span><span data-hi="एजेंट का हिसाब">Agent Ledger</span></button>
+        <button type="button" data-jump5="cmpay"><span class="no">21</span><span data-hi="एजेंट को भुगतान">Pay Agent</span></button>
         <button type="button" data-jump5="cmrules"><span class="no">22</span><span data-hi="कमीशन के नियम">Commission Rules</span></button>
       </div>
     </div>
@@ -1449,9 +1449,9 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
       <section class="scn" data-s="pform" hidden>
         <div class="sh"><button class="btn ico" data-back aria-label="Close"><svg class="ic"><use href="#xic"/></svg></button><div class="mid"><div class="t" id="pf-title" data-hi="नई पार्टी">New Party</div></div></div>
         <div class="sb">
-          <div class="fld"><label for="pf-name" data-hi="पार्टी का नाम *">Party Name *</label><div class="inp" id="pf-name-w"><input id="pf-name" placeholder="e.g. Mehta Electricals" data-hi-ph="जैसे Mehta Electricals" autocomplete="off"><button type="button" class="pk" data-ov="contacts" data-cmode="pick" aria-label="Pick From Contacts"><svg class="ic"><use href="#book"/></svg></button></div><div class="ferr" id="pf-err" hidden data-hi="पार्टी का नाम लिखें।">Enter the party name.</div></div>
+          <div class="fld"><label for="pf-name" data-hi="पार्टी का नाम *">Party Name *</label><div class="inp" id="pf-name-w"><input id="pf-name" placeholder="e.g. Mehta Traders" data-hi-ph="जैसे Mehta Traders" autocomplete="off"><button type="button" class="pk" data-ov="contacts" data-cmode="pick" aria-label="Pick From Contacts"><svg class="ic"><use href="#book"/></svg></button></div><div class="ferr" id="pf-err" hidden data-hi="पार्टी का नाम लिखें।">Enter the party name.</div></div>
           <div class="fld"><label for="pf-phone" data-hi="फ़ोन नंबर">Phone Number</label><div class="inp"><span class="pre">+91</span><input id="pf-phone" inputmode="tel" placeholder="98765 43210" autocomplete="off"><button type="button" class="pk" data-ov="contacts" data-cmode="pick" aria-label="Pick From Contacts"><svg class="ic"><use href="#book"/></svg></button></div></div>
-          <div class="fld"><label for="pf-grp" data-hi="पार्टी ग्रुप">Party Group</label><div class="inp"><select id="pf-grp"><option>General</option><option>Electricians</option><option>Suppliers</option></select></div><button type="button" class="lnk sm" data-toast="Adds a new group, e.g. Plumbers." data-toast-hi="नया ग्रुप जोड़ेगा, जैसे Plumbers।" data-hi="+ नया ग्रुप">+ Add New Group</button></div>
+          <div class="fld"><label for="pf-grp" data-hi="पार्टी ग्रुप">Party Group</label><div class="inp"><select id="pf-grp"><option>General</option><option>Agents</option><option>Suppliers</option></select></div><button type="button" class="lnk sm" data-toast="Adds a new group, e.g. Plumbers." data-toast-hi="नया ग्रुप जोड़ेगा, जैसे Plumbers।" data-hi="+ नया ग्रुप">+ Add New Group</button></div>
 
           <button type="button" class="acc" data-grp aria-expanded="false"><svg class="ic" style="color:var(--blue)"><use href="#bill"/></svg><span data-hi="GST और पता">GST And Address</span><span class="ex"><svg class="ic"><use href="#next"/></svg></span></button>
           <div class="accb" hidden>
@@ -1543,9 +1543,9 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
           <div class="seg4" id="if-kv"><div class="seg2" role="radiogroup" id="if-kind"><button type="button" role="radio" data-seg aria-pressed="true"><span data-hi="सामान">Product</span></button><button type="button" role="radio" data-seg aria-pressed="false"><span data-hi="सेवा">Service</span></button></div><div class="seg2" role="radiogroup" id="if-var"><button type="button" role="radio" data-seg data-hides="if-vbox" aria-pressed="true"><span data-hi="अकेला">Single</span></button><button type="button" role="radio" data-seg data-shows2="if-vbox" aria-pressed="false"><span data-hi="वैरिएंट">Variant</span></button></div></div>
           <div id="if-vbox" hidden style="display:flex;flex-direction:column;gap:12px">
             <div class="fld"><label for="if-par" data-hi="मुख्य आइटम *">Parent Item *</label><div class="inp"><select id="if-par"><option>Modular Switch 16A</option><option>LED Bulb</option></select></div></div>
-            <div class="fld"><label for="if-ser" data-hi="सीरीज़ / मॉडल *">Series / Model *</label><div class="inp"><input id="if-ser" placeholder="e.g. Coral" autocomplete="off"></div></div>
+            <div class="fld"><label for="if-ser" data-hi="सीरीज़ / मॉडल *">Series / Model *</label><div class="inp"><input id="if-ser" placeholder="e.g. Gold" autocomplete="off"></div></div>
           </div>
-          <div class="fld"><label for="if-name" data-hi="आइटम का नाम *">Item Name *</label><div class="inp" id="if-name-w"><input id="if-name" placeholder="e.g. LED Bulb 9W Cool Day Light" data-hi-ph="जैसे LED Bulb 9W Cool Day Light" autocomplete="off"></div><div class="ferr" id="if-err" hidden data-hi="आइटम का नाम लिखें।">Enter the item name.</div></div>
+          <div class="fld"><label for="if-name" data-hi="आइटम का नाम *">Item Name *</label><div class="inp" id="if-name-w"><input id="if-name" placeholder="e.g. Steel Bottle 1 L" data-hi-ph="जैसे Steel Bottle 1 L" autocomplete="off"></div><div class="ferr" id="if-err" hidden data-hi="आइटम का नाम लिखें।">Enter the item name.</div></div>
           <div class="fld"><label for="if-brand" data-hi="ब्रांड">Brand</label><div class="inp"><select id="if-brand"><option value="" data-hi="कोई नहीं">None</option><option>Philips</option><option>Havells</option><option>Anchor</option><option>Legrand</option></select></div><button type="button" class="lnk sm" data-toast="Adds a new brand, e.g. Polycab." data-toast-hi="नया ब्रांड जोड़ेगा, जैसे Polycab।" data-hi="+ नया ब्रांड">+ Add Brand</button></div>
           <div class="fld"><label for="if-cat" data-hi="श्रेणी">Category</label><div class="inp"><select id="if-cat"><option value="" data-hi="कोई श्रेणी नहीं">No Category</option><option>Lighting</option><option>Wires</option><option>Switches</option><option>MCB</option></select></div></div>
           <div class="fld"><label for="if-code" data-hi="आइटम कोड">Item Code</label><div class="inp"><input id="if-code" placeholder="Maker's Code" data-hi-ph="कंपनी का कोड" autocomplete="off"><button type="button" class="pk" data-go="scan" data-scanfor="code" aria-label="Scan Barcode"><svg class="ic"><use href="#scan"/></svg></button></div><button type="button" class="lnk sm" data-assign data-hi="कोड दें (JE004)">Assign Code (JE004)</button></div>
@@ -1952,7 +1952,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
         <div class="sheet" style="gap:10px">
           <div class="grab"></div>
           <div><b data-hi="रेफ़रल (कमीशन)">Referral</b><div class="t-x" data-hi="कमीशन रेट में जुड़ता है · बिल पर नहीं छपता">Added to the rates · not printed on the bill</div></div>
-          <div class="fld"><label for="rf-who" data-hi="किसने भेजा">Referred By</label><div class="inp"><select id="rf-who"><option value="" data-hi="कोई नहीं">No Electrician</option><option>Raju Electrician</option><option>Pintu Wiring Contractor</option></select></div><button type="button" class="lnk sm" data-toast="Adds an electrician: name, mobile, city." data-toast-hi="नया इलेक्ट्रीशियन: नाम, मोबाइल, शहर।" data-hi="+ इलेक्ट्रीशियन जोड़ें">+ Add Electrician</button></div>
+          <div class="fld"><label for="rf-who" data-hi="किसने भेजा">Referred By</label><div class="inp"><select id="rf-who"><option value="" data-hi="कोई नहीं">No Agent</option><option>Raju Electrician</option><option>Pintu Wiring Contractor</option></select></div><button type="button" class="lnk sm" data-toast="Adds an agent: name, mobile, city." data-toast-hi="नया एजेंट: नाम, मोबाइल, शहर।" data-hi="+ एजेंट जोड़ें">+ Add Agent</button></div>
           <div id="rf-body"></div>
           <button class="btn blue" data-close><span data-hi="ठीक है">Done</span></button>
         </div>
@@ -2117,11 +2117,11 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
   function addDays(iso,n){var d=new Date(iso+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
   function daysBetween(a,b){return Math.round((Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/864e5)}
   var P={
-    mehta:{n:'Mehta Electricals',k:'c',ph:'98390 12345',gst:'09ABCPM1234K1Z5',g:'Electricians',city:'Kanpur',lim:5000000,days:30,tx:[['inv','INV-0090','2026-09-20',840000,0],['pay','PR-0035','2026-09-28',840000,0],['inv','INV-0098','2026-10-05',1962640,1962640],['inv','INV-0107','2026-11-14',212300,212300]]},
+    mehta:{n:'Mehta Electricals',k:'c',ph:'98390 12345',gst:'09ABCPM1234K1Z5',g:'Agents',city:'Kanpur',lim:5000000,days:30,tx:[['inv','INV-0090','2026-09-20',840000,0],['pay','PR-0035','2026-09-28',840000,0],['inv','INV-0098','2026-10-05',1962640,1962640],['inv','INV-0107','2026-11-14',212300,212300]]},
     gupta:{n:'Gupta Lighting House',k:'c',ph:'94150 22110',g:'General',city:'Lucknow',days:15,tx:[['inv','INV-0106','2026-11-12',824600,412300],['pay','PR-0044','2026-11-12',412300,0]]},
     kanpur:{n:'Kanpur Cables Pvt Ltd',k:'s',ph:'99350 44556',gst:'09AABCK5678L1Z2',g:'Suppliers',city:'Kanpur',days:45,tx:[['pb','PB-0031','2026-11-10',6011900,6011900]]},
     shree:{n:'Shree Ganesh Electrical & Sanitary Store',k:'c',ph:'98765 11223',g:'General',city:'Unnao',days:0,tx:[['inv','INV-0101','2026-11-03',356000,0],['pay','PR-0040','2026-11-03',356000,0]]},
-    raju:{n:'Raju Electrician',k:'c',ph:'98765 43210',g:'Electricians',city:'Kanpur',days:0,tx:[]},
+    raju:{n:'Raju Electrician',k:'c',ph:'98765 43210',g:'Agents',city:'Kanpur',days:0,tx:[]},
     verma:{n:'Verma Traders',k:'c',ph:'',g:'General',city:'Kanpur',days:0,tx:[],inactive:true}
   };
   var TN={inv:['Sale Bill','बिक्री बिल'],pay:['Payment In','मिला भुगतान'],pb:['Purchase Bill','ख़रीद बिल'],ob:['Opening Balance','पुराना बैलेंस']};
@@ -2791,7 +2791,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     ch:{t:['Delivery Challans','डिलीवरी चालान'],st:[['all','All','सभी'],['open','Not Billed','बिल नहीं बना'],['inv','Invoiced','बिल बना'],['x','Cancelled','रद्द']],nw:['New Challan','नया चालान']},
     pr:{t:['Payments Received','मिले भुगतान'],st:[['all','All Modes','सभी तरीक़े'],['Cash','Cash','नक़द'],['UPI','UPI','UPI'],['Bank Transfer','Bank','बैंक'],['Cheque','Cheque','चेक'],['x','Cancelled','रद्द']],nw:['Receive Payment','भुगतान लें']},
     cn:{t:['Credit Notes','क्रेडिट नोट'],st:[['all','All','सभी'],['adj','Adjusted','समायोजित'],['ref','Refunded','पैसे लौटाए'],['x','Cancelled','रद्द']],nw:['New Credit Note','नया क्रेडिट नोट']},
-    el:{t:['Commission','कमीशन'],st:[['all','All','सभी'],['due','Payable','देना है'],['none','No Dues','कोई बाकी नहीं']],nw:['Add Electrician','इलेक्ट्रीशियन जोड़ें']}
+    el:{t:['Commission','कमीशन'],st:[['all','All','सभी'],['due','Payable','देना है'],['none','No Dues','कोई बाकी नहीं']],nw:['Add Agent','एजेंट जोड़ें']}
   };
   function rowsOf(k){var R0=[];
     if(k==='inv')DOC.inv.forEach(function(d){var s=invState(d);R0.push({no:d.no,nm:pname(d),sub:esc(d.no)+' | '+LD(d.d),amt:d.total,b:s,f:d.st==='x'?'x':invDues(d)?'due':'paid',k:d.no+' '+pname(d)})});
@@ -2860,7 +2860,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(k==='el'){var e=d,sm=elSum(e);t=e.n;s=e.ph?'+91 '+esc(e.ph):'';
       h+='<div class="dsum three"><div><small>'+L('Earned','कमाया')+'</small><b>'+R(sm.earn)+'</b></div><div><small>'+L('Paid','दिया')+'</small><b>'+R(sm.paid)+'</b></div><div><small>'+L('↑ Payable','↑ देना है')+'</small><b class="cr">'+R(sm.due)+'</b></div></div>';
       if(sm.wait)h+='<div class="hint">'+L('₹'+inr(sm.wait)+' more becomes payable when the customers pay their bills.','₹'+inr(sm.wait)+' और देना होगा जब ग्राहक अपने बिल चुका देंगे।')+'</div>';
-      h+='<div class="sec">'+L('Ledger','हिसाब')+'</div><div class="grp">'+e.led.slice().reverse().map(function(x){var nm=x[0]==='pay'?L('Paid To Electrician','इलेक्ट्रीशियन को दिया'):x[0]==='ret'?L('Deducted For Return','वापसी पर कटा'):L('Commission On Bill','बिल का कमीशन'),b=x[0]==='pay'?['info','Paid','दिया']:x[0]==='ret'?['due','Deducted','कटा']:x[0]==='wait'?['cr','Pending','बाकी']:['paid','Earned','कमाया'];
+      h+='<div class="sec">'+L('Ledger','हिसाब')+'</div><div class="grp">'+e.led.slice().reverse().map(function(x){var nm=x[0]==='pay'?L('Paid To Agent','एजेंट को दिया'):x[0]==='ret'?L('Deducted For Return','वापसी पर कटा'):L('Commission On Bill','बिल का कमीशन'),b=x[0]==='pay'?['info','Paid','दिया']:x[0]==='ret'?['due','Deducted','कटा']:x[0]==='wait'?['cr','Pending','बाकी']:['paid','Earned','कमाया'];
         return '<div class="srow cpr"'+(x[0]==='earn'||x[0]==='wait'?' role="button" tabindex="0" data-dopen="inv:'+x[1]+'"':x[0]==='ret'?' role="button" tabindex="0" data-dopen="cn:'+x[1]+'"':'')+'><div class="mid"><div class="nm">'+nm+'</div><div class="t-x one">'+esc(x[1])+' | '+LD(x[2])+(x[4]&&P[x[4]]?' · '+esc(P[x[4]].n):x[0]==='pay'?' · '+modeL(x[4]):'')+'</div></div><div class="end"><div class="v'+(x[0]==='ret'?' cr':'')+'">'+(x[0]==='ret'?'−':'')+m2(x[3])+'</div>'+badge(b)+'</div></div>'}).join('')+'</div>';
       bar=sm.due>0?'<button class="btn blue grow" data-cmpay><svg class="ic"><use href="#rupee"/></svg>'+L('Pay ₹'+m2(sm.due),'₹'+m2(sm.due)+' दें')+'</button>':''}
     document.getElementById('dv-t').innerHTML=esc(t);document.getElementById('dv-s').innerHTML=s;
@@ -2873,7 +2873,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(k==='ch'&&d.st==='open'){m.push(['dedit','edit','Edit Challan','चालान बदलें']);m.push(['dcan','xic','Cancel Challan','चालान रद्द करें',1])}
     if(k==='pr'&&d.st!=='x'){m.push(['dedit','edit','Edit Payment','भुगतान बदलें']);m.push(['dcan','xic','Cancel Payment','भुगतान रद्द करें',1])}
     if(k==='cn'&&d.st!=='x')m.push(['dcan','xic','Cancel Credit Note','क्रेडिट नोट रद्द करें',1]);
-    if(k==='el')m.push(['eledit','edit','Edit Electrician','इलेक्ट्रीशियन बदलें']);
+    if(k==='el')m.push(['eledit','edit','Edit Agent','एजेंट बदलें']);
     return m}
   function gs(h){document.getElementById('gs-body').innerHTML='<div class="grab"></div>'+h;ov('gs')}
   function gd(h){document.getElementById('gd-body').innerHTML=h;ov('gd')}
@@ -3043,7 +3043,7 @@ svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-wid
     if(t.hasAttribute('data-cmrok')){CR.forEach(function(c,i){c[1]=document.querySelector('[data-crt="'+i+'"]').value;c[2]=parseFloat(document.querySelector('[data-crv="'+i+'"]').value)||0});closeOv();toast('Commission rules saved.','कमीशन के नियम सेव हुए।');return}
     if(t.hasAttribute('data-elok')){var nm=document.getElementById('el-n').value.trim();if(!nm){toast('Enter the name.','नाम लिखें।');return}var id=t.dataset.elok||('e'+Date.now());if(EL[id]){EL[id].n=nm;EL[id].ph=document.getElementById('el-p').value.trim();EL[id].city=document.getElementById('el-c').value.trim()}else EL[id]={n:nm,ph:document.getElementById('el-p').value.trim(),city:document.getElementById('el-c').value.trim(),led:[]};closeOv();show(cur);toast(nm+' saved.',nm+' सेव हुआ।');return}
   });
-  function elForm(id){var e=id?EL[id]:{n:'',ph:'',city:''};gs('<b>'+(id?L('Edit Electrician','इलेक्ट्रीशियन बदलें'):L('Add Electrician','इलेक्ट्रीशियन जोड़ें'))+'</b><div class="fld"><label for="el-n">'+L('Name','नाम')+'</label><div class="inp"><input id="el-n" value="'+esc(e.n)+'" autocomplete="off"></div></div><div class="srow2"><div class="fld"><label for="el-p">'+L('Mobile','मोबाइल')+'</label><div class="inp"><input id="el-p" inputmode="tel" value="'+esc(e.ph)+'" autocomplete="off"></div></div><div class="fld"><label for="el-c">'+L('City','शहर')+'</label><div class="inp"><input id="el-c" value="'+esc(e.city)+'" autocomplete="off"></div></div></div><button class="btn blue" data-elok="'+(id||'')+'">'+L('Save','सेव करें')+'</button>')}
+  function elForm(id){var e=id?EL[id]:{n:'',ph:'',city:''};gs('<b>'+(id?L('Edit Agent','एजेंट बदलें'):L('Add Agent','एजेंट जोड़ें'))+'</b><div class="fld"><label for="el-n">'+L('Name','नाम')+'</label><div class="inp"><input id="el-n" value="'+esc(e.n)+'" autocomplete="off"></div></div><div class="srow2"><div class="fld"><label for="el-p">'+L('Mobile','मोबाइल')+'</label><div class="inp"><input id="el-p" inputmode="tel" value="'+esc(e.ph)+'" autocomplete="off"></div></div><div class="fld"><label for="el-c">'+L('City','शहर')+'</label><div class="inp"><input id="el-c" value="'+esc(e.city)+'" autocomplete="off"></div></div></div><button class="btn blue" data-elok="'+(id||'')+'">'+L('Save','सेव करें')+'</button>')}
   stage.addEventListener('input',function(e){var x=e.target;
     if(x.id==='dl-q'){renderDL();return}
     if(x.matches('[data-qbqi]')){BQ.qty[x.dataset.qbqi]=Math.max(0,parseFloat(x.value)||0);renderBQT();return}

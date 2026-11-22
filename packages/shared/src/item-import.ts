@@ -16,7 +16,7 @@ export const IMPORT_COLUMNS = [
   { key: 'type', title: 'Product type', note: 'Single Range or Multi Range (pick from the list). Required.' },
   { key: 'name', title: 'Product name', note: 'Required. Single Range: the item name, must be new. Multi Range: the parent item; it can repeat for many brands and series.' },
   { key: 'brand', title: 'Brand name', note: 'Required for Multi Range. Optional for Single Range (blank = no brand). A brand that is not in Brands & Series yet is created on import.' },
-  { key: 'series', title: 'Series / range name', note: 'Required for Multi Range, e.g. Coral. Product + brand + series must be new. Not used for Single Range.' },
+  { key: 'series', title: 'Series / range name', note: 'Required for Multi Range, e.g. Gold. Product + brand + series must be new. Not used for Single Range.' },
   { key: 'code', title: 'Brand code', note: "Optional. The brand's code for this item (the maker's code). When given, it must not be used by another item." },
   { key: 'qty', title: 'Opening stock', note: 'Quantity in stock today. Optional. Not negative.' },
   { key: 'rate', title: 'At price', note: 'Rate of the opening stock per unit. Required when there is opening stock (0 is allowed). Also saved as the purchase price.' },

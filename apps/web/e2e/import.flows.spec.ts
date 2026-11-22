@@ -55,7 +55,7 @@ test('Import products: template, checks, editing, Discard question, error rows a
   const samples = wb.getWorksheet('Samples')!;
   expect([2, 3, 4].map((r) => cellText(samples.getRow(r).getCell(1).value))).toEqual(['Single Range', 'Single Range', 'Multi Range']);
   // one Single Range sample has no brand: it is optional there
-  expect([2, 3, 4].map((r) => cellText(samples.getRow(r).getCell(3).value))).toEqual(['Indotech', '', 'Havells']);
+  expect([2, 3, 4].map((r) => cellText(samples.getRow(r).getCell(3).value))).toEqual(['Milton', '', 'Tata']);
   const notes = wb.getWorksheet('Notes')!;
   const noteRow = (first: string) => { let out: string[] = []; notes.eachRow((r) => { if (cellText(r.getCell(1).value) === first) out = [2, 3].map((c) => cellText(r.getCell(c).value)); }); return out; };
   expect(noteRow('Brand name')).toEqual(['Multi Range', 'Required for Multi Range. Optional for Single Range (blank = no brand). A brand that is not in Brands & Series yet is created on import.']);

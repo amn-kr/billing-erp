@@ -198,7 +198,7 @@ fun ItemFormScreen(api: Api, id: String?, startCode: String, features: List<Stri
                 }
                 Section(stringResource(R.string.if_sec_tax), 1 in open, { open = if (1 in open) open - 1 else open + 1 }) {
                     ChoiceField(stringResource(R.string.if_gst), if (f.gst == 0) stringResource(R.string.if_gst_none) else "GST ${f.gst}%") { sheet = "gst" }
-                    Field("HSN / SAC", f.hsn, { f = f.copy(hsn = it.filter(Char::isDigit).take(8)) }, placeholder = "8539", keyboard = KeyboardOptions(keyboardType = KeyboardType.Number), error = errorFor("hsn"))
+                    Field("HSN / SAC", f.hsn, { f = f.copy(hsn = it.filter(Char::isDigit).take(8)) }, placeholder = stringResource(R.string.if_hsn_ph), keyboard = KeyboardOptions(keyboardType = KeyboardType.Number), error = errorFor("hsn"))
                 }
                 if (!f.service) Section(stringResource(R.string.if_sec_stock), 2 in open, { open = if (2 in open) open - 2 else open + 2 }) {
                     if (id == null) {
@@ -240,19 +240,19 @@ fun ItemFormScreen(api: Api, id: String?, startCode: String, features: List<Stri
                 val names = c?.groups?.map { it.name }.orEmpty()
                 ChoiceSheet(stringResource(R.string.if_parent).removeSuffix(" *"), names, names.indexOf(f.parent), { sheet = "" }) { f = f.copy(parent = names[it]); missing = null; sheet = "" }
             }
-            "newParent" -> NewGroupSheet({ sheet = "" }, stringResource(R.string.if_new_parent).removePrefix("+ "), stringResource(R.string.if_parent_name), "Modular Switch 16A") { n -> f = f.copy(parent = n); missing = null; sheet = "" }
+            "newParent" -> NewGroupSheet({ sheet = "" }, stringResource(R.string.if_new_parent).removePrefix("+ "), stringResource(R.string.if_parent_name), "Steel Bottle") { n -> f = f.copy(parent = n); missing = null; sheet = "" }
             "brand" -> {
                 val names = listOf(stringResource(R.string.if_none)) + c?.brands?.map { it.name }.orEmpty()
                 ChoiceSheet(stringResource(R.string.if_brand), names, if (f.brand.isBlank()) 0 else names.indexOf(f.brand), { sheet = "" }) { f = f.copy(brand = if (it == 0) "" else names[it]); sheet = "" }
             }
-            "newBrand" -> NewGroupSheet({ sheet = "" }, stringResource(R.string.if_add_brand).removePrefix("+ "), stringResource(R.string.if_brand_name), "Polycab") { n ->
+            "newBrand" -> NewGroupSheet({ sheet = "" }, stringResource(R.string.if_add_brand).removePrefix("+ "), stringResource(R.string.if_brand_name), "Tata") { n ->
                 scope.launch { try { val b = api.addBrand(n); cat.reload(); f = f.copy(brand = b.name); sheet = "" } catch (e: ApiError) { toast(e) } }
             }
             "category" -> {
                 val names = listOf(stringResource(R.string.if_no_category)) + c?.categories?.map { it.name }.orEmpty()
                 ChoiceSheet(stringResource(R.string.if_category), names, if (f.category.isBlank()) 0 else names.indexOf(f.category), { sheet = "" }) { f = f.copy(category = if (it == 0) "" else names[it]); sheet = "" }
             }
-            "newCategory" -> NewGroupSheet({ sheet = "" }, stringResource(R.string.if_add_category).removePrefix("+ "), stringResource(R.string.if_category_name), "Lighting") { n ->
+            "newCategory" -> NewGroupSheet({ sheet = "" }, stringResource(R.string.if_add_category).removePrefix("+ "), stringResource(R.string.if_category_name), "Grocery") { n ->
                 scope.launch { try { val g = api.addCategory(n); cat.reload(); f = f.copy(category = g.name); sheet = "" } catch (e: ApiError) { toast(e) } }
             }
             "unit", "packUnit" -> {

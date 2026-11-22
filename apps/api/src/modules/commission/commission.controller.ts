@@ -1,5 +1,5 @@
 import { Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Put } from '@nestjs/common';
-import { commissionRuleSchema, referrerSchema } from '@billing/shared';
+import { AGENT_GROUP, AGENT_GROUP_NAMES, commissionRuleSchema, referrerSchema } from '@billing/shared';
 import type { z } from 'zod';
 import { Ctx, RequirePermission } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
@@ -47,8 +47,8 @@ export class CommissionController {
   @Post('referrers')
   add(@Ctx() ctx: RequestContext, @Body(new ZodPipe(referrerSchema)) body: z.infer<typeof referrerSchema>) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
-      // electricians are parties too (prototype elecParty): link the customer with the same mobile or
-      // name, or add one in the "Electricians" group with 15 days' credit
+      // agents are parties too (prototype elecParty): link the customer with the same mobile or
+      // name, or add one in the "Agents" group (an older shop's "Electricians" group) with 15 days' credit
       let partyId = body.partyId ?? null;
       if (!partyId) {
         const same = await tx.party.findFirst({
@@ -57,7 +57,8 @@ export class CommissionController {
         }) ?? await tx.party.findFirst({ where: { archivedAt: null, name: { equals: body.name, mode: 'insensitive' as const } } }); // names are unique, even across suppliers
         if (same) partyId = same.id;
         else {
-          const groupId = await namedId(tx, 'partyGroup', ctx.businessId!, ctx.userId, 'Electricians');
+          const old = await tx.partyGroup.findMany({ where: { name: { in: [...AGENT_GROUP_NAMES], mode: 'insensitive' } }, select: { id: true, name: true } });
+          const groupId = (old.find((g) => g.name.toLowerCase() === AGENT_GROUP.toLowerCase()) ?? old[0])?.id ?? await namedId(tx, 'partyGroup', ctx.businessId!, ctx.userId, AGENT_GROUP);
           const p = await tx.party.create({ data: { businessId: ctx.businessId!, createdBy: ctx.userId, groupId, name: body.name, phone: body.phone, kind: 'customer', creditDays: 15, openingType: 'receive' } });
           if (body.city) await tx.partyAddress.create({ data: { businessId: ctx.businessId!, partyId: p.id, createdBy: ctx.userId, kind: 'billing', city: body.city } });
           await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'create', entity: 'party', entityId: p.id, after: p, ip: ctx.ip });
@@ -75,7 +76,7 @@ export class CommissionController {
   update(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(referrerSchema.partial())) body: Partial<z.infer<typeof referrerSchema>>) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const before = await tx.referrer.findFirst({ where: { id } });
-      if (!before) throw new NotFoundException({ message: 'That electrician was not found.' });
+      if (!before) throw new NotFoundException({ message: 'That agent was not found.' });
       const after = await tx.referrer.update({ where: { id }, data: body });
       await this.audit.log(tx, { businessId: ctx.businessId!, userId: ctx.userId, action: 'update', entity: 'referrer', entityId: id, before, after, ip: ctx.ip });
       return after;

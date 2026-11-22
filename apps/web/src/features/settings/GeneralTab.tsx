@@ -135,7 +135,7 @@ export function GeneralTab() {
     <section className="card" id="cGen">
       {bz && (
         <div id="bzCard"><h3 style={{ margin: ui.sp('0 0 4px'), fontSize: ui.fs(16) }}>Business details</h3><p className="mu" style={{ margin: ui.sp('0 0 14px'), fontSize: ui.fs(13) }}>Printed on every invoice, challan, statement and report, and used in WhatsApp messages.</p>
-          <div className="two"><Field id="bzName" lbl="Business name" v={bz.name} set={f('name')} ph="e.g. Gupta Electricals & Hardware" /><Field id="bzShort" lbl="Short name (top bar)" v={bz.short} set={f('short')} ph="e.g. Gupta Electricals" /></div>
+          <div className="two"><Field id="bzName" lbl="Business name" v={bz.name} set={f('name')} ph="e.g. Gupta Traders" /><Field id="bzShort" lbl="Short name (top bar)" v={bz.short} set={f('short')} ph="e.g. Gupta Traders" /></div>
           <div className="two"><Field id="bzOwner" lbl="Owner name" v={bz.owner} set={f('owner')} /><Field id="bzPhone" lbl="Phone" v={bz.phone} set={f('phone')} im="tel" ph="+91 " /></div>
           <div className="two"><Field id="bzEmail" lbl="Email" v={bz.email} set={f('email')} im="email" /><Field id="bzUpi" lbl="UPI ID for payments" v={bz.upi} set={f('upi')} ph="yourshop@upi" /></div>
           <Field id="bzAddr" lbl="Address" v={bz.addr} set={f('addr')} ph="Shop no., street, area" />
@@ -239,7 +239,7 @@ function StartFresh({ open, biz, cash, onClose }: { open: boolean; biz?: Biz; ca
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby="bzmT" style={{ width: 'min(680px,100%)' }}>
         <div className="dh"><div><h3 id="bzmT" style={{ margin: 0, fontSize: ui.fs(18) }}>Start fresh with your own business</h3><small className="mu">New books start empty. These books are kept.</small></div><button className="ib" type="button" id="bzmClose" aria-label="Close" onClick={close}><Icon name="x" /></button></div>
         <div id="bzmBody" style={{ marginTop: ui.sp(12) }}>
-          <div className="two"><Field id="bzfName" lbl="Business name" v={o.name} set={f('name')} ph="e.g. Gupta Electricals & Hardware" /><Field id="bzfOwner" lbl="Owner name" v={o.owner} set={f('owner')} /></div>
+          <div className="two"><Field id="bzfName" lbl="Business name" v={o.name} set={f('name')} ph="e.g. Gupta Traders" /><Field id="bzfOwner" lbl="Owner name" v={o.owner} set={f('owner')} /></div>
           <div className="two"><Field id="bzfPhone" lbl="Phone" v={o.phone} set={f('phone')} im="tel" ph="+91 " /><Field id="bzfEmail" lbl="Email" v={o.email} set={f('email')} im="email" /></div>
           <Field id="bzfAddr" lbl="Address" v={o.addr} set={f('addr')} ph="Shop no., street, area" />
           <div className="two"><Field id="bzfCity" lbl="City" v={o.city} set={f('city')} /><Field id="bzfPin" lbl="PIN code" v={o.pin} set={f('pin')} im="numeric" /></div>
@@ -316,7 +316,7 @@ function RestoreBackup({ src, onClose, download }: { src: { text: string; file: 
             <>
               <div className="rcv"><div><span>Business</span><b>{String(src.d.biz ?? '—')}</b></div><div><span>Saved on</span><b>{when(String(src.d.at ?? ''))}</b></div>
                 <div><span>Invoices</span><b>{c.inv}</b></div><div><span>Parties added</span><b>{c.par}</b></div><div><span>Items added</span><b>{c.itm}</b></div><div><span>Purchase bills</span><b>{c.pur}</b></div><div><span>Payments received</span><b>{c.rc}</b></div><div><span>Expenses</span><b>{c.exp}</b></div></div>
-              <p className="hint" style={{ margin: ui.sp('10px 0') }}>Parties, items, opening balances and stock, prices, godowns, electricians and settings from this backup come into these books. This works while the books are still empty. Invoices, purchases, payments and expenses come across in the next phase of the new app.</p>
+              <p className="hint" style={{ margin: ui.sp('10px 0') }}>Parties, items, opening balances and stock, prices, godowns, agents and settings from this backup come into these books. This works while the books are still empty. Invoices, purchases, payments and expenses come across in the next phase of the new app.</p>
               {check && <p className="hint" id="rsmCheck" style={{ margin: ui.sp('0 0 10px') }}>Ready: {check.counts.parties ?? 0} parties and {check.counts.items ?? 0} items.{check.warnings.map((w) => ' ' + w).join('')}</p>}
               {!fresh && <label className="cb2" style={{ marginBottom: ui.sp(6) }}><input type="checkbox" id="rsmSample" checked={sample} onChange={(e) => setSample(e.target.checked)} /> Also bring in the old app’s sample entries</label>}
               <label className="cb2"><input type="checkbox" id="rsmSafe" checked={safe} onChange={(e) => setSafe(e.target.checked)} /> First download a backup of the books as they are now</label>

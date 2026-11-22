@@ -318,7 +318,7 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
                 {vary ? (
                   <label className="apf" style={{ gridColumn: 'span 2' }}>Parent item <span className="req">*</span><SearchSelect id="aiName" dataF="group" className={bad('name')} inputRef={nameRef} value={f.group} options={groups.map((g) => ({ value: g }))} placeholder="Choose parent item" add="+ Add new parent item" onAdd={(t) => addNew('group', t)} onChange={(v) => { setF((x) => ({ ...x, group: v })); setErr(({ name: _, ...x }) => x); }} />{E('name')}</label>
                 ) : (
-                  <label className="apf" style={{ gridColumn: 'span 2' }}>{svc ? 'Service name' : 'Item name'} <span className="req">*</span><input className={`fi ${bad('name')}`} id="aiName" data-f="name" value={f.name} onChange={set('name')} placeholder={svc ? 'e.g. Fan installation' : 'e.g. LED bulb 12W'} autoComplete="off" role="combobox" aria-autocomplete="list" aria-controls="aiSug" aria-expanded={false} ref={nameRef} />{E('name')}<div className="aisug" id="aiSug" hidden role="listbox"></div></label>
+                  <label className="apf" style={{ gridColumn: 'span 2' }}>{svc ? 'Service name' : 'Item name'} <span className="req">*</span><input className={`fi ${bad('name')}`} id="aiName" data-f="name" value={f.name} onChange={set('name')} placeholder={svc ? 'e.g. Home delivery' : 'e.g. Steel bottle 1 L'} autoComplete="off" role="combobox" aria-autocomplete="list" aria-controls="aiSug" aria-expanded={false} ref={nameRef} />{E('name')}<div className="aisug" id="aiSug" hidden role="listbox"></div></label>
                 )}
                 <label className="apf needs-gst">{svc ? 'SAC' : 'HSN'} code<input className={`fi ${bad('hsn')}`} data-f="hsn" value={f.hsn} onChange={set('hsn')} placeholder={svc ? '995461' : '8536'} inputMode="numeric" maxLength={8} />{E('hsn')}</label>
                 <label className="apf">Unit<button type="button" className={`fi ${bad('unit')}`} id="aiUnit" style={{ textAlign: 'left' }} onClick={openUnits}>{unitText}</button>{E('unit')}</label>
@@ -443,11 +443,11 @@ export function AddItemDialog({ open, onClose, onSaved, onOpenItem, edit, onDele
         )}
       </div>
 
-      <AddPopup kind="group" open={open && pop === 'group'} initial={popText} title="Add parent item" label="Parent item name" ph="e.g., Modular switch 6A" onClose={() => setPop(null)} onCreate={create} />
-      <AddPopup kind="brand" open={open && pop === 'brand'} initial={popText} title="Add brand" label="Brand name" ph="e.g., Havells" onClose={() => setPop(null)} onCreate={create} />
-      <AddPopup kind="series" open={open && pop === 'series'} initial={popText} title={`Add series to ${f.brand}`} label="Series name" ph="e.g., Coral" onClose={() => setPop(null)} onCreate={create} />
+      <AddPopup kind="group" open={open && pop === 'group'} initial={popText} title="Add parent item" label="Parent item name" ph="e.g., Steel bottle" onClose={() => setPop(null)} onCreate={create} />
+      <AddPopup kind="brand" open={open && pop === 'brand'} initial={popText} title="Add brand" label="Brand name" ph="e.g., Tata" onClose={() => setPop(null)} onCreate={create} />
+      <AddPopup kind="series" open={open && pop === 'series'} initial={popText} title={`Add series to ${f.brand}`} label="Series name" ph="e.g., Gold" onClose={() => setPop(null)} onCreate={create} />
       <AddPopup kind="cat" open={open && pop === 'cat'} initial={popText} title="Add category" label="Category name" ph="e.g., Grocery" onClose={() => setPop(null)} onCreate={create} />
-      <AddPopup kind="unit" open={open && pop === 'unit'} title="Add unit" label="Unit name" ph="e.g., Coil" onClose={() => setPop(null)} onCreate={create} />
+      <AddPopup kind="unit" open={open && pop === 'unit'} title="Add unit" label="Unit name" ph="e.g., Dozen" onClose={() => setPop(null)} onCreate={create} />
     </>
   );
 }
@@ -471,7 +471,7 @@ function AddPopup({ kind, open, initial = '', title, label, ph, onClose, onCreat
   async function go() {
     const n = name.trim(), c = short.trim().toUpperCase();
     if (!n) { setErr(`Enter the ${label.toLowerCase()}.`); return ref.current?.focus(); }
-    if (kind === 'unit' && !/^[A-Z0-9]{1,20}$/.test(c)) return setErr('Enter a short name: letters or numbers only, e.g. COIL.');
+    if (kind === 'unit' && !/^[A-Z0-9]{1,20}$/.test(c)) return setErr('Enter a short name: letters or numbers only, e.g. DZN.');
     setBusy(true);
     const m = await onCreate(kind, n, c);
     setBusy(false);
@@ -483,7 +483,7 @@ function AddPopup({ kind, open, initial = '', title, label, ph, onClose, onCreat
       <div className="mdl" role="dialog" aria-modal="true" aria-labelledby={id + 'T'}>
         <div className="dh" style={{ marginBottom: ui.sp(14) }}><h3 id={id + 'T'} style={{ margin: 0, fontSize: ui.fs(18) }}>{title}</h3><button className="ib" type="button" aria-label="Close" onClick={onClose}><RawIcon d={X} /></button></div>
         <label className="fl" htmlFor={id + 'N'}>{label}<input className="fi" id={id + 'N'} ref={ref} value={name} placeholder={ph} autoComplete="off" onChange={(e) => { setName(e.target.value); setErr(''); }} onKeyDown={enter} /></label>
-        {kind === 'unit' && <label className="fl" htmlFor={id + 'S'}>Short name<input className="fi mono" id={id + 'S'} value={short} placeholder="e.g., COIL" maxLength={20} autoComplete="off" onChange={(e) => { setShort(e.target.value.toUpperCase()); setErr(''); }} onKeyDown={enter} /></label>}
+        {kind === 'unit' && <label className="fl" htmlFor={id + 'S'}>Short name<input className="fi mono" id={id + 'S'} value={short} placeholder="e.g., DZN" maxLength={20} autoComplete="off" onChange={(e) => { setShort(e.target.value.toUpperCase()); setErr(''); }} onKeyDown={enter} /></label>}
         <div className="msg bad" role="alert">{err}</div>
         <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end' }}><button className="btn p" type="button" id={id + 'Go'} disabled={busy} onClick={() => void go()}>Create</button></div>
       </div>

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { formatDmy, money, round2, stockQtyOf, todayIst, type Money } from '@billing/shared';
+import { formatDmy, isAgentGroup, money, round2, stockQtyOf, todayIst, type Money } from '@billing/shared';
 import { DbService, type Tx } from '../../common/db.service';
 import { LedgerService } from '../../common/ledger.service';
 import type { RequestContext } from '../../common/context';
@@ -17,7 +17,7 @@ const plural = (k: number, w: string) => `${k} ${w}${k === 1 ? '' : 's'}`;
 export interface StEntry { date: string; no: string; type: string; kind: string; info: string; dr: number; cr: number; o: number; ref?: string }
 const ORD: Record<string, number> = { 'Opening balance': 0, Sale: 1, Purchase: 1, 'Debit note': 2, 'Credit note': 2, 'Cheque bounce': 3, Refund: 3, 'Payment-In': 4, 'Payment-Out': 4 };
 
-interface PartyRow { id: string; name: string; kind: string; group: string; phone: string; city: string; gstin: string; limit: number | null; sup: boolean; type: 'Supplier' | 'Electrician' | 'Customer' }
+interface PartyRow { id: string; name: string; kind: string; group: string; phone: string; city: string; gstin: string; limit: number | null; sup: boolean; type: 'Supplier' | 'Agent' | 'Customer' }
 interface Line { itemId: string | null; name: string; unit: string; qty: number; /** in the item's stock unit (Settings › Items › MRP and Pack) */ stockQty: number; price: number; disc: number; amt: number; tv: number; cat: string; iunit: string; iname: string }
 interface Doc { id: string; no: string; date: string; partyId: string | null; total: number; lines: Line[] }
 
@@ -50,7 +50,7 @@ export class ReportsService {
     const P: PartyRow[] = parties.map((p) => {
       const g = p.group?.name ?? '';
       const sup = p.kind === 'supplier';
-      return { id: p.id, name: p.name, kind: p.kind, group: g, phone: p.phone, city: p.addresses[0]?.city ?? '', gstin: p.gstin, limit: p.creditLimit ? Number(p.creditLimit) : null, sup, type: sup ? 'Supplier' : g === 'Electricians' ? 'Electrician' : 'Customer' };
+      return { id: p.id, name: p.name, kind: p.kind, group: g, phone: p.phone, city: p.addresses[0]?.city ?? '', gstin: p.gstin, limit: p.creditLimit ? Number(p.creditLimit) : null, sup, type: sup ? 'Supplier' : isAgentGroup(g) ? 'Agent' : 'Customer' };
     });
     const line = (l: { itemId: string | null; name: string; unit: string; qty: unknown; packSize: { toString(): string } | null; discPct: unknown; gstRate: unknown; taxable: unknown; amount: unknown }, price: unknown): Line => {
       const i = l.itemId ? it.get(l.itemId) : undefined;

@@ -2,8 +2,9 @@ import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { auth, owner, startApp } from './helpers';
+import { DbService } from '../src/common/db.service';
 
-/** Electrician commission: earned as customers pay, paid from cash / bank or adjusted against his bills. */
+/** Agent commission: earned as customers pay, paid from cash / bank or adjusted against their bills. */
 let app: INestApplication;
 const http = () => request(app.getHttpServer());
 const D = '2026-10-01';
@@ -58,10 +59,23 @@ describe('commission', () => {
     void mehta;
   });
 
-  it('a party put in the Electricians group shows up as an electrician', async () => {
+  it('a party put in the Agents group shows up as an agent', async () => {
     const o = await owner(app);
-    await http().post('/api/parties').set(auth(o)).send({ name: 'Imran Electricals', kind: 'customer', group: 'Electricians', phone: '9721144556' }).expect(201);
+    await http().post('/api/parties').set(auth(o)).send({ name: 'Imran Traders', kind: 'customer', group: 'Agents', phone: '9721144556' }).expect(201);
+    const C = (await http().get('/api/commission').set(auth(o)).expect(200)).body;
+    expect(C.map((x: { name: string }) => x.name)).toContain('Imran Traders');
+  });
+
+  it('an older shop’s “Electricians” group still counts, and new agents go into it', async () => {
+    const o = await owner(app);
+    // shops made before 22 Nov 2026 have "Electricians" instead of "Agents"
+    await app.get(DbService).scoped({ businessId: o.businessId }, (tx) => tx.partyGroup.updateMany({ where: { name: 'Agents' }, data: { name: 'Electricians' } }));
+    await http().post('/api/parties').set(auth(o)).send({ name: 'Imran Electricals', kind: 'customer', group: 'Electricians', phone: '9721144557' }).expect(201);
     const C = (await http().get('/api/commission').set(auth(o)).expect(200)).body;
     expect(C.map((x: { name: string }) => x.name)).toContain('Imran Electricals');
+    const r = await http().post('/api/referrers').set(auth(o)).send({ name: 'Sonu Kumar', phone: '9839055667' }).expect(201);
+    const p = ((await http().get('/api/parties').set(auth(o)).expect(200)).body as { id: string; group: string }[]).find((x) => x.id === r.body.partyId)!;
+    expect(p.group).toBe('Electricians');
+    expect(((await http().get('/api/party-groups').set(auth(o)).expect(200)).body as { name: string }[]).map((g) => g.name)).not.toContain('Agents');
   });
 });

@@ -108,7 +108,7 @@ export function AddDialog({ mode, brands, gstOn, onClose, onSer, onRow, onItem }
       const nb = b === '__new';
       if (nb) { b = v('qaNewB').trim(); if (!b) { setErr('Enter the brand name.'); return document.getElementById('qaNewB')?.focus(); } }
       const rg = v('qaRange').trim();
-      if (!rg) { setErr('Enter the range name, for example Coral.'); return document.getElementById('qaRange')?.focus(); }
+      if (!rg) { setErr('Enter the range name, for example Gold.'); return document.getElementById('qaRange')?.focus(); }
       r = await onSer(b, rg, v('qaFin').trim(), nb);
     } else if (mode.k === 'item') {
       const mrp = num('qaMrp'), pur = num('qaPur'), sale = num('qaSale');
@@ -131,11 +131,11 @@ export function AddDialog({ mode, brands, gstOn, onClose, onSer, onRow, onItem }
           <div id="qaSer" hidden={k !== 'ser'}><label className="fl" htmlFor="qaBrand">Brand<select className="fi" id="qaBrand" value={brand} onChange={(e) => { picked.current = true; setBrand(e.target.value); if (e.target.value === '__new') setTimeout(() => document.getElementById('qaNewB')?.focus(), 0); }}>{brands.map((b) => <option key={b}>{b}</option>)}<option value="__new">+ New brand</option></select></label>
             {/* only for "+ New brand": the prototype's .fi{display:block} overrides the hidden attribute */}
             {brand === '__new' && <input className="fi" id="qaNewB" placeholder="New brand name" autoComplete="off" style={{ marginTop: ui.sp(-6), marginBottom: ui.sp(12) }} />}
-            <div className="two"><label className="fl" htmlFor="qaRange">Range<input className="fi" id="qaRange" placeholder="e.g. Coral" autoComplete="off" /></label><label className="fl" htmlFor="qaFin">Finish / colour<input className="fi" id="qaFin" placeholder="e.g. White" autoComplete="off" defaultValue="White" /></label></div></div>
+            <div className="two"><label className="fl" htmlFor="qaRange">Range<input className="fi" id="qaRange" placeholder="e.g. Gold" autoComplete="off" /></label><label className="fl" htmlFor="qaFin">Finish / colour<input className="fi" id="qaFin" placeholder="e.g. White" autoComplete="off" defaultValue="White" /></label></div></div>
           <div id="qaItem" hidden={k !== 'item'}><p className="mu" id="qaItemTx" style={{ margin: ui.sp('0 0 12px'), fontSize: ui.fs(13) }}>{mode?.k === 'item' ? <><b>{mode.grp} · {mode.s.b} {mode.series}</b> will be added to Items &amp; stock. Its rate then comes from Price manager.</> : null}</p>
             <div className="two"><label className="fl" htmlFor="qaMrp">MRP<input className="fi" id="qaMrp" inputMode="decimal" /></label><label className="fl" htmlFor="qaPur">Purchase price<input className="fi" id="qaPur" inputMode="decimal" /></label></div>
             <label className="fl" htmlFor="qaSale">Sale price (Retail<span className="needs-gst">{gstOn ? ', incl. GST' : ''}</span>)<input className="fi" id="qaSale" inputMode="decimal" /></label></div>
-          <div id="qaRow" hidden={k !== 'row'}><label className="fl" htmlFor="qaName">Item<input className="fi" id="qaName" placeholder="e.g. 20A socket" autoComplete="off" /></label>
+          <div id="qaRow" hidden={k !== 'row'}><label className="fl" htmlFor="qaName">Item<input className="fi" id="qaName" placeholder="e.g. Item name" autoComplete="off" /></label>
             <label className="fl" htmlFor="qaSec">Section<select className="fi" id="qaSec" defaultValue="acc"><option value="acc">Switches &amp; accessories</option><option value="plate">Plates</option></select></label></div>
           <div className="msg bad" id="qaErr" role="alert">{err}</div>
           <div style={{ display: 'flex', gap: ui.sp(10), justifyContent: 'flex-end' }}><button className="btn" type="button" id="qaCancel" onClick={onClose}>Cancel</button><button className="btn p" type="submit">Add</button></div>

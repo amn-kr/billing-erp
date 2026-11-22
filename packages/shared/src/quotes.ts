@@ -16,7 +16,7 @@ export const qSerName = (s: QuoteSeries) => `${s.b} ${s.r}${s.f ? ' ' + s.f : ''
 const id = z.string().trim().min(1).max(40);
 export const quoteGridSchema = z.object({
   rows: z.array(z.object({ id, n: z.string().trim().min(1, 'Enter the item name.').max(80), c: z.enum(['acc', 'plate']), grp: z.string().trim().max(80).optional() })).max(200),
-  ser: z.array(z.object({ id, b: z.string().trim().min(1, 'Enter the brand name.').max(60), r: z.string().trim().min(1, 'Enter the range name, for example Coral.').max(60), f: z.string().trim().max(40).default('') })).max(60),
+  ser: z.array(z.object({ id, b: z.string().trim().min(1, 'Enter the brand name.').max(60), r: z.string().trim().min(1, 'Enter the range name, for example Gold.').max(60), f: z.string().trim().max(40).default('') })).max(60),
 });
 
 /** "+ Add item row" on the Quotation page */

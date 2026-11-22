@@ -1,4 +1,5 @@
 /** Party reports (prototype RPT.pstmt / ppl / allp / pitem / spp / spg): same markup, wording and maths. */
+import { isAgentGroup } from '@billing/shared';
 import { useItemFields } from '../../lib/features';
 import { useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { fileTitle, printNow, usePrintSource } from '../print/printer';
@@ -100,7 +101,7 @@ function PStmt({ onToggle }: RpProps) {
     <>
       <div className="psh"><ListToggle onToggle={onToggle} /><div><small className="mu">Party report</small><h2>Party Statement</h2></div>
         <div className="psa"><button className="btn sm" id="psWa" onClick={wa}><Icon name="chat" />WhatsApp</button><button className="btn sm" id="psPrint" onClick={() => setPrinting(true)}><Icon name="doc" />Print</button><button className="btn sm" id="psPdf" onClick={() => void pdf()}>PDF</button><button className="btn sm" id="psXls" onClick={() => void xls()}>Excel</button></div></div>
-      <div className="psf"><label className="fl" htmlFor="psParty">Party<select className="fi" id="psParty" value={pid} onChange={(e) => { PSV.pid = e.target.value; setPid(e.target.value); }}>{grp('Customers', all.filter((x) => !x.sup && x.group !== 'Electricians'))}{grp('Electricians', all.filter((x) => x.group === 'Electricians'))}{grp('Suppliers', all.filter((x) => x.sup))}</select></label>
+      <div className="psf"><label className="fl" htmlFor="psParty">Party<select className="fi" id="psParty" value={pid} onChange={(e) => { PSV.pid = e.target.value; setPid(e.target.value); }}>{grp('Customers', all.filter((x) => !x.sup && !isAgentGroup(x.group)))}{grp('Agents', all.filter((x) => isAgentGroup(x.group)))}{grp('Suppliers', all.filter((x) => x.sup))}</select></label>
         <PeriodFields p={p} set={setP} ids={['psPer', 'psFrom', 'psTo']} />
         <label className="cb2 psdet"><input type="checkbox" id="psDet" checked={detail} onChange={(e) => { PSV.detail = e.target.checked; setDetail(e.target.checked); }} /> Show items</label></div>
       <div className="pscard"><div className="psid"><span className="psav">{P.name.trim().charAt(0).toUpperCase()}</span><div><b>{P.name}</b><small>{[P.phone && '+91 ' + P.phone, P.city, P.group, P.gstin && 'GSTIN ' + P.gstin].filter(Boolean).join(' · ')}</small></div></div>
@@ -169,7 +170,7 @@ function Ppl(props: RpProps) {
     cols: [{ h: 'Party', w: 26 }, { h: 'Group', w: 16 }, { h: 'Bills', n: true, int: true, w: 7 }, { h: 'Sale value', n: true }, { h: 'Cost', n: true }, { h: 'Commission', n: true, w: 12 }, { h: 'Profit', n: true }, { h: 'Margin %', n: true, int: true, w: 10 }],
     rows: R.map((r) => ({ k: r.id, c: [r.name, r.groupName || '', r.sn, inr2f(r.tv), inr2f(r.cost), rpN(r.comm), inr2f(r.prof), r.m.toFixed(1) + '%'], h: { 6: <b className={r.prof < 0 ? 'neg' : 'pos'}>{inr2f(r.prof)}</b>, 7: <span className={r.m < 5 ? 'neg' : ''}>{r.m.toFixed(1)}%</span> } })),
     foot: ['Total', '', R.reduce((a, r) => a + r.sn, 0), inr2f(ts), inr2f(T('cost')), rpN(T('comm')), inr2f(tp), ts ? ((tp / ts) * 100).toFixed(1) + '%' : ''],
-    note: 'Sale value is before GST and after goods returned on credit notes. Cost uses the purchase rate of the stock each sale used (oldest first). Commission is the electrician commission on referred bills. Click a party for its statement.',
+    note: 'Sale value is before GST and after goods returned on credit notes. Cost uses the purchase rate of the stock each sale used (oldest first). Commission is the agent commission on referred bills. Click a party for its statement.',
     click: (k) => { statementOf(k); props.open('pstmt'); },
   };
   return <RpShell o={def} p={props.p} setP={props.setP} onToggle={props.onToggle} onPrint={() => props.onPrint(def)} />;

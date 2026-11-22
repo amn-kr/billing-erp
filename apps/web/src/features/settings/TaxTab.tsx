@@ -131,7 +131,7 @@ export function TaxPreview() {
   return (
     <aside className="card pv" id="pv">
       <div className="hd"><h3>Live preview</h3><span className="pill">Updates as you change settings</span></div>
-      <div className="doc">{doc}</div><div className="pvsub">Sale of 1 × Copper wire 1.5 sq mm to Mehta Electricals</div>
+      <div className="doc">{doc}</div><div className="pvsub">Sale of 1 × Steel bottle 1 L to Mehta Traders</div>
       {gstOn && (
         <div className="pvc"><select className="fi" id="pvRate" aria-label="GST rate for preview" value={rate?.id} onChange={(e) => setPv({ ...pv, rate: e.target.value })}>{gl.map((x) => <option value={x.id} key={x.id}>{x.name}</option>)}</select>
           <div className="seg2 sm" role="radiogroup" aria-label="Place of supply"><button role="radio" aria-checked={!pv.inter} className={pv.inter ? '' : 'on'} data-pv="0" onClick={() => setPv({ ...pv, inter: false })}>Same state</button><button role="radio" aria-checked={pv.inter} className={pv.inter ? 'on' : ''} data-pv="1" onClick={() => setPv({ ...pv, inter: true })}>Other state</button></div></div>
@@ -140,7 +140,7 @@ export function TaxPreview() {
       {note && <p className="hint" style={{ margin: ui.sp('10px 0 0') }}>{note}</p>}
       {t && (
         <>
-          <div className="doc" style={{ marginTop: ui.sp(22) }}>Supplier payment</div><div className="pvsub">Electrician’s bill, paid under {t.name.split(' ·')[0]}</div>
+          <div className="doc" style={{ marginTop: ui.sp(22) }}>Supplier payment</div><div className="pvsub">Supplier’s bill, paid under {t.name.split(' ·')[0]}</div>
           <div className="pvl"><span>Bill amount</span><b>{inr2(a)}</b></div><div className="pvl"><span>TDS {t.name}</span><b className="neg">−{inr2(d)}</b></div><div className="pvl t"><span>Pay supplier</span><b>{inr2(a - d)}</b></div>
           <p className="hint" style={{ margin: ui.sp('10px 0 0') }}>Deposit {inr2(d)} with the government by {depositBy()}.</p>
         </>

@@ -406,7 +406,7 @@ export function LoginPage() {
           <h2>Set up your shop</h2><p className="mu">This goes on your invoices. You can change it later in Settings.</p>
           <div className="note" style={{ marginTop: ui.sp(14) }} id="trialNote">Free for {TRIAL} days. No card needed.</div>
           <form id="fShop" noValidate onSubmit={onShop} ref={formRef}>
-            <label>Business name<input id="sName" placeholder="e.g. Gupta Electricals & Hardware" required /></label>
+            <label>Business name<input id="sName" placeholder="e.g. Gupta Traders" required /></label>
             <div className="two"><label>Your name<input id="sOwner" autoComplete="name" required ref={sOwnerRef} /></label><label>Phone<input id="sPhone" inputMode="tel" placeholder="+91 " /></label></div>
             <label>Address<input id="sAddr" placeholder="Shop no., street, area" /></label>
             <div className="two"><label>City<input id="sCity" /></label><label>PIN code<input id="sPin" inputMode="numeric" maxLength={6} /></label></div>
