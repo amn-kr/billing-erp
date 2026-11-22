@@ -101,9 +101,6 @@ export async function approvedShot(name: string, app: Page, sel: string): Promis
 export async function sameShot(name: string, proto: Page, app: Page, sel: string): Promise<void> {
   await withRowHeight(proto);
   if (fs.existsSync(path.join(APPROVED, `${name}.png`))) {
-    // TEMPORARY, until every screen has its picture: still photograph the prototype (not compared), because
-    // taking its picture scrolls it, and later screens in the same test are laid out after that scroll
-    await shot(proto, sel);
     await approvedShot(name, app, sel);
     return;
   }
