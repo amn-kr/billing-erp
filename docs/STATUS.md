@@ -65,6 +65,13 @@ The look of the web and Windows apps now comes from **the app's own theme** (its
 
 The prototype still decides how things work: the flow tests compare the app's results with it.
 
+## Words for every kind of shop (owner, 22 Nov 2026)
+The app is not only for electrical shops. In the web, Windows and phone apps:
+- **Electrician → Agent** everywhere on screen (Commission page, "Referred by" on New Sale and Quotation, reports, Settings, the phone's Referral sheet; Hindi: एजेंट). The phone design (`reference/design/mobile.html`) uses the same words, so the phone's Commission screens get them when they are built.
+- **The party group "Electricians" is now "Agents"** for new shops. Shops made earlier keep their "Electricians" group and it still counts: its parties still show on the Commission page, and new agents go into it (API test).
+- **Examples in boxes** no longer use electrical goods: e.g. Steel bottle 1 L, Home delivery, Tata, Gold, Gupta Traders, Mehta Traders, Small / 1 kg / White, Dozen (DZN); the Excel sample rows for item import too. The phone's HSN box shows "8 Digits".
+- **Not changed yet, waiting for the owner:** the starting item categories and their commission rules (Wires & cables, Lighting, Switches & MCBs, Fans …) and the Quotation's "Switches & accessories / Plates" sections. Test data and the hidden phone design-check screen keep their sample names.
+
 ## On hold (waiting for a later phase or an owner decision)
 | Item | Waiting for |
 |---|---|

@@ -61,7 +61,7 @@ _Last updated: 22 Nov 2026. Details: [`docs/STATUS.md`](docs/STATUS.md)._
 - Several bills open at once, one tab each; Quick sale (Alt+N)
 - Quotations: brand-wise grid (rows × brand ranges, rates from the price manager) and item-wise; convert to invoice; share by WhatsApp, PDF or Excel
 - Delivery challans (convert to invoice), credit notes (adjust against dues or refund), payments received
-- Referral (electrician) commission loaded on the bill, import from a quotation, previous rates, profit and loss for the bill
+- Referral (agent) commission loaded on the bill, import from a quotation, previous rates, profit and loss for the bill
 - Invoices are edited or cancelled, never deleted; every change goes to an audit log
 
 ### Purchases
@@ -85,9 +85,9 @@ _Last updated: 22 Nov 2026. Details: [`docs/STATUS.md`](docs/STATUS.md)._
 - Bank accounts, cash in hand (count cash, move money), cheques (deposited, cleared, bounced), bank reconciliation
 - Double-entry books behind every document; the database refuses an unbalanced entry
 
-### Electrician commission
+### Agent commission
 - Commission rules by category, earned as customers pay, less returns
-- Pay out in cash, UPI or bank, or adjust against the electrician's own bills
+- Pay out in cash, UPI or bank, or adjust against the agent's own bills
 
 ### Reports and Home
 - Home: seven tiles, recent invoices, receivables by age, top selling items, quick actions, cash and bank, GST this month, low stock
