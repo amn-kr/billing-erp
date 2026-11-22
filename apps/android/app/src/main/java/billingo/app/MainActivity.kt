@@ -47,6 +47,7 @@ import billingo.app.ui.parties.StatementScreen
 import billingo.app.ui.blocks.BlocksScreen
 import billingo.app.ui.home.CreateNewSheet
 import billingo.app.ui.docs.BillScreen
+import billingo.app.ui.docs.BrandQuoteScreen
 import billingo.app.ui.docs.QuoteScreen
 import billingo.app.ui.docs.QuotesScreen
 import billingo.app.ui.docs.SaleBillsScreen
@@ -232,7 +233,7 @@ class MainActivity : AppCompatActivity() {
                                     )
                                     is Route.Quotes -> QuotesScreen(
                                         m.server, top.pick, { m.back() }, { q -> m.open(Route.Quote(q.id, q.number)) },
-                                        onItems = { m.newQuote(features) }, onBrand = later,
+                                        onItems = { m.newQuote(features) }, onBrand = { m.open(Route.BrandQuote()) },
                                     )
                                     is Route.Quote -> QuoteScreen(
                                         m.server, top.id, top.number, top.after, features, s.me.business?.itemOptions, m.docsVersion, { m.back() },
@@ -241,9 +242,18 @@ class MainActivity : AppCompatActivity() {
                                         onEdit = { m.sale.missingWords = { getString(R.string.eb_missing, it.joinToString(", ")) }; m.editSale(features, top.id) },
                                         onCopy = { m.sale.missingWords = { getString(R.string.eb_missing, it.joinToString(", ")) }; m.copyQuote(features, top.id) },
                                         onConvert = { m.quoteToBill(features, top.id) },
+                                        onBrandEdit = { m.open(Route.BrandQuote(id = top.id)) },
+                                        onBrandCopy = { m.open(Route.BrandQuote(copyOf = top.id)) },
+                                        onBrandBill = { ser -> m.brandToBill(features, top.id, ser) },
                                         onChanged = { m.loadHome(); m.docsChanged() },
                                         onLater = later,
                                     )
+                                    is Route.BrandQuote -> BrandQuoteScreen(m.server, features, top.id, top.copyOf, { m.back() }) { id, no ->
+                                        // a changed one goes back to its page; a new one opens its page (design 7.4e)
+                                        if (top.id != null) m.back() else m.replace(Route.Quote(id, no))
+                                        android.widget.Toast.makeText(this@MainActivity, getString(R.string.qt_saved, no), android.widget.Toast.LENGTH_SHORT).show()
+                                        m.loadHome(); m.docsChanged()
+                                    }
                                     Route.SaleSaved -> SavedScreen(m.sale, features, s.me.business?.itemOptions, onNew = { m.saleAgain(features); m.replace(Route.Sale) }, onDone = { m.back() })
                                 }
                                 }

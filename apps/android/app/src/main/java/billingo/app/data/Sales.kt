@@ -225,3 +225,20 @@ data class LineCost(val cost: String = "0")
 /** What the goods on a bill cost (POST /sales/cost), one per line. */
 @Serializable
 data class SaleCost(val lines: List<LineCost?> = emptyList())
+
+// 8.6c-2: brand-wise quotations
+
+/** A row of the brand-wise quotation grid: an item group ("acc" = switches and accessories, "plate" = plates). */
+@Serializable
+data class QRow(val id: String, val n: String, val c: String = "acc", val grp: String? = null)
+
+/** A brand range (a column): brand, range (series) and finish. */
+@Serializable
+data class QSer(val id: String, val b: String, val r: String, val f: String = "")
+
+/** The shop's quotation grid (GET /quote-grid). */
+@Serializable
+data class QuoteGrid(val rows: List<QRow> = emptyList(), val ser: List<QSer> = emptyList())
+
+@Serializable
+data class SavedNo(val id: String, val number: String = "")

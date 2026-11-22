@@ -108,7 +108,7 @@ object SaleMaths {
         val commOv: kotlinx.serialization.json.JsonElement? = null,
     )
 
-    data class QuoteRef(val id: String, val no: String, val date: String, val cust: String)
+    data class QuoteRef(val id: String, val no: String, val date: String, val cust: String, val brand: String = "Item-wise")
 
     data class Pay(val mode: String = "Cash", val amount: String = "", val ref: String = "", val acct: String? = null)
 
@@ -170,6 +170,8 @@ object SaleMaths {
         val quote: Boolean = false,
         /** 8.6c: the terms when not the usual ones ("As per quotation QT-0033.") */
         val notes: String? = null,
+        /** 8.6c-2: a counter sale's name (a brand-wise quotation's customer who isn't a party) */
+        val cashName: String = "",
     )
 
     fun party(c: Ctx, d: Draft): PartyFull? = d.partyId?.let { id -> c.parties.firstOrNull { it.id == id } }
@@ -299,7 +301,7 @@ object SaleMaths {
             // a saved bill is sent without a number: the server keeps its own (it can never change)
             put("kind", if (d.quote) "quotation" else "invoice"); put("number", ""); put("date", d.date); put("dueDate", due)
             put("mode", if (d.cash) "cash" else "credit"); put("partyId", p?.id?.let(::JsonPrimitive) ?: JsonNull)
-            put("cashName", if (d.cash) e?.cashName.orEmpty() else ""); put("cashPhone", if (d.cash) e?.cashPhone.orEmpty() else ""); put("billName", e?.billName.orEmpty()); put("placeOfSupply", pos(c, d))
+            put("cashName", if (d.cash) e?.cashName ?: d.cashName else ""); put("cashPhone", if (d.cash) e?.cashPhone.orEmpty() else ""); put("billName", e?.billName.orEmpty()); put("placeOfSupply", pos(c, d))
             put("pricesInclTax", e?.incl ?: true); put("roundOff", d.roundOff)
             val bp = d.bdiscP.takeIf { it.isNotBlank() && num(it).signum() != 0 }
             put("billDiscPct", bp?.let { JsonPrimitive(plain(num(it))) } ?: JsonNull)
@@ -323,7 +325,7 @@ object SaleMaths {
                 e?.extra?.forEach { (k, v) -> put(k, v) }
                 put("transport", d.transport.trim()); put("vehicle", d.vehicle.trim()); put("description", d.description.trim())
                 if (d.quote) put("validTill", due)
-                put("quoteRefs", JsonArray(d.quotes.map { q -> buildJsonObject { put("no", q.no); put("date", q.date); put("cust", q.cust); put("brand", "Item-wise") } }))
+                put("quoteRefs", JsonArray(d.quotes.map { q -> buildJsonObject { put("no", q.no); put("date", q.date); put("cust", q.cust); put("brand", q.brand) } }))
                 // a rule set for this bill: for every category on it (the web keeps it per category)
                 put("commByCategory", buildJsonObject {
                     val r = d.billRule
@@ -473,7 +475,7 @@ object SaleMaths {
             val o = r as? JsonObject ?: return@mapNotNull null
             fun f(k: String) = (o[k] as? JsonPrimitive)?.contentOrNull.orEmpty()
             // already joined to this bill on the server: kept on the bill, nothing to convert again
-            f("no").takeIf { it.isNotBlank() }?.let { QuoteRef(id = "", no = it, date = f("date"), cust = f("cust")) }
+            f("no").takeIf { it.isNotBlank() }?.let { QuoteRef(id = "", no = it, date = f("date"), cust = f("cust"), brand = f("brand").ifBlank { "Item-wise" }) }
         }
         val draft = Draft(
             cash = cash, number = v.number, date = v.date, partyId = if (cash) null else pId, lines = lines,

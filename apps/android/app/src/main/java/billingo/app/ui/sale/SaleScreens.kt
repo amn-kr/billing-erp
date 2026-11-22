@@ -883,7 +883,7 @@ private fun plain(v: BigDecimal): String = v.stripTrailingZeros().let { if (it.s
 
 /** Quantity with − and + (.stp): + adds one, − takes one away but not below one. */
 @Composable
-private fun Stepper(value: String, onChange: (String) -> Unit) {
+internal fun Stepper(value: String, onChange: (String) -> Unit) {
     val shape = RoundedCornerShape(Size.RadiusSmall)
     Row(Modifier.fillMaxWidth().heightIn(min = Size.Tap).background(Colours.Card, shape).border(1.dp, Colours.Border, shape), verticalAlignment = Alignment.CenterVertically) {
         val q = SaleMaths.num(value)

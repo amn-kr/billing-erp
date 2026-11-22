@@ -51,6 +51,8 @@ sealed interface Route {
     // 8.6c: Quotations; [pick] opens Choose Type first; [after] = "share" / "print" once it opens
     data class Quotes(val pick: Boolean = false) : Route
     data class Quote(val id: String, val number: String, val after: String = "") : Route
+    // 8.6c-2: a brand-wise quotation, new, a saved one to change, or a copy of one
+    data class BrandQuote(val id: String? = null, val copyOf: String? = null) : Route
 }
 
 /** Home's lists; null when the server refused one (no permission) or it hasn't come yet. */
@@ -149,6 +151,8 @@ class AppModel(private val api: Api, private val store: Store, private val finge
     fun newQuote(features: List<String>) { sale.start(viewModelScope, features, quote = true); open(Route.Sale) }
     /** Copy As New Quotation */
     fun copyQuote(features: List<String>, id: String) { sale.copyQuote(viewModelScope, features, id); open(Route.Sale) }
+    /** Convert To Bill for one brand of a brand-wise quotation */
+    fun brandToBill(features: List<String>, id: String, serId: String) { sale.fromBrand(viewModelScope, features, id, serId); open(Route.Sale) }
     /** Convert To Bill (item-wise) */
     fun quoteToBill(features: List<String>, id: String) { sale.fromQuote(viewModelScope, features, id); open(Route.Sale) }
 
