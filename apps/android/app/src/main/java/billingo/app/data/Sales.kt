@@ -242,3 +242,21 @@ data class QuoteGrid(val rows: List<QRow> = emptyList(), val ser: List<QSer> = e
 
 @Serializable
 data class SavedNo(val id: String, val number: String = "")
+
+// 8.6d: delivery challans
+
+/** A challan in the list (GET /sales?kind=challan): open, invoiced or cancelled; its quantity, no money. */
+@Serializable
+data class ChallanRow(
+    val id: String,
+    val number: String,
+    val date: String,
+    val party: DocParty? = null,
+    val partyName: String? = null,
+    val status: String = "open",
+    val cancelled: Boolean = false,
+    val items: Int = 0,
+    val qty: String = "0",
+    val lineNames: List<String> = emptyList(),
+    val invoiceNo: String = "",
+)

@@ -808,4 +808,33 @@
     <string name="bq_none_in">None of these items are available in this brand.</string>
     <string name="bq_items_qty">Items And Quantities</string>
     <string name="bq_pcs">%1$s Pcs</string>
+
+    <!-- 8.6d: Delivery challans -->
+    <string name="ch_open">Not Billed</string>
+    <string name="ch_invoiced">Invoiced</string>
+    <string name="ch_new">New Challan</string>
+    <string name="ch_new_title">New Delivery Challan</string>
+    <string name="ch_sum_open">Open Challans</string>
+    <string name="ch_sum_out">Qty Out (Not Billed)</string>
+    <string name="ch_qty">%1$s Qty</string>
+    <string name="ch_sent">Goods Sent</string>
+    <string name="ch_sent_v1">%1$s Qty · %2$d Item</string>
+    <string name="ch_sent_v">%1$s Qty · %2$d Items</string>
+    <string name="ch_billed_in">Billed in %1$s. Tap to open it.</string>
+    <string name="ch_items">Items</string>
+    <string name="ch_vehicle">Vehicle No.</string>
+    <string name="ch_note">Note</string>
+    <string name="ch_edit">Edit Challan</string>
+    <string name="ch_cancel">Cancel Challan</string>
+    <string name="ch_cancel_text">The goods count as back in the shop. The challan stays in the books marked Cancelled.</string>
+    <string name="ch_no">Challan No.</string>
+    <string name="ch_name">Customer Name</string>
+    <string name="ch_hint">Goods sent before billing. No money on a challan.</string>
+    <string name="ch_tr_ph">Transporter / Self</string>
+    <string name="ch_note_ph">For example: site address</string>
+    <string name="ch_save">Save Challan</string>
+    <string name="ch_need_cust">Choose the customer, or type the name.</string>
+    <string name="ch_discard_q">Discard This Challan?</string>
+    <string name="ch_pass_text">Enter the transaction passcode to change this challan.</string>
+    <string name="ch_from">%1$d items from %2$s. Check prices and save the bill.</string>
 </resources>

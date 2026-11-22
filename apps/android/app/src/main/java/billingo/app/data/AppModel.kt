@@ -53,6 +53,10 @@ sealed interface Route {
     data class Quote(val id: String, val number: String, val after: String = "") : Route
     // 8.6c-2: a brand-wise quotation, new, a saved one to change, or a copy of one
     data class BrandQuote(val id: String? = null, val copyOf: String? = null) : Route
+    // 8.6d: delivery challans
+    data object Challans : Route
+    data class Challan(val id: String, val number: String) : Route
+    data object ChallanForm : Route
 }
 
 /** Home's lists; null when the server refused one (no permission) or it hasn't come yet. */
@@ -153,6 +157,10 @@ class AppModel(private val api: Api, private val store: Store, private val finge
     fun copyQuote(features: List<String>, id: String) { sale.copyQuote(viewModelScope, features, id); open(Route.Sale) }
     /** Convert To Bill for one brand of a brand-wise quotation */
     fun brandToBill(features: List<String>, id: String, serId: String) { sale.fromBrand(viewModelScope, features, id, serId); open(Route.Sale) }
+    /** New Delivery Challan, Edit Challan, and Convert To Bill for a challan (8.6d) */
+    fun newChallan(features: List<String>) { sale.startChallan(viewModelScope, features); open(Route.ChallanForm) }
+    fun editChallan(features: List<String>, id: String) { sale.editChallan(viewModelScope, features, id); open(Route.ChallanForm) }
+    fun challanToBill(features: List<String>, id: String) { sale.fromChallan(viewModelScope, features, id); open(Route.Sale) }
     /** Convert To Bill (item-wise) */
     fun quoteToBill(features: List<String>, id: String) { sale.fromQuote(viewModelScope, features, id); open(Route.Sale) }
 

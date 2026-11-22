@@ -48,6 +48,9 @@ import billingo.app.ui.blocks.BlocksScreen
 import billingo.app.ui.home.CreateNewSheet
 import billingo.app.ui.docs.BillScreen
 import billingo.app.ui.docs.BrandQuoteScreen
+import billingo.app.ui.docs.ChallanFormScreen
+import billingo.app.ui.docs.ChallanScreen
+import billingo.app.ui.docs.ChallansScreen
 import billingo.app.ui.docs.QuoteScreen
 import billingo.app.ui.docs.QuotesScreen
 import billingo.app.ui.docs.SaleBillsScreen
@@ -254,6 +257,26 @@ class MainActivity : AppCompatActivity() {
                                         android.widget.Toast.makeText(this@MainActivity, getString(R.string.qt_saved, no), android.widget.Toast.LENGTH_SHORT).show()
                                         m.loadHome(); m.docsChanged()
                                     }
+                                    Route.Challans -> ChallansScreen(m.server, { m.back() }, { c -> m.open(Route.Challan(c.id, c.number)) }) { m.newChallan(features) }
+                                    is Route.Challan -> ChallanScreen(
+                                        m.server, top.id, top.number, m.docsVersion, { m.back() },
+                                        onParty = { id, name -> m.open(Route.Party(id, name)) },
+                                        onBill = { id, no -> m.open(Route.Bill(id, no)) },
+                                        onEdit = { m.sale.missingWords = { getString(R.string.eb_missing, it.joinToString(", ")) }; m.editChallan(features, top.id) },
+                                        onConvert = { m.challanToBill(features, top.id) },
+                                        onChanged = { m.loadHome(); m.docsChanged() },
+                                        onLater = later,
+                                    )
+                                    Route.ChallanForm -> ChallanFormScreen(
+                                        m.sale, { m.back() }, { m.open(Route.SaleCustomer) }, { k, item -> m.open(Route.SaleLine(k, item)) },
+                                        onSaved = { id, no ->
+                                            // a changed one goes back to its page; a new one opens its page (design 7.4e)
+                                            if (m.sale.draft?.edit != null) m.back() else m.replace(Route.Challan(id, no))
+                                            android.widget.Toast.makeText(this@MainActivity, getString(R.string.qt_saved, no), android.widget.Toast.LENGTH_SHORT).show()
+                                            m.loadHome(); m.docsChanged()
+                                        },
+                                        onTryAgain = { m.saleRetry(features) },
+                                    )
                                     Route.SaleSaved -> SavedScreen(m.sale, features, s.me.business?.itemOptions, onNew = { m.saleAgain(features); m.replace(Route.Sale) }, onDone = { m.back() })
                                 }
                                 }
@@ -290,6 +313,7 @@ class MainActivity : AppCompatActivity() {
                                     onStockLine = { n -> menuOpen = false; m.open(when (n) { 1 -> Route.Prices; 2 -> Route.Adjustments; else -> Route.Godowns }) },
                                     onSaleBills = { menuOpen = false; m.open(Route.SaleBills) },
                                     onQuotes = { menuOpen = false; m.open(Route.Quotes()) },
+                                    onChallans = { menuOpen = false; m.open(Route.Challans) },
                                     onGst = gst,
                                     onSignOut = { menuOpen = false; signOutOpen = true },
                                     onCheckUpdate = { m.checkUpdate(BuildConfig.VERSION_NAME) },
@@ -302,7 +326,7 @@ class MainActivity : AppCompatActivity() {
                             if (createOpen) {
                                 BackHandler { createOpen = false }
                                 // Sale Bill (1st), New Party (10th) and New Item (11th) open; the others come in later steps
-                                CreateNewSheet({ createOpen = false }) { i -> createOpen = false; when (i) { 0 -> m.newSale(features); 1 -> m.open(Route.Quotes(pick = true)); 9 -> m.open(Route.PartyForm(null)); 10 -> m.open(Route.ItemForm(null)); else -> later() } }
+                                CreateNewSheet({ createOpen = false }) { i -> createOpen = false; when (i) { 0 -> m.newSale(features); 1 -> m.open(Route.Quotes(pick = true)); 2 -> m.newChallan(features); 9 -> m.open(Route.PartyForm(null)); 10 -> m.open(Route.ItemForm(null)); else -> later() } }
                             }
                             if (signOutOpen) {
                                 BackHandler { signOutOpen = false }

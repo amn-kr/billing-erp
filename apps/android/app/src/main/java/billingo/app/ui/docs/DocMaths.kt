@@ -90,6 +90,24 @@ object DocMaths {
     fun invoiceOf(d: SaleDoc): String = ((d.extra?.get("invoiceNo")) as? kotlinx.serialization.json.JsonPrimitive)?.content.orEmpty()
     fun isBrandWise(d: SaleDoc): Boolean = ((d.extra?.get("type")) as? kotlinx.serialization.json.JsonPrimitive)?.content == "brand"
 
+    /* ───────── delivery challans (8.6d) ───────── */
+
+    fun chName(c: billingo.app.data.ChallanRow, counter: String): String = c.party?.name?.takeIf { it.isNotBlank() } ?: c.partyName?.takeIf { it.isNotBlank() } ?: counter
+
+    private fun chOpen(c: billingo.app.data.ChallanRow) = !c.cancelled && c.status == "open"
+
+    /** Open Challans (count) and Qty Out (Not Billed): the goods on open challans. */
+    fun chSummary(rows: List<billingo.app.data.ChallanRow>): Pair<Int, BigDecimal> =
+        rows.count(::chOpen) to rows.filter(::chOpen).fold(BigDecimal.ZERO) { a, c -> a + num(c.qty) }
+
+    /** All / Not Billed / Invoiced / Cancelled; search by number, name or item. */
+    fun chMatches(c: billingo.app.data.ChallanRow, f: Int, query: String, counter: String): Boolean {
+        val ok = when (f) { 1 -> chOpen(c); 2 -> !c.cancelled && c.status == "invoiced"; 3 -> c.cancelled || c.status == "cancelled"; else -> true }
+        if (!ok) return false
+        val t = query.trim().lowercase()
+        return t.isEmpty() || (c.number + " " + chName(c, counter) + " " + c.lineNames.joinToString(" ")).lowercase().contains(t)
+    }
+
     /** A bill's charges (transport, labour, bank commission) as one figure, as the design shows them. */
     fun charges(d: SaleDoc): BigDecimal = num(d.transport) + num(d.labour) + num(d.bankCharge)
 

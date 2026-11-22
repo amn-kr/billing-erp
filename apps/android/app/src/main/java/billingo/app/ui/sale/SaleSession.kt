@@ -89,6 +89,36 @@ class SaleSession(private val api: Api) {
         }
     }
 
+    /** New Delivery Challan (8.6d), maybe for a customer. */
+    fun startChallan(scope: CoroutineScope, features: List<String>) {
+        fresh(features, Opened.NewChallan)
+        number = ""
+        draft = SaleMaths.Draft(date = Format.todayIso(), challan = true, chgOk = true)
+        load(scope, features) { _ -> draft = SaleMaths.Draft(date = Format.todayIso(), challan = true, chgOk = true) }
+    }
+
+    /** Edit Challan: the saved challan as it was; it keeps its number. */
+    fun editChallan(scope: CoroutineScope, features: List<String>, id: String) {
+        fresh(features, Opened.EditChallan(id))
+        load(scope, features, number = false) { c ->
+            val v = api.saleDoc(id)
+            val (d, missing) = SaleMaths.challanFromSaved(c, v)
+            if (d == null) throw ApiError(400, missingWords(missing))
+            number = v.number
+            draft = d
+        }
+    }
+
+    /** Convert To Bill for a challan: a new bill with its items at today's prices. */
+    fun fromChallan(scope: CoroutineScope, features: List<String>, id: String) {
+        fresh(features, Opened.ConvertChallan(id))
+        load(scope, features) { c ->
+            val (d, n) = SaleMaths.billFromChallan(c, api.saleDoc(id), Format.todayIso())
+            imported = n
+            draft = d
+        }
+    }
+
     /** items brought in by Convert To Bill (shown once in a short message) */
     var imported by mutableStateOf(0)
 
@@ -99,6 +129,9 @@ class SaleSession(private val api: Api) {
         data class Copy(val id: String) : Opened
         data class Convert(val id: String) : Opened
         data class Brand(val id: String, val ser: String) : Opened
+        data object NewChallan : Opened
+        data class EditChallan(val id: String) : Opened
+        data class ConvertChallan(val id: String) : Opened
     }
     var opened: Opened = Opened.New(false)
         private set
@@ -119,6 +152,9 @@ class SaleSession(private val api: Api) {
         is Opened.Copy -> copyQuote(scope, features, o.id)
         is Opened.Convert -> fromQuote(scope, features, o.id)
         is Opened.Brand -> fromBrand(scope, features, o.id, o.ser)
+        Opened.NewChallan -> startChallan(scope, features)
+        is Opened.EditChallan -> editChallan(scope, features, o.id)
+        is Opened.ConvertChallan -> fromChallan(scope, features, o.id)
         is Opened.New -> start(scope, features, quote = o.quote)
     }
 
@@ -170,7 +206,7 @@ class SaleSession(private val api: Api) {
         val d = draft ?: return
         // a saved bill keeps its number for good
         if (d.edit != null) return
-        scope.launch { try { number = api.nextSaleNumber(d.date, if (d.quote) "quotation" else "invoice").number } catch (_: ApiError) {} }
+        scope.launch { try { number = api.nextSaleNumber(d.date, when { d.challan -> "challan"; d.quote -> "quotation"; else -> "invoice" }).number } catch (_: ApiError) {} }
     }
 
     fun change(f: (SaleMaths.Draft) -> SaleMaths.Draft) { draft?.let { draft = f(it) } }
@@ -185,7 +221,12 @@ class SaleSession(private val api: Api) {
         busy = true
         try {
             val e = d.edit
-            val r = if (e != null) api.updateSale(e.id, SaleMaths.body(c, d), passcode) else api.saveSale(SaleMaths.body(c, d), d.key)
+            val r = when {
+                // a challan (8.6d) has its own endpoint; its edit keeps the number
+                d.challan -> api.saveChallan(SaleMaths.challanBody(c, d), e?.id, passcode)
+                e != null -> api.updateSale(e.id, SaleMaths.body(c, d), passcode)
+                else -> api.saveSale(SaleMaths.body(c, d), d.key)
+            }
             pass = null
             saved = r to d
             return null

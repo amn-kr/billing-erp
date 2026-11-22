@@ -172,6 +172,10 @@ object SaleMaths {
         val notes: String? = null,
         /** 8.6c-2: a counter sale's name (a brand-wise quotation's customer who isn't a party) */
         val cashName: String = "",
+        /** 8.6d: a delivery challan (goods sent before billing: items and quantities, no money) */
+        val challan: Boolean = false,
+        /** 8.6d: the challan a bill is made from (id, number): it is marked invoiced when the bill is saved */
+        val fromChallan: Pair<String, String>? = null,
     )
 
     fun party(c: Ctx, d: Draft): PartyFull? = d.partyId?.let { id -> c.parties.firstOrNull { it.id == id } }
@@ -325,6 +329,7 @@ object SaleMaths {
                 e?.extra?.forEach { (k, v) -> put(k, v) }
                 put("transport", d.transport.trim()); put("vehicle", d.vehicle.trim()); put("description", d.description.trim())
                 if (d.quote) put("validTill", due)
+                d.fromChallan?.let { put("challanNo", it.second) }
                 put("quoteRefs", JsonArray(d.quotes.map { q -> buildJsonObject { put("no", q.no); put("date", q.date); put("cust", q.cust); put("brand", q.brand) } }))
                 // a rule set for this bill: for every category on it (the web keeps it per category)
                 put("commByCategory", buildJsonObject {
@@ -335,7 +340,7 @@ object SaleMaths {
                 })
             })
             put("referrerId", d.referrerId?.let(::JsonPrimitive) ?: JsonNull)
-            put("fromQuotationIds", JsonArray(d.quotes.filter { it.id.isNotBlank() }.map { JsonPrimitive(it.id) })); put("fromChallanId", JsonNull)
+            put("fromQuotationIds", JsonArray(d.quotes.filter { it.id.isNotBlank() }.map { JsonPrimitive(it.id) })); put("fromChallanId", d.fromChallan?.first?.let(::JsonPrimitive) ?: JsonNull)
             put("confirmOverLimit", "over_credit_limit" in d.confirmed)
             if ("expired_batch" in d.confirmed) put("confirmExpired", true)
             if ("above_mrp" in d.confirmed) put("confirmAboveMrp", true)
@@ -522,6 +527,71 @@ object SaleMaths {
             transport = str("transport"), vehicle = str("vehicle"), description = str("description"),
             notes = "As per quotation ${q.number}.",
         ) to n
+    }
+
+    /* ───────── delivery challans (8.6d) ───────── */
+
+    /** What a challan can't be saved without: who the goods go to (a party, or a name) and an item. */
+    enum class ChProblem { NoCustomer, NoItems, NoQty }
+
+    fun chProblem(d: Draft): ChProblem? = when {
+        d.partyId == null && d.cashName.isBlank() -> ChProblem.NoCustomer
+        d.lines.isEmpty() -> ChProblem.NoItems
+        d.lines.any { num(it.qty).signum() <= 0 } -> ChProblem.NoQty
+        else -> null
+    }
+
+    /** The body of POST /challans: who, the date, each item's quantity (its pack unit when sold by the pack), transport, vehicle and note. */
+    fun challanBody(c: Ctx, d: Draft): JsonObject {
+        val p = party(c, d)
+        return buildJsonObject {
+            put("partyId", p?.id?.let(::JsonPrimitive) ?: JsonNull)
+            put("cashName", if (p == null) d.cashName.trim() else ""); put("cashPhone", if (p == null) d.edit?.cashPhone.orEmpty() else "")
+            put("date", d.date)
+            put("lines", JsonArray(d.lines.map { l ->
+                val pk = item(c, l.itemId)?.let { pack(it) }
+                buildJsonObject { put("itemId", l.itemId); put("qty", plain(num(l.qty))); put("unit", if (pk != null && l.unit == pk.first) l.unit else "") }
+            }))
+            put("transport", d.transport.trim()); put("vehicle", d.vehicle.trim()); put("note", (d.notes ?: "").trim())
+        }
+    }
+
+    /** A saved challan to change (design 7.4e Edit Challan): its customer, items and quantities, transport, vehicle and note. */
+    fun challanFromSaved(c: Ctx, v: SaleDoc): Pair<Draft?, List<String>> {
+        val missing = v.lines.filter { l -> l.itemId == null || item(c, l.itemId) == null }.map { it.name }
+        if (missing.isNotEmpty()) return null to missing
+        val x = v.extra ?: JsonObject(emptyMap())
+        fun str(k: String) = (x[k] as? JsonPrimitive)?.contentOrNull.orEmpty()
+        val pId = v.party?.id?.takeIf { id -> c.parties.any { it.id == id } }
+        val lines = v.lines.map { dl ->
+            val i = item(c, dl.itemId!!)!!
+            Line(i.id, dl.name.ifBlank { i.name }, dl.hsn.ifBlank { i.hsn }, dl.unit.ifBlank { i.unit }, plain(num(dl.qty)), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, i.category)
+        }
+        return Draft(
+            challan = true, date = v.date, partyId = pId, cash = pId == null, cashName = if (pId == null) v.cashName.ifBlank { v.partyName } else "",
+            lines = lines, transport = str("transport"), vehicle = str("vehicle"), notes = v.notes, chgOk = true,
+            edit = Edit(id = v.id, number = v.number, partyId = pId, dueDate = null, cashName = v.cashName, cashPhone = v.cashPhone, billName = "", pos = "", incl = true, notes = v.notes, extra = JsonObject(emptyMap()), bal = BigDecimal.ZERO),
+        ) to emptyList()
+    }
+
+    /**
+     * Convert To Bill for a challan (the web's fillFrom 'challan'): a new bill for the same customer
+     * (a counter sale keeps the name) with the challan's items at today's prices and its transport and
+     * vehicle; the challan's number goes on the bill and saving it marks the challan invoiced.
+     */
+    fun billFromChallan(c: Ctx, v: SaleDoc, today: String): Pair<Draft, Int> {
+        val pId = v.party?.id?.takeIf { id -> c.parties.any { it.id == id } }
+        var d = Draft(date = today, cash = pId == null, cashName = if (pId == null) v.cashName.ifBlank { v.partyName } else "")
+        if (pId != null) d = withParty(c, d, c.parties.first { it.id == pId })
+        val x = v.extra ?: JsonObject(emptyMap())
+        fun str(k: String) = (x[k] as? JsonPrimitive)?.contentOrNull.orEmpty()
+        val lines = v.lines.mapNotNull { dl ->
+            val i = dl.itemId?.let { item(c, it) } ?: return@mapNotNull null
+            val l = newLine(c, d, i)
+            val unit = if (dl.unit == i.unit || dl.unit == pack(i)?.first) dl.unit else l.unit
+            withCommission(c, d, l.copy(unit = unit, price = priceFor(c, i, party(c, d), unit), bp = null, qty = plain(num(dl.qty))))
+        }
+        return d.copy(lines = lines, transport = str("transport"), vehicle = str("vehicle"), fromChallan = v.id to v.number) to lines.size
     }
 
     /** While a saved bill is changed, the stock it took counts as back in its batches (web batchWas). */

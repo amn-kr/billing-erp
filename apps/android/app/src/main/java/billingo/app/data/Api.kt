@@ -182,6 +182,11 @@ class Api(private val base: String, private val store: Store, private val client
     /** a new brand-wise quotation, or a saved one changed (with the passcode when the shop asks for it) */
     suspend fun saveBrandQuote(body: JsonObject, id: String? = null, passcode: String? = null): SavedNo =
         if (id == null) send("POST", "/quotations/brand", body, SavedNo.serializer()) else send("PUT", "/quotations/brand/$id", body, SavedNo.serializer(), passcode = passcode)
+    // 8.6d: delivery challans
+    suspend fun challans(): List<ChallanRow> = send("GET", "/sales?kind=challan", null, ListSerializer(ChallanRow.serializer()))
+    /** a new challan, or a saved one changed (keeps its number; the passcode when the shop asks for it) */
+    suspend fun saveChallan(body: JsonObject, id: String? = null, passcode: String? = null): SaleSaved =
+        if (id == null) send("POST", "/challans", body, SaleSaved.serializer()) else send("PUT", "/challans/$id", body, SaleSaved.serializer(), passcode = passcode)
     suspend fun quotations(): List<QuoteRow> = send("GET", "/sales?kind=quotation", null, ListSerializer(QuoteRow.serializer()))
     suspend fun saleDoc(id: String): SaleDoc = send("GET", "/sales/$id", null, SaleDoc.serializer())
     // 8.6a: Sale Bills
