@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { formatInr2, money, round2, todayIst, type Money, stockQtyOf } from '@billing/shared';
+import { AGENT_GROUP_NAMES, formatInr2, money, round2, todayIst, type Money, stockQtyOf } from '@billing/shared';
 import { DbService, type Tx } from '../../common/db.service';
 import { AuditService } from '../../common/audit.service';
 import { NumberingService } from '../../common/numbering.service';
@@ -39,12 +39,12 @@ export class CommissionService {
     });
   }
 
-  /** Any party put in the "Electricians" group shows up as an electrician (prototype elecSync). */
+  /** Any party put in the "Agents" group (or an older shop's "Electricians" group) shows up as an agent (prototype elecSync). */
   private async syncElectricians(tx: Tx, ctx: RequestContext) {
-    const group = await tx.partyGroup.findFirst({ where: { name: 'Electricians' } });
-    if (!group) return;
+    const groups = await tx.partyGroup.findMany({ where: { name: { in: [...AGENT_GROUP_NAMES], mode: 'insensitive' } }, select: { id: true } });
+    if (!groups.length) return;
     const linked = new Set((await tx.referrer.findMany({ where: { partyId: { not: null } }, select: { partyId: true } })).map((r) => r.partyId!));
-    const add = await tx.party.findMany({ where: { groupId: group.id, archivedAt: null, id: { notIn: [...linked] } }, include: { addresses: { where: { kind: 'billing' }, take: 1 } }, orderBy: { createdAt: 'asc' } });
+    const add = await tx.party.findMany({ where: { groupId: { in: groups.map((g) => g.id) }, archivedAt: null, id: { notIn: [...linked] } }, include: { addresses: { where: { kind: 'billing' }, take: 1 } }, orderBy: { createdAt: 'asc' } });
     for (const p of add) await tx.referrer.create({ data: { businessId: ctx.businessId!, createdBy: ctx.userId, name: p.name, phone: p.phone, city: p.addresses[0]?.city ?? '', partyId: p.id } });
   }
 
@@ -105,7 +105,7 @@ export class CommissionService {
   pay(ctx: RequestContext, o: { referrerId: string; amount: string; mode: string; note: string; date?: string }) {
     return this.db.scoped(this.scope(ctx), async (tx) => {
       const [e] = await this.summaryIn(tx, o.referrerId);
-      if (!e) throw new NotFoundException({ message: 'That electrician was not found.' });
+      if (!e) throw new NotFoundException({ message: 'That agent was not found.' });
       const amt = money(Number(o.amount) > 0 ? o.amount : 0);
       if (!amt.gt(0)) throw new BadRequestException({ message: 'Enter the amount.' });
       const due = money(e.due);
@@ -115,7 +115,7 @@ export class CommissionService {
       const businessId = ctx.businessId!;
       const number = await this.numbers.next(tx, businessId, ctx.userId, 'commission_payout', date);
       if (adjust) {
-        if (!e.partyId) throw new BadRequestException({ message: 'This electrician has no account to adjust against.' });
+        if (!e.partyId) throw new BadRequestException({ message: 'This agent has no account to adjust against.' });
         const party = e.partyId;
         // a receipt that pays his oldest dues with the commission (prototype "Commission adjust")
         const D = await openDues(tx, party);

@@ -3,7 +3,16 @@
  * after "Start fresh" (reference/design/app.html: GROUPS, UNITS, CATS, S.taxes,
  * PLS, CRULES, ECATS). Sample data never goes here (that is the demo seed).
  */
-export const DEFAULT_PARTY_GROUPS = ['General', 'Retail customers', 'Wholesale customers', 'Contractors', 'Suppliers', 'Electricians'] as const;
+export const DEFAULT_PARTY_GROUPS = ['General', 'Retail customers', 'Wholesale customers', 'Contractors', 'Suppliers', 'Agents'] as const;
+
+/**
+ * The party group whose parties show up on the Commission page (prototype "Electricians").
+ * Renamed to "Agents" (owner, 22 Nov 2026) so the app suits every kind of shop; shops made
+ * earlier keep their "Electricians" group and it still counts.
+ */
+export const AGENT_GROUP = 'Agents';
+export const AGENT_GROUP_NAMES: readonly string[] = ['Agents', 'Electricians'];
+export const isAgentGroup = (name: string | null | undefined): boolean => !!name && AGENT_GROUP_NAMES.some((g) => g.toLowerCase() === name.trim().toLowerCase());
 
 export const DEFAULT_UNITS = ['PCS', 'BOX', 'KG', 'MTR', 'COIL', 'BAG', 'LTR', 'NOS', 'SET', 'PAIR'] as const;
 

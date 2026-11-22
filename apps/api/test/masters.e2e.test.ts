@@ -258,20 +258,20 @@ describe('settings and commission', () => {
 
   it('starting lists keep the prototype’s order', async () => {
     const o = await owner(app);
-    expect((await http().get('/api/party-groups').set(auth(o)).expect(200)).body.map((g: { name: string }) => g.name)).toEqual(['General', 'Retail customers', 'Wholesale customers', 'Contractors', 'Suppliers', 'Electricians']);
+    expect((await http().get('/api/party-groups').set(auth(o)).expect(200)).body.map((g: { name: string }) => g.name)).toEqual(['General', 'Retail customers', 'Wholesale customers', 'Contractors', 'Suppliers', 'Agents']);
     const cat = (await http().get('/api/catalogue').set(auth(o)).expect(200)).body;
     expect(cat.units.slice(0, 3).map((u: { code: string }) => u.code)).toEqual(['PCS', 'BOX', 'KG']);
   });
 
-  it('electricians and commission rules', async () => {
+  it('agents and commission rules', async () => {
     const o = await owner(app);
     const r = await http().post('/api/referrers').set(auth(o)).send({ name: 'Raju Electrician', phone: '98390 11223', city: 'Lucknow' }).expect(201);
     expect(r.body.phone).toBe('9839011223');
     expect((await http().get('/api/referrers').set(auth(o)).expect(200)).body).toHaveLength(1);
-    // electricians are parties too: a new one is added to "Electricians" with 15 days' credit
+    // agents are parties too: a new one is added to "Agents" with 15 days' credit
     const parties = (await http().get('/api/parties').set(auth(o)).expect(200)).body as { id: string; name: string; group: string; creditDays: number; billing: { city: string } | null }[];
     const raju = parties.find((p) => p.id === r.body.partyId)!;
-    expect(raju).toMatchObject({ name: 'Raju Electrician', group: 'Electricians', creditDays: 15 });
+    expect(raju).toMatchObject({ name: 'Raju Electrician', group: 'Agents', creditDays: 15 });
     expect(raju.billing?.city).toBe('Lucknow');
     // one who is already a customer (same mobile) is linked, not added twice
     const cust = await http().post('/api/parties').set(auth(o)).send({ name: 'Sonu Traders', kind: 'customer', phone: '9415000222' }).expect(201);
