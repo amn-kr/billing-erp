@@ -210,8 +210,20 @@ fun PartiesScreen(api: Api, startBal: String, onBack: () -> Unit, onParty: (Part
  * Reminder (WhatsApp), Call and Statement, then the transactions with All / Unpaid / Overdue / Paid.
  */
 @Composable
-fun PartyScreen(api: Api, id: String, name: String, shop: String, onBack: () -> Unit, onStatement: () -> Unit, onEdit: () -> Unit, onLater: () -> Unit) {
+fun PartyScreen(
+    api: Api, id: String, name: String, shop: String, onBack: () -> Unit, onStatement: () -> Unit, onEdit: () -> Unit, onLater: () -> Unit,
+    onBill: (id: String, number: String) -> Unit = { _, _ -> onLater() }, onNewBill: () -> Unit = onLater,
+) {
     val ctx = LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    /** A sale opens its page (8.6a): the transactions name it by number, so its id is looked up first. */
+    fun open(t: PartyTx) {
+        if (t.type != "Sale") { onLater(); return }
+        scope.launch {
+            try { api.bills().firstOrNull { it.number == t.no }?.let { onBill(it.id, it.number) } ?: onLater() }
+            catch (e: billingo.app.data.ApiError) { Toast.makeText(ctx, if (e.status == 0) ctx.getString(R.string.no_internet) else e.message, Toast.LENGTH_SHORT).show() }
+        }
+    }
     val hi = hindi()
     val party = load(id) { api.party(id) }
     val tx = load(id) { api.partyTx(id) }
@@ -234,7 +246,7 @@ fun PartyScreen(api: Api, id: String, name: String, shop: String, onBack: () -> 
                     Btn(stringResource(R.string.t_purchase_bill), onLater, Modifier.weight(1f), Kind.Blue, Icons.Plus)
                 } else {
                     Btn(stringResource(R.string.take_payment), onLater, Modifier.weight(1f), Kind.Soft, Icons.Rupee)
-                    Btn(stringResource(R.string.new_bill), onLater, Modifier.weight(1f), Kind.Blue, Icons.Plus)
+                    Btn(stringResource(R.string.new_bill), onNewBill, Modifier.weight(1f), Kind.Blue, Icons.Plus)
                 }
             }),
         ) {
@@ -248,8 +260,8 @@ fun PartyScreen(api: Api, id: String, name: String, shop: String, onBack: () -> 
                 val rows = tx.data
                 if (rows == null) { item { Waiting(tx) }; return@LazyColumn }
                 val shown = PartyMaths.filtered(rows, PartyMaths.Filter.entries[filter], today)
-                if (shown.isEmpty()) item { EmptyState(Icons.Bill, stringResource(R.string.pp_none), stringResource(R.string.pp_none_sub), stringResource(R.string.new_bill), onLater) }
-                items(shown, key = { it.type + it.no + it.date }) { t -> TxRow(t, today, hi, onLater) }
+                if (shown.isEmpty()) item { EmptyState(Icons.Bill, stringResource(R.string.pp_none), stringResource(R.string.pp_none_sub), stringResource(R.string.new_bill), if (sup) onLater else onNewBill) }
+                items(shown, key = { it.type + it.no + it.date }) { t -> TxRow(t, today, hi) { open(t) } }
             }
         }
         if (remind && p != null) {

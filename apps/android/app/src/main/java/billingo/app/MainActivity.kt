@@ -46,6 +46,8 @@ import billingo.app.ui.parties.PartyScreen
 import billingo.app.ui.parties.StatementScreen
 import billingo.app.ui.blocks.BlocksScreen
 import billingo.app.ui.home.CreateNewSheet
+import billingo.app.ui.docs.BillScreen
+import billingo.app.ui.docs.SaleBillsScreen
 import billingo.app.ui.items.AdjustScreen
 import billingo.app.ui.items.AdjustmentsScreen
 import billingo.app.ui.items.BrandsScreen
@@ -173,7 +175,10 @@ class MainActivity : AppCompatActivity() {
                                 holder.SaveableStateProvider("${m.stack.size}:$top") {
                                 when (top) {
                                     is Route.Parties -> PartiesScreen(m.server, top.bal, { m.back() }, { p -> m.open(Route.Party(p.id, p.name)) }, { m.open(Route.PartyForm(null)) })
-                                    is Route.Party -> PartyScreen(m.server, top.id, top.name, shop, { m.back() }, { m.open(Route.Statement(top.id, top.name)) }, { m.open(Route.PartyForm(top.id)) }, later)
+                                    is Route.Party -> PartyScreen(
+                                        m.server, top.id, top.name, shop, { m.back() }, { m.open(Route.Statement(top.id, top.name)) }, { m.open(Route.PartyForm(top.id)) }, later,
+                                        onBill = { id, no -> m.open(Route.Bill(id, no)) }, onNewBill = { m.newSale(features, partyId = top.id) },
+                                    )
                                     Route.Items -> ItemsScreen(m.server, { m.back() }, { i -> m.open(Route.Item(i.id, i.name)) }, { code -> m.open(Route.ItemForm(null, code)) }) { n ->
                                         // Items › More: Price Manager, Bulk Active / Inactive, Brands And Series, Stock Adjustments, Godowns; the rate list comes with the PDF (8.5)
                                         when (n) { 0 -> m.open(Route.Prices); 1 -> m.open(Route.BulkActive); 2 -> m.open(Route.Brands); 3 -> m.open(Route.Adjustments); 4 -> m.open(Route.Godowns); else -> later() }
@@ -207,6 +212,13 @@ class MainActivity : AppCompatActivity() {
                                     )
                                     Route.SaleCustomer -> CustomerScreen(m.sale, { m.back() }) { m.open(Route.PartyForm(null, forSale = true)) }
                                     is Route.SaleLine -> SaleLineScreen(m.sale, top.index, top.itemId) { m.back() }
+                                    Route.SaleBills -> SaleBillsScreen(m.server, { m.back() }, { b -> m.open(Route.Bill(b.id, b.number)) }) { m.newSale(features) }
+                                    is Route.Bill -> BillScreen(
+                                        m.server, top.id, top.number, features, s.me.business?.itemOptions, { m.back() },
+                                        onParty = { id, name -> m.open(Route.Party(id, name)) },
+                                        onChanged = { m.loadHome() },
+                                        onLater = later,
+                                    )
                                     Route.SaleSaved -> SavedScreen(m.sale, features, s.me.business?.itemOptions, onNew = { m.saleAgain(features); m.replace(Route.Sale) }, onDone = { m.back() })
                                 }
                                 }
@@ -226,6 +238,7 @@ class MainActivity : AppCompatActivity() {
                                 onParty = { p -> m.open(Route.Party(p.id, p.name)) },
                                 onItem = { i -> m.open(Route.Item(i.id, i.name)) },
                                 onNewBill = { m.newSale(features) },
+                                onBill = { b -> m.open(Route.Bill(b.id, b.number)) },
                             )
                             if (menuOpen) {
                                 BackHandler { menuOpen = false }
@@ -240,6 +253,7 @@ class MainActivity : AppCompatActivity() {
                                     onParties = { menuOpen = false; m.open(Route.Parties()) },
                                     onItems = { menuOpen = false; m.open(Route.Items) },
                                     onStockLine = { n -> menuOpen = false; m.open(when (n) { 1 -> Route.Prices; 2 -> Route.Adjustments; else -> Route.Godowns }) },
+                                    onSaleBills = { menuOpen = false; m.open(Route.SaleBills) },
                                     onGst = gst,
                                     onSignOut = { menuOpen = false; signOutOpen = true },
                                     onCheckUpdate = { m.checkUpdate(BuildConfig.VERSION_NAME) },

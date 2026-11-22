@@ -119,6 +119,7 @@ fun HomeScreen(
     onParty: (Party) -> Unit = { onLater() },
     onItem: (Item) -> Unit = { onLater() },
     onNewBill: () -> Unit = onLater,
+    onBill: (SaleRow) -> Unit = { onLater() },
 ) {
     val hi = LocalConfiguration.current.locales[0].language == "hi"
     var tab by rememberSaveable { mutableIntStateOf(0) }
@@ -154,7 +155,7 @@ fun HomeScreen(
                     }
                     1 -> rows(data.sales, loading) { list ->
                         if (list.isEmpty()) item { EmptyState(Icons.Bill, stringResource(R.string.no_bills), stringResource(R.string.no_bills_sub), stringResource(R.string.new_bill), onNewBill) }
-                        items(HomeMaths.latest(list).take(50), key = { it.id }) { BillRow(it, today, hi, onLater) }
+                        items(HomeMaths.latest(list).take(50), key = { it.id }) { s -> BillRow(s, today, hi) { onBill(s) } }
                     }
                     else -> rows(data.items, loading) { list ->
                         if (list.isEmpty()) item { EmptyState(Icons.Box, stringResource(R.string.no_items), stringResource(R.string.no_items_sub), stringResource(R.string.add_item), onLater) }

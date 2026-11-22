@@ -712,4 +712,40 @@
     <string name="pdf_failed">PDF नहीं बन पाई। फिर से कोशिश करें।</string>
     <string name="pdf_no_app">इस फ़ोन पर PDF लेने वाला कोई ऐप नहीं है।</string>
     <string name="pdf_no_wa">इस फ़ोन पर WhatsApp नहीं है। कोई और ऐप चुनें।</string>
+
+    <!-- 8.6a: Sale Bills, Bill View, Cancel Bill -->
+    <string name="dl_due">बाकी</string>
+    <string name="dl_month_sales">इस महीने की बिक्री</string>
+    <string name="dl_to_get">↓ अभी मिलना है</string>
+    <string name="dl_none">कुछ नहीं मिला</string>
+    <string name="dl_none_sub">दूसरी खोज या स्थिति चुनकर देखें।</string>
+    <string name="dl_status">स्थिति</string>
+    <string name="dv_counter_sale">काउंटर बिक्री</string>
+    <string name="dv_bill_total">बिल की रक़म</string>
+    <string name="dv_is_cancelled">यह बिल रद्द है। यह किताबों में रहता है; स्टॉक वापस आया और बाकी हट गया।</string>
+    <string name="dv_from">%1$s से</string>
+    <string name="dv_referral">रेफ़रल: %1$s</string>
+    <string name="dv_items">आइटम (%1$d)</string>
+    <string name="dv_charges">ख़र्चे</string>
+    <string name="dv_received">↓ मिला</string>
+    <string name="dv_dues">बाकी</string>
+    <string name="dv_payments">भुगतान</string>
+    <string name="dv_payment_in">मिला भुगतान</string>
+    <string name="dv_credit_note">क्रेडिट नोट</string>
+    <string name="dv_share">भेजें</string>
+    <string name="dv_edit">बिल बदलें</string>
+    <string name="dv_cancel_bill">बिल रद्द करें</string>
+    <string name="dv_cancel_q">%1$s रद्द करें?</string>
+    <string name="dv_cancel_text_party">बिल किताबों में \"रद्द\" लिखा रहेगा। स्टॉक वापस आएगा और %1$s का बाकी ₹%2$s घटेगा।</string>
+    <string name="dv_cancel_text">बिल किताबों में \"रद्द\" लिखा रहेगा। स्टॉक वापस आएगा।</string>
+    <string name="dv_cancel_adv">पहले मिले ₹%1$s एडवांस में रहेंगे।</string>
+    <string name="dv_cancel_refund">इसके साथ लिए ₹%1$s वापस किए गिने जाएँगे।</string>
+    <string name="dv_never_deleted">दस्तावेज़ कभी मिटाए नहीं जाते, सिर्फ़ रद्द होते हैं। यह वापस नहीं होगा।</string>
+    <string name="dv_yes_cancel">हाँ, रद्द करें</string>
+    <string name="go_back">वापस</string>
+    <string name="more_options">और विकल्प</string>
+    <string name="dv_cancelled">%1$s रद्द हुआ। यह किताबों में रहेगा।</string>
+    <string name="dv_cancelled_adv">%1$s रद्द हुआ। मिले ₹%2$s एडवांस में रखे।</string>
+    <string name="pc_cancel_text">रद्द करने के लिए लेन-देन का पासकोड डालें।</string>
+    <string name="pc_ok">ठीक है</string>
 </resources>

@@ -84,17 +84,17 @@ private fun plain(v: BigDecimal) = v.stripTrailingZeros().let { if (it.scale() <
 
 /** A white box of rows with lines between them (.grp). */
 @Composable
-private fun Grp(content: @Composable () -> Unit) {
+internal fun Grp(content: @Composable () -> Unit) {
     val shape = RoundedCornerShape(Size.Radius)
     Column(Modifier.fillMaxWidth().background(Colours.Card, shape).border(1.dp, Colours.Border, shape)) { content() }
 }
 
 @Composable
-private fun Line() = Box(Modifier.fillMaxWidth().height(1.dp).background(Colours.Border))
+internal fun Line() = Box(Modifier.fillMaxWidth().height(1.dp).background(Colours.Border))
 
 /** A row of a menu sheet (.srow.mrow): icon, words, a small line under them. */
 @Composable
-private fun MenuRow(icon: ImageVector, text: String, sub: String?, onTap: () -> Unit) {
+internal fun MenuRow(icon: ImageVector, text: String, sub: String?, onTap: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = 52.dp).clickable(role = Role.Button, onClick = onTap).padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),

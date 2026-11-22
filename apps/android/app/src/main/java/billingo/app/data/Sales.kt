@@ -162,7 +162,45 @@ data class SaleDoc(
     val legacy: Boolean = false,
     val savedAt: String? = null,
     val payment: DocPayment? = null,
+    // 8.6a: the Bill View
+    val itemsTotal: String = "0",
+    val tax: String = "0",
+    val received: String = "0",
+    val settlements: List<Settlement> = emptyList(),
 )
+
+/** Money that settled a bill: a payment (with the bill or later) or a credit note. */
+@Serializable
+data class Settlement(
+    val amount: String = "0",
+    val kind: String = "payment",
+    val number: String = "",
+    val date: String? = null,
+    val mode: String = "",
+    val atSale: Boolean = false,
+    val cancelled: Boolean = false,
+)
+
+/** A sale bill in Sale Bills (GET /sales?kind=invoice). */
+@Serializable
+data class BillRow(
+    val id: String,
+    val number: String,
+    val date: String,
+    val dueDate: String? = null,
+    val mode: String = "credit",
+    val party: DocParty? = null,
+    val partyName: String? = null,
+    val total: String = "0",
+    val received: String = "0",
+    val balance: String = "0",
+    val cancelled: Boolean = false,
+    val items: Int = 0,
+)
+
+/** What a cancel answers: the money already received that became the party's advance. */
+@Serializable
+data class Cancelled(val id: String = "", val number: String = "", val movedToAdvance: String = "0")
 
 @Serializable
 data class LineCost(val cost: String = "0")
