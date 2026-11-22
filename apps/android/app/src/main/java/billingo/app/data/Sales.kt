@@ -88,6 +88,10 @@ data class QuoteRow(
     val cancelled: Boolean = false,
     val qtype: String = "items",
     val referrerId: String? = null,
+    // 8.6c: the Quotations list
+    val invoiceNo: String = "",
+    val invoiceBrand: String = "",
+    val dueDate: String? = null,
 )
 
 /** A batch a saved line took its stock from (printed under the item's name). */
@@ -178,6 +182,8 @@ data class SaleDoc(
     val cashName: String = "",
     val pricesInclTax: Boolean = true,
     val roundOff: Boolean = true,
+    // 8.6c: a quotation's state (open / converted)
+    val status: String = "",
 )
 
 /** Money that settled a bill: a payment (with the bill or later) or a credit note. */

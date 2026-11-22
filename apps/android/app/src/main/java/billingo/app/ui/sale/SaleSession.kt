@@ -45,12 +45,7 @@ class SaleSession(private val api: Api) {
      * Items no longer in the shop's list stop it with a message, so nothing on the bill is lost.
      */
     fun edit(scope: CoroutineScope, features: List<String>, id: String) {
-        this.features = features
-        editing = id
-        after = ""
-        draft = null
-        ask = null
-        pass = null
+        fresh(features, Opened.Edit(id))
         load(scope, features, number = false) { c ->
             val v = api.saleDoc(id)
             val (d, missing) = SaleMaths.fromSaved(c, v)
@@ -61,12 +56,56 @@ class SaleSession(private val api: Api) {
         }
     }
 
-    /** the saved bill being opened for Edit Bill (kept for Try Again) */
-    var editing: String? = null
+    /** Copy As New Quotation (8.6c): a saved quotation's contents in a new one with the next number. */
+    fun copyQuote(scope: CoroutineScope, features: List<String>, id: String) {
+        fresh(features, Opened.Copy(id))
+        load(scope, features) { c ->
+            val (d, missing) = SaleMaths.copyOf(c, api.saleDoc(id), Format.todayIso())
+            if (d == null) throw ApiError(400, missingWords(missing))
+            draft = d
+        }
+    }
+
+    /** Convert To Bill (8.6c): a new bill from an item-wise quotation; how many items came is kept in [imported]. */
+    fun fromQuote(scope: CoroutineScope, features: List<String>, id: String) {
+        fresh(features, Opened.Convert(id))
+        load(scope, features) { c ->
+            val (d, n) = SaleMaths.billFromQuote(c, api.saleDoc(id), Format.todayIso())
+            imported = n
+            draft = d
+        }
+    }
+
+    /** items brought in by Convert To Bill (shown once in a short message) */
+    var imported by mutableStateOf(0)
+
+    /** What Sale was opened for, so Try Again opens the same again. */
+    sealed interface Opened {
+        data class New(val quote: Boolean) : Opened
+        data class Edit(val id: String) : Opened
+        data class Copy(val id: String) : Opened
+        data class Convert(val id: String) : Opened
+    }
+    var opened: Opened = Opened.New(false)
         private set
 
-    /** Try Again after a refusal: the same saved bill again, or a fresh new one. */
-    fun again(scope: CoroutineScope, features: List<String>) { val e = editing; if (e != null) edit(scope, features, e) else start(scope, features) }
+    private fun fresh(features: List<String>, o: Opened) {
+        this.features = features
+        opened = o
+        after = ""
+        draft = null
+        ask = null
+        pass = null
+        imported = 0
+    }
+
+    /** Try Again after a refusal: the same again. */
+    fun again(scope: CoroutineScope, features: List<String>) = when (val o = opened) {
+        is Opened.Edit -> edit(scope, features, o.id)
+        is Opened.Copy -> copyQuote(scope, features, o.id)
+        is Opened.Convert -> fromQuote(scope, features, o.id)
+        is Opened.New -> start(scope, features, quote = o.quote)
+    }
 
     /** how the "no longer in your items" refusal is worded (set by the screen, in the app's language) */
     var missingWords: (List<String>) -> String = { "These items are no longer in your items: ${it.joinToString(", ")}. Change this bill on the computer." }
@@ -78,22 +117,20 @@ class SaleSession(private val api: Api) {
         private set
 
     /** A new, empty bill; the shop's lists are loaded again so prices and stock are fresh. */
-    fun start(scope: CoroutineScope, features: List<String>, partyId: String? = null, itemId: String? = null) {
-        this.features = features
-        editing = null
-        after = ""
-        pass = null
-        draft = SaleMaths.Draft(date = Format.todayIso())
-        ask = null
+    fun start(scope: CoroutineScope, features: List<String>, partyId: String? = null, itemId: String? = null, quote: Boolean = false) {
+        fresh(features, Opened.New(quote))
+        number = ""
+        draft = SaleMaths.Draft(date = Format.todayIso(), quote = quote)
         load(scope, features) { c ->
-            var d = SaleMaths.Draft(date = Format.todayIso(), cash = c.cashDefault && partyId == null)
+            // a quotation is for a customer; it never asks for Discount And Charges before saving (design 7.4e)
+            var d = SaleMaths.Draft(date = Format.todayIso(), cash = !quote && c.cashDefault && partyId == null, quote = quote, chgOk = quote)
             c.parties.firstOrNull { it.id == partyId }?.let { d = SaleMaths.withParty(c, d.copy(cash = false), it) }
             c.items.firstOrNull { it.id == itemId }?.let { d = d.copy(lines = listOf(SaleMaths.newLine(c, d, it))) }
             draft = d
         }
     }
 
-    fun reload(scope: CoroutineScope, features: List<String>) { val e = editing; if (e != null) edit(scope, features, e) else load(scope, features) {} }
+    fun reload(scope: CoroutineScope, features: List<String>) { if (opened is Opened.New) load(scope, features) {} else again(scope, features) }
 
     /** A party added from Choose Customer: the lists are loaded again so it is there, then it goes on the bill. */
     fun addParty(scope: CoroutineScope, features: List<String>, id: String) = load(scope, features) { c ->
@@ -127,7 +164,7 @@ class SaleSession(private val api: Api) {
         val d = draft ?: return
         // a saved bill keeps its number for good
         if (d.edit != null) return
-        scope.launch { try { number = api.nextSaleNumber(d.date).number } catch (_: ApiError) {} }
+        scope.launch { try { number = api.nextSaleNumber(d.date, if (d.quote) "quotation" else "invoice").number } catch (_: ApiError) {} }
     }
 
     fun change(f: (SaleMaths.Draft) -> SaleMaths.Draft) { draft?.let { draft = f(it) } }

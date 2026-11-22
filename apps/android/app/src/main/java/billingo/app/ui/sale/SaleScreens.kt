@@ -180,6 +180,11 @@ fun SaleScreen(
     var discard by rememberSaveable { mutableStateOf(false) }
     val c = s.ctx
     val d = s.draft
+    // Convert To Bill (8.6c): how many items came from the quotation, said once
+    LaunchedEffect(s.imported, d?.quotes?.firstOrNull()?.no) {
+        val q = d?.quotes?.firstOrNull()
+        if (s.imported > 0 && q != null) { say(ctx, ctx.getString(R.string.qt_from, s.imported, q.no)); s.imported = 0 }
+    }
     // closing a bill with items asks first, so it isn't lost by a stray tap (as on the web)
     val close = { if (d != null && d.lines.isNotEmpty()) discard = true else onClose() }
 
@@ -201,7 +206,7 @@ fun SaleScreen(
                 s.ask != null || s.pass != null -> {}
                 else -> {
                     val no = s.saved?.first?.number.orEmpty()
-                    if (after == "new") { say(ctx, ctx.getString(R.string.sl_saved_new, no)); onNew() } else {
+                    if (after == "new") { say(ctx, ctx.getString(if (dd.quote) R.string.qt_saved_new else R.string.sl_saved_new, no)); onNew() } else {
                         // Share / Print from the bottom ⋮: Bill Saved makes the PDF and opens it
                         s.after = if (after == "share" || after == "print") after else ""
                         onSaved()
@@ -217,10 +222,11 @@ fun SaleScreen(
             Box(Modifier.background(Colours.Card).statusBarsPadding()) {
                 Header(
                     // Edit Bill (8.6b): the same screen, titled so, without Credit / Cash (design 7.4e)
-                    stringResource(if (d?.edit != null) R.string.dv_edit else R.string.sl_title), null,
+                    // a quotation (8.6c) uses the same screen: "Quotation", no payments (design 7.4e)
+                    stringResource(when { d?.quote == true && d.edit != null -> R.string.qt_edit; d?.quote == true -> R.string.t_quotation; d?.edit != null -> R.string.dv_edit; else -> R.string.sl_title }), null,
                     left = { IconBtn(Icons.Close, stringResource(R.string.close), close) },
                 ) {
-                    if (d != null && d.edit == null) Capsule(d.cash) { v -> s.change { x -> if (v) SaleMaths.withParty(c ?: return@change x, x.copy(cash = true), null) else x.copy(cash = false) } }
+                    if (d != null && d.edit == null && !d.quote) Capsule(d.cash) { v -> s.change { x -> if (v) SaleMaths.withParty(c ?: return@change x, x.copy(cash = true), null) else x.copy(cash = false) } }
                     IconBtn(Icons.Dots, stringResource(R.string.sl_more), { if (c != null && d != null) sheet = "menu" })
                 }
             }
@@ -244,7 +250,7 @@ fun SaleScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f).heightIn(min = Size.Tap).padding(2.dp), verticalArrangement = Arrangement.Center) {
-                    T(stringResource(R.string.sl_no), size = 11.5.sp, weight = FontWeight.SemiBold, colour = Colours.Text3, oneLine = true)
+                    T(stringResource(if (d.quote) R.string.qt_no else R.string.sl_no), size = 11.5.sp, weight = FontWeight.SemiBold, colour = Colours.Text3, oneLine = true)
                     T(s.number.ifBlank { "…" }, size = 14.sp, weight = FontWeight.Bold, oneLine = true)
                 }
                 Box(Modifier.padding(vertical = 8.dp).width(1.dp).height(28.dp).background(Colours.Border))
@@ -311,13 +317,13 @@ fun SaleScreen(
                                 if (ch.signum() > 0) "+₹" + m2(ch) else null,
                             ).joinToString(" ").ifBlank { stringResource(R.string.sl_none) }
                             SumButton(stringResource(R.string.sl_chg), chv, Colours.Text, !d.chgOk, Modifier.weight(1f)) { pending = ""; sheet = "chg" }
-                            SumButton(stringResource(R.string.sl_received), "₹" + inr(SaleMaths.received(d, t.total)), Colours.Green, false, Modifier.weight(1f)) { sheet = "pay" }
+                            if (!d.quote) SumButton(stringResource(R.string.sl_received), "₹" + inr(SaleMaths.received(d, t.total)), Colours.Green, false, Modifier.weight(1f)) { sheet = "pay" }
                         }
                         if (d.lines.isNotEmpty()) {
                             Box(Modifier.fillMaxWidth().height(1.dp).background(Colours.Border))
-                            TL(stringResource(R.string.sl_bill_total), "₹" + inr(t.total))
+                            TL(stringResource(if (d.quote) R.string.qt_total else R.string.sl_bill_total), "₹" + inr(t.total))
                             val dues = SaleMaths.dues(d, t.total)
-                            if (!d.cash && dues.signum() > 0) TL(stringResource(R.string.sl_bill_dues), "₹" + inr(dues), Colours.Red)
+                            if (!d.cash && !d.quote && dues.signum() > 0) TL(stringResource(R.string.sl_bill_dues), "₹" + inr(dues), Colours.Red)
                         }
                     }
                 }
@@ -336,7 +342,7 @@ fun SaleScreen(
             Dim({ discard = false }, centre = true) {
                 // a saved bill stays as it was: leaving only drops the changes
                 if (d.edit != null) ConfirmBox(stringResource(R.string.eb_leave_q), stringResource(R.string.eb_leave_t, d.edit.number), stringResource(R.string.keep), stringResource(R.string.eb_leave), { discard = false }, { discard = false; onClose() })
-                else ConfirmBox(stringResource(R.string.sl_discard_q), stringResource(R.string.sl_discard_t), stringResource(R.string.keep), stringResource(R.string.sl_discard), { discard = false }, { discard = false; onClose() })
+                else ConfirmBox(stringResource(if (d.quote) R.string.qt_discard_q else R.string.sl_discard_q), stringResource(R.string.sl_discard_t), stringResource(R.string.keep), stringResource(R.string.sl_discard), { discard = false }, { discard = false; onClose() })
             }
         }
         // Edit Bill with the transaction passcode on (Settings › Transactions): asked after editing, every time
@@ -357,7 +363,7 @@ fun SaleScreen(
             }
             "pay" -> PaySheet(s, c) { sheet = "" }
             "smore" -> ShareMoreSheet({ sheet = "" }) { sheet = ""; doSave(it) }
-            "menu" -> SaleMenuSheet(c.referrers.firstOrNull { it.id == d.referrerId }?.name, { sheet = "" }) { sheet = it }
+            "menu" -> SaleMenuSheet(c.referrers.firstOrNull { it.id == d.referrerId }?.name, { sheet = "" }, import = !d.quote) { sheet = it }
             "quote" -> QuoteSheet(s) { sheet = "" }
             "ref" -> ReferralSheet(s, { sheet = "" }) { sheet = "elec" }
             "elec" -> AddElectricianSheet(s) { sheet = "ref" }
@@ -500,7 +506,7 @@ private fun ChargesSheet(s: SaleSession, c: SaleMaths.Ctx, saving: Boolean, onCl
                         TL(stringResource(R.string.sl_total), "₹" + inr(t.total), big = true)
                         T(BillMaths.amountInWords(t.total), size = 12.sp, colour = Colours.Text2)
                     }
-                    if (!d.cash && p != null) {
+                    if (!d.cash && !d.quote && p != null) {
                         val limit = p.creditLimit?.toBigDecimalOrNull() ?: BigDecimal.ZERO
                         val after = SaleMaths.before(d, p) + SaleMaths.dues(d, t.total)
                         if (limit.signum() > 0 && after > limit) {

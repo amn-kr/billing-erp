@@ -397,7 +397,7 @@ private fun modeWord(mode: String) = stringResource(
 
 /** A red menu row (design: Cancel in the ⋮ list). */
 @Composable
-private fun DangerRow(icon: ImageVector, text: String, onTap: () -> Unit) {
+internal fun DangerRow(icon: ImageVector, text: String, onTap: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = 52.dp).clickable(role = Role.Button, onClick = onTap).padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
