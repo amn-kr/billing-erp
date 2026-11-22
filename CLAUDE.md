@@ -1,11 +1,13 @@
 # Working rules for this repository
 
-## The one hard rule
-**The rebuild must look exactly like `reference/design/app.html`.**
-- Copy its CSS unchanged and keep its class names and DOM structure.
-- Do not redesign, restyle or "modernise" anything unless the owner asks.
-- **Font (owner, 19 Nov 2026):** the web and Windows apps use **Inter**, the same English font as the phone app. `reference/design/app.html` and `owner-panel.html` were changed to Inter too, so the screenshot checks still compare like with like.
-- Every rebuilt screen is checked with a Playwright screenshot against the prototype at 1280, 1366 and 1920 px.
+## The one hard rule (owner, 22 Nov 2026)
+**The look comes from the app's own theme. How things work comes from the prototype.**
+- **Look:** the app's own theme is the design: the stylesheets in `apps/web/src/styles/`, the Inter font, and the existing buttons, tables, forms, cards and dialogs with their class names and DOM structure. The theme was copied unchanged from `reference/design/app.html`, so today the app looks exactly like the prototype.
+- **New screens and dialogs** are built only from that theme. A new colour, font, size or kind of control needs the owner's OK first.
+- Do not redesign, restyle or "modernise" anything unless the owner asks. Every look change the owner asks for gets one picture per changed screen, approved by the owner.
+- **How it works stays with the prototype:** calculations, formulas, rounding, taxes, stock, document numbers, reports, flows, backup and import still follow `reference/design/app.html` (plus the differences on purpose listed in `docs/STATUS.md`). A look change never touches them, and its pull request lists the changed files to show it.
+- **Font (owner, 19 Nov 2026):** the web and Windows apps use **Inter**, the same English font as the phone app. `reference/design/app.html` and `owner-panel.html` were changed to Inter too.
+- **Checks:** one approved picture per screen at 1366 px; automatic fit checks at 1280, 1366, 1440, 1536, 1600 and 1920 px (nothing outside the screen, no overlaps, no cut text or amounts, buttons not too small); and a test that fails on any colour or font outside the theme. **This switch is made in 3 parts (see "Look rule change" in `docs/STATUS.md`). Until parts 2 and 3 are merged, the old checks keep running:** the stylesheets are compared with the prototype, and every screen is pictured at 1280, 1366 and 1920 px.
 - The web app and the Windows/Mac app follow this rule. **Exception (owner, 10 Nov 2026):** the Android/iPhone app has its own mobile screens. They are checked against the approved mobile design (`reference/design/mobile.html`) instead. See "Desktop and mobile apps" in `docs/ARCHITECTURE.md`.
 
 ## Phone app rules (owner, 15 Nov 2026; full plan in `docs/MOBILE-PLAN.md`)
@@ -15,7 +17,7 @@
 - **Android app (owner, 18 Nov 2026):** Kotlin with Jetpack Compose in `apps/android`, App ID `in.billingo.app` (permanent). Fonts: Inter for English, Noto Sans Devanagari for Hindi. The on-phone preview maths must pass the shared list of examples in `packages/shared`, the same as the web. Detailed plan: `docs/PHASE8-PLAN.md`.
 - **Wording:** every word of a button, field, tab, badge or heading starts with a capital letter (Purchase Bill). Dates look the same everywhere: 16 Nov 2026 (day, short month, year). A transaction row shows its name, then "INV-0107 | 14 Nov 2026" under it. Names stay on one line and end with "…" when they don't fit.
 - **Order:** Phase 7 (mobile design) may run during the Windows trial. **Phase 8 (the app) starts now; the rest of the Windows trial (sections D, F, F2, G and the shop trial I) comes after the phone app is launched (owner, 18 Nov 2026).**
-- **Later, after the Windows trial (owner's decision):** the web and Windows apps move to the same 20 colours and the same test method (one picture plus fit checks instead of 1280, 1366 and 1920). Until then, the rule above stays as it is.
+- **Later, after the Windows trial (owner's decision):** the web and Windows apps move to the same 20 colours, only when the owner asks. (The switch to one picture plus fit checks was brought forward by the owner on 22 Nov 2026; see the hard rule.)
 
 ## Who you are working for
 The owner runs a business in India and is not a programmer.

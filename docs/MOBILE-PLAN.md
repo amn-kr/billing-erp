@@ -162,8 +162,8 @@ The detailed step-by-step plan, with the owner's answers, is in [`docs/PHASE8-PL
 | Later | iPhone (decide then whether to reuse Kotlin code), field salesman screens and staff access, offline | After the owner's decisions |
 
 ## 8. Alongside, after the Windows trial: web and Windows apps
-- Switch to the 20 colours. This needs the owner's written exception to the "look exactly like the prototype" rule in `CLAUDE.md`.
-- Switch the tests to one picture per screen plus fit checks, instead of pictures at 1280, 1366 and 1920. That is 633 pictures today, all remade once for the owner's approval.
+- Switch to the 20 colours, when the owner asks. Since 22 Nov 2026 the look follows the app's own theme (`CLAUDE.md`), so this means changing the theme once, with the owner's approval of the pictures.
+- ~~Switch the tests to one picture per screen plus fit checks.~~ Brought forward by the owner on 22 Nov 2026: one picture per screen at 1366 px (the 211 already approved), plus fit checks at 1280, 1366, 1440, 1536, 1600 and 1920 px. See "Look rule change" in `docs/STATUS.md`.
 
 ## 9. Phase 9: iPhone and Mac
 Unchanged (see `docs/ARCHITECTURE.md`).

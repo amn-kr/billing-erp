@@ -40,11 +40,11 @@ Web · Windows (works offline) · Android and iPhone (coming)
 
 ## Latest
 
-_Last updated: 21 Nov 2026. Details: [`docs/STATUS.md`](docs/STATUS.md)._
+_Last updated: 22 Nov 2026. Details: [`docs/STATUS.md`](docs/STATUS.md)._
 
 | | |
 |---|---|
-| **Where we are** | Phases 0 to 4 are done. The Windows app (Phase 6) is built. Real-PC checks are under way: install (Windows 10 and 11), This PC only, printing, restore and update passed (18 Nov 2026). Left: backups, cloud move, connect to cloud and uninstall, then a two-week trial in the owner's shop, after the phone app is launched. Web and Windows now use the **Inter** font, like the phone app (owner, 19 Nov 2026); installed Windows apps get it with the next release. |
+| **Where we are** | Phases 0 to 4 are done. The Windows app (Phase 6) is built. Real-PC checks are under way: install (Windows 10 and 11), This PC only, printing, restore and update passed (18 Nov 2026). Left: backups, cloud move, connect to cloud and uninstall, then a two-week trial in the owner's shop, after the phone app is launched. Web and Windows now use the **Inter** font, like the phone app (owner, 19 Nov 2026); installed Windows apps get it with the next release. The look rule changed (owner, 22 Nov 2026): the look now comes from the app's own theme, and how things work still follows the prototype; the checks switch in 3 parts. |
 | **Latest Windows release** | **v0.1.1** (13 Nov 2026): adds *Bring online books to this PC*. Installers are on the [releases page](https://github.com/amn-kr/billing-erp-releases/releases). |
 | **Live web app** | https://billing-erp-ynqf.onrender.com (free plans; the first open after 15 idle minutes can take about a minute). |
 | **Needs attention** | Nightly database backups have not run since 9 Nov 2026. The fix is merged (PR #105) and in the backup repository, but GitHub's Actions budget stops every run. On hold until 1 Dec 2026, when the free minutes return; a reminder will run one backup and check the restore test that day. |
@@ -126,7 +126,7 @@ There is no two-way sync. A shop can *Move to cloud* once, or *Bring online book
 | Part | Technology |
 |---|---|
 | Web app | React 18, TypeScript, Vite, React Router, TanStack Query, React Hook Form + Zod, Zustand; ExcelJS and jsPDF for Excel and PDF files |
-| Styling | The prototype's CSS, copied unchanged. No Tailwind, no UI kit |
+| Styling | The app's own theme: the prototype's CSS, copied unchanged. No Tailwind, no UI kit |
 | Server | Node 22, NestJS 10, Prisma 6 (raw SQL for reports), Zod validation, `@nestjs/throttler` rate limits |
 | Database | PostgreSQL 16 with row-level security per shop |
 | Login | argon2id passwords, JWT access token plus refresh token in an httpOnly cookie |
@@ -181,7 +181,7 @@ packages/shared/     Money, GST and rounding maths, dates, roles, form rules, ap
 packages/importer/   Brings the old prototype's backup file into the new database
 infra/db/            Database roles and test databases, backup and restore-check scripts
 infra/backup-repo/   Workflow for the nightly backup (runs in a separate private repo)
-reference/design/    app.html = THE DESIGN SPEC (the prototype) · mobile.html = phone design
+reference/design/    app.html = the prototype: how every screen works, and where the theme came from · mobile.html = phone design
 reference/firebase-site/  Old interim website version
 reference/tests/     Playwright scripts used on the prototype
 tools/               design-baseline (screenshot tool) · brand-check.mjs
@@ -312,7 +312,7 @@ All API routes live under `/api`. The first open of the free live server after 1
 | Unit tests | Money, GST, dates, roles, form rules, copied CSS, app-name rename | `packages/shared`, `apps/web`, `apps/desktop` (Vitest) | `pnpm test` |
 | API tests | Every endpoint with a real PostgreSQL: rules, row-level security, numbering, backups, importers | `apps/api/test/*.test.ts` (Vitest) | `pnpm test` |
 | Browser flow tests | Business flows end to end; ports of the prototype's own checks (`reference/tests/flows.js`) | `apps/web/e2e/*.flows.spec.ts` (Playwright) | `pnpm --filter @billing/web e2e` |
-| Picture tests | Each screen against the prototype at 1280, 1366 and 1920 px | `apps/web/e2e/*.visual.spec.ts`, approved pictures in `e2e/approved` | same |
+| Picture tests | Each screen against its owner-approved pictures at 1280, 1366 and 1920 px (moving to one picture at 1366 px plus fit checks; see the hard rule) | `apps/web/e2e/*.visual.spec.ts`, approved pictures in `e2e/approved` | same |
 | Windows app tests | Electron app with real PostgreSQL, printing, backups, move to cloud and back | `apps/desktop` (Playwright) | `pnpm --filter @billing/desktop e2e` |
 | Prototype tests | The old app's own checks | `reference/tests` | see its scripts |
 | Type check | TypeScript strict across the repo | everywhere | `pnpm typecheck` |
@@ -362,7 +362,15 @@ Each phase has a gate that must pass before the next starts. Full plan: [`docs/A
 
 ## The one hard rule
 
-**The rebuild must look exactly like the prototype, `reference/design/app.html`.** Its CSS is copied unchanged and every screen is checked with a Playwright screenshot at 1280, 1366 and 1920 px. The only exception is the phone app, which has its own approved mobile design. Details: [`CLAUDE.md`](CLAUDE.md).
+**The look comes from the app's own theme. How things work comes from the prototype** (owner, 22 Nov 2026).
+
+| | |
+|---|---|
+| **Look** | The app's own theme: its stylesheets, the Inter font, its buttons, tables and forms. It was copied unchanged from the prototype, so today the app looks exactly like it. New screens use only this theme; anything new in the look needs the owner's OK. |
+| **How it works** | Calculations, formulas, taxes, stock, numbers, reports, flows, backup and import still follow the prototype, `reference/design/app.html`. A look change never touches them. |
+| **Checks** | One owner-approved picture per screen at 1366 px, fit checks at 1280, 1366, 1440, 1536, 1600 and 1920 px, and a test that fails on any colour or font outside the theme. Switched in 3 parts; until then the old checks (pictures at 1280, 1366 and 1920 px) keep running. |
+
+The phone app has its own approved mobile design. Details: [`CLAUDE.md`](CLAUDE.md).
 
 ## Documentation
 
