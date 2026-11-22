@@ -99,11 +99,14 @@ export async function approvedShot(name: string, app: Page, sel: string): Promis
  * the test then fails with "no approved picture yet" until a person copies it into e2e/approved/.
  */
 export async function sameShot(name: string, proto: Page, app: Page, sel: string): Promise<void> {
+  await withRowHeight(proto);
   if (fs.existsSync(path.join(APPROVED, `${name}.png`))) {
+    // TEMPORARY, until every screen has its picture: still photograph the prototype (not compared), because
+    // taking its picture scrolls it, and later screens in the same test are laid out after that scroll
+    await shot(proto, sel);
     await approvedShot(name, app, sel);
     return;
   }
-  await withRowHeight(proto);
   let got = await shot(app, sel);
   let d = compare(name, await shot(proto, sel), got);
   for (let n = 0; n < 2 && !(d.sizeMatches && d.ratio <= MAX_RATIO); n++) {

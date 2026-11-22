@@ -350,8 +350,8 @@ for (const width of WIDTHS) {
       // History: the server's clock stamps the rebuild's rows, so show the same time before comparing
       await both((p) => p.click('#pmHist'));
       await app.waitForSelector('#phRows tr td.mu');
-      const times = await app.locator('#phRows tr td:first-child').allInnerTexts();
-      await proto.evaluate((t) => document.querySelectorAll('#phRows tr td:first-child').forEach((td, k) => { td.textContent = t[k] ?? td.textContent; }), times);
+      // one fixed time in both (the server stamps the real time, so it would differ on every run from the approved picture)
+      await both((p) => p.evaluate(() => document.querySelectorAll('#phRows tr td:first-child').forEach((td) => { td.textContent = '22 Nov 2026, 10:00 AM'; })));
       await settle();
       await sameShot(`phm-${width}`, proto, app, '#phm .mdl');
     });
