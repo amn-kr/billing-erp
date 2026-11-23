@@ -212,7 +212,7 @@ fun PartiesScreen(api: Api, startBal: String, onBack: () -> Unit, onParty: (Part
 @Composable
 fun PartyScreen(
     api: Api, id: String, name: String, shop: String, onBack: () -> Unit, onStatement: () -> Unit, onEdit: () -> Unit, onLater: () -> Unit,
-    onBill: (id: String, number: String) -> Unit = { _, _ -> onLater() }, onNewBill: () -> Unit = onLater,
+    onBill: (id: String, number: String) -> Unit = { _, _ -> onLater() }, onNewBill: () -> Unit = onLater, onTakePayment: () -> Unit = onLater,
 ) {
     val ctx = LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
@@ -245,7 +245,7 @@ fun PartyScreen(
                     Btn(stringResource(R.string.pp_pay_supplier), onLater, Modifier.weight(1f), Kind.Soft, Icons.Rupee)
                     Btn(stringResource(R.string.t_purchase_bill), onLater, Modifier.weight(1f), Kind.Blue, Icons.Plus)
                 } else {
-                    Btn(stringResource(R.string.take_payment), onLater, Modifier.weight(1f), Kind.Soft, Icons.Rupee)
+                    Btn(stringResource(R.string.take_payment), onTakePayment, Modifier.weight(1f), Kind.Soft, Icons.Rupee)
                     Btn(stringResource(R.string.new_bill), onNewBill, Modifier.weight(1f), Kind.Blue, Icons.Plus)
                 }
             }),

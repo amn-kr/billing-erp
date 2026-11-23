@@ -51,7 +51,10 @@ import billingo.app.ui.docs.BrandQuoteScreen
 import billingo.app.ui.docs.ChallanFormScreen
 import billingo.app.ui.docs.ChallanScreen
 import billingo.app.ui.docs.ChallansScreen
+import billingo.app.ui.docs.PaymentsScreen
 import billingo.app.ui.docs.QuoteScreen
+import billingo.app.ui.docs.ReceiptScreen
+import billingo.app.ui.docs.ReceiveScreen
 import billingo.app.ui.docs.QuotesScreen
 import billingo.app.ui.docs.SaleBillsScreen
 import billingo.app.ui.items.AdjustScreen
@@ -184,6 +187,7 @@ class MainActivity : AppCompatActivity() {
                                     is Route.Party -> PartyScreen(
                                         m.server, top.id, top.name, shop, { m.back() }, { m.open(Route.Statement(top.id, top.name)) }, { m.open(Route.PartyForm(top.id)) }, later,
                                         onBill = { id, no -> m.open(Route.Bill(id, no)) }, onNewBill = { m.newSale(features, partyId = top.id) },
+                                        onTakePayment = { m.open(Route.Receive(partyId = top.id)) },
                                     )
                                     Route.Items -> ItemsScreen(m.server, { m.back() }, { i -> m.open(Route.Item(i.id, i.name)) }, { code -> m.open(Route.ItemForm(null, code)) }) { n ->
                                         // Items › More: Price Manager, Bulk Active / Inactive, Brands And Series, Stock Adjustments, Godowns; the rate list comes with the PDF (8.5)
@@ -233,6 +237,7 @@ class MainActivity : AppCompatActivity() {
                                         onChanged = { m.loadHome(); m.docsChanged() },
                                         onEdit = { m.sale.missingWords = { getString(R.string.eb_missing, it.joinToString(", ")) }; m.editSale(features, top.id) },
                                         onLater = later,
+                                        onTakePayment = { p -> m.open(Route.Receive(partyId = p)) },
                                     )
                                     is Route.Quotes -> QuotesScreen(
                                         m.server, top.pick, { m.back() }, { q -> m.open(Route.Quote(q.id, q.number)) },
@@ -277,6 +282,20 @@ class MainActivity : AppCompatActivity() {
                                         },
                                         onTryAgain = { m.saleRetry(features) },
                                     )
+                                    Route.Payments -> PaymentsScreen(m.server, { m.back() }, { r -> m.open(Route.Receipt(r.id, r.number)) }) { m.open(Route.Receive()) }
+                                    is Route.Receipt -> ReceiptScreen(
+                                        m.server, top.id, top.number, m.docsVersion, { m.back() },
+                                        onParty = { id, name -> m.open(Route.Party(id, name)) },
+                                        onBill = { id, no -> m.open(Route.Bill(id, no)) },
+                                        onEdit = { m.open(Route.Receive(editId = top.id)) },
+                                        onGone = { m.back(); m.loadHome(); m.docsChanged() },
+                                    )
+                                    is Route.Receive -> ReceiveScreen(m.server, top.partyId, top.editId, { m.back() }) { id, no ->
+                                        // a changed one goes back to its page; a new one opens its page
+                                        if (top.editId != null) m.back() else m.replace(Route.Receipt(id, no))
+                                        android.widget.Toast.makeText(this@MainActivity, getString(R.string.qt_saved, no), android.widget.Toast.LENGTH_SHORT).show()
+                                        m.loadHome(); m.docsChanged()
+                                    }
                                     Route.SaleSaved -> SavedScreen(m.sale, features, s.me.business?.itemOptions, onNew = { m.saleAgain(features); m.replace(Route.Sale) }, onDone = { m.back() })
                                 }
                                 }
@@ -297,6 +316,7 @@ class MainActivity : AppCompatActivity() {
                                 onItem = { i -> m.open(Route.Item(i.id, i.name)) },
                                 onNewBill = { m.newSale(features) },
                                 onBill = { b -> m.open(Route.Bill(b.id, b.number)) },
+                                onTakePayment = { m.open(Route.Receive()) },
                             )
                             if (menuOpen) {
                                 BackHandler { menuOpen = false }
@@ -314,6 +334,7 @@ class MainActivity : AppCompatActivity() {
                                     onSaleBills = { menuOpen = false; m.open(Route.SaleBills) },
                                     onQuotes = { menuOpen = false; m.open(Route.Quotes()) },
                                     onChallans = { menuOpen = false; m.open(Route.Challans) },
+                                    onPayments = { menuOpen = false; m.open(Route.Payments) },
                                     onGst = gst,
                                     onSignOut = { menuOpen = false; signOutOpen = true },
                                     onCheckUpdate = { m.checkUpdate(BuildConfig.VERSION_NAME) },
@@ -326,7 +347,7 @@ class MainActivity : AppCompatActivity() {
                             if (createOpen) {
                                 BackHandler { createOpen = false }
                                 // Sale Bill (1st), New Party (10th) and New Item (11th) open; the others come in later steps
-                                CreateNewSheet({ createOpen = false }) { i -> createOpen = false; when (i) { 0 -> m.newSale(features); 1 -> m.open(Route.Quotes(pick = true)); 2 -> m.newChallan(features); 9 -> m.open(Route.PartyForm(null)); 10 -> m.open(Route.ItemForm(null)); else -> later() } }
+                                CreateNewSheet({ createOpen = false }) { i -> createOpen = false; when (i) { 0 -> m.newSale(features); 1 -> m.open(Route.Quotes(pick = true)); 2 -> m.newChallan(features); 3 -> m.open(Route.Receive()); 9 -> m.open(Route.PartyForm(null)); 10 -> m.open(Route.ItemForm(null)); else -> later() } }
                             }
                             if (signOutOpen) {
                                 BackHandler { signOutOpen = false }

@@ -120,6 +120,7 @@ fun HomeScreen(
     onItem: (Item) -> Unit = { onLater() },
     onNewBill: () -> Unit = onLater,
     onBill: (SaleRow) -> Unit = { onLater() },
+    onTakePayment: () -> Unit = onLater,
 ) {
     val hi = LocalConfiguration.current.locales[0].language == "hi"
     var tab by rememberSaveable { mutableIntStateOf(0) }
@@ -165,7 +166,7 @@ fun HomeScreen(
             }
         }
         FootBar {
-            Btn(stringResource(R.string.take_payment), onLater, Modifier.weight(1f), Kind.Soft, Icons.Rupee)
+            Btn(stringResource(R.string.take_payment), onTakePayment, Modifier.weight(1f), Kind.Soft, Icons.Rupee)
             IconBtn(Icons.Plus, stringResource(R.string.create_new), onCreate, Kind.Blue)
             Btn(stringResource(R.string.new_bill), onNewBill, Modifier.weight(1f), Kind.Blue)
         }

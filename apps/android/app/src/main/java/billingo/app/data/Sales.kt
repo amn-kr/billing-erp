@@ -260,3 +260,49 @@ data class ChallanRow(
     val lineNames: List<String> = emptyList(),
     val invoiceNo: String = "",
 )
+
+// 8.6e: payments received
+
+/** A payment received in the list (GET /receipts): what it settled, and what is left as advance. */
+@Serializable
+data class ReceiptRow(
+    val id: String,
+    val number: String,
+    val date: String,
+    val party: DocParty? = null,
+    val partyName: String = "",
+    val counter: Boolean = false,
+    val mode: String = "Cash",
+    val reference: String = "",
+    val against: String = "",
+    val amount: String = "0",
+    val unused: String = "0",
+    val atSale: Boolean = false,
+)
+
+@Serializable
+data class ReceiptAlloc(val to: String, val amount: String = "0")
+
+/** One payment received (GET /receipts/:id): its settlements, and why it can't be changed (blank when it can). */
+@Serializable
+data class ReceiptDoc(
+    val id: String,
+    val number: String,
+    val date: String,
+    val partyId: String? = null,
+    val amount: String = "0",
+    val mode: String = "Cash",
+    val accountId: String? = null,
+    val ref: String = "",
+    val notes: String = "",
+    val cancelled: Boolean = false,
+    val allocations: List<ReceiptAlloc> = emptyList(),
+    val locked: String = "",
+)
+
+/** A customer's unpaid bill or opening balance (GET /parties/:id/dues), oldest first. */
+@Serializable
+data class Due(val to: String, val kind: String = "invoice", val number: String = "", val date: String = "", val dueDate: String? = null, val total: String = "0", val balance: String = "0")
+
+@Serializable
+data class Received(val id: String, val number: String = "", val amount: String = "0", val partyName: String = "")

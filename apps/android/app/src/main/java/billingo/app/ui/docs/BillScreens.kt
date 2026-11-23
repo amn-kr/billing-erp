@@ -243,6 +243,7 @@ private fun SecTitle(text: String) = billingo.app.ui.parts.SectionTitle(text)
 fun BillScreen(
     api: Api, id: String, number: String, features: List<String>, itemOptions: JsonObject?, version: Int,
     onBack: () -> Unit, onParty: (id: String, name: String) -> Unit, onChanged: () -> Unit, onEdit: () -> Unit, onLater: () -> Unit,
+    onTakePayment: (partyId: String) -> Unit = { onLater() },
 ) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -300,7 +301,7 @@ fun BillScreen(
             d?.number ?: number, d?.date?.takeIf { it.isNotBlank() }?.let { Format.date(it, hi) }, onBack,
             right = { if (d != null && !d.cancelled) IconBtn(Icons.Dots, stringResource(R.string.more_options), { menu = true }) },
             foot = if (d == null || d.cancelled) null else ({
-                if (n(d.balance).signum() > 0 && d.party != null) Btn(stringResource(R.string.take_payment), onLater, Modifier.weight(1f), Kind.Soft, Icons.Rupee)
+                if (n(d.balance).signum() > 0 && d.party != null) Btn(stringResource(R.string.take_payment), { d.party?.id?.let(onTakePayment) }, Modifier.weight(1f), Kind.Soft, Icons.Rupee)
                 Btn(stringResource(R.string.dv_share), { pdf("wa") }, Modifier.weight(1f), Kind.Green, Icons.Chat, busy = busy == "wa")
             }),
         ) {
