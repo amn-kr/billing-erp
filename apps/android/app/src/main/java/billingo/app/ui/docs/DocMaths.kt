@@ -108,6 +108,44 @@ object DocMaths {
         return t.isEmpty() || (c.number + " " + chName(c, counter) + " " + c.lineNames.joinToString(" ")).lowercase().contains(t)
     }
 
+    /* ───────── payments received (8.6e) ───────── */
+
+    /** Payments Received's choice (design KD.pr): All Modes, Cash, UPI, Bank, Cheque. */
+    val PR_MODES = listOf("", "Cash", "UPI", "Bank transfer", "Cheque")
+
+    fun prMatches(r: billingo.app.data.ReceiptRow, f: Int, query: String): Boolean {
+        val m = PR_MODES.getOrElse(f) { "" }
+        if (m.isNotEmpty() && r.mode != m) return false
+        val t = query.trim().lowercase()
+        return t.isEmpty() || (r.number + " " + r.partyName + " " + r.reference + " " + r.against).lowercase().contains(t)
+    }
+
+    /** ↓ Received This Month, and Still To Collect (every bill's dues). */
+    fun prSummary(rows: List<billingo.app.data.ReceiptRow>, bills: List<BillRow>, today: String): Pair<BigDecimal, BigDecimal> {
+        val month = today.take(7)
+        return rows.filter { it.date.take(7) == month }.fold(BigDecimal.ZERO) { a, r -> a + num(r.amount) } to
+            bills.filter { !it.cancelled }.fold(BigDecimal.ZERO) { a, b -> a + num(b.balance).max(BigDecimal.ZERO) }
+    }
+
+    /** What a payment settles (design allocOf): the ticked dues, oldest first, each up to what it owes; the rest is advance. */
+    data class Split(val to: List<Pair<String, BigDecimal>>, val advance: BigDecimal)
+
+    fun allocate(dues: List<billingo.app.data.Due>, ticked: Set<String>, amount: BigDecimal): Split {
+        var left = amount.max(BigDecimal.ZERO)
+        val out = mutableListOf<Pair<String, BigDecimal>>()
+        for (d in dues) {
+            if (d.to !in ticked) continue
+            val a = num(d.balance).min(left).max(BigDecimal.ZERO)
+            left -= a
+            out += d.to to a
+        }
+        return Split(out, left)
+    }
+
+    /** The web's WhatsApp receipt (receiptModal). */
+    fun receiptMessage(r: billingo.app.data.ReceiptRow, money: (String) -> String, dmy: (String) -> String) =
+        "Dear ${r.partyName}, we have received ${money(r.amount)} by ${r.mode}${if (r.reference.isNotBlank()) " (ref ${r.reference})" else ""} on ${dmy(r.date)}. Receipt ${r.number}. Thank you!"
+
     /** A bill's charges (transport, labour, bank commission) as one figure, as the design shows them. */
     fun charges(d: SaleDoc): BigDecimal = num(d.transport) + num(d.labour) + num(d.bankCharge)
 

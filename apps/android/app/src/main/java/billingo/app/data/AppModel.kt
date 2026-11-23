@@ -57,6 +57,10 @@ sealed interface Route {
     data object Challans : Route
     data class Challan(val id: String, val number: String) : Route
     data object ChallanForm : Route
+    // 8.6e: payments received
+    data object Payments : Route
+    data class Receipt(val id: String, val number: String) : Route
+    data class Receive(val partyId: String? = null, val editId: String? = null) : Route
 }
 
 /** Home's lists; null when the server refused one (no permission) or it hasn't come yet. */

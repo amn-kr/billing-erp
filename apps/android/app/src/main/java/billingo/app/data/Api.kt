@@ -187,6 +187,16 @@ class Api(private val base: String, private val store: Store, private val client
     /** a new challan, or a saved one changed (keeps its number; the passcode when the shop asks for it) */
     suspend fun saveChallan(body: JsonObject, id: String? = null, passcode: String? = null): SaleSaved =
         if (id == null) send("POST", "/challans", body, SaleSaved.serializer()) else send("PUT", "/challans/$id", body, SaleSaved.serializer(), passcode = passcode)
+    // 8.6e: payments received
+    suspend fun receipts(): List<ReceiptRow> = send("GET", "/receipts", null, ListSerializer(ReceiptRow.serializer()))
+    suspend fun receipt(id: String): ReceiptDoc = send("GET", "/receipts/$id", null, ReceiptDoc.serializer())
+    /** a customer's unpaid bills, oldest first; [payment]: a payment being changed (what it settled counts as unpaid) */
+    suspend fun dues(partyId: String, payment: String? = null): List<Due> =
+        send("GET", "/parties/$partyId/dues" + (payment?.let { "?payment=$it" } ?: ""), null, ListSerializer(Due.serializer()))
+    suspend fun saveReceipt(body: JsonObject, id: String? = null, passcode: String? = null): Received =
+        if (id == null) send("POST", "/receipts", body, Received.serializer()) else send("PUT", "/receipts/$id", body, Received.serializer(), passcode = passcode)
+    /** Delete a payment received, as on the computer (owner, 23 Nov 2026): undone in the books, hidden from the lists, kept in the records */
+    suspend fun deleteReceipt(id: String, passcode: String? = null) { send<Unit>("POST", "/receipts/$id/delete", buildJsonObject {}, null, passcode = passcode) }
     suspend fun quotations(): List<QuoteRow> = send("GET", "/sales?kind=quotation", null, ListSerializer(QuoteRow.serializer()))
     suspend fun saleDoc(id: String): SaleDoc = send("GET", "/sales/$id", null, SaleDoc.serializer())
     // 8.6a: Sale Bills
