@@ -259,7 +259,7 @@ class MainActivity : AppCompatActivity() {
                                     }
                                     Route.Challans -> ChallansScreen(m.server, { m.back() }, { c -> m.open(Route.Challan(c.id, c.number)) }) { m.newChallan(features) }
                                     is Route.Challan -> ChallanScreen(
-                                        m.server, top.id, top.number, m.docsVersion, { m.back() },
+                                        m.server, top.id, top.number, m.docsVersion, features, s.me.business?.itemOptions, { m.back() },
                                         onParty = { id, name -> m.open(Route.Party(id, name)) },
                                         onBill = { id, no -> m.open(Route.Bill(id, no)) },
                                         onEdit = { m.sale.missingWords = { getString(R.string.eb_missing, it.joinToString(", ")) }; m.editChallan(features, top.id) },

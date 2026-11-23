@@ -190,4 +190,42 @@ class InvoicePaperTest {
         val lines = (1..40).joinToString(",") { """{"name":"Item $it","qty":"1","unit":"PCS","price":"10","taxable":"10","tax":"0","amount":"10"}""" }
         assertTrue(paperPages(fromSale(doc("""{"id":"s4","number":"INV-0110","date":"2026-11-21","partyName":"A","total":"400","lines":[$lines]}""")), o, biz, ink).size >= 2)
     }
+
+    // 8.6d-2: a delivery challan, as the web prints it
+    private val challan = """
+        {"id":"c1","kind":"challan","number":"DC-0012","date":"2026-11-15","mode":"credit","taxMode":"gst","placeOfSupply":"09","status":"invoiced",
+         "partyName":"Mehta Electricals","party":{"id":"p2","name":"Mehta Electricals","phone":"9839012345","gstin":"09AAACM1234A1Z1","city":"Kanpur"},
+         "total":"0.00","notes":"Site: Civil Lines, near the water tank","extra":{"transport":"Self","vehicle":"UP78 CD 4521","invoiceNo":"INV-0106"},
+         "lines":[
+          {"itemId":"i1","name":"LED Bulb 9W","hsn":"8539","qty":"30.000","unit":"PCS","price":"0.00","discPct":"0","gstRate":"12","taxable":"0","tax":"0","amount":"0.00"},
+          {"itemId":"i2","name":"Finolex 1.5 sq mm Wire 90 m","hsn":"8544","qty":"2.000","unit":"ROLL","price":"0.00","discPct":"0","gstRate":"18","taxable":"0","tax":"0","amount":"0.00"}
+         ]}
+    """.trimIndent()
+
+    @Test
+    fun `a challan in Classic has no prices, Deliver To and Received by`() {
+        val o = PrintOpts.from(null)
+        val d = fromSale(doc(challan))
+        assertEquals("Delivery Challan", docTitle(d, o))
+        assertEquals(listOf("sl", "name", "qty", "unit"), columns(d, o).map { it.key })
+        val pages = paperPages(d, o, biz, ink)
+        assertEquals(1, pages.size)
+        val words = pages[0].ops.filterIsInstance<TextOp>().map { it.s }
+        assertTrue(words.containsAll(listOf("Delivery Challan", "Challan No.", "DC-0012", "Deliver To", "Mehta Electricals", "Transport: Self · UP78 CD 4521", "Total", "32", "Received by", "Name & signature", "For : Sharma Electricals")))
+        // no copy label, no amounts box, no bank details
+        assertTrue(words.none { it == "Original for recipient" || it == "Amounts" || it == "Bank Details" || it.contains("Amount in Words") })
+        picture(pages, "challan-classic")
+    }
+
+    @Test
+    fun `a challan in Simple is the web's delivery note`() {
+        val o = PrintOpts.from(Json.parseToJsonElement("""{"theme":"simple"}""") as JsonObject)
+        val pages = paperPages(fromSale(doc(challan)), o, biz, ink)
+        assertEquals(1, pages.size)
+        val words = pages[0].ops.filterIsInstance<TextOp>().map { it.s }
+        assertTrue(words.containsAll(listOf("DELIVERY CHALLAN", "DC-0012 · 15/11/2026", "Billed in INV-0106", "DELIVER TO", "Mehta Electricals", "+91 9839012345", "Transport: Self · UP78 CD 4521",
+            "#", "Item", "HSN", "Qty", "Unit", "LED Bulb 9W", "8539", "30", "Total quantity", "32", "Received by (name & signature)", "For Sharma Electricals")))
+        assertTrue(words.none { it.contains("₹") || it.contains(".00") })
+        picture(pages, "challan-simple")
+    }
 }

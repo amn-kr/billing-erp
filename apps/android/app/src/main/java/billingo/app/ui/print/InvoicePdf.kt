@@ -128,6 +128,8 @@ object InvoicePdf {
     /** The web's WhatsApp message for this bill. */
     fun message(m: Made): String {
         val v = m.doc
+        // a delivery challan is shared as the PDF alone (the web has no message for it)
+        if (v.kind == "challan") return ""
         val bal = PFmt.dec(v.balance)
         val total = Format.inr(v.total)
         return if (v.kind == "quotation") "Hello ${v.partyName}, here is our quotation ${v.number} dated ${PFmt.dmy(v.date)} for ₹$total${if (!v.dueDate.isNullOrBlank()) ", valid till ${PFmt.dmy(v.dueDate)}" else ""}. — ${m.shop}"
@@ -140,7 +142,7 @@ object InvoicePdf {
         return Intent(Intent.ACTION_SEND).apply {
             type = "application/pdf"
             putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_TEXT, message(m))
+            message(m).takeIf { it.isNotEmpty() }?.let { putExtra(Intent.EXTRA_TEXT, it) }
             putExtra(Intent.EXTRA_SUBJECT, m.title)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }

@@ -170,6 +170,9 @@ fun paperPages(d: PDoc, o: PrintOpts, biz: Biz, ink: Ink): List<Page> {
     return (list.ifEmpty { listOf("") }).flatMap { if (o.theme == "simple") simple(d, o, biz, ink, it) else classic(d, o, biz, ink, it) }
 }
 
+/** app.css table{font-size:13px}: every table on the web (the item table, the GST table) is 13 px, whatever the text size */
+private const val TABLE_PX = 13f
+
 /** The "Classic" boxed layout (the owner's sample bill, the web's default). */
 private fun classic(d: PDoc, o: PrintOpts, biz: Biz, ink: Ink, copy: String): List<Page> {
     val (pw, ph) = o.size
@@ -184,6 +187,8 @@ private fun classic(d: PDoc, o: PrintOpts, biz: Biz, ink: Ink, copy: String): Li
     val cols = columns(d, o)
     val g = d.taxMode == "gst"
     val q = d.kind == "quotation"
+    // 8.6d-2: a delivery challan has no prices, no amounts box, and "Received by" beside the signature
+    val dc = d.kind == "challan"
     val inter = dec(d.igst).signum() > 0
     fun show(b: String) = b !in o.hide
     val addr = listOf(biz.address, listOf(biz.city, biz.pin).filter { it.isNotBlank() }.joinToString(" ")).filter { it.isNotBlank() }.joinToString(", ")
@@ -194,7 +199,7 @@ private fun classic(d: PDoc, o: PrintOpts, biz: Biz, ink: Ink, copy: String): Li
 
     // ---- the pieces above the table
     val meta = buildList {
-        if (!d.hideNo) add((if (q) "Quotation No." else "Invoice No.") to d.number)
+        if (!d.hideNo) add((if (dc) "Challan No." else if (q) "Quotation No." else if (d.kind == "credit_note") "Credit Note No." else "Invoice No.") to (d.dcNo ?: d.number))
         add("Date" to PFmt.dmy(d.date) + (if (d.time.isNotEmpty()) " · ${d.time}" else ""))
         d.refs.filter { it.first != "Billing name" }.forEach { (k, v) -> add((if (k == "Challan no.") "Challan No." else k) to v) }
         if (q) add("Valid till" to PFmt.dmy(d.dueDate)) else if (d.kind == "invoice" && d.mode == "credit" && !d.dueDate.isNullOrBlank()) add("Due date" to PFmt.dmy(d.dueDate))
@@ -251,38 +256,43 @@ private fun classic(d: PDoc, o: PrintOpts, biz: Biz, ink: Ink, copy: String): Li
 
     fun billBlk(): Blk {
         val w = Wi - 16
-        val parts = mutableListOf(0f to L.para("Bill To", fs, false, w), 4f to L.para(d.partyName, fs, true, w))
+        val parts = mutableListOf(0f to L.para(if (dc) "Deliver To" else "Bill To", fs, false, w), 4f to L.para(d.partyName, fs, true, w))
         if (!billing.isNullOrBlank()) parts += 0f to L.para(billing, sm, false, w)
         val cp = listOf(d.partyCity, if (d.partyPhone.isNotBlank()) "+91 ${d.partyPhone}" else "").filter { it.isNotBlank() }
         if (cp.isNotEmpty()) parts += 0f to L.para(cp.joinToString(" · "), sm, false, w)
         if (g && d.partyGstin.isNotBlank()) parts += 0f to L.para("GSTIN : ${d.partyGstin}", sm, false, w)
         if (o.description && d.description.isNotBlank()) parts += 0f to L.para(d.description, sm, false, w)
+        if (d.dcTransport.isNotBlank()) parts += 0f to L.para(d.dcTransport, sm, false, w)
         return L.pad(L.stack(parts), 5f, 5f, 8f)
     }
 
     // ---- the item table
     val qtyTotal = d.lines.fold(BigDecimal.ZERO) { a, l -> a + dec(l.qty) }
     val amtTotal = d.lines.fold(BigDecimal.ZERO) { a, l -> a + dec(l.amount) }
-    val batchPx = fs * 0.85f
+    // app.css table{font-size:13px}: the web's tables are 13 px whatever the text size (th / td inherit it)
+    val tfs = TABLE_PX
+    // table cells have the font's own line height (td: line-height normal), not the page's 1.35
+    val T = Lay(ink, tfs, ASC + DESC)
+    val batchPx = tfs * 0.85f
     val cellText = d.lines.mapIndexed { i, l -> cols.map { it.v(l, i) } }
     val totalCells = cols.map { when (it.key) { "name" -> "Total"; "qty" -> PFmt.qty(qtyTotal.toPlainString()); "amount" -> m(amtTotal.toPlainString()); else -> "" } }
     val minW = cols.indices.map { k ->
         val col = cols[k]
         fun need(s: String, px: Float, bold: Boolean) = if (col.n) ink.width(s, px, bold) else s.split(" ", "\n").maxOfOrNull { ink.width(it, px, bold) } ?: 0f
         maxOf(
-            need(col.label, fs, true),
-            cellText.maxOfOrNull { need(it[k], fs, col.key == "name") } ?: 0f,
+            need(col.label, tfs, true),
+            cellText.maxOfOrNull { need(it[k], tfs, col.key == "name") } ?: 0f,
             if (col.key == "name") d.lines.maxOfOrNull { need(it.batch, batchPx, false) } ?: 0f else 0f,
-            need(totalCells[k], fs, true),
+            need(totalCells[k], tfs, true),
         ) + 12f
     }
     val maxW = cols.indices.map { k ->
         val col = cols[k]
         maxOf(
-            ink.width(col.label, fs, true),
-            cellText.maxOfOrNull { ink.width(it[k], fs, col.key == "name") } ?: 0f,
+            ink.width(col.label, tfs, true),
+            cellText.maxOfOrNull { ink.width(it[k], tfs, col.key == "name") } ?: 0f,
             if (col.key == "name") d.lines.maxOfOrNull { ink.width(it.batch, batchPx, false) } ?: 0f else 0f,
-            ink.width(totalCells[k], fs, true),
+            ink.width(totalCells[k], tfs, true),
         ) + 12f
     }
     val cw = shareWidths(minW, maxW, Wi)
@@ -293,10 +303,10 @@ private fun classic(d: PDoc, o: PrintOpts, biz: Biz, ink: Ink, copy: String): Li
         val cells = texts.mapIndexed { k, s ->
             val col = cols[k]
             val w = cw[k] - 12
-            val main = L.para(s, fs, bold(k), w, if (col.n) 'r' else 'l', nowrap = col.n)
-            if (col.key == "name" && batch.isNotEmpty()) L.stack(listOf(0f to main, 0f to L.para(batch, batchPx, false, w))) else main
+            val main = T.para(s, tfs, bold(k), w, if (col.n) 'r' else 'l', nowrap = col.n)
+            if (col.key == "name" && batch.isNotEmpty()) T.stack(listOf(0f to main, 0f to T.para(batch, batchPx, false, w))) else main
         }
-        val h = (cells.maxOfOrNull { it.h } ?: L.lh(fs)) + 10f
+        val h = (cells.maxOfOrNull { it.h } ?: T.lh(tfs)) + 10f
         return Blk(h) { p, x, y -> cells.forEachIndexed { k, b -> b.draw(p, x + cx[k] + 6, y + 5) } }
     }
     val head = row(cols.map { it.label }, { true })
@@ -329,19 +339,19 @@ private fun classic(d: PDoc, o: PrintOpts, biz: Biz, ink: Ink, copy: String): Li
             val data = rates.map { (r, x) ->
                 listOf(PFmt.pct(r), m(PFmt.r2(x.first).toPlainString())) + if (inter) listOf(m(PFmt.r2(x.second).toPlainString())) else listOf(m(PFmt.r2(x.second.divide(BigDecimal(2))).toPlainString()), m(PFmt.r2(x.second.divide(BigDecimal(2))).toPlainString()))
             }
-            val tMin = heads.indices.map { k -> maxOf(ink.width(heads[k], fs, true), data.maxOfOrNull { ink.width(it[k], fs, false) } ?: 0f) + 10f }
+            val tMin = heads.indices.map { k -> maxOf(ink.width(heads[k], TABLE_PX, true), data.maxOfOrNull { ink.width(it[k], TABLE_PX, false) } ?: 0f) + 10f }
             val tw = shareWidths(tMin, tMin, lw)
             val tx = tw.runningFold(0f) { a, w -> a + w }
             // collapsed 1 px borders round every cell: n rows take n × (text + padding) + (n + 1) px
-            val rh = L.lh(fs) + 6f
+            val rh = TABLE_PX * (ASC + DESC) + 6f
             val n = data.size + 1
             left += 8f to Blk(n * rh + n + 1) { p, x, y ->
                 for (r in 0..n) L.line(p, x, y + r * (rh + 1) + 0.5f, x + lw, y + r * (rh + 1) + 0.5f, c)
                 for (k in 0..heads.size) L.line(p, x + tx[k], y, x + tx[k], y + n * (rh + 1) + 1, c)
                 (listOf(heads) + data).forEachIndexed { r, cells ->
                     cells.forEachIndexed { k, s ->
-                        val sw = ink.width(s, fs, r == 0)
-                        L.text(p, s, if (k == 0) x + tx[k] + 5 else x + tx[k + 1] - 5 - sw, y + r * (rh + 1) + 1 + 3, fs, r == 0)
+                        val sw = ink.width(s, TABLE_PX, r == 0)
+                        T.text(p, s, if (k == 0) x + tx[k] + 5 else x + tx[k + 1] - 5 - sw, y + r * (rh + 1) + 1 + 3, TABLE_PX, r == 0)
                     }
                 }
             }
@@ -391,6 +401,20 @@ private fun classic(d: PDoc, o: PrintOpts, biz: Biz, ink: Ink, copy: String): Li
 
     // ---- the foot: bank details, terms, signature
     fun footBlk(): Blk? {
+        // a challan: "Received by … Name & signature" and the shop's signature, always, two halves
+        if (dc) {
+            val fw = Wi / 2
+            fun sig(top: String, under: String, w: Float) = L.stack(listOf(0f to L.para(top, sm, false, w, 'c'), 38f to L.para(under, fs, true, w, 'c')))
+            val parts = listOf(sig("Received by", "Name & signature", fw - 16), sig("For : $name", o.sign.ifBlank { "Authorized Signatory" }, fw - 17))
+            val h = maxOf(92f, parts.maxOf { it.h } + 12f)
+            return Blk(h) { p, x, y ->
+                parts.forEachIndexed { i, b ->
+                    val bx = x + i * fw
+                    if (i > 0) L.line(p, bx, y, bx, y + h, c)
+                    b.draw(p, bx + 8 + (if (i > 0) 1 else 0), y + 6)
+                }
+            }
+        }
         val bot = o.bot.filter { show(it) }
         if (bot.isEmpty()) return null
         val fw = Wi / bot.size
@@ -415,7 +439,7 @@ private fun classic(d: PDoc, o: PrintOpts, biz: Biz, ink: Ink, copy: String): Li
     val tops = o.top.filter { show(it) }
     val outsideTitle = tops.firstOrNull() == "title"
     val boxTop = tops.filter { !(it == "title" && outsideTitle) }.map { when (it) { "title" -> titleBlk(Wi - 12, true); "biz" -> bizBlk(); else -> billBlk() } }
-    val sum = sumBlk()
+    val sum = if (dc) null else sumBlk()
     val foot = footBlk()
 
     // ---- pages
@@ -529,6 +553,7 @@ private const val S_LH = 1.45f
 private const val S_TLH = ASC + DESC
 
 private fun simple(d: PDoc, o: PrintOpts, biz: Biz, ink: Ink, copy: String): List<Page> {
+    if (d.kind == "challan") return challanSimple(d, o, biz, ink)
     val (pw, ph) = o.size
     val pm = Opts.MARGIN_PX[o.margin] ?: 30f
     val fs = SIMPLE_TEXT[o.textSize] ?: 12.5f
@@ -779,5 +804,119 @@ private fun simple(d: PDoc, o: PrintOpts, biz: Biz, ink: Ink, copy: String): Lis
         r.draw(page, x0, y); y += r.h
     }
     place(foot)
+    return pages
+}
+
+/* ───────── "Simple" delivery challan (8.6d-2): the web's Simple() for a challan (app.css .dch / .dchh / .dcht / .dchp / .ivtab / .dchtot / .dchs) ───────── */
+
+private const val DC_TEAL = 0xFF0F766E.toInt()
+private const val DC_INK = 0xFF222222.toInt()
+private const val DC_GREY = 0xFF555555.toInt()
+private const val DC_LABEL = 0xFF777777.toInt()
+private const val DC_SIGN = 0xFF999999.toInt()
+
+private fun challanSimple(d: PDoc, o: PrintOpts, biz: Biz, ink: Ink): List<Page> {
+    val (pw, ph) = o.size
+    val pm = Opts.MARGIN_PX[o.margin] ?: 30f
+    val fs = 13f // .dch{font-size:13px}
+    val L = Lay(ink, fs, S_LH)
+    val g = d.taxMode == "gst"
+    val name = biz.name.ifBlank { "My Business" }
+    val line = listOf(
+        listOf(if (o.showAddr) biz.address else "", if (o.showAddr) listOf(biz.city, biz.pin).filter { it.isNotBlank() }.joinToString(" ") else "").filter { it.isNotBlank() }.joinToString(", "),
+        if (o.showPhone) biz.phone else "",
+    ).filter { it.isNotBlank() }.joinToString(" · ")
+    // .ivpg padding pm / pm + 4, then .dch padding 6px 4px
+    val x0 = pm + 4 + 4
+    val W = pw - 2 * x0
+    fun gap(h: Float) = Blk(h) { _, _, _ -> }
+
+    // ---- the head (.dchh): the shop on the left, the document's name and its lines on the right; a 2 px line under it
+    val title = docTitle(d, o).uppercase()
+    val sp = 15f * 0.08f
+    val rightW = maxOf(L.wd(title, 15f, 700, sp), d.dcSub.maxOfOrNull { ink.width(it, 12f, 400) } ?: 0f)
+    val leftW = W - rightW - 16
+    val left = L.stack(buildList {
+        add(0f to L.paraW(name, 16f, 700, leftW))
+        add(0f to L.paraW(line, 12f, 400, leftW, color = DC_GREY))
+        if (g) add(0f to L.paraW("GSTIN ${biz.gstin}", 12f, 400, leftW, color = DC_GREY))
+    })
+    val right = L.stack(listOf(0f to L.paraW(title, 15f, 700, rightW, 'r', DC_TEAL, sp, nowrap = true)) + d.dcSub.map { 0f to L.paraW(it, 12f, 400, rightW, 'r', DC_GREY, nowrap = true) })
+    val hh = maxOf(left.h, right.h)
+    val head = Blk(hh + 10 + 2) { p, x, y ->
+        left.draw(p, x, y); right.draw(p, x + W - rightW, y)
+        p.ops += LineOp(x, y + hh + 10 + 1, x + W, y + hh + 10 + 1, DC_INK, 2f)
+    }
+
+    // ---- Deliver to (.dchp, 12 px above and below)
+    val to = L.stack(buildList {
+        add(0f to L.paraW("DELIVER TO", 11f, 700, W, color = DC_LABEL, spacing = 11f * 0.06f))
+        add(0f to L.paraW(d.partyName, 14f, 700, W))
+        if (d.partyCity.isNotBlank()) add(0f to L.paraW(d.partyCity, 12f, 400, W, color = DC_GREY))
+        if (d.partyPhone.isNotBlank()) add(0f to L.paraW("+91 ${d.partyPhone}", 12f, 400, W, color = DC_GREY))
+        if (d.dcTransport.isNotBlank()) add(0f to L.paraW(d.dcTransport, 12f, 400, W, color = DC_GREY))
+    })
+    // .dchp's 12 px under it and the table's 12 px above it are one gap (the margins collapse); the table's is drawn with it
+    val deliver = Blk(12 + to.h) { p, x, y -> to.draw(p, x, y + 12) }
+
+    // ---- the table (.ivtab): #, Item, HSN (with GST), Qty, Unit; then Total quantity
+    val heads = buildList { add("#"); add("Item"); if (g) add("HSN"); add("Qty"); add("Unit") }
+    val qk = heads.indexOf("Qty")
+    val data = d.lines.mapIndexed { i, l -> buildList { add((i + 1).toString()); add(l.name); if (g) add(l.hsn); add(PFmt.qty(l.qty)); add(l.unit) } }
+    val total = PFmt.qty(d.lines.fold(BigDecimal.ZERO) { a, l -> a + PFmt.dec(l.qty) }.toPlainString())
+    val totRow = buildList { add(""); add("Total quantity"); if (g) add(""); add(total); add("") }
+    val wt = { r: Int, k: Int -> if (r < 0) 700 else if (k == qk) 700 else 400 } // r = -1: the total row (all bold); td.n bold
+    val minW = heads.indices.map { k ->
+        fun need(t: String, w: Int) = if (k == qk) ink.width(t, fs, w) else t.split(" ").maxOfOrNull { ink.width(it, fs, w) } ?: 0f
+        maxOf(ink.width(heads[k], 11f, 600), data.maxOfOrNull { need(it[k], wt(0, k)) } ?: 0f, need(totRow[k], 700)) + 16
+    }
+    val maxW = heads.indices.map { k -> maxOf(ink.width(heads[k], 11f, 600), data.maxOfOrNull { ink.width(it[k], fs, wt(0, k)) } ?: 0f, ink.width(totRow[k], fs, 700)) + 16 }
+    val widths = shareWidths(minW, maxW, W)
+    val cx = widths.runningFold(0f) { a, w -> a + w }
+    val T = Lay(ink, fs, S_TLH)
+    val thH = 11f * S_TLH + 16
+    val thead = Blk(12 + thH) { p, x, y ->
+        p.ops += FillOp(x, y + 12, W, thH, 0f, S_HEAD)
+        heads.forEachIndexed { k, h -> T.textW(p, h, if (k == qk) x + cx[k + 1] - 8 - ink.width(h, 11f, 600) else x + cx[k] + 8, y + 12 + 8, 11f, 600, S_GREY) }
+    }
+    fun rowBlk(texts: List<String>, r: Int, lineW: Float, lineC: Int): Blk {
+        val cells = texts.indices.map { k -> T.paraW(texts[k], fs, wt(r, k), widths[k] - 16, if (k == qk) 'r' else 'l', nowrap = k == qk) }
+        val inner = cells.maxOf { it.h }
+        return Blk(lineW + inner + 16) { p, x, y ->
+            if (lineW > 0) p.ops += LineOp(x, y + lineW / 2, x + W, y + lineW / 2, lineC, lineW)
+            cells.forEachIndexed { k, b -> b.draw(p, x + cx[k] + 8, y + lineW + 8 + (inner - b.h) / 2) }
+        }
+    }
+    val rows = data.mapIndexed { i, t -> rowBlk(t, i, if (i > 0) 1f else 0f, S_LINE) }
+    val totalRow = rowBlk(totRow, -1, 1.5f, DC_INK)
+
+    // ---- the note (.ivdesc 12.5 px, kept as typed) and the two signature lines (.dchs: 56 px above)
+    val note = if (d.notes.isNotBlank()) L.stack(listOf(8f to L.paraW(d.notes.trim(), 12.5f, 400, W))) else null
+    val half = (W - 30) / 2
+    val signs = Blk(56 + 1 + 4 + 12f * S_LH) { p, x, y ->
+        listOf("Received by (name & signature)", "For $name").forEachIndexed { i, t ->
+            val sx = x + i * (half + 30)
+            L.line(p, sx, y + 56 + 0.5f, sx + half, y + 56 + 0.5f, DC_SIGN)
+            L.textW(p, t, sx, y + 56 + 1 + 4, 12f, 400, DC_GREY)
+        }
+    }
+
+    // ---- pages: as the Simple invoice, a long table goes on with its heading on the next page
+    val pages = mutableListOf<Page>()
+    val top = pm + 6
+    val bottom = o.printHeight - pm - 6
+    var page = Page(pw, ph).also { pages += it }
+    var y = top
+    fun place(b: Blk) {
+        if (y + b.h > bottom && y > top) { page = Page(pw, ph).also { pages += it }; y = top }
+        b.draw(page, x0, y); y += b.h
+    }
+    place(head); place(deliver); place(thead)
+    for (r in rows + totalRow) {
+        if (y + r.h > bottom) { page = Page(pw, ph).also { pages += it }; y = top; place(Blk(thH) { p, x, yy -> thead.draw(p, x, yy - 12) }) }
+        r.draw(page, x0, y); y += r.h
+    }
+    note?.let(::place)
+    place(signs)
     return pages
 }

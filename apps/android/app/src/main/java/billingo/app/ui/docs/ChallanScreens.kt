@@ -151,11 +151,11 @@ fun ChallansScreen(api: Api, onBack: () -> Unit, onOpen: (ChallanRow) -> Unit, o
 /**
  * A challan's page (design 7.4e chview): Goods Sent (quantity and items) with its badge, "Billed in
  * INV-…" (opens the bill), the customer, the items, transport, vehicle and note; Convert To Bill while
- * it is open; ⋮ has Edit Challan and Cancel Challan. Its PDF comes in 8.6d-2.
+ * it is open (Share: its PDF); ⋮ has Edit Challan and Cancel Challan.
  */
 @Composable
 fun ChallanScreen(
-    api: Api, id: String, number: String, version: Int,
+    api: Api, id: String, number: String, version: Int, features: List<String>, itemOptions: kotlinx.serialization.json.JsonObject?,
     onBack: () -> Unit, onParty: (id: String, name: String) -> Unit, onBill: (id: String, number: String) -> Unit,
     onEdit: () -> Unit, onConvert: () -> Unit, onChanged: () -> Unit, onLater: () -> Unit,
 ) {
@@ -169,7 +169,22 @@ fun ChallanScreen(
     var passErr by remember { mutableStateOf<String?>(null) }
     var tries by remember { mutableIntStateOf(0) }
     var busy by remember { mutableStateOf(false) }
+    var sharing by remember { mutableStateOf(false) }
+    var made by remember(id, version) { mutableStateOf<billingo.app.ui.print.InvoicePdf.Made?>(null) }
     val counter = stringResource(R.string.sl_counter_name)
+
+    /** Share (8.6d-2): the challan's PDF, laid out as the web prints it, to Android's Share. */
+    fun share() {
+        if (sharing) return
+        sharing = true
+        scope.launch {
+            val m = made ?: try { billingo.app.ui.print.InvoicePdf.make(ctx, api, id, features, itemOptions).also { made = it } }
+            catch (e: ApiError) { say(ctx, why(ctx, e)); null }
+            catch (e: Exception) { say(ctx, ctx.getString(R.string.pdf_failed)); null }
+            sharing = false
+            if (m != null && !billingo.app.ui.print.InvoicePdf.share(ctx, m)) say(ctx, ctx.getString(R.string.pdf_no_app))
+        }
+    }
 
     fun cancel(passcode: String?) {
         busy = true
@@ -200,7 +215,7 @@ fun ChallanScreen(
             d?.number ?: number, d?.date?.takeIf { it.isNotBlank() }?.let { Format.date(it, hi) }, onBack,
             right = { if (open) IconBtn(Icons.Dots, stringResource(R.string.more_options), { menu = true }) },
             foot = if (!open) null else ({
-                Btn(stringResource(R.string.dv_share), onLater, Modifier.weight(1f), Kind.Soft, Icons.Share)
+                Btn(stringResource(R.string.dv_share), { share() }, Modifier.weight(1f), Kind.Soft, Icons.Share, busy = sharing)
                 Btn(stringResource(R.string.qt_convert), onConvert, Modifier.weight(1f), Kind.Blue)
             }),
         ) {

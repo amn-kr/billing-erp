@@ -33,6 +33,10 @@ data class PDoc(
     val hideNo: Boolean = false, val time: String = "", val mrpWord: String? = null, val hideCols: List<String> = emptyList(),
     /** Settings › General › Show ₹ symbol */
     val showCurrency: Boolean = false,
+    /** 8.6d-2, a delivery challan: its number, the heading's lines ("DC-0012 · 15 Nov 2026", "Billed in INV-0106") and "Transport: …" */
+    val dcNo: String? = null,
+    val dcSub: List<String> = emptyList(),
+    val dcTransport: String = "",
 )
 
 /** What the web's fromSale gets besides the bill: Settings › Items and Transactions, the UPI ID, the party's balance. */
@@ -149,7 +153,11 @@ fun fromSale(v: SaleDoc, o: DocOpts = DocOpts()): PDoc {
         "E-way bill" to (if (g) s("ewb") else ""), "Transport" to s("transport"), "Vehicle / bilty" to s("vehicle"),
         "Delivery date" to (if (s("deliveryDate").isNotEmpty()) PFmt.dmy(s("deliveryDate")) else ""),
     ).filter { it.second.isNotEmpty() }
+    val isDc = v.kind == "challan"
     return PDoc(
+        dcNo = if (isDc) v.number else null,
+        dcSub = if (isDc) listOf("${v.number} · ${PFmt.dmy(v.date)}") + (if (s("invoiceNo").isNotEmpty()) listOf("Billed in ${s("invoiceNo")}") else emptyList()) else emptyList(),
+        dcTransport = if (isDc && (s("transport").isNotEmpty() || s("vehicle").isNotEmpty())) "Transport: " + listOf(s("transport"), s("vehicle")).filter { it.isNotEmpty() }.joinToString(" · ") else "",
         mrpWord = o.words["mrp"], hideCols = o.hideCols, showCurrency = o.showCurrency,
         kind = v.kind, number = v.number, date = v.date, dueDate = v.dueDate, mode = v.mode, taxMode = v.taxMode, placeOfSupply = v.placeOfSupply, cancelled = v.cancelled,
         partyName = if (billTo) v.billName else v.partyName, partyCity = v.party?.city ?: "", partyPhone = v.party?.phone?.takeIf { it.isNotBlank() } ?: v.cashPhone, partyGstin = v.party?.gstin ?: "",
@@ -159,7 +167,7 @@ fun fromSale(v: SaleDoc, o: DocOpts = DocOpts()): PDoc {
             // a batch's MRP is per pack; on a line sold loose the MRP is the loose unit's
             val batchMrps = l.batches.map { b -> if (b.mrp != null && l.looseOf != null) PFmt.r2(PFmt.dec(b.mrp).divide(PFmt.dec(l.looseOf), 20, RoundingMode.HALF_UP)).toPlainString() else b.mrp }
             PLine(
-                batch = if (o.batches) batchPrintLine(l.batches, o.mrp, l.batchUnit.ifBlank { null }, o) else "",
+                batch = if (o.batches && !isDc) batchPrintLine(l.batches, o.mrp, l.batchUnit.ifBlank { null }, o) else "",
                 name = if (l.group.isNotBlank() && l.brand.isNotBlank()) l.group else l.name, code = l.code, hsn = l.hsn, brand = l.brand, series = l.series, cat = l.category, grp = l.group,
                 qty = l.qty, unit = l.unit,
                 mrp = if (o.mrp && l.batches.isNotEmpty()) effectiveMrp(l.mrp, batchMrps)?.setScale(2, RoundingMode.HALF_UP)?.toPlainString() else l.mrp,
@@ -184,6 +192,8 @@ fun effectiveMrp(itemMrp: String?, batchMrps: List<String?>): BigDecimal? {
 fun docTitle(d: PDoc, o: PrintOpts): String {
     fun n(k: String, def: String) = (o.names[k] ?: "").trim().ifEmpty { def }
     if (d.kind == "quotation") return n("estimate", "Quotation")
+    if (d.kind == "challan") return n("challan", "Delivery Challan")
+    if (d.kind == "credit_note") return n("credit", "Credit Note")
     if (d.taxMode == "bos" || (d.taxMode == "none" && o.bos)) return "Bill of Supply"
     return n("sale", if (d.taxMode == "gst") "Tax Invoice" else "Bill")
 }
@@ -226,7 +236,8 @@ fun columns(d: PDoc, o: PrintOpts): List<PCol> {
     }
     return ORDER.filter { k ->
         val x = defs.getValue(k)
-        (o.cols[k]?.on == true) && !(x.gst && !g) && !(x.disc && !anyDisc)
+        // a delivery challan carries no prices
+        (o.cols[k]?.on == true) && !(x.gst && !g) && !(x.disc && !anyDisc) && !(d.kind == "challan" && x.money)
     }.filter { it !in d.hideCols }.map { k ->
         val label = o.cols[k]?.label ?: ""
         PCol(k, if (k == "mrp" && label == "MRP" && d.mrpWord != null) d.mrpWord else label, defs.getValue(k).n, value(k))
